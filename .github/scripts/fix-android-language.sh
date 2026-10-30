@@ -105,6 +105,7 @@ s = s.replace(
 )
 s = s.replace('"arabic" to "العربية (RTL)",', '"arabic" to "العربية",', 1)
 s = s.replace('"arabic" to "العربية (RTL)",', '"arabic" to "Arabic",', 1)
+s = s.replace('"english" to "English (LTR)",', '"english" to "English",')
 loc.write_text(s, encoding="utf-8")
 
 theme = root / "app/src/main/java/com/example/ui/theme/Theme.kt"
