@@ -5,6 +5,7 @@ on:
     paths:
       - "bye-pro-finance.zip"
       - ".github/workflows/android-apk.yml"
+      - ".github/scripts/fix-android-language.sh"
   workflow_dispatch:
 
 permissions:
@@ -28,6 +29,11 @@ jobs:
           test -n "$PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
           echo "Android project: $PROJECT_DIR"
+
+      - name: Apply Arabic-first fixed RTL language behavior
+        shell: bash
+        run: |
+          bash "$GITHUB_WORKSPACE/.github/scripts/fix-android-language.sh" "$PROJECT_DIR"
 
       - name: Package extracted source for inspection
         shell: bash
