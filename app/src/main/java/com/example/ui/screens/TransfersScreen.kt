@@ -127,7 +127,7 @@ fun TransfersScreen(
                         ) {
                             accounts.forEach { acc ->
                                 DropdownMenuItem(
-                                    text = { Text("${TextContent.isolate(acc.name)} - ${WebI18n.money(acc.balance, acc.currency, lang)}") },
+                                    text = { Text("${TextContent.isolate(acc.name)} - ${TextContent.money(acc.balance, acc.currency, lang)}") },
                                     onClick = {
                                         fromAccountId = acc.id
                                         expandedFrom = false
@@ -159,7 +159,7 @@ fun TransfersScreen(
                         ) {
                             accounts.forEach { acc ->
                                 DropdownMenuItem(
-                                    text = { Text("${acc.name} - ${WebI18n.money(acc.balance, acc.currency, lang)}") },
+                                    text = { Text("${acc.name} - ${TextContent.money(acc.balance, acc.currency, lang)}") },
                                     onClick = {
                                         toAccountId = acc.id
                                         expandedTo = false
