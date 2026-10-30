@@ -15,7 +15,7 @@ import java.util.Locale
  * mixed-direction values while the app's visual layout remains RTL.
  */
 object TextContent {
-    private val placeholder = Regex("\\{([A-Za-z][A-Za-z0-9_]*)}")
+    private val placeholder = Regex("""\{([A-Za-z][A-Za-z0-9_]*)\}""")
 
     fun text(
         key: String,
