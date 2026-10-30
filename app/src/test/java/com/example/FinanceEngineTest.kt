@@ -139,6 +139,24 @@ class FinanceEngineTest {
     }
 
     @Test
+    fun netCashFlowIncludesAdjustmentsButExcludesTransfersAndPendingRows() {
+        val transactions = listOf(
+            TransactionEntity(id = 1, accountId = 1, type = TransactionType.INCOME,
+                amount = 100.0, category = "Salary", description = "Income"),
+            TransactionEntity(id = 2, accountId = 1, type = TransactionType.EXPENSE,
+                amount = 40.0, category = "Food", description = "Expense"),
+            TransactionEntity(id = 3, accountId = 1, type = TransactionType.ADJUSTMENT,
+                amount = 5.0, category = "Correction", description = "Positive correction"),
+            TransactionEntity(id = 4, accountId = 1, type = TransactionType.TRANSFER,
+                amount = 50.0, category = "Transfer", description = "Internal transfer"),
+            TransactionEntity(id = 5, accountId = 1, type = TransactionType.ADJUSTMENT,
+                amount = 20.0, category = "Correction", description = "Pending correction",
+                status = TransactionStatus.PENDING)
+        )
+        assertEquals(BigDecimal("65.00"), FinanceEngine.calculateNetCashFlow(transactions))
+    }
+
+    @Test
     fun testRefundScenario() {
         val accountId = 1L
         val startingBalance = BigDecimal("1000.00")
