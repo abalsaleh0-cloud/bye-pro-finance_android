@@ -41,6 +41,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -286,13 +288,63 @@ fun AddAccountDialog(
     var balanceStr by remember { mutableStateOf("") }
     var institution by remember { mutableStateOf("") }
     var accNumber by remember { mutableStateOf("") }
-    var selectedType by remember { mutableStateOf(AccountType.BANK) }
+    var selectedType by remember { mutableStateOf(AccountType.CASH) }
+    var selectedCurrency by remember { mutableStateOf("LYD") }
+    var typeMenuExpanded by remember { mutableStateOf(false) }
+    var currencyMenuExpanded by remember { mutableStateOf(false) }
+
+    fun accountTypeLabel(type: AccountType): String = when (type) {
+        AccountType.CASH -> WebI18n.tr("نقدي", "Cash", lang)
+        AccountType.BANK -> Strings.get("account_type_bank", lang)
+        AccountType.WALLET -> Strings.get("account_type_wallet", lang)
+        AccountType.CREDIT_CARD -> Strings.get("account_type_credit", lang)
+        AccountType.SAVINGS -> Strings.get("account_type_savings", lang)
+        AccountType.INVESTMENT -> Strings.get("account_type_invest", lang)
+        AccountType.OTHER -> WebI18n.tr("أخرى", "Other", lang)
+    }
 
     FinanceAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = Strings.get("add_account", lang), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(Strings.get("account_type", lang), style = MaterialTheme.typography.labelMedium)
+                Box {
+                    OutlinedButton(onClick = { typeMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_type_selector")) {
+                        Text(accountTypeLabel(selectedType))
+                    }
+                    DropdownMenu(expanded = typeMenuExpanded, onDismissRequest = { typeMenuExpanded = false }) {
+                        listOf(AccountType.CASH, AccountType.BANK, AccountType.WALLET, AccountType.CREDIT_CARD, AccountType.INVESTMENT, AccountType.OTHER).forEach { type ->
+                            DropdownMenuItem(
+                                text = { Text(accountTypeLabel(type)) },
+                                onClick = { selectedType = type; typeMenuExpanded = false }
+                            )
+                        }
+                    }
+                }
+                Text(Strings.get("currency", lang), style = MaterialTheme.typography.labelMedium)
+                Box {
+                    OutlinedButton(onClick = { currencyMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_currency_selector")) {
+                        Text(selectedCurrency)
+                    }
+                    DropdownMenu(expanded = currencyMenuExpanded, onDismissRequest = { currencyMenuExpanded = false }) {
+                        listOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD").forEach { currency ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(when (currency) {
+                                        "LYD" -> WebI18n.tr("دينار ليبي (LYD)", "Libyan dinar (LYD)", lang)
+                                        "USD" -> WebI18n.tr("دولار أمريكي (USD)", "US dollar (USD)", lang)
+                                        "EUR" -> WebI18n.tr("يورو (EUR)", "Euro (EUR)", lang)
+                                        "GBP" -> WebI18n.tr("جنيه إسترليني (GBP)", "British pound (GBP)", lang)
+                                        "SYP" -> WebI18n.tr("ليرة سورية (SYP)", "Syrian pound (SYP)", lang)
+                                        else -> WebI18n.tr("دينار أردني (JOD)", "Jordanian dinar (JOD)", lang)
+                                    })
+                                },
+                                onClick = { selectedCurrency = currency; currencyMenuExpanded = false }
+                            )
+                        }
+                    }
+                }
                 FinanceTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -332,6 +384,7 @@ fun AddAccountDialog(
                             AccountEntity(
                                 name = name,
                                 type = selectedType,
+                                currency = selectedCurrency,
                                 balance = bal,
                                 institution = institution,
                                 accountNumberSafe = accNumber
