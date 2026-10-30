@@ -178,7 +178,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             _ocrError.value = null
             aiService.parseReceiptImage(sampleText, imageBase64, _appLanguage.value)
                 .onSuccess { _scannedReceipt.value = it; _ocrError.value = null }
-                .onFailure { _scannedReceipt.value = null; _ocrError.value = it.message ?: "تعذر استخراج بيانات الفاتورة آلياً" }
+                .onFailure { _scannedReceipt.value = null; _ocrError.value = it.message ?: WebI18n.tr("تعذر استخراج بيانات الفاتورة آلياً", "Could not extract receipt data automatically", _appLanguage.value) }
         }
     }
 
