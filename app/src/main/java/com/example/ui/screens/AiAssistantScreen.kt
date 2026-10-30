@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import com.example.finance.engine.FinanceEngine
 import com.example.finance.i18n.Strings
 import com.example.finance.ui.ChatMessage
+import com.example.finance.model.AppLanguage
 import com.example.finance.ui.FinanceViewModel
 
 @Composable
@@ -329,7 +330,7 @@ fun AiAssistantScreen(
 }
 
 @Composable
-fun ChatBubbleItem(message: ChatMessage) {
+fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage) {
     val isUser = message.sender == "USER"
     Row(
         modifier = Modifier.fillMaxWidth(),
