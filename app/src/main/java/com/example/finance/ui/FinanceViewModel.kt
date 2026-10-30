@@ -1,6 +1,7 @@
 package com.example.finance.ui
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.finance.ai.ExtractedReceiptData
@@ -82,7 +83,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         resetWelcomeMessage()
-        viewModelScope.launch { repository.seedInitialDataIfEmpty() }
+        viewModelScope.launch {
+            runCatching { repository.seedInitialDataIfEmpty() }
+                .onFailure { Log.e("BYE_PRO_FINANCE", "Initial local data setup failed; app will remain available", it) }
+        }
     }
 
     private fun resetWelcomeMessage() {
