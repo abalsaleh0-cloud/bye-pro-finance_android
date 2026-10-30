@@ -6,6 +6,8 @@ import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceIconButton
+import com.example.ui.components.FinanceFloatingActionButton
 
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
@@ -104,7 +106,7 @@ fun TransactionsScreen(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
+            FinanceFloatingActionButton(
                 onClick = { showAddDialog = true },
                 containerColor = ByeProTheme.colors.goldPrimary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -342,7 +344,7 @@ fun TransactionItemCard(
                     color = accentColor
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
+                FinanceIconButton(
                     onClick = onDelete,
                     modifier = Modifier.testTag("delete_tx_${transaction.id}")
                 ) {
