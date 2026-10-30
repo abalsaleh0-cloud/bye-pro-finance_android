@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-PROJECT_DIR="\${1:?Android project directory is required}"
+PROJECT_DIR="$1"
+if [[ -z "$PROJECT_DIR" ]]; then echo "Android project directory is required" >&2; exit 2; fi
 python3 - "$PROJECT_DIR" <<'PY'
 from pathlib import Path
 import re, sys
