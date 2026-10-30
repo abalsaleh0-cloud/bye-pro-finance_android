@@ -12,7 +12,7 @@ object WebTranslationContract {
     val stableWebKeys = setOf("dashboard", "accounts", "transactions", "settings")
 
     fun text(key: String, language: AppLanguage): String = when (key) {
-        "dashboard" -> Strings.get("nav_dashboard", language)
+        "dashboard" -> Strings.get("dashboard", language)
         "accounts" -> Strings.get("nav_accounts", language)
         "transactions" -> Strings.get("nav_transactions", language)
         "settings" -> Strings.get("nav_settings", language)
