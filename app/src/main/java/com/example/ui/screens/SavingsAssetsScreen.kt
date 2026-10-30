@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.TextContent
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -139,7 +141,7 @@ fun SavingsAssetsScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = FinanceEngine.formatMoney(netWorth, "SAR"),
+                                    text = TextContent.money(netWorth, "SAR", lang),
                                     style = MaterialTheme.typography.headlineMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = ByeProTheme.colors.financialGreen
@@ -230,7 +232,7 @@ fun SavingsAssetsScreen(
             title = { Text(WebI18n.tr("إيداع في الهدف:", "Contribute to goal:", lang) + " ${target.name}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(WebI18n.tr("المبلغ الحالي:", "Current amount:", lang) + " ${FinanceEngine.formatMoney(target.currentAmount, target.currency)}")
+                    Text(WebI18n.tr("المبلغ الحالي:", "Current amount:", lang) + " ${TextContent.money(target.currentAmount, target.currency, lang)}")
                     FinanceTextField(
                         value = contributeAmountStr,
                         onValueChange = { contributeAmountStr = it },
@@ -350,12 +352,12 @@ fun SavingsGoalCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = WebI18n.tr("المدخر:", "Saved:", lang) + " ${FinanceEngine.formatMoney(progress.current, goal.currency)}",
+                    text = WebI18n.tr("المدخر:", "Saved:", lang) + " ${TextContent.money(progress.current, goal.currency, lang)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = WebI18n.tr("الهدف:", "Target:", lang) + " ${FinanceEngine.formatMoney(progress.target, goal.currency)}",
+                    text = WebI18n.tr("الهدف:", "Target:", lang) + " ${TextContent.money(progress.target, goal.currency, lang)}",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -370,7 +372,7 @@ fun SavingsGoalCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = WebI18n.tr("مطلوب شهرياً:", "Required monthly:", lang) + " ${FinanceEngine.formatMoney(progress.requiredMonthlySaving, goal.currency)}",
+                    text = WebI18n.tr("مطلوب شهرياً:", "Required monthly:", lang) + " ${TextContent.money(progress.requiredMonthlySaving, goal.currency, lang)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = ByeProTheme.colors.goldPrimary
                 )
@@ -423,7 +425,7 @@ fun AssetCardItem(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = FinanceEngine.formatMoney(asset.value, asset.currency),
+                    text = TextContent.money(asset.value, asset.currency, lang),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = ByeProTheme.colors.goldPrimary
