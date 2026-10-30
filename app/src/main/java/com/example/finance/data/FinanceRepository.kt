@@ -88,7 +88,7 @@ class FinanceRepository(
             val account = dao.getAccountById(tx.accountId)
                 ?: throw IllegalArgumentException("Account not found: ${tx.accountId}")
             val txId = dao.insertTransaction(tx)
-            if (tx.status != TransactionStatus.CANCELLED) {
+            if (tx.status == TransactionStatus.COMPLETED) {
                 val currentBal = FinanceEngine.toBigDecimal(account.balance)
                 val txAmount = FinanceEngine.toBigDecimal(tx.amount)
                 val newBal = when (tx.type) {
@@ -107,7 +107,7 @@ class FinanceRepository(
     suspend fun deleteTransaction(tx: TransactionEntity) = withContext(Dispatchers.IO) {
         val operation: suspend () -> Unit = {
             val account = dao.getAccountById(tx.accountId)
-            if (account != null && tx.status != TransactionStatus.CANCELLED) {
+            if (account != null && tx.status == TransactionStatus.COMPLETED) {
                 val currentBal = FinanceEngine.toBigDecimal(account.balance)
                 val txAmount = FinanceEngine.toBigDecimal(tx.amount)
                 // Reverse only posted rows; adjustments are additive deltas.
