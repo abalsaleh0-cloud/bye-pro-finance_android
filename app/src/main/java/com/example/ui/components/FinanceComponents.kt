@@ -151,11 +151,11 @@ fun FinanceAlertDialog(
         title = title,
         text = text,
         shape = RoundedCornerShape(20.dp),
-        colors = AlertDialogDefaults.colors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            titleContentColor = MaterialTheme.colorScheme.onSurface,
-            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-        ),
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        iconContentColor = MaterialTheme.colorScheme.secondary,
+        titleContentColor = MaterialTheme.colorScheme.onSurface,
+        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        tonalElevation = AlertDialogDefaults.TonalElevation,
         properties = properties
     )
 }
