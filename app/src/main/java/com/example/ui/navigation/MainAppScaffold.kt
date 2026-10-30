@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.finance.i18n.LocalAppLanguage
 import com.example.finance.i18n.Strings
+import com.example.finance.i18n.WebI18n
 import com.example.finance.model.AppLanguage
 import com.example.finance.ui.FinanceViewModel
 import com.example.ui.screens.AccountsScreen
@@ -291,7 +292,7 @@ fun MainAppScaffold(
                         selected = currentScreen !in listOf("dashboard", "accounts", "transactions", "budgets"),
                         onClick = { showHubBottomSheet = true },
                         icon = { Icon(Icons.Default.Menu, contentDescription = "Hub Menu") },
-                        label = { Text(if (lang == AppLanguage.AR) "المزيد" else "More", fontSize = 11.sp) },
+                        label = { Text(WebI18n.tr("المزيد", "More", lang), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
                             selectedTextColor = ByeProTheme.colors.goldPrimary,
@@ -349,7 +350,7 @@ fun MainAppScaffold(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = if (lang == AppLanguage.AR) "مركز العمليات المالية (Finance Hub)" else "Financial Hub",
+                    text = WebI18n.tr("مركز العمليات المالية (Finance Hub)", "Financial Hub", lang),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
