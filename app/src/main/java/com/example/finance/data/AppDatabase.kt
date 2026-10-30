@@ -52,9 +52,7 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE household_expenses ADD COLUMN currency TEXT NOT NULL DEFAULT 'LYD'")
-                database.execSQL("UPDATE household_expenses SET currency = 'SAR'")
                 database.execSQL("ALTER TABLE documents ADD COLUMN currency TEXT NOT NULL DEFAULT 'LYD'")
-                database.execSQL("UPDATE documents SET currency = 'SAR'")
             }
         }
 
