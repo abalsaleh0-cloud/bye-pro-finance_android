@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
+
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.background
@@ -125,7 +130,7 @@ fun TransactionsScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // Search field
-                OutlinedTextField(
+                FinanceTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     placeholder = { Text(Strings.get("search_transactions", lang)) },
@@ -231,12 +236,12 @@ fun TransactionsScreen(
     // Delete confirmation dialog
     if (transactionToDelete != null) {
         val target = transactionToDelete!!
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { transactionToDelete = null },
             title = { Text(text = Strings.get("delete", lang)) },
             text = { Text(WebI18n.tr("هل تريد حذف المعاملة", "Delete this transaction", lang) + " '${target.description}' " + WebI18n.tr("وإعادة تعديل رصيد الحساب تلقائياً؟", "and automatically adjust the account balance?", lang)) },
             confirmButton = {
-                Button(
+                FinanceButton(
                     onClick = {
                         viewModel.deleteTransaction(target)
                         transactionToDelete = null
@@ -247,7 +252,7 @@ fun TransactionsScreen(
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { transactionToDelete = null }) {
+                FinanceOutlinedButton(onClick = { transactionToDelete = null }) {
                     Text(Strings.get("cancel", lang))
                 }
             }
@@ -368,7 +373,7 @@ fun AddTransactionDialog(
 
     val categories = listOf("Groceries", "Dining", "Utilities", "Salary", "Shopping", "Health", "Investments", "Transport", "Other")
 
-    AlertDialog(
+    FinanceAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = Strings.get("add_transaction", lang), fontWeight = FontWeight.Bold) },
         text = {
@@ -378,7 +383,7 @@ fun AddTransactionDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Button(
+                    FinanceButton(
                         onClick = { selectedType = TransactionType.EXPENSE },
                         colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                             containerColor = if (selectedType == TransactionType.EXPENSE) ByeProTheme.colors.financialRed else MaterialTheme.colorScheme.surfaceVariant,
@@ -388,7 +393,7 @@ fun AddTransactionDialog(
                     ) {
                         Text(Strings.get("type_expense", lang), fontWeight = FontWeight.Bold)
                     }
-                    Button(
+                    FinanceButton(
                         onClick = { selectedType = TransactionType.INCOME },
                         colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                             containerColor = if (selectedType == TransactionType.INCOME) ByeProTheme.colors.financialGreen else MaterialTheme.colorScheme.surfaceVariant,
@@ -400,7 +405,7 @@ fun AddTransactionDialog(
                     }
                 }
 
-                OutlinedTextField(
+                FinanceTextField(
                     value = amountStr,
                     onValueChange = { amountStr = it },
                     label = { Text(Strings.get("amount", lang)) },
@@ -410,7 +415,7 @@ fun AddTransactionDialog(
                     singleLine = true
                 )
 
-                OutlinedTextField(
+                FinanceTextField(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text(Strings.get("description", lang)) },
@@ -420,7 +425,7 @@ fun AddTransactionDialog(
                     singleLine = true
                 )
 
-                OutlinedTextField(
+                FinanceTextField(
                     value = merchant,
                     onValueChange = { merchant = it },
                     label = { Text(Strings.get("merchant", lang)) },
@@ -447,7 +452,7 @@ fun AddTransactionDialog(
             }
         },
         confirmButton = {
-            Button(
+            FinanceButton(
                 onClick = {
                     val amt = amountStr.toDoubleOrNull() ?: 0.0
                     if (amt > 0.0 && description.isNotBlank()) {
@@ -469,7 +474,7 @@ fun AddTransactionDialog(
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
+            FinanceOutlinedButton(onClick = onDismiss) {
                 Text(Strings.get("cancel", lang))
             }
         }
