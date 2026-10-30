@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -34,6 +34,21 @@ jobs:
         shell: bash
         run: |
           bash "$GITHUB_WORKSPACE/.github/scripts/fix-android-language.sh" "$PROJECT_DIR"
+
+      - name: Persist patched Android source archive
+        shell: bash
+        run: |
+          cd "$PROJECT_DIR"
+          zip -qr "$GITHUB_WORKSPACE/bye-pro-finance.updated.zip" .
+          cd "$GITHUB_WORKSPACE"
+          mv bye-pro-finance.updated.zip bye-pro-finance.zip
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bye-pro-finance.zip
+          if ! git diff --cached --quiet; then
+            git commit -m "fix(android): keep layout RTL when switching languages [skip ci]"
+            git push
+          fi
 
       - name: Package extracted source for inspection
         shell: bash
