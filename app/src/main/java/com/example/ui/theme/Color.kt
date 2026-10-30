@@ -7,16 +7,16 @@ import androidx.compose.ui.graphics.Color
 // ============================================================================
 
 // --- Dark Mode Palette (الوضع الداكن المرجعي) ---
-val DarkBgMain = Color(0xFF0B0A0C)           // خلفية التطبيق (#0B0A0C)
-val DarkSurfaceMain = Color(0xFF111015)      // السطح الرئيسي (#111015)
-val DarkCardMain = Color(0xFF151119)         // البطاقات (#151119)
-val DarkCardSecondary = Color(0xFF1C1721)    // البطاقات الثانوية (#1C1721)
-val DarkHoverInteractive = Color(0xFF211C25) // Hover / التحويم (#211C25)
-val DarkBorderBase = Color(0xFF2A2530)       // الحدود (#2A2530)
+val DarkBgMain = Color(0xFF101114)           // خلفية التطبيق (#0B0A0C)
+val DarkSurfaceMain = Color(0xFF181A1F)      // السطح الرئيسي (#111015)
+val DarkCardMain = Color(0xFF1E1F24)         // البطاقات (#151119)
+val DarkCardSecondary = Color(0xFF1E1F24)    // البطاقات الثانوية (#1C1721)
+val DarkHoverInteractive = Color(0xFF1E1F24) // Hover / التحويم (#211C25)
+val DarkBorderBase = Color(0xFF2B2D34)       // الحدود (#2A2530)
 val DarkBorderProminent = Color(0xFF3A3341)  // الحدود القوية (#3A3341)
-val DarkTextPrimary = Color(0xFFEDE8DE)      // النص الرئيسي (#EDE8DE)
-val DarkTextSecondary = Color(0xFFD8D3CA)    // النص الثانوي (#D8D3CA)
-val DarkTextMuted = Color(0xFF948C7E)        // النص الخافت (#948C7E)
+val DarkTextPrimary = Color(0xFFF1F0EB)      // النص الرئيسي (#EDE8DE)
+val DarkTextSecondary = Color(0xFFA5A7B0)    // النص الثانوي (#D8D3CA)
+val DarkTextMuted = Color(0xFFA5A7B0)        // النص الخافت (#948C7E)
 val DarkTextNeutral = Color(0xFFA5A7B0)      // النص المحايد (#A5A7B0)
 
 // --- Official Gold Accents (اللون الذهبي الرسمي) ---
