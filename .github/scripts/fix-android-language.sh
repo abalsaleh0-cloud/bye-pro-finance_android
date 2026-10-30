@@ -107,6 +107,18 @@ s = s.replace('"arabic" to "العربية (RTL)",', '"arabic" to "العربي�
 s = s.replace('"arabic" to "العربية (RTL)",', '"arabic" to "Arabic",', 1)
 loc.write_text(s, encoding="utf-8")
 
+theme = root / "app/src/main/java/com/example/ui/theme/Theme.kt"
+theme_source = theme.read_text(encoding="utf-8")
+light_marker = "val ByeProLightTokens ="
+if light_marker not in theme_source:
+    raise SystemExit("Light theme token block was not found")
+dark_part, light_part = theme_source.split(light_marker, 1)
+light_part = light_part.replace("goldMuted = GoldMuted,", "goldMuted = LightGoldFeatured,", 1)
+light_part = light_part.replace("goldDark = GoldDark,", "goldDark = LightGoldPrimary,", 1)
+light_part = light_part.replace("financialGreen = FinancialGreen,", "financialGreen = LightStatusSuccess,", 1)
+light_part = light_part.replace("financialRed = FinancialRed,", "financialRed = LightStatusError,", 1)
+theme.write_text(dark_part + light_marker + light_part, encoding="utf-8")
+
 settings = root / "app/src/main/java/com/example/ui/screens/SettingsScreen.kt"
 s = settings.read_text(encoding="utf-8")
 if "import androidx.compose.material3.Switch" not in s:
