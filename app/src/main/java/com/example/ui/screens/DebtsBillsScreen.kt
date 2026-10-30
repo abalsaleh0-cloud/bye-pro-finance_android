@@ -197,10 +197,10 @@ fun DebtsBillsScreen(
 
         AlertDialog(
             onDismissRequest = { debtToPay = null },
-            title = { Text("تسجيل سداد: ${target.name}") },
+            title = { Text(WebI18n.tr("تسجيل سداد:", "Record payment:", lang) + " ${target.name}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("المتبقي الحالي: ${FinanceEngine.formatMoney(target.remaining, target.currency)}")
+                    Text(WebI18n.tr("المتبقي الحالي:", "Current remaining:", lang) + " ${FinanceEngine.formatMoney(target.remaining, target.currency)}")
                     OutlinedTextField(
                         value = payAmountStr,
                         onValueChange = { payAmountStr = it },
@@ -290,7 +290,7 @@ fun DebtItemCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "${debt.creditor} • مرابحة ${debt.interestRate}%",
+                        text = "${debt.creditor} • " + WebI18n.tr("مرابحة", "Profit rate", lang) + " ${debt.interestRate}%",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -338,7 +338,7 @@ fun DebtItemCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "المدة التقديرية للإنهاء: $payoffMonths شهراً",
+                    text = WebI18n.tr("المدة التقديرية للإنهاء:", "Estimated payoff time:", lang) + " $payoffMonths " + WebI18n.tr("شهراً", "months", lang),
                     style = MaterialTheme.typography.labelSmall,
                     color = ByeProTheme.colors.goldPrimary
                 )
@@ -391,7 +391,7 @@ fun BillItemCard(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${bill.category} • الاستحقاق: $dateStr",
+                    text = "${bill.category} • " + WebI18n.tr("الاستحقاق:", "Due:", lang) + " $dateStr",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
