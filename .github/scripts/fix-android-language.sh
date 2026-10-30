@@ -14,7 +14,7 @@ s = re.sub(
     "val layoutDirection = LayoutDirection.Rtl",
     s,
 )
-if "val layoutDirection = LayoutDirection.Rtl" not in s:
+if not any(marker in s for marker in ("val layoutDirection = LayoutDirection.Rtl", "val layoutDirection = WebI18n.layoutDirection()")):
     raise SystemExit("Could not establish fixed RTL layout direction")
 if "Language changes text only;" not in s:
     s = s.replace(
