@@ -191,7 +191,7 @@ if "theme_mode_switch" not in s:
     raise SystemExit("Settings theme switch was not inserted")
 settings.write_text(s, encoding="utf-8")
 
-assert "val layoutDirection = LayoutDirection.Rtl" in scaffold.read_text(encoding="utf-8")
+assert any(marker in scaffold.read_text(encoding="utf-8") for marker in ("val layoutDirection = LayoutDirection.Rtl", "val layoutDirection = WebI18n.layoutDirection()"))
 assert 'preferences.getBoolean("dark_mode", true)' in vm.read_text(encoding="utf-8")
 assert "theme_mode_switch" in settings.read_text(encoding="utf-8")
 assert '"appearance_title" to "Appearance"' in loc.read_text(encoding="utf-8")
