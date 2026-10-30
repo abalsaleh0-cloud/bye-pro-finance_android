@@ -146,7 +146,7 @@ fun BudgetsScreen(
         AlertDialog(
             onDismissRequest = { budgetToDelete = null },
             title = { Text(text = Strings.get("delete", lang)) },
-            text = { Text("هل تريد حذف ميزانية '${target.name}'؟") },
+            text = { Text(WebI18n.tr("هل تريد حذف ميزانية", "Are you sure you want to delete budget", lang) + " '${target.name}'?") },
             confirmButton = {
                 Button(
                     onClick = {
