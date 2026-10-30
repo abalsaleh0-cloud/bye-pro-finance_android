@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
+
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
@@ -128,7 +133,7 @@ fun SmartScanScreen(
                         fontWeight = FontWeight.Bold
                     )
 
-                    Button(
+                    FinanceButton(
                         onClick = {
                             statusMessage = null
                             viewModel.scanReceipt("شركة أسواق التميمي - فرع الرياض\nتاريخ: 2026-10-30\nالمجموع الفرعي: 162.40 ر.س\nالضريبة: 24.35 ر.س\nالإجمالي: 186.75 ر.س")
@@ -144,7 +149,7 @@ fun SmartScanScreen(
                         Text(Strings.get("scan_sample", lang), fontWeight = FontWeight.Bold)
                     }
 
-                    OutlinedButton(
+                    FinanceOutlinedButton(
                         onClick = {
                             statusMessage = null
                             viewModel.scanReceipt("مقهى ومحمصة النخبة\nتاريخ: 2026-10-30\nالضريبة: 8.35 ر.س\nالإجمالي: 64.00 ر.س")
@@ -205,7 +210,7 @@ fun SmartScanScreen(
                             )
                         }
 
-                        OutlinedTextField(
+                        FinanceTextField(
                             value = merchantField,
                             onValueChange = { merchantField = it },
                             label = { Text(Strings.get("extracted_merchant", lang)) },
@@ -218,7 +223,7 @@ fun SmartScanScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            OutlinedTextField(
+                            FinanceTextField(
                                 value = amountField,
                                 onValueChange = { amountField = it },
                                 label = { Text(Strings.get("extracted_amount", lang)) },
@@ -226,7 +231,7 @@ fun SmartScanScreen(
                                     .weight(1f)
                                     .testTag("ocr_amount_input")
                             )
-                            OutlinedTextField(
+                            FinanceTextField(
                                 value = taxField,
                                 onValueChange = { taxField = it },
                                 label = { Text(Strings.get("extracted_tax", lang)) },
@@ -234,7 +239,7 @@ fun SmartScanScreen(
                             )
                         }
 
-                        OutlinedTextField(
+                        FinanceTextField(
                             value = categoryField,
                             onValueChange = { categoryField = it },
                             label = { Text(Strings.get("extracted_category", lang)) },
@@ -251,7 +256,7 @@ fun SmartScanScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Button(
+                            FinanceButton(
                                 onClick = {
                                     val amt = amountField.toDoubleOrNull() ?: 0.0
                                     val tax = taxField.toDoubleOrNull() ?: 0.0
@@ -296,7 +301,7 @@ fun SmartScanScreen(
                                 Text(Strings.get("confirm_and_save", lang), fontWeight = FontWeight.Bold)
                             }
 
-                            OutlinedButton(
+                            FinanceOutlinedButton(
                                 onClick = { viewModel.clearScannedReceipt() }
                             ) {
                                 Text(Strings.get("cancel", lang))
