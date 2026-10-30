@@ -242,7 +242,7 @@ fun SmartScanScreen(
                         )
 
                         Text(
-                            text = "الأصناف: ${scannedReceipt!!.itemsSummary}",
+                            text = WebI18n.tr("الأصناف:", "Items:", lang) + " ${scannedReceipt!!.itemsSummary}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -266,16 +266,16 @@ fun SmartScanScreen(
                                                 amount = amt,
                                                 currency = "SAR",
                                                 category = categoryField,
-                                                description = "فاتورة مشتريات: $merchantField",
+                                                description = WebI18n.tr("فاتورة مشتريات:", "Purchase receipt:", lang) + " $merchantField",
                                                 merchant = merchantField,
-                                                notes = "ضريبة: $tax ر.س - مستخرجة عبر Smart Scan"
+                                                notes = WebI18n.tr("ضريبة:", "Tax:", lang) + " $tax SAR - extracted via Smart Scan"
                                             )
                                         )
 
                                         // 2. Add Document
                                         viewModel.addDocument(
                                             DocumentEntity(
-                                                title = "إيصال: $merchantField",
+                                                title = WebI18n.tr("إيصال:", "Receipt:", lang) + " $merchantField",
                                                 type = DocumentType.RECEIPT,
                                                 merchant = merchantField,
                                                 totalAmount = amt,
@@ -284,7 +284,7 @@ fun SmartScanScreen(
                                             )
                                         )
 
-                                        statusMessage = "تم حفظ الفاتورة وتحديث رصيد الحساب المالي بنجاح ✓"
+                                        statusMessage = WebI18n.tr("تم حفظ الفاتورة وتحديث رصيد الحساب المالي بنجاح ✓", "Receipt saved and account balance updated successfully ✓", lang)
                                         viewModel.clearScannedReceipt()
                                     }
                                 },
@@ -327,7 +327,7 @@ fun SmartScanScreen(
         // Saved Documents History
         item {
             Text(
-                text = "المستندات والإيصالات المحفوظة (${documents.size})",
+                text = WebI18n.tr("المستندات والإيصالات المحفوظة", "Saved documents and receipts", lang) + " (${documents.size})",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -357,7 +357,7 @@ fun SmartScanScreen(
                     ) {
                         Column {
                             Text(doc.title, fontWeight = FontWeight.Bold)
-                            Text("التاجر: ${doc.merchant} • الضريبة: ${FinanceEngine.formatMoney(doc.taxAmount, "SAR")}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(WebI18n.tr("التاجر:", "Merchant:", lang) + " ${doc.merchant} • " + WebI18n.tr("الضريبة:", "Tax:", lang) + " ${FinanceEngine.formatMoney(doc.taxAmount, "SAR")}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(FinanceEngine.formatMoney(doc.totalAmount, "SAR"), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
