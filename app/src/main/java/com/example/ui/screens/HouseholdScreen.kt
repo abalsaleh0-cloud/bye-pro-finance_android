@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.TextContent
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -136,7 +138,7 @@ fun HouseholdScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = FinanceEngine.formatMoney(totalExpenses, "SAR"),
+                            text = TextContent.money(totalExpenses, "SAR", lang),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = ByeProTheme.colors.goldPrimary
@@ -230,7 +232,7 @@ fun HouseholdScreen(
                                 Text(WebI18n.tr("الدافع:", "Paid by:", lang) + " $payerName • ${exp.category}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Text(
-                                FinanceEngine.formatMoney(exp.amount, "SAR"),
+                                TextContent.money(exp.amount, "SAR", lang),
                                 color = ByeProTheme.colors.financialRed,
                                 fontWeight = FontWeight.Bold
                             )
