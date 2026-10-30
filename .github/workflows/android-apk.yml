@@ -3,7 +3,12 @@ name: Build Android APK
 on:
   push:
     paths:
-      - "bye-pro-finance.zip"
+      - "app/**"
+      - "gradle/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "AndroidManifest.xml"
       - ".github/workflows/android-apk.yml"
       - ".github/scripts/fix-android-language.sh"
   workflow_dispatch:
@@ -16,61 +21,31 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout repository
+      - name: Checkout current Android source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Restore verified Android source baseline
+      - name: Verify extracted Android project is the build source
         shell: bash
         run: |
-          git show 50b38bbf7d784a4a7f3d0636e119868dcea61ce7:bye-pro-finance.zip > bye-pro-finance.zip
-          unzip -tq bye-pro-finance.zip
-
-      - name: Extract Android project
-        shell: bash
-        run: |
-          test -f bye-pro-finance.zip
-          mkdir -p source
-          unzip -q bye-pro-finance.zip -d source
-          PROJECT_DIR="$(find source -name settings.gradle.kts -print -quit | xargs dirname)"
-          test -n "$PROJECT_DIR"
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-          echo "Android project: $PROJECT_DIR"
+          test -f settings.gradle.kts
+          test -f app/build.gradle.kts
+          echo "PROJECT_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+          echo "Using canonical Android source: $GITHUB_WORKSPACE"
 
       - name: Apply Arabic-first fixed RTL language behavior
         shell: bash
         run: |
           bash "$GITHUB_WORKSPACE/.github/scripts/fix-android-language.sh" "$PROJECT_DIR"
 
-      - name: Persist patched Android source archive
+      - name: Verify language implementation
         shell: bash
         run: |
-          cd "$PROJECT_DIR"
-          zip -qr "$GITHUB_WORKSPACE/bye-pro-finance.updated.zip" .
-          cd "$GITHUB_WORKSPACE"
-          mv bye-pro-finance.updated.zip bye-pro-finance.zip
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add bye-pro-finance.zip
-          if ! git diff --cached --quiet; then
-            git commit -m "feat(android): Arabic-first RTL and complete brand themes [skip ci]"
-            git push
-          fi
-
-      - name: Package extracted source for inspection
-        shell: bash
-        run: |
-          cd "$(dirname "$PROJECT_DIR")"
-          zip -qr "$GITHUB_WORKSPACE/android-source-inspection.zip" "$(basename "$PROJECT_DIR")"
-
-      - name: Upload extracted Android source
-        uses: actions/upload-artifact@v4
-        with:
-          name: BYE-PRO-FINANCE-Android-Source
-          path: android-source-inspection.zip
-          if-no-files-found: error
-          retention-days: 3
+          grep -q 'val layoutDirection = LayoutDirection.Rtl' app/src/main/java/com/example/ui/navigation/MainAppScaffold.kt
+          grep -q 'preferences.getString("locale", "ar")' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          grep -q 'putString("locale"' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          echo "PASS: Arabic default, persisted locale, fixed RTL layout."
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -93,6 +68,13 @@ jobs:
           keytool -genkeypair -v -keystore debug.keystore -storepass android \
             -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
             -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Run unit tests
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: "9.3.1"
+          build-root-directory: ${{ env.PROJECT_DIR }}
+          arguments: testDebugUnitTest --stacktrace
 
       - name: Build debug APK
         uses: gradle/gradle-build-action@v3
