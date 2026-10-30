@@ -143,7 +143,7 @@ fun HouseholdScreen(
             // Members
             item {
                 Text(
-                    text = "أفراد الأسرة المشاركون (${members.size})",
+                    text = WebI18n.tr("أفراد الأسرة المشاركون", "Participating household members", lang) + " (${members.size})",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -179,7 +179,7 @@ fun HouseholdScreen(
                             }
                         }
                         Text(
-                            text = "نسبة المشاركة: ${m.contributionPercent.toInt()}%",
+                            text = WebI18n.tr("نسبة المشاركة:", "Contribution:", lang) + " ${m.contributionPercent.toInt()}%",
                             style = MaterialTheme.typography.bodySmall,
                             color = ByeProTheme.colors.financialGreen,
                             fontWeight = FontWeight.Bold
@@ -222,7 +222,7 @@ fun HouseholdScreen(
                         ) {
                             Column {
                                 Text(exp.title, fontWeight = FontWeight.Bold)
-                                Text("الدافع: $payerName • ${exp.category}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(WebI18n.tr("الدافع:", "Paid by:", lang) + " $payerName • ${exp.category}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Text(
                                 FinanceEngine.formatMoney(exp.amount, "SAR"),
