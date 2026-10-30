@@ -34,16 +34,16 @@ val PositiveDarkGreen = StatusSuccessDark
 val WarningDarkRed = StatusErrorDark
 
 // --- Light Mode Palette (الوضع الفاتح المرجعي) ---
-val LightBgMain = Color(0xFFF5F3EF)          // خلفية التطبيق (#F5F3EF)
+val LightBgMain = Color(0xFFF4F5F7)          // خلفية التطبيق (#F5F3EF)
 val LightSurfaceMain = Color(0xFFFFFFFF)     // السطح الرئيسي (#FFFFFF)
-val LightSurfaceSecondary = Color(0xFFFBFAF7)// السطح الثانوي (#FBFAF7)
-val LightCardSecondary = Color(0xFFF1EEE8)   // البطاقات الثانوية (#F1EEE8)
-val LightHoverInteractive = Color(0xFFE9E5DD)// Hover / التحويم (#E9E5DD)
-val LightBorderBase = Color(0xFFD9D4CA)      // الحدود (#D9D4CA)
-val LightBorderProminent = Color(0xFFC8C1B5) // الحدود القوية (#C8C1B5)
-val LightTextPrimary = Color(0xFF202020)     // النص الرئيسي (#202020)
-val LightTextSecondary = Color(0xFF303030)   // النص الثانوي (#303030)
-val LightTextMuted = Color(0xFF6B665D)       // النص الخافت (#6B665D)
+val LightSurfaceSecondary = Color(0xFFF0F1F4)// السطح الثانوي (#FBFAF7)
+val LightCardSecondary = Color(0xFFF0F1F4)   // البطاقات الثانوية (#F1EEE8)
+val LightHoverInteractive = Color(0xFFF2F3F5)// Hover / التحويم (#E9E5DD)
+val LightBorderBase = Color(0xFFD9DCE3)      // الحدود (#D9D4CA)
+val LightBorderProminent = Color(0xFFCBD0D9) // الحدود القوية (#C8C1B5)
+val LightTextPrimary = Color(0xFF20232A)     // النص الرئيسي (#202020)
+val LightTextSecondary = Color(0xFF414651)   // النص الثانوي (#303030)
+val LightTextMuted = Color(0xFF626875)       // النص الخافت (#6B665D)
 val LightGoldPrimary = Color(0xFF8A671D)     // الذهبي الأساسي الفاتح (#8A671D)
 val LightGoldFeatured = Color(0xFFA67C12)    // الذهبي المميز الفاتح (#A67C12)
 val LightStatusSuccess = Color(0xFF16794A)   // النجاح الفاتح (#16794A)
@@ -56,8 +56,8 @@ val DarkFieldBorder = Color(0xFF363740)      // Dark Field Border (#363740)
 val DarkFieldFocus = GoldPrimary             // Dark Field Focus (#D6B56D)
 
 val LightFieldBg = Color(0xFFFFFFFF)         // Light Field Background (#FFFFFF)
-val LightFieldText = Color(0xFF202020)       // Light Field Text (#202020)
-val LightFieldBorder = Color(0xFFC8C9CF)     // Light Field Border (#C8C9CF)
+val LightFieldText = Color(0xFF20232A)       // Light Field Text (#202020)
+val LightFieldBorder = Color(0xFFCBD0D9)     // Light Field Border (#C8C9CF)
 val LightFieldFocus = LightGoldFeatured      // Light Field Focus (#A67C12)
 
 // --- Logo Spec Colors (شعار BYE PRO FINANCE) ---
