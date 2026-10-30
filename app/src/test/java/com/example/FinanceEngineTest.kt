@@ -103,7 +103,7 @@ class FinanceEngineTest {
         )
         val postedExpense = TransactionEntity(
             id = 3, accountId = accountId, type = TransactionType.EXPENSE,
-            amount = 50.0, category = "Dining", description = "Posted expense"
+            amount = 50.0, currency = "LYD", category = "Dining", description = "Posted expense"
         )
         val transactions = listOf(pendingIncome, pendingExpense, postedExpense)
         val budget = BudgetEntity(
