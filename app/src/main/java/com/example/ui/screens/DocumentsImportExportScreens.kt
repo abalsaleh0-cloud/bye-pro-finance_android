@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -41,6 +45,7 @@ import com.example.ui.components.FinanceOutlinedButton
 fun DocumentsScreen(viewModel: FinanceViewModel) {
     val lang by viewModel.appLanguage.collectAsState()
     val documents by viewModel.documents.collectAsState()
+    val context = LocalContext.current
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -86,6 +91,20 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.primary
                             )
+                        }
+                        if (document.fileUri.isNotBlank()) {
+                            IconButton(onClick = {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW).apply {
+                                            setDataAndType(Uri.parse(document.fileUri), "image/*")
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                    )
+                                }
+                            }) {
+                                Icon(Icons.Default.Visibility, contentDescription = WebI18n.tr("عرض المستند", "View document", lang))
+                            }
                         }
                         IconButton(onClick = { viewModel.deleteDocument(document) }) {
                             Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف المستند", "Delete document", lang))

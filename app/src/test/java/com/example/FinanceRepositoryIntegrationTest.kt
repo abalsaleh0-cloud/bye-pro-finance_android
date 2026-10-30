@@ -8,6 +8,8 @@ import com.example.finance.data.FinanceRepository
 import com.example.finance.engine.FinanceEngine
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
+import com.example.finance.model.BillEntity
+import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
 import com.example.finance.model.TransactionStatus
@@ -177,6 +179,38 @@ class FinanceRepositoryIntegrationTest {
             assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
             assertTrue(repository.transactions.first().isEmpty())
         }
+    }
+
+    @Test
+    fun billPaymentCurrencyMismatchDoesNotMarkBillPaidOrChangeBalance() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "LYD account", type = AccountType.CASH, balance = 100.0, currency = "LYD")
+        )
+        repository.addBill(
+            BillEntity(name = "USD bill", category = "Utilities", amount = 20.0, currency = "USD", dueDate = System.currentTimeMillis())
+        )
+        val billId = db.financeDao().getAllBills().first().single().id
+
+        assertFalse(repository.markBillPaid(billId, accountId))
+        assertFalse(db.financeDao().getAllBills().first().single().isPaid)
+        assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertTrue(repository.transactions.first().isEmpty())
+    }
+
+    @Test
+    fun savingsContributionCurrencyMismatchDoesNotChangeGoalOrBalance() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "LYD account", type = AccountType.CASH, balance = 100.0, currency = "LYD")
+        )
+        repository.addSavingsGoal(
+            SavingsGoalEntity(name = "USD goal", targetAmount = 500.0, currency = "USD", deadline = System.currentTimeMillis() + 86400000)
+        )
+        val goalId = db.financeDao().getAllSavingsGoals().first().single().id
+
+        assertFalse(repository.contributeToSavings(goalId, 25.0, accountId))
+        assertEquals(0.0, db.financeDao().getAllSavingsGoals().first().single().currentAmount, 0.001)
+        assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertTrue(repository.transactions.first().isEmpty())
     }
 
     @Test

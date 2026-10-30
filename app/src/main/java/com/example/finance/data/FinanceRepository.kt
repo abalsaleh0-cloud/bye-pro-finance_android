@@ -267,6 +267,10 @@ class FinanceRepository(
     suspend fun restoreFromJson(backupJson: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val root = org.json.JSONObject(backupJson)
+            if (root.optString("entity") == "transactions") {
+                importTransactions(FinanceExportService.transactionsFromJson(backupJson))
+                return@withContext true
+            }
             val accountsArray = root.optJSONArray("accounts")
             if (accountsArray != null) {
                 for (i in 0 until accountsArray.length()) {
@@ -329,23 +333,37 @@ class FinanceRepository(
         logAudit("CREATE", "Bill", "Created bill ${bill.name} (${bill.amount} ${bill.currency})")
     }
 
-    suspend fun markBillPaid(billId: Long, accountId: Long) = withContext(Dispatchers.IO) {
-        val allBills = dao.getAllBills().firstOrNull() ?: emptyList()
-        val bill = allBills.find { it.id == billId } ?: return@withContext
-        dao.updateBill(bill.copy(isPaid = true))
+    suspend fun markBillPaid(billId: Long, accountId: Long): Boolean = withContext(Dispatchers.IO) {
+        val operation: suspend () -> Boolean = operation@{
+            val bill = (dao.getAllBills().firstOrNull() ?: emptyList()).find { it.id == billId }
+                ?: return@operation false
+            if (bill.isPaid) return@operation true
+            val account = dao.getAccountById(accountId) ?: return@operation false
+            if (!bill.amount.isFinite() || bill.amount <= 0.0 ||
+                !bill.currency.equals(account.currency, ignoreCase = true) ||
+                !account.balance.isFinite() || account.balance < bill.amount
+            ) return@operation false
 
-        // Create transaction
-        addTransaction(
-            TransactionEntity(
-                accountId = accountId,
-                type = TransactionType.EXPENSE,
-                amount = bill.amount,
-                currency = bill.currency,
-                category = bill.category,
-                description = "Bill payment: ${bill.name}"
+            dao.insertTransaction(
+                TransactionEntity(
+                    accountId = accountId,
+                    type = TransactionType.EXPENSE,
+                    amount = bill.amount,
+                    currency = bill.currency,
+                    category = bill.category,
+                    description = "Bill payment: ${bill.name}"
+                )
             )
-        )
-        logAudit("PAYMENT", "Bill", "Marked bill ${bill.name} as paid")
+            dao.updateAccountBalance(
+                accountId,
+                FinanceEngine.toBigDecimal(account.balance)
+                    .subtract(FinanceEngine.toBigDecimal(bill.amount)).toDouble()
+            )
+            dao.updateBill(bill.copy(isPaid = true))
+            logAudit("PAYMENT", "Bill", "Marked bill ${bill.name} as paid")
+            true
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun deleteBill(bill: BillEntity) = withContext(Dispatchers.IO) {
@@ -359,23 +377,38 @@ class FinanceRepository(
         logAudit("CREATE", "Savings", "Created savings goal ${goal.name}")
     }
 
-    suspend fun contributeToSavings(goalId: Long, amount: Double, accountId: Long) = withContext(Dispatchers.IO) {
-        val allGoals = dao.getAllSavingsGoals().firstOrNull() ?: emptyList()
-        val goal = allGoals.find { it.id == goalId } ?: return@withContext
-        val newAmount = goal.currentAmount + amount
-        dao.updateSavingsGoal(goal.copy(currentAmount = newAmount))
+    suspend fun contributeToSavings(goalId: Long, amount: Double, accountId: Long): Boolean = withContext(Dispatchers.IO) {
+        val operation: suspend () -> Boolean = operation@{
+            val goal = (dao.getAllSavingsGoals().firstOrNull() ?: emptyList()).find { it.id == goalId }
+                ?: return@operation false
+            val account = dao.getAccountById(accountId) ?: return@operation false
+            if (!amount.isFinite() || amount <= 0.0 ||
+                !goal.currency.equals(account.currency, ignoreCase = true) ||
+                !account.balance.isFinite() || account.balance < amount
+            ) return@operation false
+            val updatedGoalAmount = goal.currentAmount + amount
+            if (!updatedGoalAmount.isFinite()) return@operation false
 
-        addTransaction(
-            TransactionEntity(
-                accountId = accountId,
-                type = TransactionType.EXPENSE,
-                amount = amount,
-                currency = goal.currency,
-                category = "Savings",
-                description = "Contribution to goal: ${goal.name}"
+            dao.insertTransaction(
+                TransactionEntity(
+                    accountId = accountId,
+                    type = TransactionType.EXPENSE,
+                    amount = amount,
+                    currency = goal.currency,
+                    category = "Savings",
+                    description = "Contribution to goal: ${goal.name}"
+                )
             )
-        )
-        logAudit("CONTRIBUTION", "Savings", "Added $amount to goal ${goal.name}")
+            dao.updateAccountBalance(
+                accountId,
+                FinanceEngine.toBigDecimal(account.balance)
+                    .subtract(FinanceEngine.toBigDecimal(amount)).toDouble()
+            )
+            dao.updateSavingsGoal(goal.copy(currentAmount = updatedGoalAmount))
+            logAudit("CONTRIBUTION", "Savings", "Added $amount to goal ${goal.name}")
+            true
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun deleteSavingsGoal(goal: SavingsGoalEntity) = withContext(Dispatchers.IO) {

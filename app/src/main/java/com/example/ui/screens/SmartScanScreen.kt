@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import android.util.Base64
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
@@ -51,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -71,6 +77,8 @@ fun SmartScanScreen(
     val documents by viewModel.documents.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val primaryCurrency by viewModel.primaryCurrency.collectAsState()
+    val context = LocalContext.current
+    var selectedReceiptUri by remember { mutableStateOf<String?>(null) }
 
     var statusMessage by remember { mutableStateOf<String?>(null) }
 
@@ -81,6 +89,29 @@ fun SmartScanScreen(
     var categoryField by remember(scannedReceipt) { mutableStateOf(scannedReceipt?.category ?: "Groceries") }
 
     val ocrError by viewModel.ocrError.collectAsState()
+
+    val receiptPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching {
+                runCatching {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                }
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: error("Unable to read the selected receipt image")
+                require(bytes.isNotEmpty() && bytes.size <= 10 * 1024 * 1024) {
+                    "Receipt image must be between 1 byte and 10 MB"
+                }
+                selectedReceiptUri = uri.toString()
+                statusMessage = WebI18n.tr("جارٍ تحليل صورة الإيصال…", "Analyzing receipt image…", lang)
+                viewModel.scanReceipt(imageBase64 = Base64.encodeToString(bytes, Base64.NO_WRAP))
+            }.onFailure {
+                statusMessage = WebI18n.tr("تعذر فتح صورة الإيصال: ", "Could not open receipt image: ", lang) + (it.message ?: "")
+            }
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -137,6 +168,20 @@ fun SmartScanScreen(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
+
+                    FinanceButton(
+                        onClick = {
+                            statusMessage = null
+                            receiptPicker.launch(arrayOf("image/jpeg", "image/png", "image/webp"))
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth().testTag("pick_receipt_image_btn")
+                    ) {
+                        Icon(Icons.Default.Receipt, contentDescription = null)
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(WebI18n.tr("اختيار صورة إيصال", "Choose receipt image", lang), fontWeight = FontWeight.Bold)
+                    }
 
                     FinanceButton(
                         onClick = {
@@ -290,10 +335,12 @@ fun SmartScanScreen(
                                                 totalAmount = amt,
                                                 taxAmount = tax,
                                                 currency = selectedAccount.currency,
+                                                fileUri = selectedReceiptUri.orEmpty(),
                                                 notes = scannedReceipt!!.itemsSummary
                                             )
                                         )
                                         statusMessage = WebI18n.tr("تم حفظ الفاتورة وتحديث رصيد الحساب المالي بنجاح ✓", "Receipt saved and account balance updated successfully ✓", lang)
+                                        selectedReceiptUri = null
                                         viewModel.clearScannedReceipt()
                                     } else if (selectedAccount != null && !currencyMatches) {
                                         statusMessage = WebI18n.tr(
