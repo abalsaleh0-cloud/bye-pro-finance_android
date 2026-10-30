@@ -158,12 +158,11 @@ class FinanceRepository(
                 throw IllegalStateException("Insufficient funds: balance $fromBalance < deduction $totalDeduction")
             }
 
-            // Calculate destination credit amount handling potential currency differences
-            val creditAmount = if (fromAcc.currency.equals(toAcc.currency, ignoreCase = true)) {
-                transferAmount
-            } else {
-                FinanceEngine.convertCurrency(transferAmount, fromAcc.currency, toAcc.currency)
+            // The web ledger keeps currencies separate; do not apply guessed FX rates.
+            require(fromAcc.currency.equals(toAcc.currency, ignoreCase = true)) {
+                "Cross-currency transfers require a verified exchange-rate source"
             }
+            val creditAmount = transferAmount
 
             val newFromBal = fromBalance.subtract(totalDeduction)
             val newToBal = toBalance.add(creditAmount)
@@ -241,7 +240,7 @@ class FinanceRepository(
                             id = obj.optLong("id", 0L),
                             name = obj.getString("name"),
                             type = AccountType.valueOf(obj.getString("type")),
-                            currency = obj.optString("currency", "SAR"),
+                            currency = obj.optString("currency", "LYD"),
                             balance = obj.getDouble("balance"),
                             accountNumberSafe = obj.optString("accountNumberSafe", ""),
                             institution = obj.optString("institution", "")
