@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.TextContent
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -106,7 +108,7 @@ fun AccountsScreen(
                 Spacer(modifier = Modifier.height(4.dp))
                 val totalLiquid = accounts.sumOf { if (!it.isArchived) it.balance else 0.0 }
                 Text(
-                    text = "${Strings.get("total_balance", lang)}: ${FinanceEngine.formatMoney(totalLiquid, "SAR")}",
+                    text = "${Strings.get("total_balance", lang)}: ${TextContent.money(totalLiquid, "SAR", lang)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = ByeProTheme.colors.financialGreen,
                     fontWeight = FontWeight.SemiBold
@@ -261,7 +263,7 @@ fun AccountDetailedCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = FinanceEngine.formatMoney(account.balance, account.currency),
+                    text = TextContent.money(account.balance, account.currency, lang),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = ByeProTheme.colors.financialGreen
