@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.TextContent
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -334,7 +336,7 @@ fun TransactionItemCard(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "$sign${FinanceEngine.formatMoney(transaction.amount, transaction.currency)}",
+                    text = "$sign${TextContent.money(transaction.amount, transaction.currency, lang)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = accentColor
