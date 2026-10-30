@@ -1,10 +1,27 @@
 package com.example.ui.theme
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** BYE PRO FINANCE design tokens aligned with packages/ui/src/tokens.css on Web. */
+/**
+ * Android source-of-truth for the design values defined in
+ * packages/ui/src/tokens.css in the BYE PRO FINANCE web repository.
+ * Keep these values in sync with the web tokens.
+ */
 object ByeProDesignTokens {
+    object Colors {
+        val background = Color(0xFF101114)
+        val surface = Color(0xFF181A1F)
+        val surfaceRaised = Color(0xFF1E1F24)
+        val border = Color(0xFF2B2D34)
+        val text = Color(0xFFF1F0EB)
+        val muted = Color(0xFFA5A7B0)
+        val accent = Color(0xFFD6B56D)
+        val success = Color(0xFF67D6A1)
+        val danger = Color(0xFFFF8585)
+    }
+
     object Spacing {
         val xs = 4.dp
         val sm = 8.dp
@@ -25,6 +42,17 @@ object ByeProDesignTokens {
     object Control {
         val height = 44.dp
         val contentMaxWidth = 1440.dp
+        val focusRingWidth = 3.dp
+    }
+
+    object Breakpoints {
+        val xs = 360.dp
+        val sm = 480.dp
+        val md = 640.dp
+        val lg = 768.dp
+        val xl = 1024.dp
+        val xxl = 1280.dp
+        val xxxl = 1536.dp
     }
 
     object Typography {
@@ -38,5 +66,6 @@ object ByeProDesignTokens {
     object Shadow {
         const val smallAlpha = 0.14f
         const val mediumAlpha = 0.20f
+        const val focusRingAlpha = 0.32f
     }
 }
