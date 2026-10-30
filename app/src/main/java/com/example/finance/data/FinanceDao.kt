@@ -107,6 +107,9 @@ interface FinanceDao {
     @Query("SELECT * FROM bills ORDER BY dueDate ASC")
     fun getAllBills(): Flow<List<BillEntity>>
 
+    @Query("SELECT * FROM bills WHERE id = :id LIMIT 1")
+    suspend fun getBillById(id: Long): BillEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBill(bill: BillEntity): Long
 
@@ -119,6 +122,9 @@ interface FinanceDao {
     // --- Savings ---
     @Query("SELECT * FROM savings_goals ORDER BY deadline ASC")
     fun getAllSavingsGoals(): Flow<List<SavingsGoalEntity>>
+
+    @Query("SELECT * FROM savings_goals WHERE id = :id LIMIT 1")
+    suspend fun getSavingsGoalById(id: Long): SavingsGoalEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSavingsGoal(goal: SavingsGoalEntity): Long

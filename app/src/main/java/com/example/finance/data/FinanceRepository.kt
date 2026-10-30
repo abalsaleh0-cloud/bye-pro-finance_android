@@ -335,7 +335,7 @@ class FinanceRepository(
 
     suspend fun markBillPaid(billId: Long, accountId: Long): Boolean = withContext(Dispatchers.IO) {
         val operation: suspend () -> Boolean = operation@{
-            val bill = (dao.getAllBills().firstOrNull() ?: emptyList()).find { it.id == billId }
+            val bill = dao.getBillById(billId)
                 ?: return@operation false
             if (bill.isPaid) return@operation true
             val account = dao.getAccountById(accountId) ?: return@operation false
@@ -379,7 +379,7 @@ class FinanceRepository(
 
     suspend fun contributeToSavings(goalId: Long, amount: Double, accountId: Long): Boolean = withContext(Dispatchers.IO) {
         val operation: suspend () -> Boolean = operation@{
-            val goal = (dao.getAllSavingsGoals().firstOrNull() ?: emptyList()).find { it.id == goalId }
+            val goal = dao.getSavingsGoalById(goalId)
                 ?: return@operation false
             val account = dao.getAccountById(accountId) ?: return@operation false
             if (!amount.isFinite() || amount <= 0.0 ||
