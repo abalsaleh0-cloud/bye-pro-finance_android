@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
+
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
@@ -106,7 +111,7 @@ fun ReportsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Button(
+                FinanceButton(
                     onClick = {
                         exportTitle = WebI18n.tr("تقرير المعاملات المالي (CSV Export)", "Financial transaction report (CSV Export)", lang)
                         exportModalData = viewModel.generateCsvExport()
@@ -122,7 +127,7 @@ fun ReportsScreen(
                     Text(Strings.get("export_csv", lang), fontWeight = FontWeight.Bold)
                 }
 
-                Button(
+                FinanceButton(
                     onClick = {
                         exportTitle = WebI18n.tr("التقرير المالي التنفيذي (JSON Export)", "Executive financial report (JSON Export)", lang)
                         exportModalData = viewModel.generateJsonExport()
@@ -254,7 +259,7 @@ fun ReportsScreen(
 
     // Export preview dialog
     if (exportModalData != null) {
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { exportModalData = null },
             title = { Text(exportTitle, fontWeight = FontWeight.Bold) },
             text = {
@@ -281,7 +286,7 @@ fun ReportsScreen(
                 }
             },
             confirmButton = {
-                Button(onClick = { exportModalData = null }) {
+                FinanceButton(onClick = { exportModalData = null }) {
                     Text(Strings.get("confirm", lang))
                 }
             }
