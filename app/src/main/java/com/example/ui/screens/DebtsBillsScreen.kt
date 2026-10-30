@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -126,7 +127,7 @@ fun DebtsBillsScreen(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Text(
-                                    text = "لا توجد ديون أو التزامات قائمة. وضعك المالي حر تماماً!",
+                                    text = WebI18n.tr("لا توجد ديون أو التزامات قائمة. وضعك المالي حر تماماً!", "No outstanding debts or liabilities. You are debt-free!", lang),
                                     modifier = Modifier.padding(24.dp),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -159,7 +160,7 @@ fun DebtsBillsScreen(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Text(
-                                    text = "لا توجد فواتير دورية مسجلة حالياً.",
+                                    text = WebI18n.tr("لا توجد فواتير دورية مسجلة حالياً.", "No recurring bills recorded.", lang),
                                     modifier = Modifier.padding(24.dp),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -192,7 +193,7 @@ fun DebtsBillsScreen(
     if (debtToPay != null) {
         val target = debtToPay!!
         var payAmountStr by remember { mutableStateOf(target.minimumPayment.toString()) }
-        var payNotes by remember { mutableStateOf("دفعة سداد شهرية") }
+        var payNotes by remember { mutableStateOf(WebI18n.tr("دفعة سداد شهرية", "Monthly debt payment", lang)) }
 
         AlertDialog(
             onDismissRequest = { debtToPay = null },
@@ -203,13 +204,13 @@ fun DebtsBillsScreen(
                     OutlinedTextField(
                         value = payAmountStr,
                         onValueChange = { payAmountStr = it },
-                        label = { Text("مبلغ السداد") },
+                        label = { Text(WebI18n.tr("مبلغ السداد", "Payment amount", lang)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = payNotes,
                         onValueChange = { payNotes = it },
-                        label = { Text("ملاحظات") },
+                        label = { Text(WebI18n.tr("ملاحظات", "Notes", lang)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -311,7 +312,7 @@ fun DebtItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text("المتبقي للسداد", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(WebI18n.tr("المتبقي للسداد", "Remaining to pay", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         FinanceEngine.formatMoney(debt.remaining, debt.currency),
                         style = MaterialTheme.typography.titleMedium,
@@ -320,7 +321,7 @@ fun DebtItemCard(
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("القسط الشهري", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(WebI18n.tr("القسط الشهري", "Monthly installment", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         FinanceEngine.formatMoney(debt.minimumPayment, debt.currency),
                         style = MaterialTheme.typography.titleMedium,
@@ -415,7 +416,7 @@ fun BillItemCard(
                     }
                 } else {
                     Text(
-                        text = "مدفوعة ✓",
+                        text = WebI18n.tr("مدفوعة ✓", "Paid ✓", lang),
                         color = ByeProTheme.colors.financialGreen,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodySmall
@@ -453,7 +454,7 @@ fun AddDebtDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("اسم التمويل / القرض") },
+                    label = { Text(WebI18n.tr("اسم التمويل / القرض", "Financing / loan name", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -523,7 +524,7 @@ fun AddBillDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("اسم الفاتورة") },
+                    label = { Text(WebI18n.tr("اسم الفاتورة", "Bill name", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
