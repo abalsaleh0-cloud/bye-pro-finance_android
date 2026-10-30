@@ -91,6 +91,9 @@ interface FinanceDao {
     @Query("SELECT * FROM debts ORDER BY dueDate ASC")
     fun getAllDebts(): Flow<List<DebtEntity>>
 
+    @Query("SELECT * FROM debts WHERE id = :id LIMIT 1")
+    suspend fun getDebtById(id: Long): DebtEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDebt(debt: DebtEntity): Long
 

@@ -111,8 +111,13 @@ class FinanceRepository(
     suspend fun importTransactions(rows: List<TransactionEntity>): Int = withContext(Dispatchers.IO) {
         require(rows.isNotEmpty()) { "The import file contains no transactions" }
         val operation: suspend () -> Int = {
+            val existing = dao.getAllTransactionsSnapshot()
+                .mapTo(mutableSetOf()) { it.copy(id = 0L) }
+            var importedCount = 0
             rows.forEach { source ->
                 val tx = source.copy(id = 0L)
+                // Stable entity equality prevents importing the same export twice and double-posting balances.
+                if (!existing.add(tx)) return@forEach
                 require(tx.amount.isFinite() && tx.amount > 0.0) { "Imported transaction amount must be finite and positive" }
                 val account = dao.getAccountById(tx.accountId)
                     ?: throw IllegalArgumentException("Imported transaction references a missing account: ${tx.accountId}")
@@ -129,9 +134,12 @@ class FinanceRepository(
                     }
                     dao.updateAccountBalance(account.id, updated.toDouble())
                 }
+                importedCount++
             }
-            logAudit("IMPORT", "Transactions", "Imported ${rows.size} transactions")
-            rows.size
+            if (importedCount > 0) {
+                logAudit("IMPORT", "Transactions", "Imported $importedCount transactions")
+            }
+            importedCount
         }
         if (db != null) db.withTransaction { operation() } else operation()
     }
@@ -171,32 +179,29 @@ class FinanceRepository(
         description: String,
         reference: String
     ): Boolean = withContext(Dispatchers.IO) {
-        require(amount > 0.0) { "Transfer amount must be positive" }
-        require(fee >= 0.0) { "Transfer fee cannot be negative" }
+        require(amount.isFinite() && amount > 0.0) { "Transfer amount must be finite and positive" }
+        require(fee.isFinite() && fee >= 0.0) { "Transfer fee must be finite and non-negative" }
         require(fromAccountId != toAccountId) { "Cannot transfer to the same account" }
 
         val transferOperation: suspend () -> Boolean = transferOp@{
             val fromAcc = dao.getAccountById(fromAccountId) ?: return@transferOp false
             val toAcc = dao.getAccountById(toAccountId) ?: return@transferOp false
 
+            if (fromAcc.isArchived || toAcc.isArchived) return@transferOp false
+            // The web app requires both accounts and the transfer to use one identical currency.
+            if (!fromAcc.currency.equals(toAcc.currency, ignoreCase = true)) return@transferOp false
+            require(currency.trim().equals(fromAcc.currency.trim(), ignoreCase = true)) {
+                "Transfer currency must match the source account currency"
+            }
+            if (!fromAcc.balance.isFinite() || !toAcc.balance.isFinite()) return@transferOp false
+
             val transferAmount = FinanceEngine.toBigDecimal(amount)
             val transferFee = FinanceEngine.toBigDecimal(fee)
             val totalDeduction = transferAmount.add(transferFee)
-
             val fromBalance = FinanceEngine.toBigDecimal(fromAcc.balance)
             val toBalance = FinanceEngine.toBigDecimal(toAcc.balance)
-
             if (fromBalance < totalDeduction) {
                 throw IllegalStateException("Insufficient funds: balance $fromBalance < deduction $totalDeduction")
-            }
-
-            // The web ledger keeps currencies separate; do not apply guessed FX rates.
-            if (!fromAcc.currency.equals(toAcc.currency, ignoreCase = true)) {
-                // No account mutation occurs until a trusted FX quote is available.
-                return@transferOp false
-            }
-            require(currency.equals(fromAcc.currency, ignoreCase = true)) {
-                "Transfer currency must match the source account currency"
             }
             val creditAmount = transferAmount
 
@@ -312,14 +317,21 @@ class FinanceRepository(
         logAudit("CREATE", "Debt", "Added debt ${debt.name} (${debt.remaining} ${debt.currency})")
     }
 
-    suspend fun recordDebtPayment(debtId: Long, amount: Double, notes: String) = withContext(Dispatchers.IO) {
-        val allDebts = dao.getAllDebts().firstOrNull() ?: emptyList()
-        val debt = allDebts.find { it.id == debtId } ?: return@withContext
-        val rem = (debt.remaining - amount).coerceAtLeast(0.0)
-        val newStatus = if (rem <= 0.0) DebtStatus.PAID else DebtStatus.ACTIVE
-        dao.updateDebt(debt.copy(remaining = rem, status = newStatus))
-        dao.insertDebtPayment(DebtPaymentEntity(debtId = debtId, amount = amount, notes = notes))
-        logAudit("PAYMENT", "Debt", "Paid $amount toward ${debt.name}, remaining $rem")
+    suspend fun recordDebtPayment(debtId: Long, amount: Double, notes: String): Boolean = withContext(Dispatchers.IO) {
+        val operation: suspend () -> Boolean = operation@{
+            val debt = dao.getDebtById(debtId) ?: return@operation false
+            if (!amount.isFinite() || amount <= 0.0 || !debt.remaining.isFinite() || amount > debt.remaining) {
+                return@operation false
+            }
+            val remaining = FinanceEngine.toBigDecimal(debt.remaining)
+                .subtract(FinanceEngine.toBigDecimal(amount))
+            val newStatus = if (remaining <= BigDecimal.ZERO) DebtStatus.PAID else DebtStatus.ACTIVE
+            dao.updateDebt(debt.copy(remaining = remaining.toDouble(), status = newStatus))
+            dao.insertDebtPayment(DebtPaymentEntity(debtId = debtId, amount = amount, notes = notes))
+            logAudit("PAYMENT", "Debt", "Paid $amount toward ${debt.name}, remaining $remaining")
+            true
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun deleteDebt(debt: DebtEntity) = withContext(Dispatchers.IO) {

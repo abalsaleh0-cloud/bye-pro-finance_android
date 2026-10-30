@@ -9,6 +9,7 @@ import com.example.finance.engine.FinanceEngine
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
 import com.example.finance.model.BillEntity
+import com.example.finance.model.DebtEntity
 import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
@@ -211,6 +212,43 @@ class FinanceRepositoryIntegrationTest {
         assertEquals(0.0, db.financeDao().getAllSavingsGoals().first().single().currentAmount, 0.001)
         assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
         assertTrue(repository.transactions.first().isEmpty())
+    }
+
+    @Test
+    fun importingSameTransactionTwiceDoesNotDoublePostBalance() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Import account", type = AccountType.CASH, balance = 100.0, currency = "LYD")
+        )
+        val row = TransactionEntity(
+            accountId = accountId,
+            type = TransactionType.INCOME,
+            amount = 25.0,
+            currency = "LYD",
+            category = "Income",
+            description = "Import idempotency fixture",
+            date = 123456789L
+        )
+
+        assertEquals(1, repository.importTransactions(listOf(row)))
+        assertEquals(0, repository.importTransactions(listOf(row)))
+        assertEquals(125.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertEquals(1, repository.transactions.first().size)
+    }
+
+    @Test
+    fun debtPaymentCannotExceedRemainingBalance() = runBlocking {
+        repository.addDebt(
+            DebtEntity(
+                name = "Personal debt",
+                creditor = "Creditor",
+                principal = 100.0,
+                remaining = 40.0,
+                currency = "LYD"
+            )
+        )
+        val debtId = db.financeDao().getAllDebts().first().single().id
+        assertFalse(repository.recordDebtPayment(debtId, 45.0, "Overpayment"))
+        assertEquals(40.0, db.financeDao().getDebtById(debtId)?.remaining ?: 0.0, 0.001)
     }
 
     @Test
