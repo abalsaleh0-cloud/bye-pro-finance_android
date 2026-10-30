@@ -54,6 +54,7 @@ import com.example.finance.engine.FinanceEngine
 import com.example.finance.i18n.Strings
 import com.example.finance.model.AssetEntity
 import com.example.finance.model.AssetType
+import com.example.finance.model.AppLanguage
 import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.ui.FinanceViewModel
 
@@ -383,6 +384,7 @@ fun SavingsGoalCard(
 @Composable
 fun AssetCardItem(
     asset: AssetEntity,
+    lang: AppLanguage,
     onDelete: () -> Unit
 ) {
     Card(
