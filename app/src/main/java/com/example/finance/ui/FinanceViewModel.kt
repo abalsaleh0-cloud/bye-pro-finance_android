@@ -26,6 +26,8 @@ import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransferEntity
 import com.example.finance.model.UserEntity
 import com.example.finance.model.UserRole
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -45,20 +47,20 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val repository = FinanceRepository(db.financeDao(), db)
     val aiService = GeminiFinanceService()
 
-    val accounts: StateFlow<List<AccountEntity>> = repository.accounts.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val transactions: StateFlow<List<TransactionEntity>> = repository.transactions.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val transfers: StateFlow<List<TransferEntity>> = repository.transfers.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val budgets: StateFlow<List<BudgetEntity>> = repository.budgets.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val debts: StateFlow<List<DebtEntity>> = repository.debts.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val bills: StateFlow<List<BillEntity>> = repository.bills.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val savingsGoals: StateFlow<List<SavingsGoalEntity>> = repository.savingsGoals.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val assets: StateFlow<List<AssetEntity>> = repository.assets.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val householdMembers: StateFlow<List<HouseholdMemberEntity>> = repository.householdMembers.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val householdExpenses: StateFlow<List<HouseholdExpenseEntity>> = repository.householdExpenses.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val documents: StateFlow<List<DocumentEntity>> = repository.documents.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val notifications: StateFlow<List<NotificationEntity>> = repository.notifications.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val auditLogs: StateFlow<List<AuditLogEntity>> = repository.auditLogs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val currentUser: StateFlow<UserEntity?> = repository.currentUser.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val accounts: StateFlow<List<AccountEntity>> = repository.accounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val transactions: StateFlow<List<TransactionEntity>> = repository.transactions.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val transfers: StateFlow<List<TransferEntity>> = repository.transfers.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val budgets: StateFlow<List<BudgetEntity>> = repository.budgets.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val debts: StateFlow<List<DebtEntity>> = repository.debts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val bills: StateFlow<List<BillEntity>> = repository.bills.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val savingsGoals: StateFlow<List<SavingsGoalEntity>> = repository.savingsGoals.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val assets: StateFlow<List<AssetEntity>> = repository.assets.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val householdMembers: StateFlow<List<HouseholdMemberEntity>> = repository.householdMembers.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val householdExpenses: StateFlow<List<HouseholdExpenseEntity>> = repository.householdExpenses.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val documents: StateFlow<List<DocumentEntity>> = repository.documents.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val notifications: StateFlow<List<NotificationEntity>> = repository.notifications.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val auditLogs: StateFlow<List<AuditLogEntity>> = repository.auditLogs.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val currentUser: StateFlow<UserEntity?> = repository.currentUser.withStartupFallback(null).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     // Shared with the web application: same locale values, storage key, default, and fallback.
     private val _appLanguage = MutableStateFlow(WebI18n.read(application))
@@ -227,3 +229,15 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch { onComplete(repository.restoreFromJson(backupJson)) }
     }
 }
+
+
+/**
+ * A broken or older local database must not terminate the whole app while
+ * observable Room streams are being collected. Keep the UI alive with safe
+ * empty defaults and preserve the underlying exception in Logcat for repair.
+ */
+private fun <T> Flow<T>.withStartupFallback(fallback: T): Flow<T> =
+    catch { error ->
+        Log.e("BYE_PRO_FINANCE", "Local database stream failed during startup", error)
+        emit(fallback)
+    }
