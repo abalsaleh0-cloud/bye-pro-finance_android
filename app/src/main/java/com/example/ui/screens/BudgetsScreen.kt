@@ -227,7 +227,7 @@ fun BudgetItemCard(
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = "${status.percentage.toInt()}%",
+                                text = "${TextContent.number(status.percentage.toInt(), lang, 0)}%",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = indicatorColor
