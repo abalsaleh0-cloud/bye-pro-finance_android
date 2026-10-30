@@ -149,8 +149,8 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (lang == com.example.finance.model.AppLanguage.AR)
-                                WebI18n.tr("لديك", "You have", lang) + " $unreadNotifications " + WebI18n.tr("تنبيهات مالية مهمة (فواتير/ميزانيات)", "important financial alerts (bills/budgets)", lang)
-                            else "You have $unreadNotifications important financial alerts",
+                                WebI18n.tr("لديك", "You have", lang) + " ${TextContent.number(unreadNotifications, lang, 0)} " + WebI18n.tr("تنبيهات مالية مهمة (فواتير/ميزانيات)", "important financial alerts (bills/budgets)", lang)
+                            else "You have ${TextContent.number(unreadNotifications, lang, 0)} important financial alerts",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.SemiBold
