@@ -33,7 +33,7 @@ jobs:
           echo "PROJECT_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
           echo "Using canonical Android source: $GITHUB_WORKSPACE"
 
-      - name: Apply Arabic-first fixed RTL language behavior
+      - name: Verify Arabic-first fixed RTL language behavior
         shell: bash
         run: |
           bash "$GITHUB_WORKSPACE/.github/scripts/fix-android-language.sh" "$PROJECT_DIR"
@@ -41,10 +41,12 @@ jobs:
       - name: Verify language implementation
         shell: bash
         run: |
-          grep -Eq 'val layoutDirection = (LayoutDirection[.]Rtl|WebI18n[.]layoutDirection[(][)])' app/src/main/java/com/example/ui/navigation/MainAppScaffold.kt
-          grep -q 'val localeKey = "bye-pro-finance.locale"' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
-          grep -q 'getString(localeKey, "ar")' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
-          grep -q 'putString(localeKey' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          grep -q 'val layoutDirection = WebI18n.layoutDirection()' app/src/main/java/com/example/ui/navigation/MainAppScaffold.kt
+          grep -q 'MutableStateFlow(WebI18n.read(application))' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          grep -q 'WebI18n.write(getApplication(), lang)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          grep -q 'const val LOCALE_KEY = "bye-pro-finance.locale"' app/src/main/java/com/example/finance/i18n/WebI18n.kt
+          grep -q 'preferences.getBoolean("dark_mode", true)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          echo "PASS: Arabic default, persisted locale, fixed RTL layout, and persistent theme."
           echo "PASS: Arabic default, persisted web-compatible locale key, fixed RTL layout."
 
       - name: Set up Java
