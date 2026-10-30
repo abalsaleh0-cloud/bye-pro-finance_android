@@ -203,8 +203,16 @@ fun TransfersScreen(
                         onClick = {
                             val amt = amountStr.toDoubleOrNull() ?: 0.0
                             val fee = feeStr.toDoubleOrNull() ?: 0.0
-                            if (amt > 0.0 && fromAccountId != toAccountId && fromAccount != null) {
-                                if (fromAccount.balance >= (amt + fee)) {
+                            if (amt.isFinite() && fee.isFinite() && fee >= 0.0 && amt > 0.0 &&
+                                fromAccountId != toAccountId && fromAccount != null && toAccount != null
+                            ) {
+                                if (!fromAccount.currency.equals(toAccount.currency, ignoreCase = true)) {
+                                    statusMessage = WebI18n.tr(
+                                        "لا يمكن التحويل بين عملتين مختلفتين دون سعر صرف موثوق.",
+                                        "Transfers between different currencies require a verified exchange rate.",
+                                        lang
+                                    )
+                                } else if (fromAccount.balance >= (amt + fee)) {
                                     viewModel.executeTransfer(
                                         fromAccountId = fromAccountId,
                                         toAccountId = toAccountId,
@@ -214,9 +222,11 @@ fun TransfersScreen(
                                         description = description,
                                         reference = reference
                                     ) { success ->
-                                        if (success) {
-                                            statusMessage = Strings.get("transfer_success", lang)
+                                        statusMessage = if (success) {
                                             amountStr = ""
+                                            Strings.get("transfer_success", lang)
+                                        } else {
+                                            WebI18n.tr("لم يكتمل التحويل. تحقق من الحسابات والعملة.", "Transfer was not completed. Check the accounts and currency.", lang)
                                         }
                                     }
                                 } else {

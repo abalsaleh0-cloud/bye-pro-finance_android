@@ -266,7 +266,10 @@ fun SmartScanScreen(
                                     val amt = amountField.toDoubleOrNull() ?: 0.0
                                     val tax = taxField.toDoubleOrNull() ?: 0.0
                                     val selectedAccount = accounts.firstOrNull()
-                                    if (amt.isFinite() && amt > 0.0 && selectedAccount != null) {
+                                    val receiptCurrency = scannedReceipt?.currency?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
+                                    val currencyMatches = selectedAccount != null &&
+                                        (receiptCurrency == null || receiptCurrency.equals(selectedAccount.currency, ignoreCase = true))
+                                    if (amt.isFinite() && amt > 0.0 && tax.isFinite() && tax >= 0.0 && selectedAccount != null && currencyMatches) {
                                         viewModel.addTransaction(
                                             TransactionEntity(
                                                 accountId = selectedAccount.id,
@@ -292,10 +295,16 @@ fun SmartScanScreen(
                                         )
                                         statusMessage = WebI18n.tr("تم حفظ الفاتورة وتحديث رصيد الحساب المالي بنجاح ✓", "Receipt saved and account balance updated successfully ✓", lang)
                                         viewModel.clearScannedReceipt()
+                                    } else if (selectedAccount != null && !currencyMatches) {
+                                        statusMessage = WebI18n.tr(
+                                            "عملة الإيصال لا تطابق عملة الحساب. لا يمكن حفظه دون سعر صرف موثوق.",
+                                            "Receipt currency does not match the account currency. It cannot be saved without a verified exchange rate.",
+                                            lang
+                                        )
                                     } else {
                                         statusMessage = WebI18n.tr(
-                                            "أضف حساباً مالياً أولاً، وأدخل مبلغاً صحيحاً قبل حفظ الإيصال.",
-                                            "Add a financial account first and enter a valid amount before saving the receipt.",
+                                            "أضف حساباً مالياً أولاً، وأدخل مبلغاً وضريبة صحيحين قبل حفظ الإيصال.",
+                                            "Add a financial account first and enter a valid amount and tax before saving the receipt.",
                                             lang
                                         )
                                     }

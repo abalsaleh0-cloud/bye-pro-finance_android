@@ -300,7 +300,7 @@ fun MainAppScaffold(
                     NavigationBarItem(
                         selected = currentScreen !in listOf("dashboard", "accounts", "transactions", "budgets"),
                         onClick = { showHubBottomSheet = true },
-                        icon = { Icon(Icons.Default.Menu, contentDescription = "Hub Menu") },
+                        icon = { Icon(Icons.Default.Menu, contentDescription = WebI18n.tr("القائمة", "Hub menu", lang)) },
                         label = { Text(WebI18n.tr("المزيد", "More", lang), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,

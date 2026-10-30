@@ -209,7 +209,7 @@ class FinanceRepositoryIntegrationTest {
     @Test
     fun cancelledRowsDoNotPostAndAdjustmentsApplyAsDeltas() = runBlocking {
         val accountId = repository.addAccount(
-            AccountEntity(name = "Adjustment account", type = AccountType.BANK, balance = 1000.0, currency = "SAR")
+            AccountEntity(name = "Adjustment account", type = AccountType.BANK, balance = 1000.0, currency = "LYD")
         )
         val cancelledId = repository.addTransaction(
             TransactionEntity(

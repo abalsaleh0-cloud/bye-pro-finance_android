@@ -43,6 +43,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -374,6 +375,7 @@ fun AddTransactionDialog(
     var category by remember { mutableStateOf("Groceries") }
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
     var selectedAccountId by remember { mutableStateOf(accounts.firstOrNull()?.id ?: 0L) }
+    var accountMenuExpanded by remember { mutableStateOf(false) }
     val selectedAccount = accounts.firstOrNull { it.id == selectedAccountId }
 
     val categories = listOf("Groceries", "Dining", "Utilities", "Salary", "Shopping", "Health", "Investments", "Transport", "Other")
@@ -383,16 +385,36 @@ fun AddTransactionDialog(
         title = { Text(text = Strings.get("add_transaction", lang), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(
+                        onClick = { accountMenuExpanded = true },
+                        enabled = accounts.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            selectedAccount?.let { "${it.name} · ${it.currency}" }
+                                ?: WebI18n.tr("اختر حساباً مالياً", "Choose a financial account", lang)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = accountMenuExpanded,
+                        onDismissRequest = { accountMenuExpanded = false }
+                    ) {
+                        accounts.forEach { account ->
+                            DropdownMenuItem(
+                                text = { Text("${account.name} · ${account.currency}") },
+                                onClick = {
+                                    selectedAccountId = account.id
+                                    accountMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
                 if (selectedAccount == null) {
                     Text(
                         WebI18n.tr("أضف حساباً مالياً أولاً لتسجيل معاملة.", "Add a financial account before recording a transaction.", lang),
                         color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                } else {
-                    Text(
-                        WebI18n.tr("الحساب:", "Account:", lang) + " ${selectedAccount.name} · ${selectedAccount.currency}",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
