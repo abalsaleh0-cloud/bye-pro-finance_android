@@ -142,6 +142,7 @@ fun NotificationsAdminScreen(
                     items(notifications, key = { it.id }) { notif ->
                         NotificationCardItem(
                             notification = notif,
+                            lang = lang,
                             onRead = { viewModel.markNotificationRead(notif.id) }
                         )
                     }
@@ -284,6 +285,7 @@ fun NotificationsAdminScreen(
 @Composable
 fun NotificationCardItem(
     notification: NotificationEntity,
+    lang: com.example.finance.model.AppLanguage,
     onRead: () -> Unit
 ) {
     Card(
