@@ -311,6 +311,7 @@ fun DashboardScreen(
             items(recentTxs, key = { it.id }) { tx ->
                 TransactionRowItem(
                     transaction = tx,
+                    lang = lang,
                     onClick = { onNavigate("transactions") }
                 )
             }
@@ -375,7 +376,7 @@ fun AccountCardMini(account: AccountEntity, lang: com.example.finance.model.AppL
 }
 
 @Composable
-fun TransactionRowItem(transaction: TransactionEntity, onClick: () -> Unit) {
+fun TransactionRowItem(transaction: TransactionEntity, lang: com.example.finance.model.AppLanguage, onClick: () -> Unit) {
     val isIncome = transaction.type == TransactionType.INCOME || transaction.type == TransactionType.REFUND
     val accentColor = if (isIncome) ByeProTheme.colors.financialGreen else ByeProTheme.colors.financialRed
     val sign = if (isIncome) "+" else "-"
