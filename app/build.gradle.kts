@@ -16,8 +16,8 @@ android {
     applicationId = "com.aistudio.byeprofinance.kxmpzq"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1000
-    versionName = "0.1.0"
+    versionCode = 10000
+    versionName = "10.0.0"
     buildConfigField("String", "FINANCE_API_BASE_URL", "\"https://bye-pro-finance.vercel.app/\"")
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
