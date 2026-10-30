@@ -83,6 +83,20 @@ for subdir in ("screens", "components", "navigation"):
                 )
             path.write_text(content, encoding="utf-8")
 
+components = root / "app/src/main/java/com/example/ui/components/FinancialComponents.kt"
+s = components.read_text(encoding="utf-8")
+s = s.replace(
+    '        label = "healthScore"\n    )\n\n    Card(',
+    '        label = "healthScore"\n    )\n    val healthColors = ByeProTheme.colors\n\n    Card(',
+    1,
+)
+s = s.replace(
+    "listOf(ByeProTheme.colors.goldPrimary, ByeProTheme.colors.financialGreen, ByeProTheme.colors.goldMuted)",
+    "listOf(healthColors.goldPrimary, healthColors.financialGreen, healthColors.goldMuted)",
+    1,
+)
+components.write_text(s, encoding="utf-8")
+
 loc = root / "app/src/main/java/com/example/finance/i18n/Localization.kt"
 s = loc.read_text(encoding="utf-8")
 s = s.replace(
