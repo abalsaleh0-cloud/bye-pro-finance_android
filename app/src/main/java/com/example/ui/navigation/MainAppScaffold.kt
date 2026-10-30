@@ -1,5 +1,7 @@
 package com.example.ui.navigation
 
+import com.example.finance.i18n.TextContent
+
 import com.example.ui.theme.ByeProTheme
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -214,7 +216,7 @@ fun MainAppScaffold(
                                 badge = {
                                     if (unreadCount > 0) {
                                         Badge(containerColor = ByeProTheme.colors.financialRed) {
-                                            Text("$unreadCount", color = Color.White)
+                                            Text(TextContent.number(unreadCount, lang, 0), color = Color.White)
                                         }
                                     }
                                 }
