@@ -76,6 +76,7 @@ for subdir in ("screens", "components", "navigation"):
         )
         content = content.replace("Color.Black", "MaterialTheme.colorScheme.onPrimary")
         content = content.replace("Color(0xFFFF5252)", "MaterialTheme.colorScheme.error")
+        content = content.replace("Color.DarkGray.copy(alpha = 0.3f)", "ByeProTheme.colors.borderBase.copy(alpha = 0.65f)")
         if content != original:
             if "import com.example.ui.theme.ByeProTheme" not in content:
                 content = content.replace(
