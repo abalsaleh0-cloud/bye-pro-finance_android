@@ -111,6 +111,7 @@ fun AccountsScreen(
             items(accounts, key = { it.id }) { acc ->
                 AccountDetailedCard(
                     account = acc,
+                    lang = lang,
                     onArchive = { viewModel.archiveAccount(acc.id, true) },
                     onDelete = { selectedAccountForDelete = acc }
                 )
