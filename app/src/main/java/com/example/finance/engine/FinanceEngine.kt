@@ -89,7 +89,9 @@ object FinanceEngine {
         var total = BigDecimal.ZERO
         for (tx in transactions) {
             if (tx.status == TransactionStatus.COMPLETED &&
-                tx.type == TransactionType.ADJUSTMENT && tx.amount.isFinite()
+                tx.type == TransactionType.ADJUSTMENT &&
+                !tx.category.equals("Transfer", ignoreCase = true) &&
+                tx.amount.isFinite()
             ) {
                 total = total.add(BigDecimal.valueOf(tx.amount))
             }
