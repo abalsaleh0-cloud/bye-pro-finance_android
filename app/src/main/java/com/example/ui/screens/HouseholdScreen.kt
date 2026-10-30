@@ -6,6 +6,8 @@ import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceIconButton
+import com.example.ui.components.FinanceFloatingActionButton
 
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
@@ -73,7 +75,7 @@ fun HouseholdScreen(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
+            FinanceFloatingActionButton(
                 onClick = { showAddExpenseDialog = true },
                 containerColor = ByeProTheme.colors.goldPrimary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
