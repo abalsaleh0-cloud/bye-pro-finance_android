@@ -22,6 +22,18 @@ object ByeProDesignTokens {
         val danger = Color(0xFFFF8585)
     }
 
+    object LightColors {
+        val background = Color(0xFFF4F5F7)
+        val surface = Color(0xFFFFFFFF)
+        val surfaceRaised = Color(0xFFF0F1F4)
+        val border = Color(0xFFD9DCE3)
+        val text = Color(0xFF20232A)
+        val muted = Color(0xFF626875)
+        val accent = Color(0xFF8A671D)
+        val success = Color(0xFF16794A)
+        val danger = Color(0xFFB42332)
+    }
+
     object Spacing {
         val xs = 4.dp
         val sm = 8.dp
