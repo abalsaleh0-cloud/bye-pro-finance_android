@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -61,7 +62,7 @@ fun SettingsScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "تخصيص تفضيلات اللغة، العملة، والحماية الشخصية.",
+                text = WebI18n.tr("تخصيص تفضيلات اللغة، العملة، والحماية الشخصية.", "Customize language, currency, and security preferences.", lang),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -81,7 +82,7 @@ fun SettingsScreen(
                         Icon(Icons.Default.Person, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                         Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                         Text(
-                            text = "الملف الشخصي والحساب",
+                            text = WebI18n.tr("الملف الشخصي والحساب", "Profile and account", lang),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -218,10 +219,10 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold,
                         color = ByeProTheme.colors.financialGreen
                     )
-                    Text("الإصدار: 1.0.0 (Production Core)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("محرك الحسابات: BigDecimal Exact Precision Engine", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("الذكاء الاصطناعي: Google Gemini Flash Multimodal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("قاعدة البيانات: Room SQLite + ACID Transactions", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(WebI18n.tr("الإصدار: 1.0.0 (Production Core)", "Version: 1.0.0 (Production Core)", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(WebI18n.tr("محرك الحسابات: BigDecimal Exact Precision Engine", "Finance engine: BigDecimal Exact Precision Engine", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(WebI18n.tr("الذكاء الاصطناعي: Google Gemini Flash Multimodal", "AI: Google Gemini Flash Multimodal", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(WebI18n.tr("قاعدة البيانات: Room SQLite + ACID Transactions", "Database: Room SQLite + ACID Transactions", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
