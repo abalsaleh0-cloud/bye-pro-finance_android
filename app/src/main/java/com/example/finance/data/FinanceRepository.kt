@@ -183,16 +183,38 @@ class FinanceRepository(
                 )
             )
 
-            // Record outgoing transaction on source account
+            // Keep each ledger row in the currency of the account it changes.
+            // The transfer principal is excluded from cash-flow totals; the fee is an expense.
             dao.insertTransaction(
                 TransactionEntity(
                     accountId = fromAccountId,
                     type = TransactionType.TRANSFER,
-                    amount = amount + fee,
+                    amount = amount,
                     currency = fromAcc.currency,
                     category = "Transfer",
-                    description = "Transfer to ${toAcc.name}: $description",
-                    targetAccountId = toAccountId
+                    description = "Transfer to ${toAcc.name}: $description"
+                )
+            )
+            if (transferFee > BigDecimal.ZERO) {
+                dao.insertTransaction(
+                    TransactionEntity(
+                        accountId = fromAccountId,
+                        type = TransactionType.EXPENSE,
+                        amount = fee,
+                        currency = fromAcc.currency,
+                        category = "Transfer Fee",
+                        description = "Transfer fee: $description"
+                    )
+                )
+            }
+            dao.insertTransaction(
+                TransactionEntity(
+                    accountId = toAccountId,
+                    type = TransactionType.ADJUSTMENT,
+                    amount = creditAmount.toDouble(),
+                    currency = toAcc.currency,
+                    category = "Transfer",
+                    description = "Transfer received from ${fromAcc.name}: $description"
                 )
             )
 
