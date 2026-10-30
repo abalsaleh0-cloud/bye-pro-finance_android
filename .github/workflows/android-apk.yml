@@ -41,7 +41,7 @@ jobs:
       - name: Verify language implementation
         shell: bash
         run: |
-          grep -q 'val layoutDirection = LayoutDirection.Rtl' app/src/main/java/com/example/ui/navigation/MainAppScaffold.kt
+          grep -Eq 'val layoutDirection = (LayoutDirection\\.Rtl|WebI18n\\.layoutDirection\\(\\))' app/src/main/java/com/example/ui/navigation/MainAppScaffold.kt
           grep -q 'val localeKey = "bye-pro-finance.locale"' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
           grep -q 'getString(localeKey, "ar")' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
           grep -q 'putString(localeKey' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
