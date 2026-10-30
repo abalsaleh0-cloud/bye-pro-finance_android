@@ -142,4 +142,16 @@ class FinanceRepositoryIntegrationTest {
         val archivedAccounts = repository.archivedAccounts.first()
         assertTrue(archivedAccounts.any { it.id == accId })
     }
+    @Test
+    fun seedInitialDataCreatesDashboardRecordsAndIsIdempotent() = runBlocking {
+        repository.seedInitialDataIfEmpty()
+        val seededAccounts = repository.accounts.first()
+        val seededTransactions = repository.transactions.first()
+        assertTrue("Initial accounts should be available", seededAccounts.isNotEmpty())
+        assertTrue("Initial transactions should be available", seededTransactions.isNotEmpty())
+
+        repository.seedInitialDataIfEmpty()
+        assertEquals("Seeding twice must not duplicate accounts", seededAccounts.size, repository.accounts.first().size)
+    }
+
 }
