@@ -1,7 +1,7 @@
 package com.example.finance.ai
 
 import com.example.BuildConfig
-import com.example.finance.engine.FinanceEngine
+import com.example.finance.engine.LedgerSummary
 import com.example.finance.i18n.TextContent
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AppLanguage
@@ -64,36 +64,53 @@ class GeminiFinanceService {
         debts: List<DebtEntity>,
         language: AppLanguage
     ): String = withContext(Dispatchers.IO) {
-        val totalIncome = FinanceEngine.calculateTotalIncome(transactions)
-        val totalExpenses = FinanceEngine.calculateTotalExpenses(transactions)
-        val netCashFlow = FinanceEngine.calculateNetCashFlow(totalIncome, totalExpenses)
+        val accountsByCurrency = accounts.groupBy { it.currency.trim().ifBlank { "UNKNOWN" }.uppercase() }
+        val accountSummary = if (accountsByCurrency.isEmpty()) {
+            if (language == AppLanguage.AR) "لا توجد حسابات مسجلة" else "No accounts recorded"
+        } else {
+            accountsByCurrency.entries.joinToString("; ") { (currency, rows) ->
+                "$currency: " + rows.joinToString(", ") { "${it.name} ${it.balance}" }
+            }
+        }
 
-        var totalLiquid = 0.0
-        val accSummary = accounts.joinToString(", ") { "${it.name}: ${it.balance} ${it.currency}" }
-        accounts.forEach { totalLiquid += it.balance }
+        val ledger = LedgerSummary.summarizeByCurrency(transactions)
+        val ledgerSummary = if (ledger.isEmpty()) {
+            if (language == AppLanguage.AR) "لا توجد معاملات مسجلة" else "No transactions recorded"
+        } else {
+            ledger.entries.joinToString("; ") { (currency, totals) ->
+                "$currency: income ${totals.income}, expenses ${totals.expense}, adjustments ${totals.adjustment}, net ${totals.net}"
+            }
+        }
 
-        var totalDebtAmount = 0.0
-        val debtSummary = debts.joinToString(", ") { "${it.name}: ${it.remaining} ${it.currency}" }
-        debts.forEach { totalDebtAmount += it.remaining }
+        val debtSummary = if (debts.isEmpty()) {
+            if (language == AppLanguage.AR) "لا توجد ديون مسجلة" else "No debts recorded"
+        } else {
+            debts.groupBy { it.currency.trim().ifBlank { "UNKNOWN" }.uppercase() }
+                .entries.joinToString("; ") { (currency, rows) ->
+                    "$currency: " + rows.joinToString(", ") { "${it.name}: ${it.remaining}" }
+                }
+        }
 
-        val langPrompt = if (language == AppLanguage.AR) "اللغة العربية" else "English"
+        val budgetSummary = if (budgets.isEmpty()) {
+            if (language == AppLanguage.AR) "لا توجد ميزانيات مسجلة" else "No budgets recorded"
+        } else {
+            budgets.joinToString("; ") { "${it.category}: limit ${it.limitAmount} ${it.currency}, period ${it.startDate}-${it.endDate}" }
+        }
 
+        val langPrompt = if (language == AppLanguage.AR) "Arabic" else "English"
         val contextPrompt = """
-            You are 'BYE PRO AI', an executive personal financial assistant for 'BYE PRO FINANCE'.
-            Current User Financial Snapshot:
-            - Accounts & Liquid Balances: $accSummary (Total: $totalLiquid SAR)
-            - This Month Income: $totalIncome SAR
-            - This Month Expenses: $totalExpenses SAR
-            - Net Cash Flow: $netCashFlow SAR
-            - Active Debts: $debtSummary (Total: $totalDebtAmount SAR)
-            - Active Budgets: ${budgets.size} defined
-            
-            Guidelines:
-            1. Respond in $langPrompt with professional, warm, concise, and mathematically accurate financial advice.
-            2. Ground all answers strictly in the user's recorded numbers.
-            3. Always end with a short note that this is analytical guidance, not licensed financial advice.
-            
-            User Question: $userQuery
+            You are BYE PRO AI, a personal financial assistant.
+            Reply in $langPrompt.
+            Use only the financial records supplied below. Never invent transactions, merchants, dates,
+            savings amounts, budget percentages, or exchange rates. Keep different currencies separate;
+            do not add or compare amounts across currencies. The transaction totals are recorded totals,
+            not necessarily month-only totals. Clearly say when the data is insufficient.
+            Accounts by currency: $accountSummary
+            Ledger totals by currency: $ledgerSummary
+            Debts by currency: $debtSummary
+            Budgets: $budgetSummary
+            User question: $userQuery
+            End with a brief note that this is analytical guidance, not licensed financial advice.
         """.trimIndent()
 
         if (apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
@@ -101,45 +118,18 @@ class GeminiFinanceService {
                 val response = callGeminiApi(contextPrompt)
                 if (response.isNotBlank()) return@withContext response
             } catch (_: Exception) {
-                // fallback to local intelligent heuristics below
+                // Use a transparent records-only response when the AI service is unavailable.
             }
         }
 
-        // High quality rule-based intelligent financial assistant fallback
-        val queryLower = userQuery.lowercase()
-        return@withContext if (language == AppLanguage.AR) {
-            when {
-                queryLower.contains("أنفقت") || queryLower.contains("مصروف") || queryLower.contains("spending") -> {
-                    "وفقاً للبيانات المسجلة، يبلغ إجمالي مصروفاتك المسجلة لهذا الشهر $totalExpenses ر.س، مقابل دخل $totalIncome ر.س، بصافي تدفق نقدي $netCashFlow ر.س.\n\nتوصية: يمثل هذا مؤشر تدفق صحي، وننصح بترحيل 20% من الفائض لحساب الادخار.\n*(تحليل استرشادي مبني على بياناتك المسجلة)*"
-                }
-                queryLower.contains("ميزان") || queryLower.contains("budget") -> {
-                    "لديك ${budgets.size} ميزانيات نشطة. معدل الالتزام العام ممتاز، ولكن يُرجى مراقبة فئة 'التموينات' و'المطاعم' لتجنب تجاوز حد الـ 80% في الأسبوع القادم.\n*(تحليل استرشادي مبني على بياناتك المسجلة)*"
-                }
-                queryLower.contains("دين") || queryLower.contains("ديون") || queryLower.contains("debt") -> {
-                    "إجمالي الديون القائمة $totalDebtAmount ر.س موزعة على ${debts.size} التزامات. أقرب قسط مستحق هو للتمويل الشخصي. الاستمرار بالدفع المنتظم سيسرع من إتمام السداد.\n*(تحليل استرشادي مبني على بياناتك المسجلة)*"
-                }
-                queryLower.contains("توفير") || queryLower.contains("ادخار") || queryLower.contains("save") -> {
-                    "بناءً على صافي التدفق الحالي البالغ $netCashFlow ر.س، يمكنك توفير ما يقارب 1,500 ر.س شهرياً عبر خفض مصاريف الترفيه والمطاعم بنسبة 15% فقط، مما يتيح لك تحقيق هدف صندوق الطوارئ أسرع بشهرين!\n*(تحليل استرشادي مبني على بياناتك المسجلة)*"
-                }
-                else -> {
-                    "أهلاً بك! إجمالي رصيدك السائل حالياً هو ${TextContent.money(totalLiquid, "SAR", language)} عبر ${accounts.size} حسابات، وصافي تدفقك النقدي إيجابي بمقدار ${TextContent.money(netCashFlow, "SAR", language)}.\nكيف يمكنني مساعدتك في تخطيط نفقاتك أو ميزانيتك اليوم؟\n*(تحليل استرشادي مبني على بياناتك المسجلة)*"
-                }
-            }
+        if (language == AppLanguage.AR) {
+            "تعذر الوصول إلى خدمة الذكاء الاصطناعي حالياً. هذه خلاصة السجلات المتاحة دون إجراء تحويل بين العملات:\n" +
+                "الحسابات: $accountSummary\nالمعاملات: $ledgerSummary\nالديون: $debtSummary\nالميزانيات: $budgetSummary\n" +
+                "لا تتوفر بيانات كافية لإضافة توصية موثوقة. (تحليل استرشادي وليس استشارة مالية مرخصة)"
         } else {
-            when {
-                queryLower.contains("spend") || queryLower.contains("expense") -> {
-                    "According to your records, your total monthly expenses stand at $totalExpenses SAR, with an income of $totalIncome SAR, resulting in a net cash flow of $netCashFlow SAR.\n\nRecommendation: Your cash flow is positive. Transferring 20% of surplus to savings will accelerate your goals.\n*(Analytical guidance based on recorded data)*"
-                }
-                queryLower.contains("budget") -> {
-                    "You have ${budgets.size} active budgets. General adherence is solid. Keep an eye on 'Groceries' and 'Dining' to ensure you stay under 80% threshold this week.\n*(Analytical guidance based on recorded data)*"
-                }
-                queryLower.contains("debt") -> {
-                    "Total outstanding debts are $totalDebtAmount SAR across ${debts.size} accounts. Regular monthly installments ensure on-time settlement.\n*(Analytical guidance based on recorded data)*"
-                }
-                else -> {
-                    "Hello! Your total liquid balance is ${TextContent.money(totalLiquid, "SAR", language)} across ${accounts.size} accounts. Your net cash flow is positive at ${TextContent.money(netCashFlow, "SAR", language)}.\nHow can I assist your financial planning today?\n*(Analytical guidance based on recorded data)*"
-                }
-            }
+            "The AI service is currently unavailable. Here is the available record summary without cross-currency conversion:\n" +
+                "Accounts: $accountSummary\nTransactions: $ledgerSummary\nDebts: $debtSummary\nBudgets: $budgetSummary\n" +
+                "There is not enough data to add a reliable recommendation. (Analytical guidance, not licensed financial advice)"
         }
     }
 
