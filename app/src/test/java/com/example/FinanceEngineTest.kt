@@ -15,6 +15,7 @@ import com.example.finance.model.TransactionStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import java.math.BigDecimal
 
@@ -192,18 +193,14 @@ class FinanceEngineTest {
     }
 
     @Test
-    fun testCurrencyConversion() {
-        // 100 USD to SAR = 375.00
-        val inSar = FinanceEngine.convertCurrency(BigDecimal("100.00"), "USD", "SAR")
-        assertEquals(BigDecimal("375.00"), inSar)
-
-        // 375 SAR to USD = 100.00
-        val inUsd = FinanceEngine.convertCurrency(BigDecimal("375.00"), "SAR", "USD")
-        assertEquals(BigDecimal("100.00"), inUsd)
-
-        // 10 KWD to SAR = 122.50
-        val kwdInSar = FinanceEngine.convertCurrency(BigDecimal("10.00"), "KWD", "SAR")
-        assertEquals(BigDecimal("122.50"), kwdInSar)
+    fun currencyConversionNeverInventsExchangeRates() {
+        assertEquals(
+            BigDecimal("100.00"),
+            FinanceEngine.convertCurrency(BigDecimal("100.00"), "LYD", "LYD")
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+            FinanceEngine.convertCurrency(BigDecimal("100.00"), "USD", "LYD")
+        }
     }
 
     @Test
@@ -229,13 +226,10 @@ class FinanceEngineTest {
             )
         )
 
-        // Liquid = 25,000 + (10,000 * 3.75) = 25,000 + 37,500 = 62,500 SAR
-        // Assets = 500,000 + 35,000 = 535,000 SAR
-        // Total Assets = 62,500 + 535,000 = 597,500 SAR
-        // Debts = 20,000 SAR
-        // Net Worth in SAR = 597,500 - 20,000 = 577,500.00 SAR
+        // Web parity: aggregate only rows in the selected currency; never guess FX.
+        // 25,000 SAR + 500,000 SAR + 35,000 SAR - 20,000 SAR = 540,000 SAR.
         val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, baseCurrency = "SAR")
-        assertEquals(BigDecimal("577500.00"), netWorth)
+        assertEquals(BigDecimal("540000.00"), netWorth)
     }
 
     @Test
