@@ -152,7 +152,7 @@ fun HouseholdScreen(
             // Members
             item {
                 Text(
-                    text = WebI18n.tr("أفراد الأسرة المشاركون", "Participating household members", lang) + " (${members.size})",
+                    text = WebI18n.tr("أفراد الأسرة المشاركون", "Participating household members", lang) + " (${TextContent.number(members.size, lang, 0)})",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -188,7 +188,7 @@ fun HouseholdScreen(
                             }
                         }
                         Text(
-                            text = WebI18n.tr("نسبة المشاركة:", "Contribution:", lang) + " ${m.contributionPercent.toInt()}%",
+                            text = WebI18n.tr("نسبة المشاركة:", "Contribution:", lang) + " ${TextContent.number(m.contributionPercent.toInt(), lang, 0)}%",
                             style = MaterialTheme.typography.bodySmall,
                             color = ByeProTheme.colors.financialGreen,
                             fontWeight = FontWeight.Bold
