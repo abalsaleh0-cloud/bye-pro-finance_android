@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.TextContent
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -362,10 +364,10 @@ fun SmartScanScreen(
                     ) {
                         Column {
                             Text(doc.title, fontWeight = FontWeight.Bold)
-                            Text(WebI18n.tr("التاجر:", "Merchant:", lang) + " ${doc.merchant} • " + WebI18n.tr("الضريبة:", "Tax:", lang) + " ${FinanceEngine.formatMoney(doc.taxAmount, "SAR")}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(WebI18n.tr("التاجر:", "Merchant:", lang) + " ${doc.merchant} • " + WebI18n.tr("الضريبة:", "Tax:", lang) + " ${TextContent.money(doc.taxAmount, "SAR", lang)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(FinanceEngine.formatMoney(doc.totalAmount, "SAR"), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
+                            Text(TextContent.money(doc.totalAmount, "SAR", lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
                             IconButton(onClick = { viewModel.deleteDocument(doc) }) {
                                 Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
                             }
