@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -169,7 +170,7 @@ fun AiAssistantScreen(
                                 )
                                 Spacer(modifier = Modifier.size(8.dp))
                                 Text(
-                                    text = "جاري التحليل المالي الذكي...",
+                                    text = WebI18n.tr("جاري التحليل المالي الذكي...", "Analyzing financial data...", lang),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -247,12 +248,12 @@ fun AiAssistantScreen(
             ) {
                 item {
                     Text(
-                        text = "الرؤى والتحليلات الاستباقية للإنفاق",
+                        text = WebI18n.tr("الرؤى والتحليلات الاستباقية للإنفاق", "Proactive Spending Insights", lang),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "تحليلات دورية تستكشف الهدر وفرص التوفير ومخاطر الميزانيات بدقة رياضية.",
+                        text = WebI18n.tr("تحليلات دورية تستكشف الهدر وفرص التوفير ومخاطر الميزانيات بدقة رياضية.", "Periodic analysis of waste, savings opportunities, and budget risks.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -354,7 +355,7 @@ fun ChatBubbleItem(message: ChatMessage) {
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
-                    text = if (isUser) "أنت" else "BYE PRO Assistant",
+                    text = if (isUser) WebI18n.tr("أنت", "You", lang) else "BYE PRO Assistant",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = if (isUser) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f) else ByeProTheme.colors.goldPrimary
