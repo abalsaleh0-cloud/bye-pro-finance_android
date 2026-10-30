@@ -232,7 +232,7 @@ fun AiAssistantScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Send,
-                            contentDescription = "Send",
+                            contentDescription = WebI18n.tr("إرسال", "Send", lang),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
