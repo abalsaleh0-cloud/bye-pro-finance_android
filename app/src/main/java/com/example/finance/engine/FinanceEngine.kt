@@ -68,7 +68,7 @@ object FinanceEngine {
     fun calculateTotalIncome(transactions: List<TransactionEntity>): BigDecimal {
         var total = BigDecimal.ZERO
         for (tx in transactions) {
-            if (tx.status != TransactionStatus.CANCELLED && (tx.type == TransactionType.INCOME || tx.type == TransactionType.REFUND)) {
+            if (tx.status == TransactionStatus.COMPLETED && (tx.type == TransactionType.INCOME || tx.type == TransactionType.REFUND)) {
                 total = total.add(BigDecimal.valueOf(tx.amount))
             }
         }
@@ -78,7 +78,7 @@ object FinanceEngine {
     fun calculateTotalExpenses(transactions: List<TransactionEntity>): BigDecimal {
         var total = BigDecimal.ZERO
         for (tx in transactions) {
-            if (tx.status != TransactionStatus.CANCELLED && tx.type == TransactionType.EXPENSE) {
+            if (tx.status == TransactionStatus.COMPLETED && tx.type == TransactionType.EXPENSE) {
                 total = total.add(BigDecimal.valueOf(tx.amount))
             }
         }
@@ -106,7 +106,7 @@ object FinanceEngine {
     ): BigDecimal {
         var current = startingBalance
         for (tx in transactions) {
-            if (tx.status == TransactionStatus.CANCELLED) continue
+            if (tx.status != TransactionStatus.COMPLETED) continue
             when (tx.type) {
                 TransactionType.INCOME -> {
                     if (tx.accountId == accountId) {
@@ -192,7 +192,10 @@ object FinanceEngine {
         var spent = BigDecimal.ZERO
 
         for (tx in transactions) {
-            if (tx.type == TransactionType.EXPENSE &&
+            if (tx.status == TransactionStatus.COMPLETED &&
+                tx.type == TransactionType.EXPENSE &&
+                tx.amount.isFinite() &&
+                tx.currency.equals(budget.currency, ignoreCase = true) &&
                 (tx.category.equals(budget.category, ignoreCase = true) || budget.category == "All") &&
                 tx.date >= budget.startDate && tx.date <= budget.endDate
             ) {
