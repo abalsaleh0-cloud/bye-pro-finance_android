@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -139,7 +140,7 @@ fun SavingsAssetsScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "إجمالي الأصول المقومة ناقصاً الالتزامات والديون",
+                                    text = WebI18n.tr("إجمالي الأصول المقومة ناقصاً الالتزامات والديون", "Total valued assets minus liabilities and debts", lang),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -156,7 +157,7 @@ fun SavingsAssetsScreen(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Text(
-                                    text = "لا توجد أهداف ادخارية حالياً. ابدأ بإنشاء هدفك الآن!",
+                                    text = WebI18n.tr("لا توجد أهداف ادخارية حالياً. ابدأ بإنشاء هدفك الآن!", "No savings goals yet. Create your first goal now!", lang),
                                     modifier = Modifier.padding(24.dp),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -188,7 +189,7 @@ fun SavingsAssetsScreen(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Text(
-                                    text = "سجل الأصول فارغ. أضف عقاراتك، الذهب، والمركبات لحساب صافي الثروة بدقة.",
+                                    text = WebI18n.tr("سجل الأصول فارغ. أضف عقاراتك، الذهب، والمركبات لحساب صافي الثروة بدقة.", "Your asset register is empty. Add property, gold, and vehicles to calculate net worth.", lang),
                                     modifier = Modifier.padding(24.dp),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -226,7 +227,7 @@ fun SavingsAssetsScreen(
                     OutlinedTextField(
                         value = contributeAmountStr,
                         onValueChange = { contributeAmountStr = it },
-                        label = { Text("مبلغ الإيداع") },
+                        label = { Text(WebI18n.tr("مبلغ الإيداع", "Deposit amount", lang)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -451,7 +452,7 @@ fun AddSavingsGoalDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("اسم الهدف الادخاري") },
+                    label = { Text(WebI18n.tr("اسم الهدف الادخاري", "Savings goal name", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -463,7 +464,7 @@ fun AddSavingsGoalDialog(
                 OutlinedTextField(
                     value = currentStr,
                     onValueChange = { currentStr = it },
-                    label = { Text("الرصيد المدخر حالياً") },
+                    label = { Text(WebI18n.tr("الرصيد المدخر حالياً", "Current saved balance", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -514,7 +515,7 @@ fun AddAssetDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("اسم الأصل (عقار، ذهب، مركبة)") },
+                    label = { Text(WebI18n.tr("اسم الأصل (عقار، ذهب، مركبة)", "Asset name (property, gold, vehicle)", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
