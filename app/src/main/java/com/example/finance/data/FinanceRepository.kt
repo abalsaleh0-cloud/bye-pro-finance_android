@@ -400,8 +400,9 @@ class FinanceRepository(
         logAudit("CREATE", "Household", "Added member $name")
     }
 
-    suspend fun addHouseholdExpense(title: String, amount: Double, payerId: Long, category: String) = withContext(Dispatchers.IO) {
-        dao.insertHouseholdExpense(HouseholdExpenseEntity(title = title, amount = amount, payerMemberId = payerId, category = category))
+    suspend fun addHouseholdExpense(title: String, amount: Double, payerId: Long, category: String, currency: String = "LYD") = withContext(Dispatchers.IO) {
+        require(amount.isFinite() && amount > 0.0) { "Household expense must be finite and positive" }
+        dao.insertHouseholdExpense(HouseholdExpenseEntity(title = title, amount = amount, payerMemberId = payerId, category = category, currency = currency))
         logAudit("CREATE", "Household", "Added household expense $title ($amount)")
     }
 

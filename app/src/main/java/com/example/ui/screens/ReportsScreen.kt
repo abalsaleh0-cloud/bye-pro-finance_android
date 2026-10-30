@@ -68,19 +68,21 @@ fun ReportsScreen(
     val accounts by viewModel.accounts.collectAsState()
     val assets by viewModel.assets.collectAsState()
     val debts by viewModel.debts.collectAsState()
+    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
 
     var exportModalData by remember { mutableStateOf<String?>(null) }
     var exportTitle by remember { mutableStateOf("") }
 
-    val totalIncome = FinanceEngine.calculateTotalIncome(transactions)
-    val totalExpenses = FinanceEngine.calculateTotalExpenses(transactions)
-    val netCashFlow = FinanceEngine.calculateNetCashFlow(totalIncome, totalExpenses)
-    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts)
+    val currencyTransactions = transactions.filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
+    val totalIncome = FinanceEngine.calculateTotalIncome(currencyTransactions)
+    val totalExpenses = FinanceEngine.calculateTotalExpenses(currencyTransactions)
+    val netCashFlow = FinanceEngine.calculateNetCashFlow(currencyTransactions)
+    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, primaryCurrency)
 
-    // Category breakdown for expenses
+    // Category breakdown includes only completed expenses in the selected currency.
     val categoryTotals = mutableMapOf<String, Double>()
-    for (tx in transactions) {
-        if (tx.type == TransactionType.EXPENSE) {
+    for (tx in currencyTransactions) {
+        if (tx.status == com.example.finance.model.TransactionStatus.COMPLETED && tx.type == TransactionType.EXPENSE) {
             categoryTotals[tx.category] = (categoryTotals[tx.category] ?: 0.0) + tx.amount
         }
     }
@@ -169,15 +171,15 @@ fun ReportsScreen(
                     ) {
                         Column {
                             Text(WebI18n.tr("إجمالي الدخل", "Total income", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(TextContent.money(totalIncome, "SAR", lang), color = ByeProTheme.colors.financialGreen, fontWeight = FontWeight.Bold)
+                            Text(TextContent.money(totalIncome, primaryCurrency, lang), color = ByeProTheme.colors.financialGreen, fontWeight = FontWeight.Bold)
                         }
                         Column {
                             Text(WebI18n.tr("إجمالي المصروفات", "Total expenses", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(TextContent.money(totalExpenses, "SAR", lang), color = ByeProTheme.colors.financialRed, fontWeight = FontWeight.Bold)
+                            Text(TextContent.money(totalExpenses, primaryCurrency, lang), color = ByeProTheme.colors.financialRed, fontWeight = FontWeight.Bold)
                         }
                         Column {
                             Text(WebI18n.tr("صافي التدفق", "Net cash flow", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(TextContent.money(netCashFlow, "SAR", lang), color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
+                            Text(TextContent.money(netCashFlow, primaryCurrency, lang), color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -189,7 +191,7 @@ fun ReportsScreen(
             InteractiveCashFlowChart(
                 income = totalIncome.toDouble(),
                 expense = totalExpenses.toDouble(),
-                currency = "SAR"
+                currency = primaryCurrency
             )
         }
 
@@ -232,7 +234,7 @@ fun ReportsScreen(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
-                                        text = TextContent.money(amount, "SAR", lang),
+                                        text = TextContent.money(amount, primaryCurrency, lang),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = ByeProTheme.colors.goldPrimary
                                     )

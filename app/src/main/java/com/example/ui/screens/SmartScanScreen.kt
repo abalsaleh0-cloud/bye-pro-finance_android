@@ -141,7 +141,7 @@ fun SmartScanScreen(
                     FinanceButton(
                         onClick = {
                             statusMessage = null
-                            viewModel.scanReceipt("شركة أسواق التميمي - فرع الرياض\nتاريخ: 2026-10-30\nالمجموع الفرعي: 162.40 د.ل\nالضريبة: 24.35 د.ل\nالإجمالي: 186.75 د.ل")
+                            viewModel.scanReceipt("متجر تجريبي - طرابلس\nتاريخ: 2026-10-30\nالمجموع الفرعي: 162.40 د.ل\nالضريبة: 24.35 د.ل\nالإجمالي: 186.75 د.ل")
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.financialGreen, contentColor = MaterialTheme.colorScheme.onPrimary),
                         shape = RoundedCornerShape(10.dp),
@@ -157,7 +157,7 @@ fun SmartScanScreen(
                     FinanceOutlinedButton(
                         onClick = {
                             statusMessage = null
-                            viewModel.scanReceipt("مقهى ومحمصة النخبة\nتاريخ: 2026-10-30\nالضريبة: 8.35 د.ل\nالإجمالي: 64.00 د.ل")
+                            viewModel.scanReceipt("مقهى تجريبي - طرابلس\nتاريخ: 2026-10-30\nالضريبة: 8.35 د.ل\nالإجمالي: 64.00 د.ل")
                         },
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -286,6 +286,7 @@ fun SmartScanScreen(
                                                 merchant = merchantField,
                                                 totalAmount = amt,
                                                 taxAmount = tax,
+                                                currency = selectedAccount.currency,
                                                 notes = scannedReceipt!!.itemsSummary
                                             )
                                         )
@@ -368,10 +369,10 @@ fun SmartScanScreen(
                     ) {
                         Column {
                             Text(doc.title, fontWeight = FontWeight.Bold)
-                            Text(WebI18n.tr("التاجر:", "Merchant:", lang) + " ${doc.merchant} • " + WebI18n.tr("الضريبة:", "Tax:", lang) + " ${TextContent.money(doc.taxAmount, primaryCurrency, lang)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(WebI18n.tr("التاجر:", "Merchant:", lang) + " ${doc.merchant} • " + WebI18n.tr("الضريبة:", "Tax:", lang) + " ${TextContent.money(doc.taxAmount, doc.currency, lang)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(TextContent.money(doc.totalAmount, primaryCurrency, lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
+                            Text(TextContent.money(doc.totalAmount, doc.currency, lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
                             FinanceIconButton(onClick = { viewModel.deleteDocument(doc) }) {
                                 Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
                             }

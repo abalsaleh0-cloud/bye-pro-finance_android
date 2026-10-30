@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.TypeConverters
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AssetEntity
@@ -39,7 +41,7 @@ import com.example.finance.model.UserEntity
         NotificationEntity::class,
         AuditLogEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -47,6 +49,15 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun financeDao(): FinanceDao
 
     companion object {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE household_expenses ADD COLUMN currency TEXT NOT NULL DEFAULT 'LYD'")
+                database.execSQL("UPDATE household_expenses SET currency = 'SAR'")
+                database.execSQL("ALTER TABLE documents ADD COLUMN currency TEXT NOT NULL DEFAULT 'LYD'")
+                database.execSQL("UPDATE documents SET currency = 'SAR'")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -56,7 +67,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "bye_pro_finance.db"
-                ).fallbackToDestructiveMigration(true).build()
+                ).addMigrations(MIGRATION_1_2).fallbackToDestructiveMigration(true).build()
                 INSTANCE = instance
                 instance
             }

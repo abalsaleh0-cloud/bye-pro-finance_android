@@ -464,7 +464,21 @@ fun AddTransactionDialog(
                         FilterChip(
                             selected = category == cat,
                             onClick = { category = cat },
-                            label = { Text(cat) }
+                            label = {
+                                Text(
+                                    when (cat) {
+                                        "Groceries" -> WebI18n.tr("بقالة", "Groceries", lang)
+                                        "Dining" -> WebI18n.tr("مطاعم", "Dining", lang)
+                                        "Utilities" -> WebI18n.tr("مرافق", "Utilities", lang)
+                                        "Salary" -> WebI18n.tr("راتب", "Salary", lang)
+                                        "Shopping" -> WebI18n.tr("تسوق", "Shopping", lang)
+                                        "Health" -> WebI18n.tr("صحة", "Health", lang)
+                                        "Investments" -> WebI18n.tr("استثمارات", "Investments", lang)
+                                        "Transport" -> WebI18n.tr("مواصلات", "Transport", lang)
+                                        else -> WebI18n.tr("أخرى", "Other", lang)
+                                    }
+                                )
+                            }
                         )
                     }
                 }

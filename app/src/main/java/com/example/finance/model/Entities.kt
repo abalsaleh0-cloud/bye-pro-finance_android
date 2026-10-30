@@ -1,5 +1,6 @@
 package com.example.finance.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -150,6 +151,7 @@ data class HouseholdExpenseEntity(
     val amount: Double,
     val payerMemberId: Long,
     val category: String,
+    @ColumnInfo(defaultValue = "'LYD'") val currency: String = "LYD",
     val date: Long = System.currentTimeMillis(),
     val isSettled: Boolean = false
 )
@@ -163,6 +165,7 @@ data class DocumentEntity(
     val merchant: String = "",
     val totalAmount: Double = 0.0,
     val taxAmount: Double = 0.0,
+    @ColumnInfo(defaultValue = "'LYD'") val currency: String = "LYD",
     val date: Long = System.currentTimeMillis(),
     val notes: String = "",
     val linkedTransactionId: Long? = null

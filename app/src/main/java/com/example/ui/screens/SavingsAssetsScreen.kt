@@ -77,13 +77,14 @@ fun SavingsAssetsScreen(
     val assets by viewModel.assets.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val debts by viewModel.debts.collectAsState()
+    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
 
     var selectedTabIndex by remember { mutableIntStateOf(initialTabIndex.coerceIn(0, 1)) }
     var showAddGoalDialog by remember { mutableStateOf(false) }
     var showAddAssetDialog by remember { mutableStateOf(false) }
     var goalToContribute by remember { mutableStateOf<SavingsGoalEntity?>(null) }
 
-    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts)
+    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, primaryCurrency)
 
     Scaffold(
         floatingActionButton = {
@@ -144,7 +145,7 @@ fun SavingsAssetsScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = TextContent.money(netWorth, "SAR", lang),
+                                    text = TextContent.money(netWorth, primaryCurrency, lang),
                                     style = MaterialTheme.typography.headlineMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = ByeProTheme.colors.financialGreen

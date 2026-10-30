@@ -157,7 +157,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun addAsset(asset: AssetEntity) { viewModelScope.launch { repository.addAsset(asset) } }
     fun deleteAsset(asset: AssetEntity) { viewModelScope.launch { repository.deleteAsset(asset) } }
     fun addHouseholdMember(name: String, email: String, role: String, percent: Double) { viewModelScope.launch { repository.addHouseholdMember(name, email, role, percent) } }
-    fun addHouseholdExpense(title: String, amount: Double, payerId: Long, category: String) { viewModelScope.launch { repository.addHouseholdExpense(title, amount, payerId, category) } }
+    fun addHouseholdExpense(title: String, amount: Double, payerId: Long, category: String, currency: String = primaryCurrency.value) { viewModelScope.launch { repository.addHouseholdExpense(title, amount, payerId, category, currency) } }
     fun addDocument(doc: DocumentEntity) { viewModelScope.launch { repository.addDocument(doc) } }
     fun deleteDocument(doc: DocumentEntity) { viewModelScope.launch { repository.deleteDocument(doc) } }
     fun markNotificationRead(id: Long) { viewModelScope.launch { repository.markNotificationRead(id) } }

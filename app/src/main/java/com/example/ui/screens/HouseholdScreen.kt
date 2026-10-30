@@ -67,11 +67,13 @@ fun HouseholdScreen(
     val lang by viewModel.appLanguage.collectAsState()
     val members by viewModel.householdMembers.collectAsState()
     val expenses by viewModel.householdExpenses.collectAsState()
+    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
 
     var showAddMemberDialog by remember { mutableStateOf(false) }
     var showAddExpenseDialog by remember { mutableStateOf(false) }
 
-    val totalExpenses = expenses.sumOf { it.amount }
+    val currencyExpenses = expenses.filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
+    val totalExpenses = currencyExpenses.sumOf { it.amount }
 
     Scaffold(
         floatingActionButton = {
@@ -140,7 +142,7 @@ fun HouseholdScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = TextContent.money(totalExpenses, "SAR", lang),
+                            text = TextContent.money(totalExpenses, primaryCurrency, lang),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = ByeProTheme.colors.goldPrimary
@@ -234,7 +236,7 @@ fun HouseholdScreen(
                                 Text(WebI18n.tr("الدافع:", "Paid by:", lang) + " $payerName • ${exp.category}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Text(
-                                TextContent.money(exp.amount, "SAR", lang),
+                                TextContent.money(exp.amount, exp.currency, lang),
                                 color = ByeProTheme.colors.financialRed,
                                 fontWeight = FontWeight.Bold
                             )

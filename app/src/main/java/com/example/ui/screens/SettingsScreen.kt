@@ -275,7 +275,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold,
                         color = ByeProTheme.colors.financialGreen
                     )
-                    Text(WebI18n.tr("الإصدار: 1.0.0 (Production Core)", "Version: 1.0.0 (Production Core)", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(WebI18n.tr("الإصدار: ", "Version: ", lang) + com.example.BuildConfig.VERSION_NAME, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(WebI18n.tr("محرك الحسابات: BigDecimal Exact Precision Engine", "Finance engine: BigDecimal Exact Precision Engine", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(WebI18n.tr("الذكاء الاصطناعي: Google Gemini Flash Multimodal", "AI: Google Gemini Flash Multimodal", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(WebI18n.tr("قاعدة البيانات: Room SQLite + ACID Transactions", "Database: Room SQLite + ACID Transactions", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

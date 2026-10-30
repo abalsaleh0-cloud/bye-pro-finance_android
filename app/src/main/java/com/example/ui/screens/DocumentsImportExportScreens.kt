@@ -41,7 +41,6 @@ import com.example.ui.components.FinanceOutlinedButton
 fun DocumentsScreen(viewModel: FinanceViewModel) {
     val lang by viewModel.appLanguage.collectAsState()
     val documents by viewModel.documents.collectAsState()
-    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -83,7 +82,7 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                TextContent.money(document.totalAmount, primaryCurrency, lang),
+                                TextContent.money(document.totalAmount, document.currency, lang),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.primary
                             )

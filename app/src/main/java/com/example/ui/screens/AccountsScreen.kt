@@ -76,6 +76,7 @@ fun AccountsScreen(
 ) {
     val lang by viewModel.appLanguage.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
+    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
     var selectedAccountForDelete by remember { mutableStateOf<AccountEntity?>(null) }
@@ -108,9 +109,9 @@ fun AccountsScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                val totalLiquid = accounts.sumOf { if (!it.isArchived) it.balance else 0.0 }
+                val totalLiquid = accounts.filter { !it.isArchived && it.currency.equals(primaryCurrency, ignoreCase = true) }.sumOf { it.balance }
                 Text(
-                    text = "${Strings.get("total_balance", lang)}: ${TextContent.money(totalLiquid, "SAR", lang)}",
+                    text = "${Strings.get("total_balance", lang)}: ${TextContent.money(totalLiquid, primaryCurrency, lang)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = ByeProTheme.colors.financialGreen,
                     fontWeight = FontWeight.SemiBold
