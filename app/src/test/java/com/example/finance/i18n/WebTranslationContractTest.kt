@@ -17,6 +17,20 @@ class WebTranslationContractTest {
     }
 
     @Test
+    fun stableWebTranslationsMatchExactArabicAndEnglishMessages() {
+        val expected = mapOf(
+            "dashboard" to ("لوحة التحكم" to "Dashboard"),
+            "accounts" to ("الحسابات" to "Accounts"),
+            "transactions" to ("المعاملات" to "Transactions"),
+            "settings" to ("الإعدادات" to "Settings")
+        )
+        expected.forEach { (key, translations) ->
+            assertEquals(translations.first, WebTranslationContract.text(key, AppLanguage.AR))
+            assertEquals(translations.second, WebTranslationContract.text(key, AppLanguage.EN))
+        }
+    }
+
+    @Test
     fun androidDesignTokensMatchWebTokens() {
         assertEquals(Color(0xFF101114), ByeProDesignTokens.Colors.background)
         assertEquals(Color(0xFF181A1F), ByeProDesignTokens.Colors.surface)
