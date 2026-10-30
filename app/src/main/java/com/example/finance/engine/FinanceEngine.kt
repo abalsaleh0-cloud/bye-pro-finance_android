@@ -68,7 +68,7 @@ object FinanceEngine {
     fun calculateTotalIncome(transactions: List<TransactionEntity>): BigDecimal {
         var total = BigDecimal.ZERO
         for (tx in transactions) {
-            if (tx.status != TransactionStatus.CANCELLED && tx.type == TransactionType.INCOME) {
+            if (tx.status != TransactionStatus.CANCELLED && (tx.type == TransactionType.INCOME || tx.type == TransactionType.REFUND)) {
                 total = total.add(BigDecimal.valueOf(tx.amount))
             }
         }
