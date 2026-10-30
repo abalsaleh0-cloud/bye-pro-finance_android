@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceRepository
+import com.example.finance.engine.FinanceEngine
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
 import com.example.finance.model.TransactionEntity
@@ -19,6 +20,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
+import java.math.BigDecimal
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -103,6 +105,22 @@ class FinanceRepositoryIntegrationTest {
         assertEquals(690.00, srcAcc?.balance ?: 0.0, 0.01)
         // Dst: 200 + 300 = 500.00
         assertEquals(500.00, dstAcc?.balance ?: 0.0, 0.01)
+
+        val ledgerRows = repository.transactions.first()
+        assertEquals(
+            FinanceEngine.toBigDecimal(srcAcc!!.balance),
+            FinanceEngine.calculateAccountBalance(
+                BigDecimal("1000.00"), ledgerRows, srcId
+            )
+        )
+        assertEquals(
+            FinanceEngine.toBigDecimal(dstAcc!!.balance),
+            FinanceEngine.calculateAccountBalance(
+                BigDecimal("200.00"), ledgerRows, dstId
+            )
+        )
+        assertEquals(BigDecimal("10.00"), FinanceEngine.calculateTotalExpenses(ledgerRows))
+        assertEquals(BigDecimal("300.00"), FinanceEngine.calculateTotalAdjustments(ledgerRows))
     }
 
     @Test
