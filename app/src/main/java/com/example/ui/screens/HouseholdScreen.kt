@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -97,7 +98,7 @@ fun HouseholdScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "إدارة المصاريف المشتركة وتوزيع الحصص والتحاسب العائلي",
+                            text = WebI18n.tr("إدارة المصاريف المشتركة وتوزيع الحصص والتحاسب العائلي", "Manage shared expenses, split contributions, and settle household balances", lang),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -124,7 +125,7 @@ fun HouseholdScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "إجمالي المصاريف العائلية المشتركة",
+                            text = WebI18n.tr("إجمالي المصاريف العائلية المشتركة", "Total shared household expenses", lang),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -190,7 +191,7 @@ fun HouseholdScreen(
             // Shared expenses
             item {
                 Text(
-                    text = "سجل المصاريف المشتركة",
+                    text = WebI18n.tr("سجل المصاريف المشتركة", "Shared expense history", lang),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -199,14 +200,14 @@ fun HouseholdScreen(
             if (expenses.isEmpty()) {
                 item {
                     Text(
-                        text = "لا توجد مصاريف مشتركة مسجلة بعد.",
+                        text = WebI18n.tr("لا توجد مصاريف مشتركة مسجلة بعد.", "No shared expenses recorded yet.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
                 items(expenses, key = { it.id }) { exp ->
-                    val payerName = members.find { it.id == exp.payerMemberId }?.name ?: "عضو"
+                    val payerName = members.find { it.id == exp.payerMemberId }?.name ?: WebI18n.tr("عضو", "Member", lang)
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -242,7 +243,7 @@ fun HouseholdScreen(
     // Add Member Dialog
     if (showAddMemberDialog) {
         var name by remember { mutableStateOf("") }
-        var role by remember { mutableStateOf("عضو") }
+        var role by remember { mutableStateOf(WebI18n.tr("عضو", "Member", lang)) }
         var percentStr by remember { mutableStateOf("50") }
 
         AlertDialog(
@@ -253,19 +254,19 @@ fun HouseholdScreen(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("الاسم") },
+                        label = { Text(WebI18n.tr("الاسم", "Name", lang)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = role,
                         onValueChange = { role = it },
-                        label = { Text("الدور (رب الأسرة، شريك، ابن)") },
+                        label = { Text(WebI18n.tr("الدور (رب الأسرة، شريك، ابن)", "Role (head of household, partner, child)", lang)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = percentStr,
                         onValueChange = { percentStr = it },
-                        label = { Text("نسبة المساهمة %") },
+                        label = { Text(WebI18n.tr("نسبة المساهمة %", "Contribution percentage %", lang)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -306,7 +307,7 @@ fun HouseholdScreen(
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
-                        label = { Text("وصف المصروف") },
+                        label = { Text(WebI18n.tr("وصف المصروف", "Expense description", lang)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
