@@ -156,7 +156,7 @@ fun AiAssistantScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(messages) { msg ->
-                        ChatBubbleItem(message = msg)
+                        ChatBubbleItem(message = msg, lang = lang)
                     }
                     if (isAiLoading) {
                         item {
