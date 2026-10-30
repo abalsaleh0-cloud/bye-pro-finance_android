@@ -58,6 +58,7 @@ import com.example.finance.engine.FinanceEngine
 import com.example.finance.i18n.Strings
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
+import com.example.finance.model.AppLanguage
 import com.example.finance.ui.FinanceViewModel
 
 @Composable
@@ -163,6 +164,7 @@ fun AccountsScreen(
 @Composable
 fun AccountDetailedCard(
     account: AccountEntity,
+    lang: AppLanguage,
     onArchive: () -> Unit,
     onDelete: () -> Unit
 ) {
