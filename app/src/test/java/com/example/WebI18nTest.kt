@@ -23,5 +23,7 @@ class WebI18nTest {
         assertEquals(arabic, WebI18n.tr(arabic, english, AppLanguage.AR))
         assertEquals(english, WebI18n.tr(arabic, english, AppLanguage.EN))
         assertEquals(androidx.compose.ui.unit.LayoutDirection.Rtl, WebI18n.layoutDirection())
+        assertEquals("ar", WebI18n.locale(WebI18n.language(null)))
+        assertEquals("en", WebI18n.locale(WebI18n.language("en")))
     }
 }
