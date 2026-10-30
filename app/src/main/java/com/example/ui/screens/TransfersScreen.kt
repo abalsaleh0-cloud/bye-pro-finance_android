@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import com.example.finance.i18n.WebI18n
+import com.example.finance.i18n.TextContent
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -121,7 +122,7 @@ fun TransfersScreen(
                         ) {
                             accounts.forEach { acc ->
                                 DropdownMenuItem(
-                                    text = { Text("${acc.name} - ${WebI18n.money(acc.balance, acc.currency, lang)}") },
+                                    text = { Text("${TextContent.isolate(acc.name)} - ${WebI18n.money(acc.balance, acc.currency, lang)}") },
                                     onClick = {
                                         fromAccountId = acc.id
                                         expandedFrom = false
