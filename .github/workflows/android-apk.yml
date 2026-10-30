@@ -22,7 +22,7 @@ jobs:
       - name: Restore verified Android source baseline
         shell: bash
         run: |
-          git show c007ac8e55798e6c08621a175a297723ebc53a4d:bye-pro-finance.zip > bye-pro-finance.zip
+          git show 50b38bbf7d784a4a7f3d0636e119868dcea61ce7:bye-pro-finance.zip > bye-pro-finance.zip
           unzip -tq bye-pro-finance.zip
 
       - name: Extract Android project
