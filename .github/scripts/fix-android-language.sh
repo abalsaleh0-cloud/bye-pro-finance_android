@@ -3,29 +3,132 @@ set -euo pipefail
 PROJECT_DIR="${1:?Android project directory is required}"
 python3 - "$PROJECT_DIR" <<'PY'
 from pathlib import Path
-import sys
+import re, sys
 root = Path(sys.argv[1])
 
 scaffold = root / "app/src/main/java/com/example/ui/navigation/MainAppScaffold.kt"
-text = scaffold.read_text(encoding="utf-8")
-old = "    val layoutDirection = if (lang == AppLanguage.AR) LayoutDirection.Rtl else LayoutDirection.Ltr"
-new = "    // Keep the application shell RTL for both languages; language selection changes text only.\n    val layoutDirection = LayoutDirection.Rtl"
-if old in text:
-    text = text.replace(old, new, 1)
-elif new not in text:
-    raise SystemExit("Expected language-dependent layout direction declaration was not found")
-scaffold.write_text(text, encoding="utf-8")
+s = scaffold.read_text(encoding="utf-8")
+s = re.sub(r"val layoutDirection = if \\(lang == AppLanguage\\.AR\\) LayoutDirection\\.Rtl else LayoutDirection\\.Ltr", "val layoutDirection = LayoutDirection.Rtl", s)
+if "val layoutDirection = LayoutDirection.Rtl" not in s:
+    raise SystemExit("Could not establish fixed RTL layout direction")
+if "Language changes text only;" not in s:
+    s = s.replace("val layoutDirection = LayoutDirection.Rtl", "// Language changes text only; the app shell and all navigation remain RTL.\\n    val layoutDirection = LayoutDirection.Rtl", 1)
+scaffold.write_text(s, encoding="utf-8")
 
-localization = root / "app/src/main/java/com/example/finance/i18n/Localization.kt"
-text = localization.read_text(encoding="utf-8")
-text = text.replace('"english" to "English (LTR)"', '"english" to "English"')
-localization.write_text(text, encoding="utf-8")
+vm = root / "app/src/main/java/com/example/finance/ui/FinanceViewModel.kt"
+s = vm.read_text(encoding="utf-8")
+s = s.replace("private val _isDarkMode = MutableStateFlow(true)", 'private val preferences = application.getSharedPreferences("bye_pro_finance_preferences", Application.MODE_PRIVATE)\\n    private val _isDarkMode = MutableStateFlow(preferences.getBoolean("dark_mode", true))')
+s = s.replace("fun setDarkMode(dark: Boolean) {\\n        _isDarkMode.value = dark\\n    }", 'fun setDarkMode(dark: Boolean) {\\n        _isDarkMode.value = dark\\n        preferences.edit().putBoolean("dark_mode", dark).apply()\\n    }')
+s = s.replace("fun toggleTheme() {\\n        _isDarkMode.value = !_isDarkMode.value\\n    }", "fun toggleTheme() {\\n        setDarkMode(!_isDarkMode.value)\\n    }")
+if 'preferences.getBoolean("dark_mode", true)' not in s:
+    raise SystemExit("Theme preference persistence patch failed")
+vm.write_text(s, encoding="utf-8")
 
-readme = root / "README.md"
-text = readme.read_text(encoding="utf-8")
-text = text.replace(
-    "6. **Bilingual RTL/LTR Architecture**:\\n   - Full native Arabic (العربية - Default) with RTL layout direction.\\n   - Instant English (LTR) toggle without app restart.",
-    "6. **Bilingual Arabic/English Interface**:\\n   - Arabic is the default language and the application layout remains RTL.\\n   - Switching to English translates interface text only; navigation, controls, component placement, and screen layout stay RTL without an app restart."
-)
-readme.write_text(text, encoding="utf-8")
+replacements = {
+    "GoldPrimary": "ByeProTheme.colors.goldPrimary",
+    "FinancialGreen": "ByeProTheme.colors.financialGreen",
+    "FinancialRed": "ByeProTheme.colors.financialRed",
+    "ExecutiveGold": "ByeProTheme.colors.goldPrimary",
+    "ExecutiveCyan": "ByeProTheme.colors.goldPrimary",
+    "EmeraldMint": "ByeProTheme.colors.financialGreen",
+    "GoldMuted": "ByeProTheme.colors.goldMuted",
+    "DarkCardSecondary": "ByeProTheme.colors.cardSecondary",
+}
+names = set(replacements)
+for subdir in ("screens", "components", "navigation"):
+    for path in (root / "app/src/main/java/com/example/ui" / subdir).rglob("*.kt"):
+        content = path.read_text(encoding="utf-8")
+        original = content
+        lines = []
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("import com.example.ui.theme.") and any(re.search(r"\\b" + re.escape(n) + r"\\s*$", stripped) for n in names):
+                continue
+            lines.append(line)
+        content = "\\n".join(lines) + "\\n"
+        for old, new in replacements.items():
+            content = re.sub(r"\\b" + re.escape(old) + r"\\b", new, content)
+        content = content.replace("Color(0xFF111015)", "MaterialTheme.colorScheme.onPrimary")
+        content = content.replace("Color(0xFF0B0A0C)", "MaterialTheme.colorScheme.onPrimary")
+        content = content.replace("Color.Black.copy(alpha = 0.7f)", "MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)")
+        content = content.replace("Color.Black", "MaterialTheme.colorScheme.onPrimary")
+        content = content.replace("Color(0xFFFF5252)", "MaterialTheme.colorScheme.error")
+        if content != original:
+            if "import com.example.ui.theme.ByeProTheme" not in content:
+                content = content.replace("\\n\\n", "\\n\\nimport com.example.ui.theme.ByeProTheme\\n", 1)
+            path.write_text(content, encoding="utf-8")
+
+loc = root / "app/src/main/java/com/example/finance/i18n/Localization.kt"
+s = loc.read_text(encoding="utf-8")
+s = s.replace('"language" to "اللغة (Language)",', '"language" to "اللغة",\\n        "appearance_title" to "مظهر التطبيق",\\n        "dark_mode" to "الوضع الداكن",\\n        "light_mode" to "الوضع الفاتح",\\n        "appearance_hint" to "اختر ألوان BYE PRO FINANCE المناسبة لك.",', 1)
+s = s.replace('"language" to "Language (اللغة)",', '"language" to "Language",\\n        "appearance_title" to "Appearance",\\n        "dark_mode" to "Dark mode",\\n        "light_mode" to "Light mode",\\n        "appearance_hint" to "Choose your preferred BYE PRO FINANCE color theme.",', 1)
+s = s.replace('"arabic" to "العربية (RTL)",', '"arabic" to "العربية",', 1)
+s = s.replace('"arabic" to "العربية (RTL)",', '"arabic" to "Arabic",', 1)
+loc.write_text(s, encoding="utf-8")
+
+settings = root / "app/src/main/java/com/example/ui/screens/SettingsScreen.kt"
+s = settings.read_text(encoding="utf-8")
+if "import androidx.compose.material3.Switch" not in s:
+    s = s.replace("import androidx.compose.material3.Text", "import androidx.compose.material3.Text\\nimport androidx.compose.material3.Switch")
+if "val isDark by viewModel.isDarkMode.collectAsState()" not in s:
+    s = s.replace("    val lang by viewModel.appLanguage.collectAsState()\\n", "    val lang by viewModel.appLanguage.collectAsState()\\n    val isDark by viewModel.isDarkMode.collectAsState()\\n", 1)
+s = s.replace('Text("العربية (RTL)", fontWeight = FontWeight.Bold)', 'Text(Strings.get("arabic", lang), fontWeight = FontWeight.Bold)')
+s = s.replace('Text("English (LTR)", fontWeight = FontWeight.Bold)', 'Text(Strings.get("english", lang), fontWeight = FontWeight.Bold)')
+marker = "        // App System Info\\n"
+block = """        // Appearance / Theme Selector
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = Strings.get("appearance_title", lang),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = Strings.get("appearance_hint", lang),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = Strings.get(if (isDark) "dark_mode" else "light_mode", lang),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Switch(
+                            checked = isDark,
+                            onCheckedChange = viewModel::setDarkMode,
+                            modifier = Modifier.testTag("theme_mode_switch")
+                        )
+                    }
+                }
+            }
+        }
+
+"""
+if marker in s and "theme_mode_switch" not in s:
+    s = s.replace(marker, block + marker, 1)
+if "theme_mode_switch" not in s:
+    raise SystemExit("Settings theme switch was not inserted")
+settings.write_text(s, encoding="utf-8")
+
+assert "val layoutDirection = LayoutDirection.Rtl" in scaffold.read_text(encoding="utf-8")
+assert 'preferences.getBoolean("dark_mode", true)' in vm.read_text(encoding="utf-8")
+assert "theme_mode_switch" in settings.read_text(encoding="utf-8")
+assert '"appearance_title" to "Appearance"' in loc.read_text(encoding="utf-8")
+print("PASS: Arabic-first fixed RTL, persisted light/dark mode, theme-aware brand colors, bilingual Settings selector.")
 PY
