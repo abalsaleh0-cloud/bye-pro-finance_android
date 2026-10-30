@@ -362,7 +362,7 @@ fun SmartScanScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(FinanceEngine.formatMoney(doc.totalAmount, "SAR"), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
                             IconButton(onClick = { viewModel.deleteDocument(doc) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
                             }
                         }
                     }
