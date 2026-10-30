@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -191,7 +192,7 @@ fun TransactionsScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Text(
-                            text = "لا توجد نتائج مطابقة لبحثك",
+                            text = WebI18n.tr("لا توجد نتائج مطابقة لبحثك", "No results match your search", lang),
                             modifier = Modifier.padding(32.dp),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
