@@ -177,7 +177,7 @@ fun DashboardScreen(
                 FinancialMetricCard(
                     title = Strings.get("total_balance", lang),
                     amount = TextContent.money(totalLiquid, "SAR", lang),
-                    subtitle = "${accounts.size} ${Strings.get("active_accounts", lang)}",
+                    subtitle = "${TextContent.number(accounts.size, lang, 0)} ${Strings.get("active_accounts", lang)}",
                     icon = Icons.Default.AccountBalance,
                     accentColor = ByeProTheme.colors.financialGreen,
                     modifier = Modifier.weight(1f)
