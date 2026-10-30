@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -106,7 +107,7 @@ fun NotificationsAdminScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "تنبيهات النظام والمواعيد المالية",
+                            text = WebI18n.tr("تنبيهات النظام والمواعيد المالية", "System alerts and financial due dates", lang),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -117,7 +118,7 @@ fun NotificationsAdminScreen(
                             ) {
                                 Icon(Icons.Default.ClearAll, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.size(4.dp))
-                                Text("مسح الكل", style = MaterialTheme.typography.labelSmall)
+                                Text(WebI18n.tr("مسح الكل", "Clear all", lang), style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -130,7 +131,7 @@ fun NotificationsAdminScreen(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Text(
-                                text = "لا توجد تنبيهات جديدة في الوقت الحالي.",
+                                text = WebI18n.tr("لا توجد تنبيهات جديدة في الوقت الحالي.", "There are no new alerts right now.", lang),
                                 modifier = Modifier.padding(24.dp),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -165,7 +166,7 @@ fun NotificationsAdminScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "نظام الصلاحيات (RBAC) وسجل التدقيق الأمني للعمليات المالية.",
+                        text = WebI18n.tr("نظام الصلاحيات (RBAC) وسجل التدقيق الأمني للعمليات المالية.", "Role-based access control (RBAC) and financial security audit log.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -201,7 +202,7 @@ fun NotificationsAdminScreen(
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.testTag("toggle_rbac_role_btn")
                                 ) {
-                                    Text("تبديل الدور", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                    Text(WebI18n.tr("تبديل الدور", "Switch role", lang), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                                 }
                             }
                             Spacer(modifier = Modifier.height(8.dp))
@@ -229,7 +230,7 @@ fun NotificationsAdminScreen(
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Icon(Icons.Default.Security, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("تشفير البيانات", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(WebI18n.tr("تشفير البيانات", "Data encryption", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("AES-256 Local", fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
                             }
                         }
@@ -242,7 +243,7 @@ fun NotificationsAdminScreen(
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Icon(Icons.Default.Storage, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("إجمالي القيود", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(WebI18n.tr("إجمالي القيود", "Total ledger entries", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("${transactions.size + accounts.size + auditLogs.size} Record", fontWeight = FontWeight.Bold, color = ByeProTheme.colors.goldPrimary)
                             }
                         }
@@ -261,7 +262,7 @@ fun NotificationsAdminScreen(
                 if (auditLogs.isEmpty()) {
                     item {
                         Text(
-                            text = "لا توجد سجلات تدقيق بعد.",
+                            text = WebI18n.tr("لا توجد سجلات تدقيق بعد.", "No audit records yet.", lang),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
