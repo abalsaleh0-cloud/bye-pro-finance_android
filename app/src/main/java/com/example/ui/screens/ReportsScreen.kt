@@ -227,7 +227,7 @@ fun ReportsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "$cat (${(pct * 100).toInt()}%)",
+                                        text = "$cat (${TextContent.number((pct * 100).toInt(), lang, 0)}%)",
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.SemiBold
                                     )
