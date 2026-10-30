@@ -66,7 +66,7 @@ object FinanceExportService {
                     accountId = row.optLong("accountId", 0L),
                     type = type,
                     amount = row.optDouble("amount", 0.0),
-                    currency = row.optString("currency", "SAR"),
+                    currency = row.optString("currency", "LYD"),
                     category = row.optString("category", "Other"),
                     date = row.optLong("date", System.currentTimeMillis()),
                     description = row.optString("description", ""),
