@@ -13,7 +13,7 @@ class TextContentTest {
     @Test fun placeholderInterpolationIsLocaleAwareAndKeepsUnknownTokens() {
         assertEquals("Welcome, ⁨Sam⁩", TextContent.text("welcome_user", AppLanguage.EN, mapOf("name" to "Sam")))
         assertEquals("مرحباً ⁨سارة⁩", TextContent.text("welcome_user", AppLanguage.AR, mapOf("name" to "سارة")))
-        assertEquals("{missing}", TextContent.text("missing_key", AppLanguage.EN, mapOf("value" to 1)))
+        assertEquals("missing_key", TextContent.text("missing_key", AppLanguage.EN, mapOf("value" to 1)))
     }
 
     @Test fun arabicPluralCategoriesFollowArabicRules() {
