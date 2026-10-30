@@ -17,7 +17,6 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import java.math.BigDecimal
@@ -133,20 +132,16 @@ class FinanceRepositoryIntegrationTest {
             AccountEntity(name = "USD wallet", type = AccountType.SAVINGS, balance = 100.0, currency = "USD")
         )
 
-        try {
-            repository.executeTransfer(
-                fromAccountId = sourceId,
-                toAccountId = destinationId,
-                amount = 50.0,
-                fee = 0.0,
-                currency = "LYD",
-                description = "Cross currency test",
-                reference = "FX-001"
-            )
-            fail("Cross-currency transfer must require a verified exchange-rate source")
-        } catch (expected: IllegalArgumentException) {
-            assertTrue(expected.message.orEmpty().contains("verified exchange-rate source"))
-        }
+        val transferred = repository.executeTransfer(
+            fromAccountId = sourceId,
+            toAccountId = destinationId,
+            amount = 50.0,
+            fee = 0.0,
+            currency = "LYD",
+            description = "Cross currency test",
+            reference = "FX-001"
+        )
+        assertFalse("Cross-currency transfer must be blocked without verified FX", transferred)
 
         assertEquals(500.0, db.financeDao().getAccountById(sourceId)?.balance ?: 0.0, 0.001)
         assertEquals(100.0, db.financeDao().getAccountById(destinationId)?.balance ?: 0.0, 0.001)
