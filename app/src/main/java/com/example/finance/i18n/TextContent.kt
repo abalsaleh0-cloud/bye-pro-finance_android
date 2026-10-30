@@ -60,7 +60,7 @@ object TextContent {
         runCatching {
             NumberFormat.getCurrencyInstance(locale(language)).apply {
                 currency = java.util.Currency.getInstance(currencyCode)
-                maximumFractionDigits = currency.defaultFractionDigits.coerceAtLeast(0)
+                maximumFractionDigits = (currency.defaultFractionDigits ?: 2).coerceAtLeast(0)
             }.format(value)
         }.getOrElse { "${number(value, language)} ${currencyCode.uppercase(Locale.ROOT)}" }
 
@@ -84,7 +84,7 @@ object TextContent {
         }
 
     private fun locale(language: AppLanguage): Locale =
-        if (language == AppLanguage.EN) Locale.ENGLISH else Locale("ar")
+        if (language == AppLanguage.EN) Locale.ENGLISH else Locale.forLanguageTag("ar")
 }
 
 /** Compose-ready string lookup using the app-wide language composition local. */
