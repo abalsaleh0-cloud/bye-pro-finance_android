@@ -1,8 +1,6 @@
 package com.example.finance.i18n
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.compositionLocalOf
 import com.example.finance.model.AppLanguage
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -89,14 +87,7 @@ object TextContent {
         if (language == AppLanguage.EN) Locale.ENGLISH else Locale("ar")
 }
 
-val LocalTextLanguage = compositionLocalOf { AppLanguage.AR }
-
-@Composable
-fun ProvideTextLanguage(language: AppLanguage, content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalTextLanguage provides language, content = content)
-}
-
-/** Compose-ready string lookup. Use this instead of adding new visible literals to screens. */
+/** Compose-ready string lookup using the app-wide language composition local. */
 @Composable
 fun appText(key: String, arguments: Map<String, Any?> = emptyMap()): String =
-    TextContent.text(key, LocalTextLanguage.current, arguments)
+    TextContent.text(key, LocalAppLanguage.current, arguments)
