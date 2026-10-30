@@ -87,6 +87,10 @@ class FinanceRepository(
         val operation: suspend () -> Long = {
             val account = dao.getAccountById(tx.accountId)
                 ?: throw IllegalArgumentException("Account not found: ${tx.accountId}")
+            require(tx.amount.isFinite() && tx.amount > 0.0) { "Transaction amount must be a finite positive number" }
+            require(tx.currency.equals(account.currency, ignoreCase = true)) {
+                "Transaction currency must match the selected account currency"
+            }
             val txId = dao.insertTransaction(tx)
             if (tx.status == TransactionStatus.COMPLETED) {
                 val currentBal = FinanceEngine.toBigDecimal(account.balance)
@@ -159,8 +163,12 @@ class FinanceRepository(
             }
 
             // The web ledger keeps currencies separate; do not apply guessed FX rates.
-            require(fromAcc.currency.equals(toAcc.currency, ignoreCase = true)) {
-                "Cross-currency transfers require a verified exchange-rate source"
+            if (!fromAcc.currency.equals(toAcc.currency, ignoreCase = true)) {
+                // No account mutation occurs until a trusted FX quote is available.
+                return@transferOp false
+            }
+            require(currency.equals(fromAcc.currency, ignoreCase = true)) {
+                "Transfer currency must match the source account currency"
             }
             val creditAmount = transferAmount
 
