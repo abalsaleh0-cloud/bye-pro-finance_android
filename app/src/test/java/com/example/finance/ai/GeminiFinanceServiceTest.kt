@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlinx.coroutines.runBlocking
 
 class GeminiFinanceServiceTest {
     private val service = GeminiFinanceService()
@@ -60,6 +61,21 @@ class GeminiFinanceServiceTest {
 
         assertTrue(insights.any { it.impactType == "WARNING" && it.description.contains("95%") })
         assertFalse(insights.any { it.description.contains("340") || it.description.contains("4x") || it.description.contains("78%") })
+    }
+
+    @Test
+    fun receiptTextExtractionDoesNotInventCurrencyTaxOrDate() = runBlocking {
+        val extracted = service.parseReceiptImage(sampleText = "Store: Local Shop\nTotal: 25.50\nLYD\n2026-10-30").getOrThrow()
+        assertEquals("Local Shop", extracted.merchant)
+        assertEquals(25.50, extracted.amount, 0.001)
+        assertEquals(0.0, extracted.tax, 0.001)
+        assertEquals("LYD", extracted.currency)
+        assertEquals("2026-10-30", extracted.dateStr)
+
+        val incomplete = service.parseReceiptImage(sampleText = "Total: 12.00").getOrThrow()
+        assertEquals("", incomplete.currency)
+        assertEquals("", incomplete.dateStr)
+        assertEquals(0.0, incomplete.tax, 0.001)
     }
 
     @Test
