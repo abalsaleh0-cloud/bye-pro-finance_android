@@ -224,7 +224,7 @@ fun AccountDetailedCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Archive,
-                            contentDescription = "Archive",
+                            contentDescription = WebI18n.tr("أرشفة", "Archive", lang),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
@@ -235,7 +235,7 @@ fun AccountDetailedCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete",
+                            contentDescription = WebI18n.tr("حذف", "Delete", lang),
                             tint = ByeProTheme.colors.financialRed.copy(alpha = 0.85f),
                             modifier = Modifier.size(20.dp)
                         )
