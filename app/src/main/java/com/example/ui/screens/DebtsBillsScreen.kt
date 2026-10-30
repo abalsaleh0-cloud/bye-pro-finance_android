@@ -299,7 +299,7 @@ fun DebtItemCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "${debt.creditor} • " + WebI18n.tr("مرابحة", "Profit rate", lang) + " ${debt.interestRate}%",
+                        text = "${debt.creditor} • " + WebI18n.tr("مرابحة", "Profit rate", lang) + " ${TextContent.number(debt.interestRate, lang)}%",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
