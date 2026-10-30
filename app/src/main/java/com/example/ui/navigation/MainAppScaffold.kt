@@ -124,7 +124,7 @@ fun MainAppScaffold(
     var showQuickAddTx by remember { mutableStateOf(false) }
 
     // Language changes text only; the app shell and all navigation remain RTL.
-    val layoutDirection = LayoutDirection.Rtl
+    val layoutDirection = WebI18n.layoutDirection()
 
     // BackHandler to safely return to dashboard
     BackHandler(enabled = currentScreen != "dashboard") {
