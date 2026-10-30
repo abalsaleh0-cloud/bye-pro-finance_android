@@ -6,6 +6,7 @@ import com.example.finance.model.BudgetEntity
 import com.example.finance.model.DebtEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
+import com.example.finance.model.TransactionStatus
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.NumberFormat
@@ -67,7 +68,7 @@ object FinanceEngine {
     fun calculateTotalIncome(transactions: List<TransactionEntity>): BigDecimal {
         var total = BigDecimal.ZERO
         for (tx in transactions) {
-            if (tx.type == TransactionType.INCOME) {
+            if (tx.status != TransactionStatus.CANCELLED && tx.type == TransactionType.INCOME) {
                 total = total.add(BigDecimal.valueOf(tx.amount))
             }
         }
@@ -77,7 +78,7 @@ object FinanceEngine {
     fun calculateTotalExpenses(transactions: List<TransactionEntity>): BigDecimal {
         var total = BigDecimal.ZERO
         for (tx in transactions) {
-            if (tx.type == TransactionType.EXPENSE) {
+            if (tx.status != TransactionStatus.CANCELLED && tx.type == TransactionType.EXPENSE) {
                 total = total.add(BigDecimal.valueOf(tx.amount))
             }
         }
@@ -105,6 +106,7 @@ object FinanceEngine {
     ): BigDecimal {
         var current = startingBalance
         for (tx in transactions) {
+            if (tx.status == TransactionStatus.CANCELLED) continue
             when (tx.type) {
                 TransactionType.INCOME -> {
                     if (tx.accountId == accountId) {
