@@ -55,6 +55,15 @@ class WebTranslationContractTest {
     }
 
     @Test
+    fun arabicAndEnglishDictionariesHaveCompleteMatchingKeys() {
+        assertEquals(Strings.arStrings.keys, Strings.enStrings.keys)
+        Strings.arStrings.forEach { (key, value) ->
+            assertTrue("Arabic translation is blank for $key", value.isNotBlank())
+            assertTrue("English translation is blank for $key", Strings.enStrings[key]?.isNotBlank() == true)
+        }
+    }
+
+    @Test
     fun visualDirectionIsAlwaysRtl() {
         assertEquals(androidx.compose.ui.unit.LayoutDirection.Rtl, WebTranslationContract.layoutDirection())
         assertTrue(WebTranslationContract.stableWebKeys.containsAll(setOf("dashboard", "accounts", "transactions", "settings")))
