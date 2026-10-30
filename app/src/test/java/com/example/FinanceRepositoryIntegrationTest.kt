@@ -125,6 +125,35 @@ class FinanceRepositoryIntegrationTest {
     }
 
     @Test
+    fun crossCurrencyTransferIsRejectedWithoutChangingBalances() = runBlocking {
+        val sourceId = repository.addAccount(
+            AccountEntity(name = "LYD wallet", type = AccountType.CASH, balance = 500.0, currency = "LYD")
+        )
+        val destinationId = repository.addAccount(
+            AccountEntity(name = "USD wallet", type = AccountType.SAVINGS, balance = 100.0, currency = "USD")
+        )
+
+        try {
+            repository.executeTransfer(
+                fromAccountId = sourceId,
+                toAccountId = destinationId,
+                amount = 50.0,
+                fee = 0.0,
+                currency = "LYD",
+                description = "Cross currency test",
+                reference = "FX-001"
+            )
+            fail("Cross-currency transfer must require a verified exchange-rate source")
+        } catch (expected: IllegalArgumentException) {
+            assertTrue(expected.message.orEmpty().contains("verified exchange-rate source"))
+        }
+
+        assertEquals(500.0, db.financeDao().getAccountById(sourceId)?.balance ?: 0.0, 0.001)
+        assertEquals(100.0, db.financeDao().getAccountById(destinationId)?.balance ?: 0.0, 0.001)
+        assertTrue(repository.transfers.first().isEmpty())
+    }
+
+    @Test
     fun testAtomicTransferRollbackOnInsufficientFunds() = runBlocking {
         val srcId = repository.addAccount(AccountEntity(name = "Src", type = AccountType.BANK, balance = 100.00, currency = "SAR"))
         val dstId = repository.addAccount(AccountEntity(name = "Dst", type = AccountType.SAVINGS, balance = 50.00, currency = "SAR"))
