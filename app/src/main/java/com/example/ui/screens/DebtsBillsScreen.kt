@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.TextContent
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -205,7 +207,7 @@ fun DebtsBillsScreen(
             title = { Text(WebI18n.tr("تسجيل سداد:", "Record payment:", lang) + " ${target.name}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(WebI18n.tr("المتبقي الحالي:", "Current remaining:", lang) + " ${FinanceEngine.formatMoney(target.remaining, target.currency)}")
+                    Text(WebI18n.tr("المتبقي الحالي:", "Current remaining:", lang) + " ${TextContent.money(target.remaining, target.currency, lang)}")
                     FinanceTextField(
                         value = payAmountStr,
                         onValueChange = { payAmountStr = it },
@@ -319,7 +321,7 @@ fun DebtItemCard(
                 Column {
                     Text(WebI18n.tr("المتبقي للسداد", "Remaining to pay", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        FinanceEngine.formatMoney(debt.remaining, debt.currency),
+                        TextContent.money(debt.remaining, debt.currency, lang),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = ByeProTheme.colors.financialRed
@@ -328,7 +330,7 @@ fun DebtItemCard(
                 Column(horizontalAlignment = Alignment.End) {
                     Text(WebI18n.tr("القسط الشهري", "Monthly installment", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        FinanceEngine.formatMoney(debt.minimumPayment, debt.currency),
+                        TextContent.money(debt.minimumPayment, debt.currency, lang),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -402,7 +404,7 @@ fun BillItemCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = FinanceEngine.formatMoney(bill.amount, bill.currency),
+                    text = TextContent.money(bill.amount, bill.currency, lang),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (bill.isPaid) ByeProTheme.colors.financialGreen else ByeProTheme.colors.financialRed
