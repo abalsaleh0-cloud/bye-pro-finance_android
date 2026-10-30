@@ -85,14 +85,35 @@ object FinanceEngine {
         return total.setScale(2, RoundingMode.HALF_EVEN)
     }
 
+    fun calculateTotalAdjustments(transactions: List<TransactionEntity>): BigDecimal {
+        var total = BigDecimal.ZERO
+        for (tx in transactions) {
+            if (tx.status == TransactionStatus.COMPLETED &&
+                tx.type == TransactionType.ADJUSTMENT && tx.amount.isFinite()
+            ) {
+                total = total.add(BigDecimal.valueOf(tx.amount))
+            }
+        }
+        return total.setScale(2, RoundingMode.HALF_EVEN)
+    }
+
     fun calculateNetCashFlow(income: BigDecimal, expenses: BigDecimal): BigDecimal {
         return income.subtract(expenses).setScale(2, RoundingMode.HALF_EVEN)
+    }
+
+    fun calculateNetCashFlow(
+        income: BigDecimal,
+        expenses: BigDecimal,
+        adjustments: BigDecimal
+    ): BigDecimal {
+        return income.subtract(expenses).add(adjustments).setScale(2, RoundingMode.HALF_EVEN)
     }
 
     fun calculateNetCashFlow(transactions: List<TransactionEntity>): BigDecimal {
         val income = calculateTotalIncome(transactions)
         val expenses = calculateTotalExpenses(transactions)
-        return calculateNetCashFlow(income, expenses)
+        val adjustments = calculateTotalAdjustments(transactions)
+        return calculateNetCashFlow(income, expenses, adjustments)
     }
 
     /**
