@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -91,7 +92,7 @@ fun BudgetsScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "متابعة دقيقة لحدود الإنفاق مع تنبيهات تلقائية عند بلوغ 50%، 75%، 90%، 100%.",
+                    text = WebI18n.tr("متابعة دقيقة لحدود الإنفاق مع تنبيهات تلقائية عند بلوغ 50%، 75%، 90%، 100%.", "Track spending limits with automatic alerts at 50%, 75%, 90%, and 100%.", lang),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -104,7 +105,7 @@ fun BudgetsScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Text(
-                            text = "لا توجد ميزانيات محددة بعد. اضغط + لإنشاء ميزانية جديدة.",
+                            text = WebI18n.tr("لا توجد ميزانيات محددة بعد. اضغط + لإنشاء ميزانية جديدة.", "No budgets yet. Tap + to create a budget.", lang),
                             modifier = Modifier.padding(32.dp),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -287,7 +288,7 @@ fun AddBudgetDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("اسم الميزانية") },
+                    label = { Text(WebI18n.tr("اسم الميزانية", "Budget name", lang)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("budget_name_input")
