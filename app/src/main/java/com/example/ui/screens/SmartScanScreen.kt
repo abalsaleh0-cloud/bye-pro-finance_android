@@ -6,6 +6,8 @@ import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceIconButton
+import com.example.ui.components.FinanceFloatingActionButton
 
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
@@ -368,7 +370,7 @@ fun SmartScanScreen(
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(TextContent.money(doc.totalAmount, "SAR", lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
-                            IconButton(onClick = { viewModel.deleteDocument(doc) }) {
+                            FinanceIconButton(onClick = { viewModel.deleteDocument(doc) }) {
                                 Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
                             }
                         }
