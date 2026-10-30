@@ -65,7 +65,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "bye_pro_finance.db"
-                ).addMigrations(MIGRATION_1_2).fallbackToDestructiveMigration(true).build()
+                ).addMigrations(MIGRATION_1_2).build()
                 INSTANCE = instance
                 instance
             }
