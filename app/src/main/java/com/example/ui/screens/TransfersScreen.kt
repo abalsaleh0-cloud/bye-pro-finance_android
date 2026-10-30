@@ -111,7 +111,7 @@ fun TransfersScreen(
                         onExpandedChange = { expandedFrom = !expandedFrom }
                     ) {
                         FinanceTextField(
-                            value = fromAccount?.let { "${it.name} (${FinanceEngine.formatMoney(it.balance, it.currency)})" } ?: "",
+                            value = fromAccount?.let { "${it.name} (${TextContent.money(it.balance, it.currency, lang)})" } ?: "",
                             onValueChange = {},
                             readOnly = true,
                             label = { Text(Strings.get("from_account", lang)) },
@@ -143,7 +143,7 @@ fun TransfersScreen(
                         onExpandedChange = { expandedTo = !expandedTo }
                     ) {
                         FinanceTextField(
-                            value = toAccount?.let { "${it.name} (${FinanceEngine.formatMoney(it.balance, it.currency)})" } ?: "",
+                            value = toAccount?.let { "${it.name} (${TextContent.money(it.balance, it.currency, lang)})" } ?: "",
                             onValueChange = {},
                             readOnly = true,
                             label = { Text(Strings.get("to_account", lang)) },
