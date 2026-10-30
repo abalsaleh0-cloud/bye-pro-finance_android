@@ -207,8 +207,8 @@ fun NotificationsAdminScreen(
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = if (isAdmin) "صلاحية المدير كاملة: الوصول لسجلات التدقيق، إدارة الحسابات، وتصدير البيانات الحساسة."
-                                else "صلاحية مستخدم عادي (User Mode): قيود أمان مفعلة.",
+                                text = if (isAdmin) WebI18n.tr("صلاحية المدير كاملة: الوصول لسجلات التدقيق، إدارة الحسابات، وتصدير البيانات الحساسة.", "Full administrator access: audit logs, account management, and sensitive data export.", lang)
+                                else WebI18n.tr("صلاحية مستخدم عادي (User Mode): قيود أمان مفعلة.", "Standard user access (User Mode): security restrictions enabled.", lang),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
