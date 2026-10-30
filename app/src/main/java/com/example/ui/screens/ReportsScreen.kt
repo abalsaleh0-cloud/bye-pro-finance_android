@@ -108,7 +108,7 @@ fun ReportsScreen(
             ) {
                 Button(
                     onClick = {
-                        exportTitle = "تقرير المعاملات المالي (CSV Export)"
+                        exportTitle = WebI18n.tr("تقرير المعاملات المالي (CSV Export)", "Financial transaction report (CSV Export)", lang)
                         exportModalData = viewModel.generateCsvExport()
                     },
                     modifier = Modifier
@@ -124,7 +124,7 @@ fun ReportsScreen(
 
                 Button(
                     onClick = {
-                        exportTitle = "التقرير المالي التنفيذي (JSON Export)"
+                        exportTitle = WebI18n.tr("التقرير المالي التنفيذي (JSON Export)", "Executive financial report (JSON Export)", lang)
                         exportModalData = viewModel.generateJsonExport()
                     },
                     modifier = Modifier
