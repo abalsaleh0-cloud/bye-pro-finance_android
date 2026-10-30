@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -247,7 +248,7 @@ fun AccountDetailedCard(
                 verticalAlignment = Alignment.Bottom
             ) {
                 Text(
-                    text = "الرصيد الفعلي",
+                    text = WebI18n.tr("الرصيد الفعلي", "Actual Balance", lang),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
