@@ -89,19 +89,25 @@ fun DashboardScreen(
     val assets by viewModel.assets.collectAsState()
     val bills by viewModel.bills.collectAsState()
     val notifications by viewModel.notifications.collectAsState()
+    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
 
-    // Engine calculations
-    val totalIncome = FinanceEngine.calculateTotalIncome(transactions)
-    val totalExpenses = FinanceEngine.calculateTotalExpenses(transactions)
-    val netCashFlow = FinanceEngine.calculateNetCashFlow(totalIncome, totalExpenses)
-    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts)
+    // Match the web dashboard: aggregate one currency at a time and never mix currencies.
+    val currencyTransactions = transactions.filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
+    val currencyAccounts = accounts.filter { !it.isArchived && it.currency.equals(primaryCurrency, ignoreCase = true) }
+    val currencyAssets = assets.filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
+    val currencyDebts = debts.filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
+    val totalIncome = FinanceEngine.calculateTotalIncome(currencyTransactions)
+    val totalExpenses = FinanceEngine.calculateTotalExpenses(currencyTransactions)
+    val netCashFlow = FinanceEngine.calculateNetCashFlow(currencyTransactions)
+    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, primaryCurrency)
 
-    var totalLiquid = 0.0
-    accounts.forEach { if (!it.isArchived) totalLiquid += it.balance }
-
-    val budgetStatuses = budgets.map { FinanceEngine.calculateBudgetStatus(it, transactions) }
-    var totalDebtAmount = BigDecimal.ZERO
-    debts.forEach { totalDebtAmount = totalDebtAmount.add(BigDecimal.valueOf(it.remaining)) }
+    val totalLiquid = currencyAccounts.sumOf { it.balance }
+    val budgetStatuses = budgets
+        .filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
+        .map { FinanceEngine.calculateBudgetStatus(it, currencyTransactions) }
+    val totalDebtAmount = currencyDebts.fold(BigDecimal.ZERO) { total, debt ->
+        total.add(BigDecimal.valueOf(debt.remaining))
+    }
 
     val healthScore = FinanceEngine.calculateFinancialHealthScore(
         totalIncome = totalIncome,
@@ -176,7 +182,7 @@ fun DashboardScreen(
             ) {
                 FinancialMetricCard(
                     title = Strings.get("total_balance", lang),
-                    amount = TextContent.money(totalLiquid, "SAR", lang),
+                    amount = TextContent.money(totalLiquid, primaryCurrency, lang),
                     subtitle = "${TextContent.number(accounts.size, lang, 0)} ${Strings.get("active_accounts", lang)}",
                     icon = Icons.Default.AccountBalance,
                     accentColor = ByeProTheme.colors.financialGreen,
@@ -184,7 +190,7 @@ fun DashboardScreen(
                 )
                 FinancialMetricCard(
                     title = Strings.get("net_worth", lang),
-                    amount = TextContent.money(netWorth, "SAR", lang),
+                    amount = TextContent.money(netWorth, primaryCurrency, lang),
                     subtitle = WebI18n.tr("الأصول - الالتزامات", "Assets - Liabilities", lang),
                     icon = Icons.Default.AttachMoney,
                     accentColor = ByeProTheme.colors.goldPrimary,
@@ -200,14 +206,14 @@ fun DashboardScreen(
             ) {
                 FinancialMetricCard(
                     title = Strings.get("monthly_income", lang),
-                    amount = TextContent.money(totalIncome, "SAR", lang),
+                    amount = TextContent.money(totalIncome, primaryCurrency, lang),
                     icon = Icons.Default.ArrowDownward,
                     accentColor = ByeProTheme.colors.financialGreen,
                     modifier = Modifier.weight(1f)
                 )
                 FinancialMetricCard(
                     title = Strings.get("monthly_expense", lang),
-                    amount = TextContent.money(totalExpenses, "SAR", lang),
+                    amount = TextContent.money(totalExpenses, primaryCurrency, lang),
                     icon = Icons.Default.ArrowUpward,
                     accentColor = ByeProTheme.colors.financialRed,
                     modifier = Modifier.weight(1f)
@@ -260,7 +266,7 @@ fun DashboardScreen(
             InteractiveCashFlowChart(
                 income = totalIncome.toDouble(),
                 expense = totalExpenses.toDouble(),
-                currency = "SAR"
+                currency = primaryCurrency
             )
         }
 
