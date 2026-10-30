@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
+
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
@@ -126,7 +131,7 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Button(
+                        FinanceButton(
                             onClick = { viewModel.setLanguage(AppLanguage.AR) },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (lang == AppLanguage.AR) ByeProTheme.colors.financialGreen else MaterialTheme.colorScheme.background,
@@ -140,7 +145,7 @@ fun SettingsScreen(
                             Text(Strings.get("arabic", lang), fontWeight = FontWeight.Bold)
                         }
 
-                        Button(
+                        FinanceButton(
                             onClick = { viewModel.setLanguage(AppLanguage.EN) },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (lang == AppLanguage.EN) ByeProTheme.colors.financialGreen else MaterialTheme.colorScheme.background,
