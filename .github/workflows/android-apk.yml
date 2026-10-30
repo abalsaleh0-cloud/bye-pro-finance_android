@@ -19,6 +19,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Restore verified Android source baseline
+        shell: bash
+        run: |
+          git show c007ac8e55798e6c08621a175a297723ebc53a4d:bye-pro-finance.zip > bye-pro-finance.zip
+          unzip -tq bye-pro-finance.zip
+
       - name: Extract Android project
         shell: bash
         run: |
@@ -46,7 +52,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add bye-pro-finance.zip
           if ! git diff --cached --quiet; then
-            git commit -m "fix(android): keep layout RTL when switching languages [skip ci]"
+            git commit -m "feat(android): Arabic-first RTL and complete brand themes [skip ci]"
             git push
           fi
 
@@ -80,7 +86,7 @@ jobs:
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
       - name: Create local debug signing key
-        working-directory: ${{ env.PROJECT_DIR }}
+        working-directory: \${{ env.PROJECT_DIR }}
         run: |
           keytool -genkeypair -v -keystore debug.keystore -storepass android \
             -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
@@ -90,13 +96,13 @@ jobs:
         uses: gradle/gradle-build-action@v3
         with:
           gradle-version: "9.3.1"
-          build-root-directory: ${{ env.PROJECT_DIR }}
+          build-root-directory: \${{ env.PROJECT_DIR }}
           arguments: assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: BYE-PRO-FINANCE-Android-APK
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
+          path: \${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
