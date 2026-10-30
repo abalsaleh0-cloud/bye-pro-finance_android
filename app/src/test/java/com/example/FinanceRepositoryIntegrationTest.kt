@@ -9,6 +9,7 @@ import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
+import com.example.finance.model.TransactionStatus
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -129,6 +130,37 @@ class FinanceRepositoryIntegrationTest {
         val dstAcc = db.financeDao().getAccountById(dstId)
         assertEquals(100.00, srcAcc?.balance ?: 0.0, 0.01)
         assertEquals(50.00, dstAcc?.balance ?: 0.0, 0.01)
+    }
+
+    @Test
+    fun cancelledRowsDoNotPostAndAdjustmentsApplyAsDeltas() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Adjustment account", type = AccountType.BANK, balance = 1000.0, currency = "SAR")
+        )
+        val cancelledId = repository.addTransaction(
+            TransactionEntity(
+                accountId = accountId,
+                type = TransactionType.EXPENSE,
+                amount = 80.0,
+                category = "Food",
+                description = "Cancelled expense",
+                status = TransactionStatus.CANCELLED
+            )
+        )
+        assertTrue(cancelledId > 0)
+        assertEquals(1000.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.01)
+
+        val adjustmentId = repository.addTransaction(
+            TransactionEntity(
+                accountId = accountId,
+                type = TransactionType.ADJUSTMENT,
+                amount = 25.0,
+                category = "Adjustment",
+                description = "Balance correction"
+            )
+        )
+        assertTrue(adjustmentId > 0)
+        assertEquals(1025.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.01)
     }
 
     @Test
