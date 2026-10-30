@@ -41,11 +41,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun scheduleFinanceBackgroundWork() {
-        val request = PeriodicWorkRequestBuilder<BillReminderWorker>(1, TimeUnit.DAYS).build()
-        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
-            "bye-pro-finance-bill-reminders",
-            ExistingPeriodicWorkPolicy.UPDATE,
-            request
-        )
+        runCatching {
+            val request = PeriodicWorkRequestBuilder<BillReminderWorker>(1, TimeUnit.DAYS).build()
+            WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+                "bye-pro-finance-bill-reminders",
+                ExistingPeriodicWorkPolicy.UPDATE,
+                request
+            )
+        }
     }
 }
