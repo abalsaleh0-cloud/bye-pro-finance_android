@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.TextContent
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -260,12 +262,12 @@ fun BudgetItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "${Strings.get("spent", lang)}: ${FinanceEngine.formatMoney(status.spent, budget.currency)}",
+                    text = "${Strings.get("spent", lang)}: ${TextContent.money(status.spent, budget.currency, lang)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "${Strings.get("limit_amount", lang)}: ${FinanceEngine.formatMoney(status.limit, budget.currency)}",
+                    text = "${Strings.get("limit_amount", lang)}: ${TextContent.money(status.limit, budget.currency, lang)}",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
