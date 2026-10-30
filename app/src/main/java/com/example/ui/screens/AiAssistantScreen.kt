@@ -83,10 +83,10 @@ fun AiAssistantScreen(
     }
 
     val quickChips = if (lang == com.example.finance.model.AppLanguage.AR) listOf(
-        "كم أنفقت هذا الشهر؟",
-        "ما أعلى تصنيف أنفقت عليه؟",
-        "هل أنا في خطر تجاوز الميزانيات؟",
-        "كيف أستطيع توفير المزيد من المال؟"
+        WebI18n.tr("كم أنفقت هذا الشهر؟", "How much have I spent this month?", lang),
+        WebI18n.tr("ما أعلى تصنيف أنفقت عليه؟", "What is my highest spending category?", lang),
+        WebI18n.tr("هل أنا في خطر تجاوز الميزانيات؟", "Am I at risk of exceeding my budgets?", lang),
+        WebI18n.tr("كيف أستطيع توفير المزيد من المال؟", "How can I save more money?", lang)
     ) else listOf(
         "What is my spending this month?",
         "What is my highest expense category?",
@@ -314,7 +314,7 @@ fun AiAssistantScreen(
                             if (insight.estimatedSavings > 0) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "التوفير المتوقع: +${FinanceEngine.formatMoney(insight.estimatedSavings, "SAR")}",
+                                    text = WebI18n.tr("التوفير المتوقع: +", "Expected savings: +", lang) + FinanceEngine.formatMoney(insight.estimatedSavings, "SAR"),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = ByeProTheme.colors.financialGreen
