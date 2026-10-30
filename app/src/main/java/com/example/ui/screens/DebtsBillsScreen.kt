@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
+
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
@@ -195,19 +200,19 @@ fun DebtsBillsScreen(
         var payAmountStr by remember { mutableStateOf(target.minimumPayment.toString()) }
         var payNotes by remember { mutableStateOf(WebI18n.tr("دفعة سداد شهرية", "Monthly debt payment", lang)) }
 
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { debtToPay = null },
             title = { Text(WebI18n.tr("تسجيل سداد:", "Record payment:", lang) + " ${target.name}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(WebI18n.tr("المتبقي الحالي:", "Current remaining:", lang) + " ${FinanceEngine.formatMoney(target.remaining, target.currency)}")
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = payAmountStr,
                         onValueChange = { payAmountStr = it },
                         label = { Text(WebI18n.tr("مبلغ السداد", "Payment amount", lang)) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = payNotes,
                         onValueChange = { payNotes = it },
                         label = { Text(WebI18n.tr("ملاحظات", "Notes", lang)) },
@@ -216,7 +221,7 @@ fun DebtsBillsScreen(
                 }
             },
             confirmButton = {
-                Button(
+                FinanceButton(
                     onClick = {
                         val amt = payAmountStr.toDoubleOrNull() ?: 0.0
                         if (amt > 0.0) {
@@ -229,7 +234,7 @@ fun DebtsBillsScreen(
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { debtToPay = null }) {
+                FinanceOutlinedButton(onClick = { debtToPay = null }) {
                     Text(Strings.get("cancel", lang))
                 }
             }
@@ -342,7 +347,7 @@ fun DebtItemCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = ByeProTheme.colors.goldPrimary
                 )
-                Button(
+                FinanceButton(
                     onClick = onPay,
                     colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(8.dp)
@@ -406,7 +411,7 @@ fun BillItemCard(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (!bill.isPaid) {
-                    Button(
+                    FinanceButton(
                         onClick = onMarkPaid,
                         colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
                         shape = RoundedCornerShape(8.dp)
@@ -446,30 +451,30 @@ fun AddDebtDialog(
     var principalStr by remember { mutableStateOf("") }
     var minPaymentStr by remember { mutableStateOf("") }
 
-    AlertDialog(
+    FinanceAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = Strings.get("add_debt", lang), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
+                FinanceTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(WebI18n.tr("اسم التمويل / القرض", "Financing / loan name", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = creditor,
                     onValueChange = { creditor = it },
                     label = { Text(Strings.get("creditor", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = principalStr,
                     onValueChange = { principalStr = it },
                     label = { Text(Strings.get("principal", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = minPaymentStr,
                     onValueChange = { minPaymentStr = it },
                     label = { Text(Strings.get("min_payment", lang)) },
@@ -478,7 +483,7 @@ fun AddDebtDialog(
             }
         },
         confirmButton = {
-            Button(
+            FinanceButton(
                 onClick = {
                     val p = principalStr.toDoubleOrNull() ?: 0.0
                     val min = minPaymentStr.toDoubleOrNull() ?: 0.0
@@ -499,7 +504,7 @@ fun AddDebtDialog(
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
+            FinanceOutlinedButton(onClick = onDismiss) {
                 Text(Strings.get("cancel", lang))
             }
         }
@@ -516,24 +521,24 @@ fun AddBillDialog(
     var category by remember { mutableStateOf("Utilities") }
     var amountStr by remember { mutableStateOf("") }
 
-    AlertDialog(
+    FinanceAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = Strings.get("add_bill", lang), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
+                FinanceTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(WebI18n.tr("اسم الفاتورة", "Bill name", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = category,
                     onValueChange = { category = it },
                     label = { Text(Strings.get("category", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = amountStr,
                     onValueChange = { amountStr = it },
                     label = { Text(Strings.get("amount", lang)) },
@@ -542,7 +547,7 @@ fun AddBillDialog(
             }
         },
         confirmButton = {
-            Button(
+            FinanceButton(
                 onClick = {
                     val amt = amountStr.toDoubleOrNull() ?: 0.0
                     if (name.isNotBlank() && amt > 0.0) {
@@ -561,7 +566,7 @@ fun AddBillDialog(
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
+            FinanceOutlinedButton(onClick = onDismiss) {
                 Text(Strings.get("cancel", lang))
             }
         }
