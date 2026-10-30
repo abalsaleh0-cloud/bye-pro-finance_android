@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.TextContent
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -252,7 +254,7 @@ fun NotificationsAdminScreen(
                                 Icon(Icons.Default.Storage, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(WebI18n.tr("إجمالي القيود", "Total ledger entries", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(WebI18n.tr("${transactions.size + accounts.size + auditLogs.size} سجل", "${transactions.size + accounts.size + auditLogs.size} records", lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.goldPrimary)
+                                Text(WebI18n.tr("${TextContent.number(transactions.size + accounts.size + auditLogs.size, lang, 0)} سجل", "${transactions.size + accounts.size + auditLogs.size} records", lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.goldPrimary)
                             }
                         }
                     }
