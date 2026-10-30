@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -122,7 +123,7 @@ fun SmartScanScreen(
                     }
 
                     Text(
-                        text = "محرك المسح الضوئي الذكي (Gemini OCR Vision)",
+                        text = WebI18n.tr("محرك المسح الضوئي الذكي (Gemini OCR Vision)", "Smart scanning engine (Gemini OCR Vision)", lang),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -153,7 +154,7 @@ fun SmartScanScreen(
                     ) {
                         Icon(Icons.Default.Receipt, contentDescription = null)
                         Spacer(modifier = Modifier.size(8.dp))
-                        Text("مسح إيصال مقهى تجريبي", color = MaterialTheme.colorScheme.onSurface)
+                        Text(WebI18n.tr("مسح إيصال مقهى تجريبي", "Scan sample cafe receipt", lang), color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -197,7 +198,7 @@ fun SmartScanScreen(
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                             Spacer(modifier = Modifier.size(6.dp))
                             Text(
-                                text = "مراجعة وتأكيد البيانات المستخرجة من الإيصال",
+                                text = WebI18n.tr("مراجعة وتأكيد البيانات المستخرجة من الإيصال", "Review and confirm extracted receipt data", lang),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = ByeProTheme.colors.goldPrimary
@@ -335,7 +336,7 @@ fun SmartScanScreen(
         if (documents.isEmpty()) {
             item {
                 Text(
-                    text = "لم يتم حفظ أي مستندات أو إيصالات بعد.",
+                    text = WebI18n.tr("لم يتم حفظ أي مستندات أو إيصالات بعد.", "No documents or receipts have been saved yet.", lang),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
