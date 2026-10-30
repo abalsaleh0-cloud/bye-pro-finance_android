@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.TextContent
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -320,7 +322,7 @@ fun AiAssistantScreen(
                             if (insight.estimatedSavings > 0) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = WebI18n.tr("التوفير المتوقع: +", "Expected savings: +", lang) + FinanceEngine.formatMoney(insight.estimatedSavings, "SAR"),
+                                    text = WebI18n.tr("التوفير المتوقع: +", "Expected savings: +", lang) + TextContent.money(insight.estimatedSavings, "SAR", lang),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = ByeProTheme.colors.financialGreen
