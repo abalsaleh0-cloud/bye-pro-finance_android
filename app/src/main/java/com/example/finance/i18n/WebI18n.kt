@@ -56,7 +56,7 @@ object WebI18n {
     fun money(value: Number, currency: String, language: AppLanguage): String =
         runCatching {
             NumberFormat.getCurrencyInstance(if (language == AppLanguage.EN) Locale.ENGLISH else Locale("ar"))
-                .apply { currency = java.util.Currency.getInstance(currency) }
+                .apply { this.currency = java.util.Currency.getInstance(currency) }
                 .format(value)
         }.getOrElse { "${number(value, language)} $currency" }
 
