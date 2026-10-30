@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -55,7 +56,7 @@ fun TransfersScreen(
     var toAccountId by remember(accounts) { mutableStateOf(accounts.getOrNull(1)?.id ?: accounts.firstOrNull()?.id ?: 0L) }
     var amountStr by remember { mutableStateOf("") }
     var feeStr by remember { mutableStateOf("0") }
-    var description by remember { mutableStateOf("تحويل رصيد داخلي") }
+    var description by remember { mutableStateOf(WebI18n.tr("تحويل رصيد داخلي", "Internal balance transfer", lang)) }
     var reference by remember { mutableStateOf("REF-${System.currentTimeMillis() % 100000}") }
 
     var expandedFrom by remember { mutableStateOf(false) }
@@ -80,7 +81,7 @@ fun TransfersScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "تحويل فوري ذري يضمن تحديث كلا الحسابين أو التراجع الآمن في حال التعثر.",
+                text = WebI18n.tr("تحويل فوري ذري يضمن تحديث كلا الحسابين أو التراجع الآمن في حال التعثر.", "Instant atomic transfer updates both accounts or safely rolls back if it fails.", lang),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -213,10 +214,10 @@ fun TransfersScreen(
                                         }
                                     }
                                 } else {
-                                    statusMessage = "عفواً، رصيد الحساب المصدر غير كافٍ لإتمام التحويل والرسوم!"
+                                    statusMessage = WebI18n.tr("عفواً، رصيد الحساب المصدر غير كافٍ لإتمام التحويل والرسوم!", "Sorry, the source account balance is insufficient to cover the transfer and fees!", lang)
                                 }
                             } else if (fromAccountId == toAccountId) {
-                                statusMessage = "لا يمكن التحويل لنفس الحساب!"
+                                statusMessage = WebI18n.tr("لا يمكن التحويل لنفس الحساب!", "You cannot transfer to the same account!", lang)
                             }
                         },
                         modifier = Modifier
