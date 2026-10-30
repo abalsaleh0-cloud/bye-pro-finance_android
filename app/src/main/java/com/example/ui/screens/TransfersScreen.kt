@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
+
 import com.example.finance.i18n.WebI18n
 import com.example.finance.i18n.TextContent
 import com.example.ui.theme.ByeProTheme
@@ -105,7 +110,7 @@ fun TransfersScreen(
                         expanded = expandedFrom,
                         onExpandedChange = { expandedFrom = !expandedFrom }
                     ) {
-                        OutlinedTextField(
+                        FinanceTextField(
                             value = fromAccount?.let { "${it.name} (${FinanceEngine.formatMoney(it.balance, it.currency)})" } ?: "",
                             onValueChange = {},
                             readOnly = true,
@@ -137,7 +142,7 @@ fun TransfersScreen(
                         expanded = expandedTo,
                         onExpandedChange = { expandedTo = !expandedTo }
                     ) {
-                        OutlinedTextField(
+                        FinanceTextField(
                             value = toAccount?.let { "${it.name} (${FinanceEngine.formatMoney(it.balance, it.currency)})" } ?: "",
                             onValueChange = {},
                             readOnly = true,
@@ -165,7 +170,7 @@ fun TransfersScreen(
                     }
 
                     // Amount input
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = amountStr,
                         onValueChange = { amountStr = it },
                         label = { Text(Strings.get("transfer_amount", lang)) },
@@ -176,7 +181,7 @@ fun TransfersScreen(
                     )
 
                     // Fee input
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = feeStr,
                         onValueChange = { feeStr = it },
                         label = { Text(Strings.get("transfer_fee", lang)) },
@@ -185,7 +190,7 @@ fun TransfersScreen(
                     )
 
                     // Description & reference
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = description,
                         onValueChange = { description = it },
                         label = { Text(Strings.get("description", lang)) },
@@ -194,7 +199,7 @@ fun TransfersScreen(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    Button(
+                    FinanceButton(
                         onClick = {
                             val amt = amountStr.toDoubleOrNull() ?: 0.0
                             val fee = feeStr.toDoubleOrNull() ?: 0.0
