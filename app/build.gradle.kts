@@ -18,7 +18,7 @@ android {
     targetSdk = 36
     versionCode = 1
     versionName = "1.0"
-
+    buildConfigField("String", "FINANCE_API_BASE_URL", "\"https://bye-pro-finance.vercel.app/\"")
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
