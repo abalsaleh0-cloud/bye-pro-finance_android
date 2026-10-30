@@ -139,7 +139,7 @@ fun AccountsScreen(
         AlertDialog(
             onDismissRequest = { selectedAccountForDelete = null },
             title = { Text(text = Strings.get("delete", lang)) },
-            text = { Text("هل تريد بالتأكيد حذف حساب '${target.name}'؟") },
+            text = { Text(WebI18n.tr("هل تريد بالتأكيد حذف حساب", "Are you sure you want to delete account", lang) + " '${target.name}'?") },
             confirmButton = {
                 Button(
                     onClick = {
