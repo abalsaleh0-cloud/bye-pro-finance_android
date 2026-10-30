@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
+
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
@@ -220,13 +225,13 @@ fun SavingsAssetsScreen(
         val target = goalToContribute!!
         var contributeAmountStr by remember { mutableStateOf("") }
 
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { goalToContribute = null },
             title = { Text(WebI18n.tr("إيداع في الهدف:", "Contribute to goal:", lang) + " ${target.name}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(WebI18n.tr("المبلغ الحالي:", "Current amount:", lang) + " ${FinanceEngine.formatMoney(target.currentAmount, target.currency)}")
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = contributeAmountStr,
                         onValueChange = { contributeAmountStr = it },
                         label = { Text(WebI18n.tr("مبلغ الإيداع", "Deposit amount", lang)) },
@@ -235,7 +240,7 @@ fun SavingsAssetsScreen(
                 }
             },
             confirmButton = {
-                Button(
+                FinanceButton(
                     onClick = {
                         val amt = contributeAmountStr.toDoubleOrNull() ?: 0.0
                         if (amt > 0.0) {
@@ -249,7 +254,7 @@ fun SavingsAssetsScreen(
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { goalToContribute = null }) {
+                FinanceOutlinedButton(onClick = { goalToContribute = null }) {
                     Text(Strings.get("cancel", lang))
                 }
             }
@@ -369,7 +374,7 @@ fun SavingsGoalCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = ByeProTheme.colors.goldPrimary
                 )
-                Button(
+                FinanceButton(
                     onClick = onContribute,
                     colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(8.dp)
@@ -447,24 +452,24 @@ fun AddSavingsGoalDialog(
     var targetStr by remember { mutableStateOf("") }
     var currentStr by remember { mutableStateOf("0") }
 
-    AlertDialog(
+    FinanceAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = Strings.get("add_goal", lang), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
+                FinanceTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(WebI18n.tr("اسم الهدف الادخاري", "Savings goal name", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = targetStr,
                     onValueChange = { targetStr = it },
                     label = { Text(Strings.get("target_amount", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = currentStr,
                     onValueChange = { currentStr = it },
                     label = { Text(WebI18n.tr("الرصيد المدخر حالياً", "Current saved balance", lang)) },
@@ -473,7 +478,7 @@ fun AddSavingsGoalDialog(
             }
         },
         confirmButton = {
-            Button(
+            FinanceButton(
                 onClick = {
                     val target = targetStr.toDoubleOrNull() ?: 0.0
                     val current = currentStr.toDoubleOrNull() ?: 0.0
@@ -493,7 +498,7 @@ fun AddSavingsGoalDialog(
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
+            FinanceOutlinedButton(onClick = onDismiss) {
                 Text(Strings.get("cancel", lang))
             }
         }
@@ -510,24 +515,24 @@ fun AddAssetDialog(
     var valueStr by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
 
-    AlertDialog(
+    FinanceAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = Strings.get("add_asset", lang), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
+                FinanceTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(WebI18n.tr("اسم الأصل (عقار، ذهب، مركبة)", "Asset name (property, gold, vehicle)", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = valueStr,
                     onValueChange = { valueStr = it },
                     label = { Text(Strings.get("asset_value", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = notes,
                     onValueChange = { notes = it },
                     label = { Text(WebI18n.tr("ملاحظات", "Notes", lang)) },
@@ -536,7 +541,7 @@ fun AddAssetDialog(
             }
         },
         confirmButton = {
-            Button(
+            FinanceButton(
                 onClick = {
                     val value = valueStr.toDoubleOrNull() ?: 0.0
                     if (name.isNotBlank() && value > 0.0) {
@@ -555,7 +560,7 @@ fun AddAssetDialog(
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
+            FinanceOutlinedButton(onClick = onDismiss) {
                 Text(Strings.get("cancel", lang))
             }
         }
