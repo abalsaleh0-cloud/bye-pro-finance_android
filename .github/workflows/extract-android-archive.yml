@@ -1,0 +1,62 @@
+name: Extract Android Project Archive
+
+on:
+  push:
+    paths:
+      - ".github/workflows/extract-android-archive.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify and extract Android project
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s bye-pro-finance.zip
+          unzip -tq bye-pro-finance.zip
+          mkdir -p .android-archive-extract
+          unzip -q bye-pro-finance.zip -d .android-archive-extract
+          test -f .android-archive-extract/settings.gradle.kts
+          test -d .android-archive-extract/app
+          cp -a .android-archive-extract/. .
+          rm -rf .android-archive-extract
+          test -f settings.gradle.kts
+          test -f app/build.gradle.kts
+          echo "Extracted Android project files:"
+          find app/src/main -type f | sort
+          echo "Project root files:"
+          find . -maxdepth 2 -type f \( -name 'settings.gradle*' -o -name 'build.gradle*' -o -name 'gradlew*' -o -name 'gradle.properties' \) | sort
+
+      - name: Commit extracted project files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A app gradle settings.gradle.kts build.gradle.kts gradle.properties gradlew gradlew.bat .gitignore
+          if git diff --cached --quiet; then
+            echo "No extracted source changes to commit."
+          else
+            git commit -m "chore(android): extract project archive into repository"
+            git push
+          fi
+
+      - name: Verify extracted Android project tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f settings.gradle.kts
+          test -f app/src/main/AndroidManifest.xml
+          test -d app/src/main/java
+          echo "PASS: Android project is extracted at repository root."
