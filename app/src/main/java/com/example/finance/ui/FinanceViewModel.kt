@@ -63,7 +63,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private val _appLanguage = MutableStateFlow(WebI18n.read(application))
     val appLanguage: StateFlow<AppLanguage> = _appLanguage.asStateFlow()
 
-    private val _isDarkMode = MutableStateFlow(preferences(application).getBoolean("dark_mode", true))
+    private val preferences = application.getSharedPreferences("bye_pro_finance_preferences", Application.MODE_PRIVATE)
+    private val _isDarkMode = MutableStateFlow(preferences.getBoolean("dark_mode", true))
     val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
 
     private val _currentScreen = MutableStateFlow("dashboard")
@@ -110,7 +111,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     fun setDarkMode(dark: Boolean) {
         _isDarkMode.value = dark
-        preferences(getApplication()).edit().putBoolean("dark_mode", dark).apply()
+        preferences.edit().putBoolean("dark_mode", dark).apply()
     }
 
     fun toggleTheme() { setDarkMode(!_isDarkMode.value) }
@@ -218,10 +219,5 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     fun restoreBackupFromJson(backupJson: String, onComplete: (Boolean) -> Unit) {
         viewModelScope.launch { onComplete(repository.restoreFromJson(backupJson)) }
-    }
-
-    companion object {
-        private fun preferences(application: Application) =
-            application.getSharedPreferences("bye_pro_finance_preferences", Application.MODE_PRIVATE)
     }
 }
