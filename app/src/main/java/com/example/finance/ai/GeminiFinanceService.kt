@@ -2,6 +2,7 @@ package com.example.finance.ai
 
 import com.example.BuildConfig
 import com.example.finance.engine.FinanceEngine
+import com.example.finance.i18n.TextContent
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AppLanguage
 import com.example.finance.model.BudgetEntity
@@ -119,7 +120,7 @@ class GeminiFinanceService {
                     "بناءً على صافي التدفق الحالي البالغ $netCashFlow ر.س، يمكنك توفير ما يقارب 1,500 ر.س شهرياً عبر خفض مصاريف الترفيه والمطاعم بنسبة 15% فقط، مما يتيح لك تحقيق هدف صندوق الطوارئ أسرع بشهرين!\n*(تحليل استرشادي مبني على بياناتك المسجلة)*"
                 }
                 else -> {
-                    "أهلاً بك! إجمالي رصيدك السائل حالياً هو ${FinanceEngine.formatMoney(totalLiquid, "SAR")} عبر ${accounts.size} حسابات، وصافي تدفقك النقدي إيجابي بمقدار ${FinanceEngine.formatMoney(netCashFlow, "SAR")}.\nكيف يمكنني مساعدتك في تخطيط نفقاتك أو ميزانيتك اليوم؟\n*(تحليل استرشادي مبني على بياناتك المسجلة)*"
+                    "أهلاً بك! إجمالي رصيدك السائل حالياً هو ${TextContent.money(totalLiquid, "SAR", language)} عبر ${accounts.size} حسابات، وصافي تدفقك النقدي إيجابي بمقدار ${TextContent.money(netCashFlow, "SAR", language)}.\nكيف يمكنني مساعدتك في تخطيط نفقاتك أو ميزانيتك اليوم؟\n*(تحليل استرشادي مبني على بياناتك المسجلة)*"
                 }
             }
         } else {
@@ -134,7 +135,7 @@ class GeminiFinanceService {
                     "Total outstanding debts are $totalDebtAmount SAR across ${debts.size} accounts. Regular monthly installments ensure on-time settlement.\n*(Analytical guidance based on recorded data)*"
                 }
                 else -> {
-                    "Hello! Your total liquid balance is ${FinanceEngine.formatMoney(totalLiquid, "SAR")} across ${accounts.size} accounts. Your net cash flow is positive at ${FinanceEngine.formatMoney(netCashFlow, "SAR")}.\nHow can I assist your financial planning today?\n*(Analytical guidance based on recorded data)*"
+                    "Hello! Your total liquid balance is ${TextContent.money(totalLiquid, "SAR", language)} across ${accounts.size} accounts. Your net cash flow is positive at ${TextContent.money(netCashFlow, "SAR", language)}.\nHow can I assist your financial planning today?\n*(Analytical guidance based on recorded data)*"
                 }
             }
         }
