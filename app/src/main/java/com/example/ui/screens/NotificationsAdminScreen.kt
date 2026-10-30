@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
+
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
@@ -112,7 +117,7 @@ fun NotificationsAdminScreen(
                             fontWeight = FontWeight.Bold
                         )
                         if (notifications.isNotEmpty()) {
-                            OutlinedButton(
+                            FinanceOutlinedButton(
                                 onClick = { viewModel.clearNotifications() },
                                 shape = RoundedCornerShape(8.dp)
                             ) {
@@ -197,7 +202,7 @@ fun NotificationsAdminScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
-                                Button(
+                                FinanceButton(
                                     onClick = { viewModel.toggleUserRole() },
                                     colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
                                     shape = RoundedCornerShape(8.dp),
