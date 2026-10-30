@@ -336,7 +336,7 @@ fun SmartScanScreen(
         // Saved Documents History
         item {
             Text(
-                text = WebI18n.tr("المستندات والإيصالات المحفوظة", "Saved documents and receipts", lang) + " (${documents.size})",
+                text = WebI18n.tr("المستندات والإيصالات المحفوظة", "Saved documents and receipts", lang) + " (${TextContent.number(documents.size, lang, 0)})",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
