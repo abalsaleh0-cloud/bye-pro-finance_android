@@ -9,7 +9,7 @@ data class UserEntity(
     val name: String,
     val email: String,
     val role: UserRole = UserRole.ADMIN,
-    val currencyPreference: String = "SAR",
+    val currencyPreference: String = "LYD,
     val languagePreference: AppLanguage = AppLanguage.AR,
     val createdAt: Long = System.currentTimeMillis()
 )
@@ -19,7 +19,7 @@ data class AccountEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val type: AccountType,
-    val currency: String = "SAR",
+    val currency: String = "LYD,
     val balance: Double = 0.0,
     val accountNumberSafe: String = "",
     val institution: String = "",
@@ -35,7 +35,7 @@ data class TransactionEntity(
     val accountId: Long,
     val type: TransactionType,
     val amount: Double,
-    val currency: String = "SAR",
+    val currency: String = "LYD,
     val category: String,
     val date: Long = System.currentTimeMillis(),
     val description: String,
@@ -55,7 +55,7 @@ data class TransferEntity(
     val toAccountId: Long,
     val amount: Double,
     val fee: Double = 0.0,
-    val currency: String = "SAR",
+    val currency: String = "LYD,
     val date: Long = System.currentTimeMillis(),
     val description: String = "",
     val reference: String = ""
@@ -68,7 +68,7 @@ data class BudgetEntity(
     val category: String,
     val period: BudgetPeriod = BudgetPeriod.MONTHLY,
     val limitAmount: Double,
-    val currency: String = "SAR",
+    val currency: String = "LYD,
     val startDate: Long = System.currentTimeMillis(),
     val endDate: Long = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000)
 )
@@ -83,7 +83,7 @@ data class DebtEntity(
     val interestRate: Double = 0.0,
     val dueDate: Long = System.currentTimeMillis() + (90L * 24 * 60 * 60 * 1000),
     val minimumPayment: Double = 0.0,
-    val currency: String = "SAR",
+    val currency: String = "LYD,
     val status: DebtStatus = DebtStatus.ACTIVE,
     val notes: String = ""
 )
@@ -103,7 +103,7 @@ data class BillEntity(
     val name: String,
     val category: String,
     val amount: Double,
-    val currency: String = "SAR",
+    val currency: String = "LYD,
     val dueDate: Long,
     val isRecurring: Boolean = true,
     val recurrenceIntervalDays: Int = 30,
@@ -117,7 +117,7 @@ data class SavingsGoalEntity(
     val name: String,
     val targetAmount: Double,
     val currentAmount: Double = 0.0,
-    val currency: String = "SAR",
+    val currency: String = "LYD,
     val deadline: Long,
     val targetMonthlyDeposit: Double = 0.0,
     val colorHex: String = "#F1B942"
@@ -129,7 +129,7 @@ data class AssetEntity(
     val name: String,
     val type: AssetType,
     val value: Double,
-    val currency: String = "SAR",
+    val currency: String = "LYD,
     val purchaseDate: Long = System.currentTimeMillis(),
     val notes: String = ""
 )
