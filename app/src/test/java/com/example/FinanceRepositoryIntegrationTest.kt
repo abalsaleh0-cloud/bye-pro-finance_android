@@ -120,7 +120,8 @@ class FinanceRepositoryIntegrationTest {
             )
         )
         assertEquals(BigDecimal("10.00"), FinanceEngine.calculateTotalExpenses(ledgerRows))
-        assertEquals(BigDecimal("300.00"), FinanceEngine.calculateTotalAdjustments(ledgerRows))
+        assertEquals(BigDecimal("0.00"), FinanceEngine.calculateTotalAdjustments(ledgerRows))
+        assertEquals(BigDecimal("-10.00"), FinanceEngine.calculateNetCashFlow(ledgerRows))
     }
 
     @Test
