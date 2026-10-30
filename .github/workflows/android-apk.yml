@@ -8,7 +8,6 @@ on:
       - "build.gradle.kts"
       - "settings.gradle.kts"
       - "gradle.properties"
-      - "AndroidManifest.xml"
       - ".github/workflows/android-apk.yml"
       - ".github/scripts/fix-android-language.sh"
   workflow_dispatch:
@@ -43,9 +42,10 @@ jobs:
         shell: bash
         run: |
           grep -q 'val layoutDirection = LayoutDirection.Rtl' app/src/main/java/com/example/ui/navigation/MainAppScaffold.kt
-          grep -q 'preferences.getString("locale", "ar")' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
-          grep -q 'putString("locale"' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
-          echo "PASS: Arabic default, persisted locale, fixed RTL layout."
+          grep -q 'val localeKey = "bye-pro-finance.locale"' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          grep -q 'getString(localeKey, "ar")' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          grep -q 'putString(localeKey' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          echo "PASS: Arabic default, persisted web-compatible locale key, fixed RTL layout."
 
       - name: Set up Java
         uses: actions/setup-java@v4
