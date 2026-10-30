@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.TextContent
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -167,15 +169,15 @@ fun ReportsScreen(
                     ) {
                         Column {
                             Text(WebI18n.tr("إجمالي الدخل", "Total income", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(FinanceEngine.formatMoney(totalIncome, "SAR"), color = ByeProTheme.colors.financialGreen, fontWeight = FontWeight.Bold)
+                            Text(TextContent.money(totalIncome, "SAR", lang), color = ByeProTheme.colors.financialGreen, fontWeight = FontWeight.Bold)
                         }
                         Column {
                             Text(WebI18n.tr("إجمالي المصروفات", "Total expenses", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(FinanceEngine.formatMoney(totalExpenses, "SAR"), color = ByeProTheme.colors.financialRed, fontWeight = FontWeight.Bold)
+                            Text(TextContent.money(totalExpenses, "SAR", lang), color = ByeProTheme.colors.financialRed, fontWeight = FontWeight.Bold)
                         }
                         Column {
                             Text(WebI18n.tr("صافي التدفق", "Net cash flow", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(FinanceEngine.formatMoney(netCashFlow, "SAR"), color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
+                            Text(TextContent.money(netCashFlow, "SAR", lang), color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -230,7 +232,7 @@ fun ReportsScreen(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
-                                        text = FinanceEngine.formatMoney(amount, "SAR"),
+                                        text = TextContent.money(amount, "SAR", lang),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = ByeProTheme.colors.goldPrimary
                                     )
