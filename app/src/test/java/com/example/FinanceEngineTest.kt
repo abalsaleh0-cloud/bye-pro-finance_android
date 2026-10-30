@@ -120,6 +120,7 @@ class FinanceEngineTest {
 
         // 1000 - 150 + 150 = 1000
         assertEquals(BigDecimal("1000.00"), balanceAfterRefund)
+        assertEquals(BigDecimal("150.00"), FinanceEngine.calculateTotalIncome(transactions))
     }
 
     @Test
