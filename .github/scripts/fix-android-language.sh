@@ -26,20 +26,21 @@ scaffold.write_text(s, encoding="utf-8")
 
 vm = root / "app/src/main/java/com/example/finance/ui/FinanceViewModel.kt"
 s = vm.read_text(encoding="utf-8")
-s = s.replace(
-    "private val _isDarkMode = MutableStateFlow(true)",
-    'private val preferences = application.getSharedPreferences("bye_pro_finance_preferences", Application.MODE_PRIVATE)\n    private val _isDarkMode = MutableStateFlow(preferences.getBoolean("dark_mode", true))',
-)
-s = s.replace(
-    "fun setDarkMode(dark: Boolean) {\n        _isDarkMode.value = dark\n    }",
-    'fun setDarkMode(dark: Boolean) {\n        _isDarkMode.value = dark\n        preferences.edit().putBoolean("dark_mode", dark).apply()\n    }',
-)
-s = s.replace(
-    "fun toggleTheme() {\n        _isDarkMode.value = !_isDarkMode.value\n    }",
-    "fun toggleTheme() {\n        setDarkMode(!_isDarkMode.value)\n    }",
-)
 if 'preferences.getBoolean("dark_mode", true)' not in s:
-    raise SystemExit("Theme preference persistence patch failed")
+    s = s.replace(
+        "private val _isDarkMode = MutableStateFlow(true)",
+        'private val preferences = application.getSharedPreferences("bye_pro_finance_preferences", Application.MODE_PRIVATE)\n    private val _isDarkMode = MutableStateFlow(preferences.getBoolean("dark_mode", true))',
+    )
+    s = s.replace(
+        "fun setDarkMode(dark: Boolean) {\n        _isDarkMode.value = dark\n    }",
+        'fun setDarkMode(dark: Boolean) {\n        _isDarkMode.value = dark\n        preferences.edit().putBoolean("dark_mode", dark).apply()\n    }',
+    )
+    s = s.replace(
+        "fun toggleTheme() {\n        _isDarkMode.value = !_isDarkMode.value\n    }",
+        "fun toggleTheme() {\n        setDarkMode(!_isDarkMode.value)\n    }",
+    )
+if 'preferences.getBoolean("dark_mode", true)' not in s:
+    raise SystemExit("Theme preference persistence could not be established")
 vm.write_text(s, encoding="utf-8")
 
 replacements = {
@@ -79,9 +80,7 @@ for subdir in ("screens", "components", "navigation"):
         content = content.replace("Color.DarkGray.copy(alpha = 0.3f)", "ByeProTheme.colors.borderBase.copy(alpha = 0.65f)")
         if content != original:
             if "import com.example.ui.theme.ByeProTheme" not in content:
-                content = content.replace(
-                    "\n\n", "\n\nimport com.example.ui.theme.ByeProTheme\n", 1
-                )
+                content = content.replace("\n\n", "\n\nimport com.example.ui.theme.ByeProTheme\n", 1)
             path.write_text(content, encoding="utf-8")
 
 components = root / "app/src/main/java/com/example/ui/components/FinancialComponents.kt"
@@ -103,20 +102,12 @@ loc = root / "app/src/main/java/com/example/finance/i18n/Localization.kt"
 s = loc.read_text(encoding="utf-8")
 s = s.replace(
     '"language" to "اللغة (Language)",',
-    '"language" to "اللغة",\n'
-    '        "appearance_title" to "مظهر التطبيق",\n'
-    '        "dark_mode" to "الوضع الداكن",\n'
-    '        "light_mode" to "الوضع الفاتح",\n'
-    '        "appearance_hint" to "اختر ألوان BYE PRO FINANCE المناسبة لك.",',
+    '"language" to "اللغة",\n        "appearance_title" to "مظهر التطبيق",\n        "dark_mode" to "الوضع الداكن",\n        "light_mode" to "الوضع الفاتح",\n        "appearance_hint" to "اختر ألوان BYE PRO FINANCE المناسبة لك.",',
     1,
 )
 s = s.replace(
     '"language" to "Language (اللغة)",',
-    '"language" to "Language",\n'
-    '        "appearance_title" to "Appearance",\n'
-    '        "dark_mode" to "Dark mode",\n'
-    '        "light_mode" to "Light mode",\n'
-    '        "appearance_hint" to "Choose your preferred BYE PRO FINANCE color theme.",',
+    '"language" to "Language",\n        "appearance_title" to "Appearance",\n        "dark_mode" to "Dark mode",\n        "light_mode" to "Light mode",\n        "appearance_hint" to "Choose your preferred BYE PRO FINANCE color theme.",',
     1,
 )
 s = s.replace('"arabic" to "العربية (RTL)",', '"arabic" to "العربية",', 1)
@@ -139,25 +130,15 @@ theme.write_text(dark_part + light_marker + light_part, encoding="utf-8")
 settings = root / "app/src/main/java/com/example/ui/screens/SettingsScreen.kt"
 s = settings.read_text(encoding="utf-8")
 if "import androidx.compose.material3.Switch" not in s:
-    s = s.replace(
-        "import androidx.compose.material3.Text",
-        "import androidx.compose.material3.Text\nimport androidx.compose.material3.Switch",
-    )
+    s = s.replace("import androidx.compose.material3.Text", "import androidx.compose.material3.Text\nimport androidx.compose.material3.Switch")
 if "val isDark by viewModel.isDarkMode.collectAsState()" not in s:
     s = s.replace(
         "    val lang by viewModel.appLanguage.collectAsState()\n",
-        "    val lang by viewModel.appLanguage.collectAsState()\n"
-        "    val isDark by viewModel.isDarkMode.collectAsState()\n",
+        "    val lang by viewModel.appLanguage.collectAsState()\n    val isDark by viewModel.isDarkMode.collectAsState()\n",
         1,
     )
-s = s.replace(
-    'Text("العربية (RTL)", fontWeight = FontWeight.Bold)',
-    'Text(Strings.get("arabic", lang), fontWeight = FontWeight.Bold)',
-)
-s = s.replace(
-    'Text("English (LTR)", fontWeight = FontWeight.Bold)',
-    'Text(Strings.get("english", lang), fontWeight = FontWeight.Bold)',
-)
+s = s.replace('Text("العربية (RTL)", fontWeight = FontWeight.Bold)', 'Text(Strings.get("arabic", lang), fontWeight = FontWeight.Bold)')
+s = s.replace('Text("English (LTR)", fontWeight = FontWeight.Bold)', 'Text(Strings.get("english", lang), fontWeight = FontWeight.Bold)')
 marker = "        // App System Info\n"
 block = """        // Appearance / Theme Selector
         item {
