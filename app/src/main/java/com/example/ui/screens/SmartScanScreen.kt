@@ -140,7 +140,7 @@ fun SmartScanScreen(
                     FinanceButton(
                         onClick = {
                             statusMessage = null
-                            viewModel.scanReceipt("شركة أسواق التميمي - فرع الرياض\nتاريخ: 2026-10-30\nالمجموع الفرعي: 162.40 ر.س\nالضريبة: 24.35 ر.س\nالإجمالي: 186.75 ر.س")
+                            viewModel.scanReceipt("شركة أسواق التميمي - فرع الرياض\nتاريخ: 2026-10-30\nالمجموع الفرعي: 162.40 د.ل\nالضريبة: 24.35 د.ل\nالإجمالي: 186.75 د.ل")
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.financialGreen, contentColor = MaterialTheme.colorScheme.onPrimary),
                         shape = RoundedCornerShape(10.dp),
@@ -156,7 +156,7 @@ fun SmartScanScreen(
                     FinanceOutlinedButton(
                         onClick = {
                             statusMessage = null
-                            viewModel.scanReceipt("مقهى ومحمصة النخبة\nتاريخ: 2026-10-30\nالضريبة: 8.35 ر.س\nالإجمالي: 64.00 ر.س")
+                            viewModel.scanReceipt("مقهى ومحمصة النخبة\nتاريخ: 2026-10-30\nالضريبة: 8.35 د.ل\nالإجمالي: 64.00 د.ل")
                         },
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth()
