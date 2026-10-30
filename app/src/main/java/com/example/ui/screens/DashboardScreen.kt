@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.TextContent
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -174,7 +176,7 @@ fun DashboardScreen(
             ) {
                 FinancialMetricCard(
                     title = Strings.get("total_balance", lang),
-                    amount = FinanceEngine.formatMoney(totalLiquid, "SAR"),
+                    amount = TextContent.money(totalLiquid, "SAR", lang),
                     subtitle = "${accounts.size} ${Strings.get("active_accounts", lang)}",
                     icon = Icons.Default.AccountBalance,
                     accentColor = ByeProTheme.colors.financialGreen,
@@ -182,7 +184,7 @@ fun DashboardScreen(
                 )
                 FinancialMetricCard(
                     title = Strings.get("net_worth", lang),
-                    amount = FinanceEngine.formatMoney(netWorth, "SAR"),
+                    amount = TextContent.money(netWorth, "SAR", lang),
                     subtitle = WebI18n.tr("الأصول - الالتزامات", "Assets - Liabilities", lang),
                     icon = Icons.Default.AttachMoney,
                     accentColor = ByeProTheme.colors.goldPrimary,
@@ -198,14 +200,14 @@ fun DashboardScreen(
             ) {
                 FinancialMetricCard(
                     title = Strings.get("monthly_income", lang),
-                    amount = FinanceEngine.formatMoney(totalIncome, "SAR"),
+                    amount = TextContent.money(totalIncome, "SAR", lang),
                     icon = Icons.Default.ArrowDownward,
                     accentColor = ByeProTheme.colors.financialGreen,
                     modifier = Modifier.weight(1f)
                 )
                 FinancialMetricCard(
                     title = Strings.get("monthly_expense", lang),
-                    amount = FinanceEngine.formatMoney(totalExpenses, "SAR"),
+                    amount = TextContent.money(totalExpenses, "SAR", lang),
                     icon = Icons.Default.ArrowUpward,
                     accentColor = ByeProTheme.colors.financialRed,
                     modifier = Modifier.weight(1f)
@@ -276,7 +278,7 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 accounts.forEach { acc ->
-                    AccountCardMini(account = acc, onClick = { onNavigate("accounts") })
+                    AccountCardMini(account = acc, lang = lang, onClick = { onNavigate("accounts") })
                 }
             }
         }
@@ -321,7 +323,7 @@ fun DashboardScreen(
 }
 
 @Composable
-fun AccountCardMini(account: AccountEntity, onClick: () -> Unit) {
+fun AccountCardMini(account: AccountEntity, lang: com.example.finance.model.AppLanguage, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .width(200.dp)
@@ -363,7 +365,7 @@ fun AccountCardMini(account: AccountEntity, onClick: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = FinanceEngine.formatMoney(account.balance, account.currency),
+                text = TextContent.money(account.balance, account.currency, lang),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = ByeProTheme.colors.financialGreen
@@ -433,7 +435,7 @@ fun TransactionRowItem(transaction: TransactionEntity, onClick: () -> Unit) {
             }
 
             Text(
-                text = "$sign${FinanceEngine.formatMoney(transaction.amount, transaction.currency)}",
+                text = "$sign${TextContent.money(transaction.amount, transaction.currency, lang)}",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = accentColor
