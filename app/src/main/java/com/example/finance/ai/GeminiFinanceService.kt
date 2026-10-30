@@ -8,6 +8,8 @@ import com.example.finance.model.AppLanguage
 import com.example.finance.model.BudgetEntity
 import com.example.finance.model.DebtEntity
 import com.example.finance.model.TransactionEntity
+import com.example.finance.model.TransactionStatus
+import com.example.finance.model.TransactionType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -160,13 +162,15 @@ class GeminiFinanceService {
                     val obj = JSONObject(cleanJson)
                     return@withContext Result.success(
                         ExtractedReceiptData(
-                            merchant = obj.optString("merchant", "Merchant"),
-                            amount = obj.optDouble("amount", 0.0),
-                            tax = obj.optDouble("tax", 0.0),
-                            currency = obj.optString("currency", "SAR"),
-                            category = obj.optString("category", "Groceries"),
-                            dateStr = obj.optString("dateStr", "2026-10-30"),
-                            itemsSummary = obj.optString("itemsSummary", "Parsed receipt items")
+                            merchant = obj.optString("merchant", "").trim(),
+                            amount = obj.optDouble("amount", Double.NaN).also {
+                                require(it.isFinite() && it > 0.0) { "Invalid receipt amount" }
+                            },
+                            tax = obj.optDouble("tax", 0.0).takeIf { it.isFinite() && it >= 0.0 } ?: 0.0,
+                            currency = obj.optString("currency", "").trim().uppercase(),
+                            category = obj.optString("category", "Other").trim().ifBlank { "Other" },
+                            dateStr = obj.optString("dateStr", "").trim(),
+                            itemsSummary = obj.optString("itemsSummary", "").trim()
                         )
                     )
                 }
@@ -184,13 +188,19 @@ class GeminiFinanceService {
             if (totalMatch != null && totalMatch > 0.0) {
                 return@withContext Result.success(
                     ExtractedReceiptData(
-                        merchant = merchantMatch?.trim() ?: if (language == AppLanguage.AR) "متجر محلي" else "Local Merchant",
+                        merchant = merchantMatch?.trim().orEmpty(),
                         amount = totalMatch,
-                        tax = taxMatch ?: (totalMatch * 0.15),
-                        currency = "SAR",
-                        category = "Groceries",
-                        dateStr = "2026-10-30",
-                        itemsSummary = "مشتريات مستخرجة من نص الفاتورة"
+                        tax = taxMatch ?: 0.0,
+                        currency = when {
+                            sampleText.contains("LYD", ignoreCase = true) || sampleText.contains("د.ل") -> "LYD"
+                            sampleText.contains("USD", ignoreCase = true) || sampleText.contains("$") -> "USD"
+                            sampleText.contains("EUR", ignoreCase = true) || sampleText.contains("€") -> "EUR"
+                            sampleText.contains("SAR", ignoreCase = true) || sampleText.contains("ر.س") -> "SAR"
+                            else -> ""
+                        },
+                        category = "Other",
+                        dateStr = Regex("""\b\d{4}-\d{2}-\d{2}\b""").find(sampleText)?.value.orEmpty(),
+                        itemsSummary = ""
                     )
                 )
             }
@@ -215,61 +225,94 @@ class GeminiFinanceService {
         budgets: List<BudgetEntity>,
         language: AppLanguage
     ): List<AiInsightItem> {
-        val list = mutableListOf<AiInsightItem>()
+        val posted = transactions.filter {
+            it.status != TransactionStatus.CANCELLED && it.amount.isFinite() && it.amount > 0.0
+        }
+        val insights = mutableListOf<AiInsightItem>()
 
-        val totalExpenses = FinanceEngine.calculateTotalExpenses(transactions)
-        val totalIncome = FinanceEngine.calculateTotalIncome(transactions)
+        posted.groupBy { it.currency.trim().ifBlank { "UNKNOWN" }.uppercase() }
+            .forEach { (currency, rows) ->
+                val income = rows.asSequence()
+                    .filter { it.type == TransactionType.INCOME || it.type == TransactionType.REFUND }
+                    .fold(BigDecimal.ZERO) { total, tx -> total.add(BigDecimal.valueOf(tx.amount)) }
+                val expenses = rows.asSequence()
+                    .filter { it.type == TransactionType.EXPENSE }
+                    .fold(BigDecimal.ZERO) { total, tx -> total.add(BigDecimal.valueOf(tx.amount)) }
+                val net = income.subtract(expenses)
 
-        if (language == AppLanguage.AR) {
-            list.add(
-                AiInsightItem(
-                    title = "فائض نقدي إيجابي ممتاز",
-                    description = "دخلك الشهري يفوق مصروفاتك بنسبة ${(if (totalIncome > BigDecimal.ZERO) (totalIncome - totalExpenses).divide(totalIncome, 2, java.math.RoundingMode.HALF_UP).toDouble() * 100 else 25.0).toInt()}%. فرصة ممتازة لتعزيز محفظتك الاستثمارية.",
-                    impactType = "POSITIVE",
-                    estimatedSavings = 1500.0
+                if (income > BigDecimal.ZERO && net > BigDecimal.ZERO) {
+                    val rate = net.multiply(BigDecimal("100"))
+                        .divide(income, 0, java.math.RoundingMode.HALF_UP).toInt()
+                    insights.add(
+                        AiInsightItem(
+                            title = if (language == AppLanguage.AR) "فائض مسجل — $currency" else "Recorded surplus — $currency",
+                            description = if (language == AppLanguage.AR)
+                                "الفائض المسجل في هذه العملة هو ${TextContent.money(net, currency, language)}، أي نحو $rate% من الدخل المسجل."
+                            else
+                                "Your recorded surplus in this currency is ${TextContent.money(net, currency, language)}, about $rate% of recorded income.",
+                            impactType = "POSITIVE"
+                        )
+                    )
+                } else if (net < BigDecimal.ZERO) {
+                    insights.add(
+                        AiInsightItem(
+                            title = if (language == AppLanguage.AR) "المصروفات أعلى من الدخل — $currency" else "Expenses exceed income — $currency",
+                            description = if (language == AppLanguage.AR)
+                                "تتجاوز المصروفات المسجلة الدخل بمقدار ${TextContent.money(net.abs(), currency, language)}. راجع المعاملات المسجلة لهذه العملة."
+                            else
+                                "Recorded expenses exceed income by ${TextContent.money(net.abs(), currency, language)}. Review the transactions recorded in this currency.",
+                            impactType = "WARNING"
+                        )
+                    )
+                }
+            }
+
+        budgets.forEach { budget ->
+            val limit = BigDecimal.valueOf(budget.limitAmount)
+            if (limit <= BigDecimal.ZERO) return@forEach
+            val currency = budget.currency.trim().ifBlank { "UNKNOWN" }.uppercase()
+            val spent = posted.asSequence()
+                .filter { tx ->
+                    tx.type == TransactionType.EXPENSE &&
+                        tx.currency.equals(currency, ignoreCase = true) &&
+                        (budget.category == "All" || tx.category.equals(budget.category, ignoreCase = true)) &&
+                        tx.date >= budget.startDate && tx.date <= budget.endDate
+                }
+                .fold(BigDecimal.ZERO) { total, tx -> total.add(BigDecimal.valueOf(tx.amount)) }
+            val percentage = spent.multiply(BigDecimal("100"))
+                .divide(limit, 0, java.math.RoundingMode.HALF_UP).toInt()
+
+            if (percentage >= 75) {
+                val warning = percentage >= 90
+                insights.add(
+                    AiInsightItem(
+                        title = if (language == AppLanguage.AR)
+                            (if (warning) "تنبيه اقتراب تجاوز الميزانية" else "متابعة الميزانية")
+                        else
+                            (if (warning) "Budget limit warning" else "Budget progress"),
+                        description = if (language == AppLanguage.AR)
+                            "بلغ الإنفاق المسجل في ${budget.category} نسبة $percentage% من الحد ${TextContent.money(limit, currency, language)}."
+                        else
+                            "Recorded spending for ${budget.category} has reached $percentage% of the ${TextContent.money(limit, currency, language)} limit.",
+                        impactType = if (warning) "WARNING" else "TIP"
+                    )
                 )
-            )
-            list.add(
+            }
+        }
+
+        if (insights.isEmpty()) {
+            insights.add(
                 AiInsightItem(
-                    title = "تنبيه مصاريف المقاهي والمطاعم",
-                    description = "لاحظنا تكرار طلبات المقاهي بمعدل 4 مرات أسبوعياً. تقليص زيارة واحدة أسبوعياً يوفر 340 ر.س شهرياً.",
-                    impactType = "TIP",
-                    estimatedSavings = 340.0
-                )
-            )
-            list.add(
-                AiInsightItem(
-                    title = "اقتراب ميزانية التموينات من الحد",
-                    description = "ميزانية المقاضي عند 78% ومتبقي 20 يوماً على نهاية الدورة. ننصح بترشيد الإنفاق للأيام القادمة.",
-                    impactType = "WARNING"
-                )
-            )
-        } else {
-            list.add(
-                AiInsightItem(
-                    title = "Healthy Positive Cash Flow",
-                    description = "Your income exceeds your monthly expenses by ${(if (totalIncome > BigDecimal.ZERO) (totalIncome - totalExpenses).divide(totalIncome, 2, java.math.RoundingMode.HALF_UP).toDouble() * 100 else 25.0).toInt()}%. Excellent opportunity to fund investment portfolios.",
-                    impactType = "POSITIVE",
-                    estimatedSavings = 1500.0
-                )
-            )
-            list.add(
-                AiInsightItem(
-                    title = "Dining & Specialty Coffee Tip",
-                    description = "Coffee purchases observed 4x per week. Reducing one weekly run saves ~340 SAR monthly.",
-                    impactType = "TIP",
-                    estimatedSavings = 340.0
-                )
-            )
-            list.add(
-                AiInsightItem(
-                    title = "Groceries Budget Warning",
-                    description = "Groceries spending is at 78% of budget with 20 days remaining. Recommended to moderate spend.",
-                    impactType = "WARNING"
+                    title = if (language == AppLanguage.AR) "لا توجد مؤشرات كافية بعد" else "Not enough data yet",
+                    description = if (language == AppLanguage.AR)
+                        "سجّل معاملاتك وميزانياتك للحصول على مؤشرات مبنية على بياناتك الفعلية."
+                    else
+                        "Record transactions and budgets to receive insights based on your actual financial data.",
+                    impactType = "TIP"
                 )
             )
         }
-        return list
+        return insights.take(6)
     }
 
     private fun callGeminiVisionApi(imageBase64: String, mimeType: String = "image/jpeg"): String {
