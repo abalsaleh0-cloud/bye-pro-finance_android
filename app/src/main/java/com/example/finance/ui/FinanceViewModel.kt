@@ -8,6 +8,7 @@ import com.example.finance.ai.GeminiFinanceService
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceRepository
 import com.example.finance.engine.FinanceEngine
+import com.example.finance.i18n.WebI18n
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AppLanguage
 import com.example.finance.model.AssetEntity
@@ -32,7 +33,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class ChatMessage(
-    val sender: String, // "USER" or "AI"
+    val sender: String,
     val text: String,
     val timestamp: Long = System.currentTimeMillis()
 )
@@ -58,17 +59,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val auditLogs: StateFlow<List<AuditLogEntity>> = repository.auditLogs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val currentUser: StateFlow<UserEntity?> = repository.currentUser.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    // Android equivalent of the web app's localStorage locale contract:
-    // default Arabic, persist the selected locale, and change strings only.
-    private val preferences = application.getSharedPreferences("bye_pro_finance_preferences", Application.MODE_PRIVATE)
-    private val localeKey = "bye-pro-finance.locale"
-    private val _appLanguage = MutableStateFlow(
-        if (preferences.getString(localeKey, "ar") == "en") AppLanguage.EN else AppLanguage.AR
-    )
+    // Shared with the web application: same locale values, storage key, default, and fallback.
+    private val _appLanguage = MutableStateFlow(WebI18n.read(application))
     val appLanguage: StateFlow<AppLanguage> = _appLanguage.asStateFlow()
 
-    // Official Theme Mode (defaults to Dark Luxury Financial Theme #0B0A0C)
-    private val _isDarkMode = MutableStateFlow(preferences.getBoolean("dark_mode", true))
+    private val _isDarkMode = MutableStateFlow(preferences(application).getBoolean("dark_mode", true))
     val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
 
     private val _currentScreen = MutableStateFlow("dashboard")
@@ -91,11 +86,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         _chatMessages.value = listOf(
             ChatMessage(
                 "AI",
-                if (_appLanguage.value == AppLanguage.EN) {
-                    "Welcome to BYE PRO FINANCE! I am your AI Financial Assistant. Ask me anything about your cash flow, budgets, or savings goals."
-                } else {
-                    "مرحباً بك في BYE PRO FINANCE! أنا مساعدك المالي الذكي. يمكنك سؤالي عن مصروفاتك، ميزانيتك، أو تحليل وضعك المالي بدقة."
-                }
+                WebI18n.tr(
+                    "مرحباً بك في BYE PRO FINANCE! أنا مساعدك المالي الذكي. يمكنك سؤالي عن مصروفاتك، ميزانيتك، أو تحليل وضعك المالي بدقة.",
+                    "Welcome to BYE PRO FINANCE! I am your AI Financial Assistant. Ask me anything about your cash flow, budgets, or savings goals.",
+                    _appLanguage.value
+                )
             )
         )
     }
@@ -109,13 +104,13 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun setLanguage(lang: AppLanguage) {
         if (_appLanguage.value == lang) return
         _appLanguage.value = lang
-        preferences.edit().putString(localeKey, if (lang == AppLanguage.EN) "en" else "ar").apply()
+        WebI18n.write(getApplication(), lang)
         if (_chatMessages.value.size <= 1) resetWelcomeMessage()
     }
 
     fun setDarkMode(dark: Boolean) {
         _isDarkMode.value = dark
-        preferences.edit().putBoolean("dark_mode", dark).apply()
+        preferences(getApplication()).edit().putBoolean("dark_mode", dark).apply()
     }
 
     fun toggleTheme() { setDarkMode(!_isDarkMode.value) }
@@ -223,5 +218,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     fun restoreBackupFromJson(backupJson: String, onComplete: (Boolean) -> Unit) {
         viewModelScope.launch { onComplete(repository.restoreFromJson(backupJson)) }
+    }
+
+    companion object {
+        private fun preferences(application: Application) =
+            application.getSharedPreferences("bye_pro_finance_preferences", Application.MODE_PRIVATE)
     }
 }
