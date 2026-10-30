@@ -233,7 +233,7 @@ fun TransactionsScreen(
         AlertDialog(
             onDismissRequest = { transactionToDelete = null },
             title = { Text(text = Strings.get("delete", lang)) },
-            text = { Text("هل تريد حذف المعاملة '${target.description}' وإعادة تعديل رصيد الحساب تلقائياً؟") },
+            text = { Text(WebI18n.tr("هل تريد حذف المعاملة", "Delete this transaction", lang) + " '${target.description}' " + WebI18n.tr("وإعادة تعديل رصيد الحساب تلقائياً؟", "and automatically adjust the account balance?", lang)) },
             confirmButton = {
                 Button(
                     onClick = {
