@@ -162,7 +162,7 @@ fun MainAppScaffold(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Image(
-                                    painter = painterResource(id = R.drawable.ic_finance_logo),
+                                    painter = painterResource(id = R.drawable.bye_pro_finance_icon),
                                     contentDescription = "BYE PRO Logo",
                                     modifier = Modifier.size(26.dp)
                                 )
