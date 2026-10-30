@@ -52,6 +52,15 @@ class WebTranslationContractTest {
         assertEquals(ByeProDesignTokens.Colors.danger, com.example.ui.theme.FinancialRed)
         assertEquals(1440.dp, ByeProDesignTokens.Control.contentMaxWidth)
         assertEquals(1536.dp, ByeProDesignTokens.Breakpoints.xxxl)
+        assertEquals(Color(0xFFF4F5F7), ByeProDesignTokens.LightColors.background)
+        assertEquals(Color(0xFFFFFFFF), ByeProDesignTokens.LightColors.surface)
+        assertEquals(Color(0xFFF0F1F4), ByeProDesignTokens.LightColors.surfaceRaised)
+        assertEquals(Color(0xFFD9DCE3), ByeProDesignTokens.LightColors.border)
+        assertEquals(Color(0xFF20232A), ByeProDesignTokens.LightColors.text)
+        assertEquals(Color(0xFF626875), ByeProDesignTokens.LightColors.muted)
+        assertEquals(Color(0xFF8A671D), ByeProDesignTokens.LightColors.accent)
+        assertEquals(Color(0xFF16794A), ByeProDesignTokens.LightColors.success)
+        assertEquals(Color(0xFFB42332), ByeProDesignTokens.LightColors.danger)
     }
 
     @Test
