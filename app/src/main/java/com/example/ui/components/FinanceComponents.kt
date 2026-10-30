@@ -172,7 +172,7 @@ fun FinanceIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    content: @Composable () -> Unit
+    content: @Composable RowScope.() -> Unit
 ) {
     CompositionLocalProvider(LocalContentColor provides ByeProTheme.colors.goldPrimary) {
         IconButton(onClick = onClick, modifier = modifier, enabled = enabled, content = content)
