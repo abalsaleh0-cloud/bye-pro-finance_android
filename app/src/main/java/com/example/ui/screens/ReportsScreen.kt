@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -93,7 +94,7 @@ fun ReportsScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "تقارير تحليلية شاملة للتدفقات النقدية ومسارات الإنفاق مع إمكانية التصدير الفوري.",
+                text = WebI18n.tr("تقارير تحليلية شاملة للتدفقات النقدية ومسارات الإنفاق مع إمكانية التصدير الفوري.", "Comprehensive cash-flow and spending analytics with instant export.", lang),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -150,7 +151,7 @@ fun ReportsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "الملخص المالي الشامل",
+                        text = WebI18n.tr("الملخص المالي الشامل", "Comprehensive financial summary", lang),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -160,15 +161,15 @@ fun ReportsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text("إجمالي الدخل", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(WebI18n.tr("إجمالي الدخل", "Total income", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(FinanceEngine.formatMoney(totalIncome, "SAR"), color = ByeProTheme.colors.financialGreen, fontWeight = FontWeight.Bold)
                         }
                         Column {
-                            Text("إجمالي المصروفات", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(WebI18n.tr("إجمالي المصروفات", "Total expenses", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(FinanceEngine.formatMoney(totalExpenses, "SAR"), color = ByeProTheme.colors.financialRed, fontWeight = FontWeight.Bold)
                         }
                         Column {
-                            Text("صافي التدفق", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(WebI18n.tr("صافي التدفق", "Net cash flow", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(FinanceEngine.formatMoney(netCashFlow, "SAR"), color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -206,7 +207,7 @@ fun ReportsScreen(
 
                     if (categoryTotals.isEmpty()) {
                         Text(
-                            text = "لا توجد مصروفات مسجلة لتحليلها.",
+                            text = WebI18n.tr("لا توجد مصروفات مسجلة لتحليلها.", "No expenses recorded to analyze.", lang),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -259,7 +260,7 @@ fun ReportsScreen(
             text = {
                 Column {
                     Text(
-                        text = "البيانات جاهزة للتصدير والحفظ في قاعدة بيانات خارجية أو ملف جدولي:",
+                        text = WebI18n.tr("البيانات جاهزة للتصدير والحفظ في قاعدة بيانات خارجية أو ملف جدولي:", "Data is ready to export to an external database or spreadsheet:", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
