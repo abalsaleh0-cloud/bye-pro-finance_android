@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -177,7 +178,7 @@ fun DashboardScreen(
                 FinancialMetricCard(
                     title = Strings.get("net_worth", lang),
                     amount = FinanceEngine.formatMoney(netWorth, "SAR"),
-                    subtitle = "الأصول - الالتزامات",
+                    subtitle = WebI18n.tr("الأصول - الالتزامات", "Assets - Liabilities", lang),
                     icon = Icons.Default.AttachMoney,
                     accentColor = ByeProTheme.colors.goldPrimary,
                     modifier = Modifier.weight(1f)
@@ -292,7 +293,7 @@ fun DashboardScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Text(
-                        text = "لا توجد معاملات مسجلة بعد",
+                        text = WebI18n.tr("لا توجد معاملات مسجلة بعد", "No transactions recorded yet", lang),
                         modifier = Modifier.padding(24.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
