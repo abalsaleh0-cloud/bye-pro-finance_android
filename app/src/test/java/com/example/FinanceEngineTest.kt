@@ -89,6 +89,56 @@ class FinanceEngineTest {
     }
 
     @Test
+    fun pendingTransactionsDoNotAffectBalancesIncomeExpensesOrBudgets() {
+        val accountId = 11L
+        val pendingIncome = TransactionEntity(
+            id = 1, accountId = accountId, type = TransactionType.INCOME,
+            amount = 500.0, category = "Salary", description = "Pending income",
+            status = TransactionStatus.PENDING
+        )
+        val pendingExpense = TransactionEntity(
+            id = 2, accountId = accountId, type = TransactionType.EXPENSE,
+            amount = 200.0, category = "Dining", description = "Pending expense",
+            status = TransactionStatus.PENDING
+        )
+        val postedExpense = TransactionEntity(
+            id = 3, accountId = accountId, type = TransactionType.EXPENSE,
+            amount = 50.0, category = "Dining", description = "Posted expense"
+        )
+        val transactions = listOf(pendingIncome, pendingExpense, postedExpense)
+        val budget = BudgetEntity(
+            id = 9, name = "Dining", category = "Dining",
+            period = BudgetPeriod.MONTHLY, limitAmount = 100.0,
+            currency = "LYD", startDate = 0L, endDate = Long.MAX_VALUE
+        )
+
+        assertEquals(
+            BigDecimal("950.00"),
+            FinanceEngine.calculateAccountBalance(BigDecimal("1000.00"), transactions, accountId)
+        )
+        assertEquals(BigDecimal("0.00"), FinanceEngine.calculateTotalIncome(transactions))
+        assertEquals(BigDecimal("50.00"), FinanceEngine.calculateTotalExpenses(transactions))
+        assertEquals(BigDecimal("50.00"), FinanceEngine.calculateBudgetStatus(budget, transactions).spent)
+    }
+
+    @Test
+    fun budgetDoesNotMixCurrenciesOrCountCancelledTransactions() {
+        val budget = BudgetEntity(
+            id = 10, name = "Food", category = "Food",
+            period = BudgetPeriod.MONTHLY, limitAmount = 100.0,
+            currency = "LYD", startDate = 0L, endDate = Long.MAX_VALUE
+        )
+        val transactions = listOf(
+            TransactionEntity(id = 1, accountId = 1, type = TransactionType.EXPENSE,
+                amount = 30.0, currency = "USD", category = "Food", description = "Other currency"),
+            TransactionEntity(id = 2, accountId = 1, type = TransactionType.EXPENSE,
+                amount = 20.0, currency = "LYD", category = "Food", description = "Cancelled",
+                status = TransactionStatus.CANCELLED)
+        )
+        assertEquals(BigDecimal("0.00"), FinanceEngine.calculateBudgetStatus(budget, transactions).spent)
+    }
+
+    @Test
     fun testRefundScenario() {
         val accountId = 1L
         val startingBalance = BigDecimal("1000.00")
