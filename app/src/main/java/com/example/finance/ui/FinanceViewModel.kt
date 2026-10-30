@@ -70,6 +70,15 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private val _isDarkMode = MutableStateFlow(preferences.getBoolean("dark_mode", true))
     val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
 
+    private val _primaryCurrency = MutableStateFlow(preferences.getString("currency_code", "LYD") ?: "LYD")
+    val primaryCurrency: StateFlow<String> = _primaryCurrency.asStateFlow()
+
+    fun setPrimaryCurrency(currency: String) {
+        val normalized = currency.trim().uppercase()
+        if (normalized !in setOf("LYD", "USD", "EUR", "GBP", "SAR", "AED", "EGP")) return
+        _primaryCurrency.value = normalized
+        preferences.edit().putString("currency_code", normalized).apply()
+    }
 
     private val _currentScreen = MutableStateFlow("dashboard")
     val currentScreen: StateFlow<String> = _currentScreen.asStateFlow()
@@ -83,11 +92,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val isAiLoading: StateFlow<Boolean> = _isAiLoading.asStateFlow()
 
     init {
+        // Match the web app: never inject fictitious accounts or transactions into a new profile.
         resetWelcomeMessage()
-        viewModelScope.launch {
-            runCatching { repository.seedInitialDataIfEmpty() }
-                .onFailure { Log.e("BYE_PRO_FINANCE", "Initial local data setup failed; app will remain available", it) }
-        }
     }
 
     private fun resetWelcomeMessage() {
