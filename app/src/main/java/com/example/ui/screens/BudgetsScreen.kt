@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
+
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
@@ -143,12 +148,12 @@ fun BudgetsScreen(
 
     if (budgetToDelete != null) {
         val target = budgetToDelete!!
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { budgetToDelete = null },
             title = { Text(text = Strings.get("delete", lang)) },
             text = { Text(WebI18n.tr("هل تريد حذف ميزانية", "Are you sure you want to delete budget", lang) + " '${target.name}'?") },
             confirmButton = {
-                Button(
+                FinanceButton(
                     onClick = {
                         viewModel.deleteBudget(target)
                         budgetToDelete = null
@@ -159,7 +164,7 @@ fun BudgetsScreen(
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { budgetToDelete = null }) {
+                FinanceOutlinedButton(onClick = { budgetToDelete = null }) {
                     Text(Strings.get("cancel", lang))
                 }
             }
@@ -280,12 +285,12 @@ fun AddBudgetDialog(
     var category by remember { mutableStateOf("Groceries") }
     var limitStr by remember { mutableStateOf("") }
 
-    AlertDialog(
+    FinanceAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = Strings.get("add_budget", lang), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
+                FinanceTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(WebI18n.tr("اسم الميزانية", "Budget name", lang)) },
@@ -293,13 +298,13 @@ fun AddBudgetDialog(
                         .fillMaxWidth()
                         .testTag("budget_name_input")
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = category,
                     onValueChange = { category = it },
                     label = { Text(Strings.get("category", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = limitStr,
                     onValueChange = { limitStr = it },
                     label = { Text(Strings.get("limit_amount", lang)) },
@@ -310,7 +315,7 @@ fun AddBudgetDialog(
             }
         },
         confirmButton = {
-            Button(
+            FinanceButton(
                 onClick = {
                     val limit = limitStr.toDoubleOrNull() ?: 0.0
                     if (name.isNotBlank() && limit > 0.0) {
@@ -329,7 +334,7 @@ fun AddBudgetDialog(
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
+            FinanceOutlinedButton(onClick = onDismiss) {
                 Text(Strings.get("cancel", lang))
             }
         }
