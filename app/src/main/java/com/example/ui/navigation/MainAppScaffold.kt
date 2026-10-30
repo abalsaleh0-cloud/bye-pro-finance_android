@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.finance.i18n.LocalAppLanguage
 import com.example.finance.i18n.Strings
+import com.example.finance.i18n.appText
 import com.example.finance.i18n.WebI18n
 import com.example.finance.model.AppLanguage
 import com.example.finance.ui.FinanceViewModel
@@ -166,7 +167,7 @@ fun MainAppScaffold(
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = Strings.get("app_title", lang),
+                                text = appText("app_title"),
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Black,
                                     letterSpacing = 1.sp
@@ -240,7 +241,7 @@ fun MainAppScaffold(
                         selected = currentScreen == "dashboard",
                         onClick = { viewModel.setScreen("dashboard") },
                         icon = { Icon(Icons.Default.Dashboard, contentDescription = Strings.get("nav_dashboard", lang)) },
-                        label = { Text(Strings.get("nav_dashboard", lang), fontSize = 11.sp) },
+                        label = { Text(appText("nav_dashboard"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
                             selectedTextColor = ByeProTheme.colors.goldPrimary,
@@ -253,7 +254,7 @@ fun MainAppScaffold(
                         selected = currentScreen == "accounts",
                         onClick = { viewModel.setScreen("accounts") },
                         icon = { Icon(Icons.Default.AccountBalance, contentDescription = Strings.get("nav_accounts", lang)) },
-                        label = { Text(Strings.get("nav_accounts", lang), fontSize = 11.sp) },
+                        label = { Text(appText("nav_accounts"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
                             selectedTextColor = ByeProTheme.colors.goldPrimary,
@@ -266,7 +267,7 @@ fun MainAppScaffold(
                         selected = currentScreen == "transactions",
                         onClick = { viewModel.setScreen("transactions") },
                         icon = { Icon(Icons.Default.ReceiptLong, contentDescription = Strings.get("nav_transactions", lang)) },
-                        label = { Text(Strings.get("nav_transactions", lang), fontSize = 11.sp) },
+                        label = { Text(appText("nav_transactions"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
                             selectedTextColor = ByeProTheme.colors.goldPrimary,
@@ -279,7 +280,7 @@ fun MainAppScaffold(
                         selected = currentScreen == "budgets",
                         onClick = { viewModel.setScreen("budgets") },
                         icon = { Icon(Icons.Default.PieChart, contentDescription = Strings.get("nav_budgets", lang)) },
-                        label = { Text(Strings.get("nav_budgets", lang), fontSize = 11.sp) },
+                        label = { Text(appText("nav_budgets"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
                             selectedTextColor = ByeProTheme.colors.goldPrimary,
