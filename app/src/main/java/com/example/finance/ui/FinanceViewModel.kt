@@ -85,12 +85,15 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val currentUser: StateFlow<UserEntity?> = repository.currentUser
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    // Language state
-    private val _appLanguage = MutableStateFlow(AppLanguage.AR)
+    // Shared app preferences are the Android equivalent of the web app's localStorage.
+    // Arabic is the default locale, and the selected language survives process/app restarts.
+    private val preferences = application.getSharedPreferences("bye_pro_finance_preferences", Application.MODE_PRIVATE)
+    private val _appLanguage = MutableStateFlow(
+        if (preferences.getString("locale", "ar") == "en") AppLanguage.EN else AppLanguage.AR
+    )
     val appLanguage: StateFlow<AppLanguage> = _appLanguage.asStateFlow()
 
     // Official Theme Mode (defaults to Dark Luxury Financial Theme #0B0A0C)
-    private val preferences = application.getSharedPreferences("bye_pro_finance_preferences", Application.MODE_PRIVATE)
     private val _isDarkMode = MutableStateFlow(preferences.getBoolean("dark_mode", true))
     val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
 
@@ -103,20 +106,30 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val scannedReceipt: StateFlow<ExtractedReceiptData?> = _scannedReceipt.asStateFlow()
 
     // AI Chat History
-    private val _chatMessages = MutableStateFlow<List<ChatMessage>>(
-        listOf(
-            ChatMessage("AI", "مرحباً بك في BYE PRO FINANCE! أنا مساعدك المالي الذكي. يمكنك سؤالي عن مصروفاتك، ميزانيتك، أو تحليل وضعك المالي بدقة.")
-        )
-    )
+    private val _chatMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val chatMessages: StateFlow<List<ChatMessage>> = _chatMessages.asStateFlow()
 
     private val _isAiLoading = MutableStateFlow(false)
     val isAiLoading: StateFlow<Boolean> = _isAiLoading.asStateFlow()
 
     init {
+        resetWelcomeMessage()
         viewModelScope.launch {
             repository.seedInitialDataIfEmpty()
         }
+    }
+
+    private fun resetWelcomeMessage() {
+        _chatMessages.value = listOf(
+            ChatMessage(
+                "AI",
+                if (_appLanguage.value == AppLanguage.EN) {
+                    "Welcome to BYE PRO FINANCE! I am your AI Financial Assistant. Ask me anything about your cash flow, budgets, or savings goals."
+                } else {
+                    "مرحباً بك في BYE PRO FINANCE! أنا مساعدك المالي الذكي. يمكنك سؤالي عن مصروفاتك، ميزانيتك، أو تحليل وضعك المالي بدقة."
+                }
+            )
+        )
     }
 
     fun setScreen(screen: String) {
@@ -124,22 +137,14 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun toggleLanguage() {
-        val next = if (_appLanguage.value == AppLanguage.AR) AppLanguage.EN else AppLanguage.AR
-        _appLanguage.value = next
-        // Update first welcome message to match new language
-        if (next == AppLanguage.EN && _chatMessages.value.size <= 1) {
-            _chatMessages.value = listOf(
-                ChatMessage("AI", "Welcome to BYE PRO FINANCE! I am your AI Financial Assistant. Ask me anything about your cash flow, budgets, or savings goals.")
-            )
-        } else if (next == AppLanguage.AR && _chatMessages.value.size <= 1) {
-            _chatMessages.value = listOf(
-                ChatMessage("AI", "مرحباً بك في BYE PRO FINANCE! أنا مساعدك المالي الذكي. يمكنك سؤالي عن مصروفاتك، ميزانيتك، أو تحليل وضعك المالي بدقة.")
-            )
-        }
+        setLanguage(if (_appLanguage.value == AppLanguage.AR) AppLanguage.EN else AppLanguage.AR)
     }
 
     fun setLanguage(lang: AppLanguage) {
+        if (_appLanguage.value == lang) return
         _appLanguage.value = lang
+        preferences.edit().putString("locale", if (lang == AppLanguage.EN) "en" else "ar").apply()
+        if (_chatMessages.value.size <= 1) resetWelcomeMessage()
     }
 
     fun setDarkMode(dark: Boolean) {
