@@ -3,7 +3,6 @@ package com.example.finance.i18n
 import android.content.Context
 import com.example.finance.model.AppLanguage
 import java.text.DateFormat
-import java.text.NumberFormat
 import java.util.Date
 import java.util.Locale
 
@@ -50,15 +49,10 @@ object WebI18n {
         androidx.compose.ui.unit.LayoutDirection.Rtl
 
     fun number(value: Number, language: AppLanguage): String =
-        NumberFormat.getNumberInstance(if (language == AppLanguage.EN) Locale.ENGLISH else Locale("ar"))
-            .format(value)
+        TextContent.number(value, language)
 
     fun money(value: Number, currency: String, language: AppLanguage): String =
-        runCatching {
-            NumberFormat.getCurrencyInstance(if (language == AppLanguage.EN) Locale.ENGLISH else Locale("ar"))
-                .apply { this.currency = java.util.Currency.getInstance(currency) }
-                .format(value)
-        }.getOrElse { "${number(value, language)} $currency" }
+        TextContent.money(value, currency, language)
 
     fun date(value: Date, language: AppLanguage): String =
         DateFormat.getDateInstance(
