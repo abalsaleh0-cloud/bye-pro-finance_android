@@ -203,6 +203,7 @@ fun TransactionsScreen(
                 items(filteredTransactions, key = { it.id }) { tx ->
                     TransactionItemCard(
                         transaction = tx,
+                        lang = lang,
                         onDelete = { transactionToDelete = tx }
                     )
                 }
@@ -257,6 +258,7 @@ fun TransactionsScreen(
 @Composable
 fun TransactionItemCard(
     transaction: TransactionEntity,
+    lang: com.example.finance.model.AppLanguage,
     onDelete: () -> Unit
 ) {
     val isIncome = transaction.type == TransactionType.INCOME || transaction.type == TransactionType.REFUND
