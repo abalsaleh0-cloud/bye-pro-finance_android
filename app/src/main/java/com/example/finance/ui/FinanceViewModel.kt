@@ -70,7 +70,6 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private val _isDarkMode = MutableStateFlow(preferences.getBoolean("dark_mode", true))
     val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
 
-    // CI compatibility contract: val localeKey = "bye-pro-finance.locale"; getString(localeKey, "ar"); putString(localeKey
 
     private val _currentScreen = MutableStateFlow("dashboard")
     val currentScreen: StateFlow<String> = _currentScreen.asStateFlow()
