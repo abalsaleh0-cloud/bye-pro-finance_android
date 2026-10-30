@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
+
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
@@ -103,7 +108,7 @@ fun HouseholdScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    OutlinedButton(
+                    FinanceOutlinedButton(
                         onClick = { showAddMemberDialog = true },
                         shape = RoundedCornerShape(8.dp)
                     ) {
@@ -246,24 +251,24 @@ fun HouseholdScreen(
         var role by remember { mutableStateOf(WebI18n.tr("عضو", "Member", lang)) }
         var percentStr by remember { mutableStateOf("50") }
 
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { showAddMemberDialog = false },
             title = { Text(Strings.get("add_member", lang), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = name,
                         onValueChange = { name = it },
                         label = { Text(WebI18n.tr("الاسم", "Name", lang)) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = role,
                         onValueChange = { role = it },
                         label = { Text(WebI18n.tr("الدور (رب الأسرة، شريك، ابن)", "Role (head of household, partner, child)", lang)) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = percentStr,
                         onValueChange = { percentStr = it },
                         label = { Text(WebI18n.tr("نسبة المساهمة %", "Contribution percentage %", lang)) },
@@ -272,7 +277,7 @@ fun HouseholdScreen(
                 }
             },
             confirmButton = {
-                Button(
+                FinanceButton(
                     onClick = {
                         val p = percentStr.toDoubleOrNull() ?: 50.0
                         if (name.isNotBlank()) {
@@ -285,7 +290,7 @@ fun HouseholdScreen(
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { showAddMemberDialog = false }) {
+                FinanceOutlinedButton(onClick = { showAddMemberDialog = false }) {
                     Text(Strings.get("cancel", lang))
                 }
             }
@@ -299,24 +304,24 @@ fun HouseholdScreen(
         var category by remember { mutableStateOf("Home Supplies") }
         val payerId = members.firstOrNull()?.id ?: 1L
 
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { showAddExpenseDialog = false },
             title = { Text(Strings.get("add_shared_expense", lang), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = title,
                         onValueChange = { title = it },
                         label = { Text(WebI18n.tr("وصف المصروف", "Expense description", lang)) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = amountStr,
                         onValueChange = { amountStr = it },
                         label = { Text(Strings.get("amount", lang)) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = category,
                         onValueChange = { category = it },
                         label = { Text(Strings.get("category", lang)) },
@@ -325,7 +330,7 @@ fun HouseholdScreen(
                 }
             },
             confirmButton = {
-                Button(
+                FinanceButton(
                     onClick = {
                         val amt = amountStr.toDoubleOrNull() ?: 0.0
                         if (title.isNotBlank() && amt > 0.0) {
@@ -338,7 +343,7 @@ fun HouseholdScreen(
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { showAddExpenseDialog = false }) {
+                FinanceOutlinedButton(onClick = { showAddExpenseDialog = false }) {
                     Text(Strings.get("cancel", lang))
                 }
             }
