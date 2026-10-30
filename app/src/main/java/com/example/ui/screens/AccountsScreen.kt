@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
+
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.background
@@ -138,12 +143,12 @@ fun AccountsScreen(
     // Delete confirmation
     if (selectedAccountForDelete != null) {
         val target = selectedAccountForDelete!!
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { selectedAccountForDelete = null },
             title = { Text(text = Strings.get("delete", lang)) },
             text = { Text(WebI18n.tr("هل تريد بالتأكيد حذف حساب", "Are you sure you want to delete account", lang) + " '${target.name}'?") },
             confirmButton = {
-                Button(
+                FinanceButton(
                     onClick = {
                         viewModel.deleteAccount(target)
                         selectedAccountForDelete = null
@@ -154,7 +159,7 @@ fun AccountsScreen(
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { selectedAccountForDelete = null }) {
+                FinanceOutlinedButton(onClick = { selectedAccountForDelete = null }) {
                     Text(Strings.get("cancel", lang))
                 }
             }
@@ -278,12 +283,12 @@ fun AddAccountDialog(
     var accNumber by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf(AccountType.BANK) }
 
-    AlertDialog(
+    FinanceAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = Strings.get("add_account", lang), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
+                FinanceTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(Strings.get("account_name", lang)) },
@@ -291,7 +296,7 @@ fun AddAccountDialog(
                         .fillMaxWidth()
                         .testTag("account_name_input")
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = balanceStr,
                     onValueChange = { balanceStr = it },
                     label = { Text(Strings.get("initial_balance", lang)) },
@@ -299,13 +304,13 @@ fun AddAccountDialog(
                         .fillMaxWidth()
                         .testTag("account_balance_input")
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = institution,
                     onValueChange = { institution = it },
                     label = { Text(Strings.get("institution", lang)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                FinanceTextField(
                     value = accNumber,
                     onValueChange = { accNumber = it },
                     label = { Text(Strings.get("safe_number", lang)) },
@@ -314,7 +319,7 @@ fun AddAccountDialog(
             }
         },
         confirmButton = {
-            Button(
+            FinanceButton(
                 onClick = {
                     if (name.isNotBlank()) {
                         val bal = balanceStr.toDoubleOrNull() ?: 0.0
@@ -335,7 +340,7 @@ fun AddAccountDialog(
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
+            FinanceOutlinedButton(onClick = onDismiss) {
                 Text(Strings.get("cancel", lang))
             }
         }
