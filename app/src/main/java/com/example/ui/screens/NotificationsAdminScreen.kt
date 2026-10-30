@@ -231,7 +231,7 @@ fun NotificationsAdminScreen(
                                 Icon(Icons.Default.Security, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(WebI18n.tr("تشفير البيانات", "Data encryption", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("AES-256 Local", fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
+                                Text("AES-256", fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
                             }
                         }
 
@@ -244,7 +244,7 @@ fun NotificationsAdminScreen(
                                 Icon(Icons.Default.Storage, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(WebI18n.tr("إجمالي القيود", "Total ledger entries", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("${transactions.size + accounts.size + auditLogs.size} Record", fontWeight = FontWeight.Bold, color = ByeProTheme.colors.goldPrimary)
+                                Text(WebI18n.tr("${transactions.size + accounts.size + auditLogs.size} سجل", "${transactions.size + accounts.size + auditLogs.size} records", lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.goldPrimary)
                             }
                         }
                     }
@@ -320,7 +320,7 @@ fun NotificationCardItem(
             }
             if (!notification.isRead) {
                 IconButton(onClick = onRead) {
-                    Icon(Icons.Default.Check, contentDescription = "Mark as read", tint = ByeProTheme.colors.financialGreen)
+                    Icon(Icons.Default.Check, contentDescription = WebI18n.tr("تحديد كمقروء", "Mark as read", lang), tint = ByeProTheme.colors.financialGreen)
                 }
             }
         }
