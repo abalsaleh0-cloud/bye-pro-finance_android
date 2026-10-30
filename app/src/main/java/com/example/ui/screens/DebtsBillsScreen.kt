@@ -69,14 +69,15 @@ import java.util.Locale
 
 @Composable
 fun DebtsBillsScreen(
-    viewModel: FinanceViewModel
+    viewModel: FinanceViewModel,
+    initialTabIndex: Int = 0
 ) {
     val lang by viewModel.appLanguage.collectAsState()
     val debts by viewModel.debts.collectAsState()
     val bills by viewModel.bills.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
 
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by remember { mutableIntStateOf(initialTabIndex.coerceIn(0, 1)) }
     var showAddDebtDialog by remember { mutableStateOf(false) }
     var showAddBillDialog by remember { mutableStateOf(false) }
     var debtToPay by remember { mutableStateOf<DebtEntity?>(null) }

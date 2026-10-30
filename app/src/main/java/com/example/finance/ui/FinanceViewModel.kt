@@ -8,6 +8,7 @@ import com.example.finance.ai.ExtractedReceiptData
 import com.example.finance.ai.GeminiFinanceService
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceRepository
+import com.example.finance.data.FinanceExportService
 import com.example.finance.engine.FinanceEngine
 import com.example.finance.i18n.WebI18n
 import com.example.finance.model.AccountEntity
@@ -195,40 +196,21 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     fun clearScannedReceipt() { _scannedReceipt.value = null; _ocrError.value = null }
 
-    fun generateCsvExport(): String {
-        val sb = StringBuilder("ID,Date,Type,Amount,Currency,Category,Description,Merchant,Account\n")
-        transactions.value.forEach { tx ->
-            val dateStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date(tx.date))
-            sb.append("${tx.id},\"$dateStr\",\"${tx.type}\",${tx.amount},\"${tx.currency}\",\"${tx.category}\",\"${tx.description}\",\"${tx.merchant}\",${tx.accountId}\n")
+    fun importTransactionsFromJson(json: String, onComplete: (Result<Int>) -> Unit) {
+        viewModelScope.launch {
+            val result = runCatching {
+                val rows = FinanceExportService.transactionsFromJson(json)
+                repository.importTransactions(rows)
+            }
+            onComplete(result)
         }
-        return sb.toString()
     }
 
-    fun generateJsonExport(): String {
-        val totalIncome = FinanceEngine.calculateTotalIncome(transactions.value)
-        val totalExpenses = FinanceEngine.calculateTotalExpenses(transactions.value)
-        val netCash = FinanceEngine.calculateNetCashFlow(transactions.value)
-        val netWorth = FinanceEngine.calculateNetWorth(accounts.value, assets.value, debts.value)
-        val accountsJson = accounts.value.joinToString(",") { acc ->
-            """{"id":${acc.id},"name":"${acc.name}","type":"${acc.type.name}","currency":"${acc.currency}","balance":${acc.balance},"accountNumberSafe":"${acc.accountNumberSafe}","institution":"${acc.institution}"}"""
-        }
-        return """
-            {
-              "exportDate": "${java.util.Date()}",
-              "totalLiquidAccounts": ${accounts.value.size},
-              "totalIncome": $totalIncome,
-              "totalExpenses": $totalExpenses,
-              "netCashFlow": $netCash,
-              "netWorth": $netWorth,
-              "accounts": [$accountsJson],
-              "transactionsCount": ${transactions.value.size},
-              "budgetsCount": ${budgets.value.size},
-              "debtsCount": ${debts.value.size},
-              "billsCount": ${bills.value.size},
-              "assetsCount": ${assets.value.size}
-            }
-        """.trimIndent()
-    }
+    fun generateCsvExport(): String =
+        FinanceExportService.transactionsToCsv(transactions.value)
+
+    fun generateJsonExport(): String =
+        FinanceExportService.transactionsToJson(transactions.value)
 
     fun restoreBackupFromJson(backupJson: String, onComplete: (Boolean) -> Unit) {
         viewModelScope.launch { onComplete(repository.restoreFromJson(backupJson)) }

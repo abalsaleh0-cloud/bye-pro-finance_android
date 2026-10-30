@@ -373,7 +373,8 @@ fun AddTransactionDialog(
     var merchant by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("Groceries") }
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
-    var selectedAccountId by remember { mutableStateOf(accounts.firstOrNull()?.id ?: 1L) }
+    var selectedAccountId by remember { mutableStateOf(accounts.firstOrNull()?.id ?: 0L) }
+    val selectedAccount = accounts.firstOrNull { it.id == selectedAccountId }
 
     val categories = listOf("Groceries", "Dining", "Utilities", "Salary", "Shopping", "Health", "Investments", "Transport", "Other")
 
@@ -382,6 +383,20 @@ fun AddTransactionDialog(
         title = { Text(text = Strings.get("add_transaction", lang), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (selectedAccount == null) {
+                    Text(
+                        WebI18n.tr("أضف حساباً مالياً أولاً لتسجيل معاملة.", "Add a financial account before recording a transaction.", lang),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                } else {
+                    Text(
+                        WebI18n.tr("الحساب:", "Account:", lang) + " ${selectedAccount.name} · ${selectedAccount.currency}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
                 // Type selector
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -459,12 +474,13 @@ fun AddTransactionDialog(
             FinanceButton(
                 onClick = {
                     val amt = amountStr.toDoubleOrNull() ?: 0.0
-                    if (amt > 0.0 && description.isNotBlank()) {
+                    if (amt.isFinite() && amt > 0.0 && description.isNotBlank() && selectedAccount != null) {
                         onConfirm(
                             TransactionEntity(
-                                accountId = selectedAccountId,
+                                accountId = selectedAccount.id,
                                 type = selectedType,
                                 amount = amt,
+                                currency = selectedAccount.currency,
                                 category = category,
                                 description = description,
                                 merchant = merchant

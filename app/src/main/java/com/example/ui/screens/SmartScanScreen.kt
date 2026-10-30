@@ -70,6 +70,7 @@ fun SmartScanScreen(
     val scannedReceipt by viewModel.scannedReceipt.collectAsState()
     val documents by viewModel.documents.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
+    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
 
     var statusMessage by remember { mutableStateOf<String?>(null) }
 
@@ -264,24 +265,20 @@ fun SmartScanScreen(
                                 onClick = {
                                     val amt = amountField.toDoubleOrNull() ?: 0.0
                                     val tax = taxField.toDoubleOrNull() ?: 0.0
-                                    val defaultAcc = accounts.firstOrNull()?.id ?: 1L
-
-                                    if (amt > 0.0) {
-                                        // 1. Add Transaction
+                                    val selectedAccount = accounts.firstOrNull()
+                                    if (amt.isFinite() && amt > 0.0 && selectedAccount != null) {
                                         viewModel.addTransaction(
                                             TransactionEntity(
-                                                accountId = defaultAcc,
+                                                accountId = selectedAccount.id,
                                                 type = TransactionType.EXPENSE,
                                                 amount = amt,
-                                                currency = "SAR",
+                                                currency = selectedAccount.currency,
                                                 category = categoryField,
                                                 description = WebI18n.tr("فاتورة مشتريات:", "Purchase receipt:", lang) + " $merchantField",
                                                 merchant = merchantField,
-                                                notes = WebI18n.tr("ضريبة:", "Tax:", lang) + " $tax SAR - extracted via Smart Scan"
+                                                notes = WebI18n.tr("ضريبة:", "Tax:", lang) + " $tax ${selectedAccount.currency} - extracted via Smart Scan"
                                             )
                                         )
-
-                                        // 2. Add Document
                                         viewModel.addDocument(
                                             DocumentEntity(
                                                 title = WebI18n.tr("إيصال:", "Receipt:", lang) + " $merchantField",
@@ -292,9 +289,14 @@ fun SmartScanScreen(
                                                 notes = scannedReceipt!!.itemsSummary
                                             )
                                         )
-
                                         statusMessage = WebI18n.tr("تم حفظ الفاتورة وتحديث رصيد الحساب المالي بنجاح ✓", "Receipt saved and account balance updated successfully ✓", lang)
                                         viewModel.clearScannedReceipt()
+                                    } else {
+                                        statusMessage = WebI18n.tr(
+                                            "أضف حساباً مالياً أولاً، وأدخل مبلغاً صحيحاً قبل حفظ الإيصال.",
+                                            "Add a financial account first and enter a valid amount before saving the receipt.",
+                                            lang
+                                        )
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.financialGreen, contentColor = MaterialTheme.colorScheme.onPrimary),
@@ -366,10 +368,10 @@ fun SmartScanScreen(
                     ) {
                         Column {
                             Text(doc.title, fontWeight = FontWeight.Bold)
-                            Text(WebI18n.tr("التاجر:", "Merchant:", lang) + " ${doc.merchant} • " + WebI18n.tr("الضريبة:", "Tax:", lang) + " ${TextContent.money(doc.taxAmount, "SAR", lang)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(WebI18n.tr("التاجر:", "Merchant:", lang) + " ${doc.merchant} • " + WebI18n.tr("الضريبة:", "Tax:", lang) + " ${TextContent.money(doc.taxAmount, primaryCurrency, lang)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(TextContent.money(doc.totalAmount, "SAR", lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
+                            Text(TextContent.money(doc.totalAmount, primaryCurrency, lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
                             FinanceIconButton(onClick = { viewModel.deleteDocument(doc) }) {
                                 Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
                             }

@@ -48,7 +48,7 @@ class FinanceRepositoryIntegrationTest {
     @Test
     fun testAddAccountAndBalanceTracking() = runBlocking {
         val accId = repository.addAccount(
-            AccountEntity(name = "Checking", type = AccountType.BANK, balance = 1000.00, currency = "SAR")
+            AccountEntity(name = "Checking", type = AccountType.BANK, balance = 1000.00, currency = "LYD")
         )
         assertTrue(accId > 0)
 
@@ -146,6 +146,36 @@ class FinanceRepositoryIntegrationTest {
         assertEquals(500.0, db.financeDao().getAccountById(sourceId)?.balance ?: 0.0, 0.001)
         assertEquals(100.0, db.financeDao().getAccountById(destinationId)?.balance ?: 0.0, 0.001)
         assertTrue(repository.transfers.first().isEmpty())
+    }
+
+    @Test
+    fun importingTransactionsIsAtomicWhenAnyRowIsInvalid() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Import account", type = AccountType.CASH, balance = 100.0, currency = "LYD")
+        )
+        val valid = TransactionEntity(
+            accountId = accountId,
+            type = TransactionType.INCOME,
+            amount = 50.0,
+            currency = "LYD",
+            category = "Income",
+            description = "Valid row"
+        )
+        val invalid = TransactionEntity(
+            accountId = 99999L,
+            type = TransactionType.EXPENSE,
+            amount = 10.0,
+            currency = "LYD",
+            category = "Expense",
+            description = "Missing account"
+        )
+        try {
+            repository.importTransactions(listOf(valid, invalid))
+            fail("Import must roll back when any row is invalid")
+        } catch (_: IllegalArgumentException) {
+            assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+            assertTrue(repository.transactions.first().isEmpty())
+        }
     }
 
     @Test

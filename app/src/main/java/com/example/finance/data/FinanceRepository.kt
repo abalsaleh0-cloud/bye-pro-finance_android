@@ -108,6 +108,34 @@ class FinanceRepository(
         if (db != null) db.withTransaction { operation() } else operation()
     }
 
+    suspend fun importTransactions(rows: List<TransactionEntity>): Int = withContext(Dispatchers.IO) {
+        require(rows.isNotEmpty()) { "The import file contains no transactions" }
+        val operation: suspend () -> Int = {
+            rows.forEach { source ->
+                val tx = source.copy(id = 0L)
+                require(tx.amount.isFinite() && tx.amount > 0.0) { "Imported transaction amount must be finite and positive" }
+                val account = dao.getAccountById(tx.accountId)
+                    ?: throw IllegalArgumentException("Imported transaction references a missing account: ${tx.accountId}")
+                require(tx.currency.equals(account.currency, ignoreCase = true)) {
+                    "Imported transaction currency does not match account ${account.id}"
+                }
+                dao.insertTransaction(tx)
+                if (tx.status == TransactionStatus.COMPLETED) {
+                    val current = FinanceEngine.toBigDecimal(account.balance)
+                    val amount = FinanceEngine.toBigDecimal(tx.amount)
+                    val updated = when (tx.type) {
+                        TransactionType.INCOME, TransactionType.REFUND, TransactionType.ADJUSTMENT -> current.add(amount)
+                        TransactionType.EXPENSE, TransactionType.TRANSFER -> current.subtract(amount)
+                    }
+                    dao.updateAccountBalance(account.id, updated.toDouble())
+                }
+            }
+            logAudit("IMPORT", "Transactions", "Imported ${rows.size} transactions")
+            rows.size
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
+    }
+
     suspend fun deleteTransaction(tx: TransactionEntity) = withContext(Dispatchers.IO) {
         val operation: suspend () -> Unit = {
             val account = dao.getAccountById(tx.accountId)

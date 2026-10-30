@@ -92,6 +92,8 @@ import com.example.ui.screens.AiAssistantScreen
 import com.example.ui.screens.BudgetsScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.DebtsBillsScreen
+import com.example.ui.screens.DocumentsScreen
+import com.example.ui.screens.ImportExportScreen
 import com.example.ui.screens.HouseholdScreen
 import com.example.ui.screens.NotificationsAdminScreen
 import com.example.ui.screens.ReportsScreen
@@ -133,11 +135,15 @@ fun MainAppScaffold(
 
     val hubMenuItems = listOf(
         HubMenuItem("transfers", "nav_transfers", Icons.Default.SwapHoriz, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("debts_bills", "nav_debts", Icons.Default.MoneyOff, ByeProTheme.colors.financialRed),
-        HubMenuItem("savings_assets", "nav_savings", Icons.Default.Savings, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("debts", "nav_debts", Icons.Default.MoneyOff, ByeProTheme.colors.financialRed),
+        HubMenuItem("bills", "nav_bills", Icons.Default.ReceiptLong, ByeProTheme.colors.financialRed),
+        HubMenuItem("savings", "nav_savings", Icons.Default.Savings, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("assets", "nav_assets", Icons.Default.AccountBalance, ByeProTheme.colors.goldPrimary),
         HubMenuItem("reports", "nav_reports", Icons.Default.TableChart, ByeProTheme.colors.financialGreen),
         HubMenuItem("household", "nav_household", Icons.Default.Group, ByeProTheme.colors.financialGreen),
+        HubMenuItem("documents", "nav_documents", Icons.Default.ReceiptLong, ByeProTheme.colors.goldPrimary),
         HubMenuItem("smart_scan", "nav_smart_scan", Icons.Default.SmartScreen, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("import_export", "nav_import_export", Icons.Default.TableChart, ByeProTheme.colors.goldPrimary),
         HubMenuItem("ai_assistant", "nav_ai_assistant", Icons.Default.AutoAwesome, ByeProTheme.colors.goldPrimary),
         HubMenuItem("notifications", "nav_notifications", Icons.Default.Notifications, ByeProTheme.colors.goldPrimary),
         HubMenuItem("admin", "nav_admin", Icons.Default.AdminPanelSettings, ByeProTheme.colors.financialGreen),
@@ -322,8 +328,12 @@ fun MainAppScaffold(
                     "transactions" -> TransactionsScreen(viewModel = viewModel)
                     "transfers" -> TransfersScreen(viewModel = viewModel)
                     "budgets" -> BudgetsScreen(viewModel = viewModel)
-                    "debts_bills" -> DebtsBillsScreen(viewModel = viewModel)
-                    "savings_assets" -> SavingsAssetsScreen(viewModel = viewModel)
+                    "debts" -> DebtsBillsScreen(viewModel = viewModel, initialTabIndex = 0)
+                    "bills" -> DebtsBillsScreen(viewModel = viewModel, initialTabIndex = 1)
+                    "savings" -> SavingsAssetsScreen(viewModel = viewModel, initialTabIndex = 0)
+                    "assets" -> SavingsAssetsScreen(viewModel = viewModel, initialTabIndex = 1)
+                    "documents" -> DocumentsScreen(viewModel = viewModel)
+                    "import_export" -> ImportExportScreen(viewModel = viewModel)
                     "reports" -> ReportsScreen(viewModel = viewModel)
                     "household" -> HouseholdScreen(viewModel = viewModel)
                     "smart_scan" -> SmartScanScreen(viewModel = viewModel)

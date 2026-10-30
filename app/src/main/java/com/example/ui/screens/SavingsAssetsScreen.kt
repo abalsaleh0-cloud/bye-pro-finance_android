@@ -69,7 +69,8 @@ import com.example.finance.ui.FinanceViewModel
 
 @Composable
 fun SavingsAssetsScreen(
-    viewModel: FinanceViewModel
+    viewModel: FinanceViewModel,
+    initialTabIndex: Int = 0
 ) {
     val lang by viewModel.appLanguage.collectAsState()
     val savingsGoals by viewModel.savingsGoals.collectAsState()
@@ -77,7 +78,7 @@ fun SavingsAssetsScreen(
     val accounts by viewModel.accounts.collectAsState()
     val debts by viewModel.debts.collectAsState()
 
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by remember { mutableIntStateOf(initialTabIndex.coerceIn(0, 1)) }
     var showAddGoalDialog by remember { mutableStateOf(false) }
     var showAddAssetDialog by remember { mutableStateOf(false) }
     var goalToContribute by remember { mutableStateOf<SavingsGoalEntity?>(null) }
