@@ -15,6 +15,7 @@ object Strings {
 
     val arStrings = mapOf(
         "app_title" to "BYE PRO FINANCE",
+        "dashboard" to "لوحة التحكم",
         "tagline" to "النظام المالي الذكي والمتكامل",
         
         // Navigation Tabs
@@ -254,6 +255,7 @@ object Strings {
 
     val enStrings = mapOf(
         "app_title" to "BYE PRO FINANCE",
+        "dashboard" to "Dashboard",
         "tagline" to "Intelligent Comprehensive Financial System",
         
         // Navigation Tabs
