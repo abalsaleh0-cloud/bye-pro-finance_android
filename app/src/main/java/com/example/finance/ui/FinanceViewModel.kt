@@ -201,7 +201,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun generateJsonExport(): String {
         val totalIncome = FinanceEngine.calculateTotalIncome(transactions.value)
         val totalExpenses = FinanceEngine.calculateTotalExpenses(transactions.value)
-        val netCash = FinanceEngine.calculateNetCashFlow(totalIncome, totalExpenses)
+        val netCash = FinanceEngine.calculateNetCashFlow(transactions.value)
         val netWorth = FinanceEngine.calculateNetWorth(accounts.value, assets.value, debts.value)
         val accountsJson = accounts.value.joinToString(",") { acc ->
             """{"id":${acc.id},"name":"${acc.name}","type":"${acc.type.name}","currency":"${acc.currency}","balance":${acc.balance},"accountNumberSafe":"${acc.accountNumberSafe}","institution":"${acc.institution}"}"""
