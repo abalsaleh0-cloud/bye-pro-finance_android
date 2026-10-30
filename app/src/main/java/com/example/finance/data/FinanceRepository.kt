@@ -84,38 +84,44 @@ class FinanceRepository(
     }
 
     suspend fun addTransaction(tx: TransactionEntity): Long = withContext(Dispatchers.IO) {
-        val txId = dao.insertTransaction(tx)
-        val account = dao.getAccountById(tx.accountId)
-        if (account != null) {
-            val currentBal = FinanceEngine.toBigDecimal(account.balance)
-            val txAmount = FinanceEngine.toBigDecimal(tx.amount)
-            val newBal = when (tx.type) {
-                TransactionType.INCOME, TransactionType.REFUND -> currentBal.add(txAmount)
-                TransactionType.EXPENSE -> currentBal.subtract(txAmount)
-                TransactionType.TRANSFER -> currentBal.subtract(txAmount)
-                TransactionType.ADJUSTMENT -> txAmount
+        val operation: suspend () -> Long = {
+            val account = dao.getAccountById(tx.accountId)
+                ?: throw IllegalArgumentException("Account not found: ${tx.accountId}")
+            val txId = dao.insertTransaction(tx)
+            if (tx.status != TransactionStatus.CANCELLED) {
+                val currentBal = FinanceEngine.toBigDecimal(account.balance)
+                val txAmount = FinanceEngine.toBigDecimal(tx.amount)
+                val newBal = when (tx.type) {
+                    TransactionType.INCOME, TransactionType.REFUND -> currentBal.add(txAmount)
+                    TransactionType.EXPENSE, TransactionType.TRANSFER -> currentBal.subtract(txAmount)
+                    TransactionType.ADJUSTMENT -> currentBal.add(txAmount)
+                }
+                dao.updateAccountBalance(account.id, newBal.toDouble())
             }
-            dao.updateAccountBalance(account.id, newBal.toDouble())
+            logAudit("TRANSACTION", "Transaction", "${tx.type}: ${tx.amount} ${tx.currency} - ${tx.description}")
+            txId
         }
-        logAudit("TRANSACTION", "Transaction", "${tx.type}: ${tx.amount} ${tx.currency} - ${tx.description}")
-        txId
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun deleteTransaction(tx: TransactionEntity) = withContext(Dispatchers.IO) {
-        val account = dao.getAccountById(tx.accountId)
-        if (account != null) {
-            val currentBal = FinanceEngine.toBigDecimal(account.balance)
-            val txAmount = FinanceEngine.toBigDecimal(tx.amount)
-            // Revert balance change
-            val newBal = when (tx.type) {
-                TransactionType.INCOME, TransactionType.REFUND -> currentBal.subtract(txAmount)
-                TransactionType.EXPENSE, TransactionType.TRANSFER -> currentBal.add(txAmount)
-                TransactionType.ADJUSTMENT -> currentBal
+        val operation: suspend () -> Unit = {
+            val account = dao.getAccountById(tx.accountId)
+            if (account != null && tx.status != TransactionStatus.CANCELLED) {
+                val currentBal = FinanceEngine.toBigDecimal(account.balance)
+                val txAmount = FinanceEngine.toBigDecimal(tx.amount)
+                // Reverse only posted rows; adjustments are additive deltas.
+                val newBal = when (tx.type) {
+                    TransactionType.INCOME, TransactionType.REFUND -> currentBal.subtract(txAmount)
+                    TransactionType.EXPENSE, TransactionType.TRANSFER -> currentBal.add(txAmount)
+                    TransactionType.ADJUSTMENT -> currentBal.subtract(txAmount)
+                }
+                dao.updateAccountBalance(account.id, newBal.toDouble())
             }
-            dao.updateAccountBalance(account.id, newBal.toDouble())
+            dao.deleteTransaction(tx)
+            logAudit("DELETE", "Transaction", "Deleted transaction #${tx.id}: ${tx.description}")
         }
-        dao.deleteTransaction(tx)
-        logAudit("DELETE", "Transaction", "Deleted transaction #${tx.id}: ${tx.description}")
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun archiveAccount(accountId: Long, isArchived: Boolean) = withContext(Dispatchers.IO) {
