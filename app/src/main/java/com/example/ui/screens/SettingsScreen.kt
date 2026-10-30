@@ -27,6 +27,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -34,6 +36,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,6 +56,8 @@ fun SettingsScreen(
     val lang by viewModel.appLanguage.collectAsState()
     val isDark by viewModel.isDarkMode.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
+    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
+    var currencyMenuExpanded by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier
@@ -94,12 +101,12 @@ fun SettingsScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = currentUser?.name ?: "عبدالله الصالح (Abdullah)",
+                        text = currentUser?.name ?: WebI18n.tr("ملف محلي", "Local profile", lang),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = currentUser?.email ?: "ab.alsaleh0@gmail.com",
+                        text = currentUser?.email ?: WebI18n.tr("لا يوجد حساب مرتبط", "No linked account", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -157,6 +164,49 @@ fun SettingsScreen(
                                 .testTag("set_lang_en_btn")
                         ) {
                             Text(Strings.get("english", lang), fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Primary currency — mirrors the web settings default and available options.
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = Strings.get("currency_pref", lang),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box {
+                        OutlinedButton(
+                            onClick = { currencyMenuExpanded = true },
+                            modifier = Modifier.fillMaxWidth().testTag("primary_currency_selector")
+                        ) {
+                            Text(primaryCurrency)
+                        }
+                        DropdownMenu(
+                            expanded = currencyMenuExpanded,
+                            onDismissRequest = { currencyMenuExpanded = false }
+                        ) {
+                            listOf("LYD", "USD", "EUR", "GBP", "SAR", "AED", "EGP").forEach { code ->
+                                DropdownMenuItem(
+                                    text = { Text(code) },
+                                    onClick = {
+                                        viewModel.setPrimaryCurrency(code)
+                                        currencyMenuExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
