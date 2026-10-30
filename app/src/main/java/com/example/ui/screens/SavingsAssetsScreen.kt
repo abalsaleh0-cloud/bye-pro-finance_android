@@ -201,6 +201,7 @@ fun SavingsAssetsScreen(
                         items(assets, key = { it.id }) { asset ->
                             AssetCardItem(
                                 asset = asset,
+                                lang = lang,
                                 onDelete = { viewModel.deleteAsset(asset) }
                             )
                         }
