@@ -6,6 +6,8 @@ import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceIconButton
+import com.example.ui.components.FinanceFloatingActionButton
 
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
@@ -80,7 +82,7 @@ fun AccountsScreen(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
+            FinanceFloatingActionButton(
                 onClick = { showAddDialog = true },
                 containerColor = ByeProTheme.colors.goldPrimary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -225,7 +227,7 @@ fun AccountDetailedCard(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
+                    FinanceIconButton(
                         onClick = onArchive,
                         modifier = Modifier.testTag("archive_account_${account.id}")
                     ) {
@@ -236,7 +238,7 @@ fun AccountDetailedCard(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(
+                    FinanceIconButton(
                         onClick = onDelete,
                         modifier = Modifier.testTag("delete_account_${account.id}")
                     ) {
