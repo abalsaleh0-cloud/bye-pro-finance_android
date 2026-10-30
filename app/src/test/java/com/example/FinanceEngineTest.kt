@@ -11,6 +11,7 @@ import com.example.finance.model.DebtEntity
 import com.example.finance.model.DebtStatus
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
+import com.example.finance.model.TransactionStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -71,6 +72,20 @@ class FinanceEngineTest {
         // Net Cash Flow for the period: Income (500) - Expense (200) = 300.00
         val netCashFlow = FinanceEngine.calculateNetCashFlow(transactions)
         assertEquals(BigDecimal("300.00"), netCashFlow)
+    }
+
+    @Test
+    fun cancelledTransactionsDoNotChangeBalancesAndAdjustmentsAreAdditive() {
+        val accountId = 7L
+        val transactions = listOf(
+            TransactionEntity(id = 1, accountId = accountId, type = TransactionType.EXPENSE, amount = 80.0, category = "Food", description = "Cancelled", status = TransactionStatus.CANCELLED),
+            TransactionEntity(id = 2, accountId = accountId, type = TransactionType.ADJUSTMENT, amount = 25.0, category = "Adjustment", description = "Correction")
+        )
+        assertEquals(
+            BigDecimal("1025.00"),
+            FinanceEngine.calculateAccountBalance(BigDecimal("1000.00"), transactions, accountId)
+        )
+        assertEquals(BigDecimal("0.00"), FinanceEngine.calculateTotalExpenses(transactions))
     }
 
     @Test
