@@ -319,7 +319,7 @@ fun SavingsGoalCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = WebI18n.tr("النسبة المحققة:", "Progress:", lang) + " ${progress.percentage.toInt()}%",
+                        text = WebI18n.tr("النسبة المحققة:", "Progress:", lang) + " ${TextContent.number(progress.percentage.toInt(), lang, 0)}%",
                         style = MaterialTheme.typography.bodySmall,
                         color = ByeProTheme.colors.financialGreen,
                         fontWeight = FontWeight.SemiBold
