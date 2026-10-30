@@ -95,6 +95,7 @@ s = s.replace(
     "listOf(healthColors.goldPrimary, healthColors.financialGreen, healthColors.goldMuted)",
     1,
 )
+s = s.replace("color = Color.DarkGray.copy(alpha = 0.4f)", "color = healthColors.borderBase.copy(alpha = 0.65f)", 1)
 components.write_text(s, encoding="utf-8")
 
 loc = root / "app/src/main/java/com/example/finance/i18n/Localization.kt"
