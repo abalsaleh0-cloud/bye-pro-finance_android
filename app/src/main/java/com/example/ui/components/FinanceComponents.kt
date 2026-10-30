@@ -13,6 +13,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -157,5 +162,37 @@ fun FinanceAlertDialog(
         textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         tonalElevation = AlertDialogDefaults.TonalElevation,
         properties = properties
+    )
+}
+
+
+/** Shared icon action control with consistent default accent color. */
+@Composable
+fun FinanceIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    CompositionLocalProvider(LocalContentColor provides ByeProTheme.colors.goldPrimary) {
+        IconButton(onClick = onClick, modifier = modifier, enabled = enabled, content = content)
+    }
+}
+
+/** Shared floating action button for create/add actions across the app. */
+@Composable
+fun FinanceFloatingActionButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    containerColor: Color = ByeProTheme.colors.goldPrimary,
+    contentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    content: @Composable RowScope.() -> Unit
+) {
+    FloatingActionButton(
+        onClick = onClick,
+        modifier = modifier,
+        containerColor = containerColor,
+        contentColor = contentColor,
+        content = content
     )
 }
