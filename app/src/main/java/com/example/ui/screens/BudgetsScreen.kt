@@ -221,7 +221,7 @@ private fun BudgetFormDialog(
     var period by remember(initial) { mutableStateOf(initial?.period ?: BudgetPeriod.MONTHLY) }
     var startDate by remember(initial) { mutableStateOf(initial?.startDate?.let(::budgetDate) ?: today) }
     var endDate by remember(initial) { mutableStateOf(initial?.endDate?.let(::budgetDate) ?: today) }
-    var category by remember(initial) { mutableStateOf(initial?.category ?: "General") }
+    var category by remember(initial) { mutableStateOf(initial?.category ?: "All") }
     var error by remember { mutableStateOf("") }
     var currencyMenu by remember { mutableStateOf(false) }
     var periodMenu by remember { mutableStateOf(false) }
