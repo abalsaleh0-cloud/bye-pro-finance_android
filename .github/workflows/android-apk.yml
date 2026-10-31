@@ -47,9 +47,9 @@ jobs:
         run: |
           grep -q 'val layoutDirection = WebI18n.layoutDirection()' app/src/main/java/com/example/ui/navigation/MainAppScaffold.kt
           grep -q 'MutableStateFlow(WebI18n.read(application))' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
-          grep -q 'WebI18n.write(getApplication(), lang)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          grep -q 'WebI18n.write(getApplication(),v)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
           grep -q 'const val LOCALE_KEY = "bye-pro-finance.locale"' app/src/main/java/com/example/finance/i18n/WebI18n.kt
-          grep -q 'preferences.getBoolean("dark_mode", true)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          grep -q 'preferences.getBoolean("dark_mode",true)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
           echo "PASS: Arabic default, persisted locale, fixed RTL layout, and persistent theme."
           echo "PASS: Arabic default, persisted web-compatible locale key, fixed RTL layout."
 
