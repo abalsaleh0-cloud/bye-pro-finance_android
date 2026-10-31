@@ -97,9 +97,9 @@ val ByeProLightTokens = ByeProColorTokens(
     fieldText = LightFieldText,
     fieldBorder = LightFieldBorder,
     fieldFocus = LightFieldFocus,
-    quietButtonBg = Color(0xFFF7F2E7),
-    quietButtonBorder = Color(0xFFB99B5E),
-    quietButtonText = Color(0xFF6C5420),
+    quietButtonBg = Color.Transparent,
+    quietButtonBorder = Color.Transparent,
+    quietButtonText = LightTextPrimary,
     isDark = false
 )
 
