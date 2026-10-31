@@ -245,7 +245,6 @@ class LocalAiModelViewModel(application: Application) : AndroidViewModel(applica
         WorkManager.getInstance(getApplication()).enqueueUniqueWork(
             LocalAiModelDownloadWorker.UNIQUE_WORK_NAME, ExistingWorkPolicy.KEEP, request
         )
-        observeBackgroundDownload()
     }
 
     private fun observeBackgroundDownload() {
