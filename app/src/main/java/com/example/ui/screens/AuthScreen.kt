@@ -1,9 +1,10 @@
 package com.example.ui.screens
 
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.*
+import com.example.ui.components.FinanceIcon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 
-import com.composables.icons.lucide.*
+
 
 import androidx.compose.material.icons.filled.*
 
@@ -75,7 +76,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
                     }
                 }
                 Box(Modifier.size(62.dp).background(ByeProTheme.colors.goldPrimary.copy(alpha = .14f), CircleShape), contentAlignment = Alignment.Center) {
-                    FinanceIcon(Lucide.WalletCards, null, tint = ByeProTheme.colors.goldPrimary, modifier = Modifier.size(32.dp))
+                    FinanceIcon(Icons.Default.AccountBalanceWallet, null, tint = ByeProTheme.colors.goldPrimary, modifier = Modifier.size(32.dp))
                 }
                 Spacer(Modifier.height(12.dp))
                 Text("BYE PRO FINANCE", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = ByeProTheme.colors.goldPrimary)
@@ -174,7 +175,7 @@ private fun PasswordField(
         trailingIcon = {
             FinanceIconButton(onClick = onToggle, modifier = Modifier.testTag("${tag}_visibility")) {
                 FinanceIcon(
-                    imageVector = if (visible) Lucide.EyeOff else Lucide.Eye,
+                    imageVector = if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                     contentDescription = if (visible) hideDescription else showDescription,
                     tint = ByeProTheme.colors.goldPrimary
                 )
