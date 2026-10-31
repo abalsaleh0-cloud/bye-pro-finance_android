@@ -127,11 +127,11 @@ fun MainAppScaffold(
 
     val hubMenuItems = listOf(
         HubMenuItem("transfers", "nav_transfers", Lucide.ArrowLeftRight, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("debts", "nav_debts", Lucide.HandCoins, ByeProTheme.colors.financialRed),
+        HubMenuItem("debts", "nav_debts", Lucide.HandCoins, ByeProTheme.colors.goldPrimary),
         HubMenuItem("bills", "nav_bills", Lucide.ReceiptText, ByeProTheme.colors.financialRed),
         HubMenuItem("savings", "nav_savings", Lucide.Wallet, ByeProTheme.colors.goldPrimary),
         HubMenuItem("assets", "nav_assets", Lucide.Landmark, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("reports", "nav_reports", Lucide.ChartPie, ByeProTheme.colors.financialGreen),
+        HubMenuItem("reports", "nav_reports", Lucide.ChartPie, ByeProTheme.colors.goldPrimary),
         HubMenuItem("household", "nav_household", Lucide.Users, ByeProTheme.colors.financialGreen),
         HubMenuItem("documents", "nav_documents", Lucide.Folder, ByeProTheme.colors.goldPrimary),
         HubMenuItem("smart_scan", "nav_smart_scan", Lucide.ScanLine, ByeProTheme.colors.goldPrimary),
@@ -139,7 +139,7 @@ fun MainAppScaffold(
         HubMenuItem("ai_assistant", "nav_ai_assistant", Lucide.Sparkles, ByeProTheme.colors.goldPrimary),
         HubMenuItem("notifications", "nav_notifications", Lucide.Bell, ByeProTheme.colors.goldPrimary),
         HubMenuItem("admin", "nav_admin", Lucide.ShieldCheck, ByeProTheme.colors.financialGreen),
-        HubMenuItem("settings", "nav_settings", Lucide.Settings, MaterialTheme.colorScheme.onSurface)
+        HubMenuItem("settings", "nav_settings", Lucide.Settings, ByeProTheme.colors.goldPrimary)
     )
 
     CompositionLocalProvider(
