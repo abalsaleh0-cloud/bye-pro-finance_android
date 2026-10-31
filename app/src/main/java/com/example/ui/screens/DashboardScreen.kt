@@ -134,11 +134,11 @@ fun DashboardScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier.width(7.dp).height(7.dp)
-                            .background(ByeProTheme.colors.financialGreen, RoundedCornerShape(50))
+                            .background(ByeProTheme.colors.goldPrimary, RoundedCornerShape(50))
                     )
                     Spacer(Modifier.width(7.dp))
                     Text(
-                        WebI18n.tr("متصل بقاعدة البيانات", "Connected to database", lang),
+                        WebI18n.tr("بيانات قاعدة الجهاز", "On-device database", lang),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelSmall
                     )
