@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -442,7 +443,7 @@ private fun DashboardTransactionLine(transaction: TransactionEntity, lang: AppLa
 @Composable
 private fun DashboardQuickStat(value: Int, label: String, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.background(ByeProTheme.colors.cardSecondary, RoundedCornerShape(9.dp)).padding(8.dp),
+        modifier = modifier.border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(11.dp)).padding(horizontal = 8.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
