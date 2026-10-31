@@ -68,7 +68,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
                     }
                 }
                 Box(Modifier.size(62.dp).background(ByeProTheme.colors.goldPrimary.copy(alpha = .14f), CircleShape), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.AccountBalanceWallet, null, tint = ByeProTheme.colors.goldPrimary, modifier = Modifier.size(32.dp))
+                    FinanceIcon(Icons.Default.AccountBalanceWallet, null, tint = ByeProTheme.colors.goldPrimary, modifier = Modifier.size(32.dp))
                 }
                 Spacer(Modifier.height(12.dp))
                 Text("BYE PRO FINANCE", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = ByeProTheme.colors.goldPrimary)
@@ -166,7 +166,7 @@ private fun PasswordField(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         trailingIcon = {
             FinanceIconButton(onClick = onToggle, modifier = Modifier.testTag("${tag}_visibility")) {
-                Icon(
+                FinanceIcon(
                     imageVector = if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                     contentDescription = if (visible) hideDescription else showDescription,
                     tint = ByeProTheme.colors.goldPrimary
