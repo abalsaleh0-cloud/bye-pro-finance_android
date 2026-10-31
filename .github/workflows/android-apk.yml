@@ -148,7 +148,7 @@ jobs:
         if: ${{ steps.release_signing.outputs.enabled == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: BYE-PRO-FINANCE-Android-Release-10.0.13
+          name: BYE-PRO-FINANCE-Android-Release-10.0.15
           path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
