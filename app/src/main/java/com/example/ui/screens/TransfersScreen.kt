@@ -246,7 +246,7 @@ fun TransfersScreen(viewModel: FinanceViewModel) {
                         },
                         modifier = Modifier.fillMaxWidth().height(50.dp).testTag("execute_transfer_btn"),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = ByeProTheme.colors.goldPrimary,
+                            containerColor = ByeProTheme.colors.primaryButtonBg,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
