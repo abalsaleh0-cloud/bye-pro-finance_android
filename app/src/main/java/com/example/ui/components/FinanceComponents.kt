@@ -153,14 +153,14 @@ fun FinanceOutlinedButton(
         )
     } else {
         OutlinedButton(
-            onClick = onClick, modifier = modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape,
+            onClick = onClick, modifier = modifier.heightIn(min = 40.dp), enabled = enabled, shape = shape,
             colors = colors, elevation = elevation, border = border,
             contentPadding = contentPadding, interactionSource = interactionSource, content = content
         )
     }
 }
 
-/** Shared bordered quiet action following the Web .text-button contract. */
+/** Shared bordered quiet action matching the Web .text-button contract. */
 @Composable
 fun FinanceTextButton(
     onClick: () -> Unit,
