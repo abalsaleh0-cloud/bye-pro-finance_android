@@ -7,9 +7,7 @@ import com.composables.icons.lucide.*
 
 import com.example.ui.components.FinanceChoiceButton
 
-import androidx.compose.material.icons.filled.*
 
-import androidx.compose.material.icons.Icons
 
 import com.example.finance.i18n.TextContent
 
@@ -18,6 +16,7 @@ import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
 import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceIcon
 import com.example.ui.components.FinanceIconButton
 import com.example.ui.components.FinanceFloatingActionButton
 
