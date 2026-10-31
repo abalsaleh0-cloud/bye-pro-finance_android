@@ -142,6 +142,26 @@ fun FinanceOutlinedButton(
     }
 }
 
+/** Shared quiet/text action following the Web .text-button contract. */
+@Composable
+fun FinanceTextButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: ButtonColors = TextButtonDefaults.textButtonColors(contentColor = ByeProTheme.colors.goldPrimary),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+    content: @Composable RowScope.() -> Unit
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 38.dp),
+        enabled = enabled,
+        colors = colors,
+        contentPadding = contentPadding,
+        content = content
+    )
+}
+
 /** Shared dialog surface and corner treatment. */
 @Composable
 fun FinanceAlertDialog(
