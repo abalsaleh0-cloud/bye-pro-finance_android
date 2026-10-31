@@ -17,6 +17,7 @@ import com.example.ui.components.FinanceTextField
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -288,7 +289,7 @@ fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?,
             Column(horizontalAlignment = Alignment.End) {
                 Text("$sign${TextContent.money(transaction.amount, transaction.currency, lang)}", fontWeight = FontWeight.Bold, color = color)
                 Text(statusLabel(transaction.status, lang), style = MaterialTheme.typography.labelSmall)
-                if (transaction.status != TransactionStatus.CANCELLED) Text(if (transaction.status == TransactionStatus.COMPLETED) WebI18n.tr("تعليق", "Set pending", lang) else WebI18n.tr("إكمال", "Complete", lang), style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary, modifier = Modifier.testTag("toggle_tx_status_${transaction.id}").clip(RoundedCornerShape(6.dp)).background(ByeProTheme.colors.goldPrimary.copy(alpha = .08f)).padding(4.dp))
+                if (transaction.status != TransactionStatus.CANCELLED) Text(if (transaction.status == TransactionStatus.COMPLETED) WebI18n.tr("تعليق", "Set pending", lang) else WebI18n.tr("إكمال", "Complete", lang), style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary, modifier = Modifier.testTag("toggle_tx_status_${transaction.id}").clip(RoundedCornerShape(6.dp)).background(ByeProTheme.colors.goldPrimary.copy(alpha = .08f)).clickable(onClick = onToggleStatus).padding(4.dp))
             }
             FinanceIconButton(onClick = onDelete, modifier = Modifier.testTag("delete_tx_${transaction.id}")) { Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .6f)) }
         }
