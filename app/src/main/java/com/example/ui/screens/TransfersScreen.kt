@@ -1,6 +1,6 @@
 package com.example.ui.screens
 
-import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
 
 import com.example.ui.components.FinanceIcon
 
