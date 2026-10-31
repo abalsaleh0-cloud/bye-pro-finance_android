@@ -165,19 +165,18 @@ fun FinanceTextButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     colors: ButtonColors = ButtonDefaults.textButtonColors(
-        containerColor = ByeProTheme.colors.quietButtonBg,
-        contentColor = ByeProTheme.colors.quietButtonText
+        containerColor = Color.Transparent,
+        contentColor = ByeProTheme.colors.textPrimary
     ),
-    contentPadding: PaddingValues = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
     content: @Composable RowScope.() -> Unit
 ) {
     TextButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 38.dp),
+        modifier = modifier.heightIn(min = 44.dp),
         enabled = enabled,
         shape = RoundedCornerShape(9.dp),
         colors = colors,
-        border = BorderStroke(1.dp, ByeProTheme.colors.quietButtonBorder),
         contentPadding = contentPadding,
         content = content
     )
