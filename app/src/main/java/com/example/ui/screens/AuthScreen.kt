@@ -34,7 +34,7 @@ import com.example.ui.theme.ByeProTheme
 import kotlinx.coroutines.launch
 
 @Composable
-fun AuthScreen(language: AppLanguage, onAuthenticated: () -> Unit) {
+fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthenticated: () -> Unit) {
     var signup by rememberSaveable { mutableStateOf(false) }
     var fullName by rememberSaveable { mutableStateOf("") }
     var username by rememberSaveable { mutableStateOf("") }
@@ -58,6 +58,11 @@ fun AuthScreen(language: AppLanguage, onAuthenticated: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onToggleLanguage) {
+                        Text(if (language == AppLanguage.AR) "EN" else "عربي")
+                    }
+                }
                 Box(Modifier.size(62.dp).background(ByeProTheme.colors.goldPrimary.copy(alpha = .14f), CircleShape), contentAlignment = Alignment.Center) {
                     Icon(Icons.Default.AccountBalanceWallet, null, tint = ByeProTheme.colors.goldPrimary, modifier = Modifier.size(32.dp))
                 }
