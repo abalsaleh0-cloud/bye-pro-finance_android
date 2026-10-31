@@ -39,6 +39,10 @@ class LocalAiModelDownloadWorker(
             )
             Result.success(workDataOf(KEY_DOWNLOADED to file.length(), KEY_TOTAL to file.length()))
         } catch (cancelled: CancellationException) {
+            notificationManager().notify(
+                NOTIFICATION_ID,
+                buildNotification("تم إيقاف تنزيل نموذج BYE PRO AI مؤقتاً", 0, false, false)
+            )
             throw cancelled
         } catch (error: Exception) {
             notificationManager().notify(
