@@ -468,124 +468,97 @@ fun AssetCardItem(
 @Composable
 fun AddSavingsGoalDialog(
     lang: com.example.finance.model.AppLanguage,
+    initialGoal: SavingsGoalEntity? = null,
     onDismiss: () -> Unit,
     onConfirm: (SavingsGoalEntity) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var targetStr by remember { mutableStateOf("") }
-    var currentStr by remember { mutableStateOf("0") }
-
+    var name by remember(initialGoal?.id) { mutableStateOf(initialGoal?.name ?: "") }
+    var targetStr by remember(initialGoal?.id) { mutableStateOf(initialGoal?.targetAmount?.toString() ?: "") }
+    var currentStr by remember(initialGoal?.id) { mutableStateOf(initialGoal?.currentAmount?.toString() ?: "0") }
+    var currency by remember(initialGoal?.id) { mutableStateOf(initialGoal?.currency ?: "LYD") }
+    var monthlyStr by remember(initialGoal?.id) { mutableStateOf(initialGoal?.targetMonthlyDeposit?.toString() ?: "0") }
+    var deadlineText by remember(initialGoal?.id) { mutableStateOf(java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date(initialGoal?.deadline ?: (System.currentTimeMillis() + 180L * 24 * 60 * 60 * 1000)))) }
+    var error by remember { mutableStateOf("") }
     FinanceAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = Strings.get("add_goal", lang), fontWeight = FontWeight.Bold) },
+        title = { Text(if (initialGoal == null) Strings.get("add_goal", lang) else WebI18n.tr("تعديل هدف الادخار", "Edit savings goal", lang), fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                FinanceTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(WebI18n.tr("اسم الهدف الادخاري", "Savings goal name", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                FinanceTextField(
-                    value = targetStr,
-                    onValueChange = { targetStr = it },
-                    label = { Text(Strings.get("target_amount", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                FinanceTextField(
-                    value = currentStr,
-                    onValueChange = { currentStr = it },
-                    label = { Text(WebI18n.tr("الرصيد المدخر حالياً", "Current saved balance", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الهدف الادخاري", "Savings goal name", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = targetStr, onValueChange = { targetStr = it }, label = { Text(Strings.get("target_amount", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = currentStr, onValueChange = { currentStr = it }, label = { Text(WebI18n.tr("الرصيد المدخر حالياً", "Current saved balance", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(java.util.Locale.ROOT) }, label = { Text(WebI18n.tr("العملة", "Currency", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = monthlyStr, onValueChange = { monthlyStr = it }, label = { Text(WebI18n.tr("الإيداع الشهري المستهدف", "Target monthly deposit", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = deadlineText, onValueChange = { deadlineText = it }, label = { Text(WebI18n.tr("الموعد النهائي YYYY-MM-DD", "Target date YYYY-MM-DD", lang)) }, modifier = Modifier.fillMaxWidth())
+                if (error.isNotBlank()) Text(error, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = {
-            FinanceButton(
-                onClick = {
-                    val target = targetStr.toDoubleOrNull() ?: 0.0
-                    val current = currentStr.toDoubleOrNull() ?: 0.0
-                    if (name.isNotBlank() && target > 0.0) {
-                        onConfirm(
-                            SavingsGoalEntity(
-                                name = name,
-                                targetAmount = target,
-                                currentAmount = current,
-                                deadline = System.currentTimeMillis() + (180L * 24 * 60 * 60 * 1000)
-                            )
-                        )
-                    }
+            FinanceButton(onClick = {
+                val target = targetStr.toDoubleOrNull() ?: Double.NaN
+                val current = currentStr.toDoubleOrNull() ?: Double.NaN
+                val monthly = monthlyStr.toDoubleOrNull() ?: Double.NaN
+                val deadline = try { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply { isLenient = false }.parse(deadlineText)?.time } catch (_: Exception) { null }
+                error = when {
+                    name.isBlank() -> WebI18n.tr("أدخل اسم الهدف.", "Enter a goal name.", lang)
+                    !target.isFinite() || target <= 0.0 -> WebI18n.tr("قيمة الهدف يجب أن تكون أكبر من صفر.", "Target must be greater than zero.", lang)
+                    !current.isFinite() || current < 0.0 || current > target -> WebI18n.tr("الرصيد الحالي يجب أن يكون بين صفر وقيمة الهدف.", "Current savings must be between zero and the target.", lang)
+                    !monthly.isFinite() || monthly < 0.0 -> WebI18n.tr("أدخل إيداعاً شهرياً صحيحاً.", "Enter a valid monthly deposit.", lang)
+                    !currency.matches(Regex("[A-Z]{3}")) -> WebI18n.tr("رمز العملة يجب أن يتكون من ثلاثة أحرف.", "Currency must be a three-letter code.", lang)
+                    deadline == null -> WebI18n.tr("أدخل تاريخاً صحيحاً.", "Enter a valid date.", lang)
+                    else -> ""
                 }
-            ) {
-                Text(Strings.get("confirm", lang))
-            }
+                if (error.isBlank() && deadline != null) onConfirm(SavingsGoalEntity(id = initialGoal?.id ?: 0, name = name.trim(), targetAmount = target, currentAmount = current, currency = currency, deadline = deadline, targetMonthlyDeposit = monthly, colorHex = initialGoal?.colorHex ?: "#F1B942"))
+            }) { Text(Strings.get("confirm", lang)) }
         },
-        dismissButton = {
-            FinanceOutlinedButton(onClick = onDismiss) {
-                Text(Strings.get("cancel", lang))
-            }
-        }
+        dismissButton = { FinanceOutlinedButton(onClick = onDismiss) { Text(Strings.get("cancel", lang)) } }
     )
 }
 
 @Composable
 fun AddAssetDialog(
     lang: com.example.finance.model.AppLanguage,
+    initialAsset: AssetEntity? = null,
     onDismiss: () -> Unit,
     onConfirm: (AssetEntity) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var valueStr by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-
+    var name by remember(initialAsset?.id) { mutableStateOf(initialAsset?.name ?: "") }
+    var valueStr by remember(initialAsset?.id) { mutableStateOf(initialAsset?.value?.toString() ?: "") }
+    var currency by remember(initialAsset?.id) { mutableStateOf(initialAsset?.currency ?: "LYD") }
+    var typeText by remember(initialAsset?.id) { mutableStateOf((initialAsset?.type ?: AssetType.PROPERTY).name) }
+    var purchaseDateText by remember(initialAsset?.id) { mutableStateOf(java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date(initialAsset?.purchaseDate ?: System.currentTimeMillis()))) }
+    var notes by remember(initialAsset?.id) { mutableStateOf(initialAsset?.notes ?: "") }
+    var error by remember { mutableStateOf("") }
     FinanceAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = Strings.get("add_asset", lang), fontWeight = FontWeight.Bold) },
+        title = { Text(if (initialAsset == null) Strings.get("add_asset", lang) else WebI18n.tr("تعديل الأصل", "Edit asset", lang), fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                FinanceTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(WebI18n.tr("اسم الأصل (عقار، ذهب، مركبة)", "Asset name (property, gold, vehicle)", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                FinanceTextField(
-                    value = valueStr,
-                    onValueChange = { valueStr = it },
-                    label = { Text(Strings.get("asset_value", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                FinanceTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text(WebI18n.tr("ملاحظات", "Notes", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الأصل", "Asset name", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = valueStr, onValueChange = { valueStr = it }, label = { Text(Strings.get("asset_value", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(java.util.Locale.ROOT) }, label = { Text(WebI18n.tr("العملة", "Currency", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = typeText, onValueChange = { typeText = it.uppercase(java.util.Locale.ROOT) }, label = { Text(WebI18n.tr("النوع: PROPERTY / GOLD / VEHICLE / CASH / INVESTMENTS / OTHER", "Type: PROPERTY / GOLD / VEHICLE / CASH / INVESTMENTS / OTHER", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = purchaseDateText, onValueChange = { purchaseDateText = it }, label = { Text(WebI18n.tr("تاريخ الشراء YYYY-MM-DD", "Purchase date YYYY-MM-DD", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = notes, onValueChange = { notes = it }, label = { Text(Strings.get("notes", lang)) }, modifier = Modifier.fillMaxWidth())
+                if (error.isNotBlank()) Text(error, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = {
-            FinanceButton(
-                onClick = {
-                    val value = valueStr.toDoubleOrNull() ?: 0.0
-                    if (name.isNotBlank() && value > 0.0) {
-                        onConfirm(
-                            AssetEntity(
-                                name = name,
-                                type = AssetType.PROPERTY,
-                                value = value,
-                                notes = notes
-                            )
-                        )
-                    }
+            FinanceButton(onClick = {
+                val value = valueStr.toDoubleOrNull() ?: Double.NaN
+                val type = runCatching { AssetType.valueOf(typeText.trim().uppercase(java.util.Locale.ROOT)) }.getOrNull()
+                val purchaseDate = try { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply { isLenient = false }.parse(purchaseDateText)?.time } catch (_: Exception) { null }
+                error = when {
+                    name.isBlank() -> WebI18n.tr("أدخل اسم الأصل.", "Enter an asset name.", lang)
+                    !value.isFinite() || value < 0.0 -> WebI18n.tr("أدخل قيمة صحيحة غير سالبة.", "Enter a valid non-negative value.", lang)
+                    !currency.matches(Regex("[A-Z]{3}")) -> WebI18n.tr("رمز العملة يجب أن يتكون من ثلاثة أحرف.", "Currency must be a three-letter code.", lang)
+                    type == null -> WebI18n.tr("نوع الأصل غير صحيح.", "Asset type is invalid.", lang)
+                    purchaseDate == null -> WebI18n.tr("أدخل تاريخ شراء صحيحاً.", "Enter a valid purchase date.", lang)
+                    else -> ""
                 }
-            ) {
-                Text(Strings.get("confirm", lang))
-            }
+                if (error.isBlank() && type != null && purchaseDate != null) onConfirm(AssetEntity(id = initialAsset?.id ?: 0, name = name.trim(), type = type, value = value, currency = currency, purchaseDate = purchaseDate, notes = notes.trim()))
+            }) { Text(Strings.get("confirm", lang)) }
         },
-        dismissButton = {
-            FinanceOutlinedButton(onClick = onDismiss) {
-                Text(Strings.get("cancel", lang))
-            }
-        }
+        dismissButton = { FinanceOutlinedButton(onClick = onDismiss) { Text(Strings.get("cancel", lang)) } }
     )
 }
