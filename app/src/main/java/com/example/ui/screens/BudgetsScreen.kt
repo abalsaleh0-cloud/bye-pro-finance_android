@@ -1,346 +1,292 @@
 package com.example.ui.screens
 
-import com.example.finance.i18n.TextContent
-
-import com.example.ui.components.FinanceAlertDialog
-import com.example.ui.components.FinanceButton
-import com.example.ui.components.FinanceOutlinedButton
-import com.example.ui.components.FinanceTextField
-import com.example.ui.components.FinanceIconButton
-import com.example.ui.components.FinanceFloatingActionButton
-
-import com.example.finance.i18n.WebI18n
-import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.finance.engine.FinanceEngine
 import com.example.finance.i18n.Strings
+import com.example.finance.i18n.TextContent
+import com.example.finance.i18n.WebI18n
+import com.example.finance.model.AppLanguage
 import com.example.finance.model.BudgetEntity
 import com.example.finance.model.BudgetPeriod
 import com.example.finance.ui.FinanceViewModel
+import com.example.ui.theme.ByeProTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+private val budgetCurrencies = listOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD")
+private val budgetPeriods = listOf(BudgetPeriod.WEEKLY, BudgetPeriod.MONTHLY, BudgetPeriod.QUARTERLY, BudgetPeriod.YEARLY, BudgetPeriod.CUSTOM)
+
+private fun budgetDate(value: Long): String =
+    SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(value))
+
+private fun parseBudgetDate(value: String): Long? = runCatching {
+    SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(value)?.time
+}.getOrNull()
+
+private fun periodLabel(period: BudgetPeriod, lang: AppLanguage): String = when (period) {
+    BudgetPeriod.WEEKLY -> WebI18n.tr("أسبوعية", "Weekly", lang)
+    BudgetPeriod.MONTHLY -> WebI18n.tr("شهرية", "Monthly", lang)
+    BudgetPeriod.QUARTERLY -> WebI18n.tr("ربع سنوية", "Quarterly", lang)
+    BudgetPeriod.YEARLY -> WebI18n.tr("سنوية", "Yearly", lang)
+    BudgetPeriod.CUSTOM -> WebI18n.tr("مخصصة", "Custom", lang)
+}
 
 @Composable
-fun BudgetsScreen(
-    viewModel: FinanceViewModel
-) {
+fun BudgetsScreen(viewModel: FinanceViewModel) {
     val lang by viewModel.appLanguage.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
+    var showForm by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<BudgetEntity?>(null) }
+    var deleting by remember { mutableStateOf<BudgetEntity?>(null) }
+    var search by remember { mutableStateOf("") }
 
-    var showAddDialog by remember { mutableStateOf(false) }
-    var budgetToDelete by remember { mutableStateOf<BudgetEntity?>(null) }
+    val visible = remember(budgets, search) {
+        val q = search.trim()
+        if (q.isEmpty()) budgets else budgets.filter {
+            it.name.contains(q, true) || it.category.contains(q, true) ||
+                it.currency.contains(q, true) || it.period.name.contains(q, true)
+        }
+    }
 
     Scaffold(
         floatingActionButton = {
-            FinanceFloatingActionButton(
-                onClick = { showAddDialog = true },
+            FloatingActionButton(
+                onClick = { editing = null; showForm = true },
                 containerColor = ByeProTheme.colors.goldPrimary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_budget_fab")
-            ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = Strings.get("add_budget", lang))
-            }
+            ) { Icon(Icons.Default.Add, contentDescription = WebI18n.tr("إضافة ميزانية", "Add budget", lang)) }
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = Strings.get("budgets_title", lang),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                Spacer(Modifier.height(8.dp))
+                Text(WebI18n.tr("الميزانيات", "Budgets", lang), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(WebI18n.tr("خطط الإنفاق مع متابعة المبلغ المخصص لكل فترة.", "Plan spending and track allocations for each period.", lang),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = search, onValueChange = { search = it },
+                    modifier = Modifier.fillMaxWidth().testTag("budget_search_input"),
+                    label = { Text(WebI18n.tr("بحث في الميزانيات…", "Search budgets…", lang)) },
+                    singleLine = true
                 )
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = WebI18n.tr("متابعة دقيقة لحدود الإنفاق مع تنبيهات تلقائية عند بلوغ 50%، 75%، 90%، 100%.", "Track spending limits with automatic alerts at 50%, 75%, 90%, and 100%.", lang),
-                    style = MaterialTheme.typography.bodySmall,
+                    WebI18n.tr("عدد الميزانيات: ", "Budgets: ", lang) + visible.size,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
-            if (budgets.isEmpty()) {
+            if (visible.isEmpty()) {
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Text(
-                            text = WebI18n.tr("لا توجد ميزانيات محددة بعد. اضغط + لإنشاء ميزانية جديدة.", "No budgets yet. Tap + to create a budget.", lang),
-                            modifier = Modifier.padding(32.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(if (budgets.isEmpty()) WebI18n.tr("لا توجد ميزانيات بعد. أضف ميزانيتك الأولى.", "No budgets yet. Add your first budget.", lang)
+                                else WebI18n.tr("لا توجد نتائج مطابقة للبحث.", "No matching budgets found.", lang))
+                        }
                     }
                 }
             } else {
-                items(budgets, key = { it.id }) { budget ->
-                    val status = FinanceEngine.calculateBudgetStatus(budget, transactions)
+                items(visible, key = { it.id }) { budget ->
                     BudgetItemCard(
                         budget = budget,
-                        status = status,
+                        status = FinanceEngine.calculateBudgetStatus(budget, transactions),
                         lang = lang,
-                        onDelete = { budgetToDelete = budget }
+                        onEdit = { editing = budget; showForm = true },
+                        onDelete = { deleting = budget }
                     )
                 }
             }
-
-            item {
-                Spacer(modifier = Modifier.height(72.dp))
-            }
+            item { Spacer(Modifier.height(80.dp)) }
         }
     }
 
-    if (showAddDialog) {
-        AddBudgetDialog(
+    if (showForm) {
+        BudgetFormDialog(
             lang = lang,
-            onDismiss = { showAddDialog = false },
-            onConfirm = { newBudget ->
-                viewModel.addBudget(newBudget)
-                showAddDialog = false
+            initial = editing,
+            onDismiss = { showForm = false; editing = null },
+            onConfirm = { budget ->
+                if (editing == null) viewModel.addBudget(budget) else viewModel.updateBudget(budget)
+                showForm = false
+                editing = null
             }
         )
     }
 
-    if (budgetToDelete != null) {
-        val target = budgetToDelete!!
-        FinanceAlertDialog(
-            onDismissRequest = { budgetToDelete = null },
-            title = { Text(text = Strings.get("delete", lang)) },
-            text = { Text(WebI18n.tr("هل تريد حذف ميزانية", "Are you sure you want to delete budget", lang) + " '${target.name}'?") },
+    deleting?.let { target ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text(WebI18n.tr("تأكيد الحذف", "Confirm deletion", lang)) },
+            text = { Text(WebI18n.tr("هل تريد حذف الميزانية", "Delete budget", lang) + " «${target.name}»؟") },
             confirmButton = {
-                FinanceButton(
-                    onClick = {
-                        viewModel.deleteBudget(target)
-                        budgetToDelete = null
-                    },
-                    modifier = Modifier.testTag("confirm_delete_budget_btn")
-                ) {
-                    Text(Strings.get("delete", lang))
+                TextButton(onClick = { viewModel.deleteBudget(target); deleting = null }) {
+                    Text(Strings.get("delete", lang), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = {
-                FinanceOutlinedButton(onClick = { budgetToDelete = null }) {
-                    Text(Strings.get("cancel", lang))
-                }
-            }
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text(Strings.get("cancel", lang)) } }
         )
     }
 }
 
 @Composable
-fun BudgetItemCard(
+private fun BudgetItemCard(
     budget: BudgetEntity,
     status: FinanceEngine.BudgetStatus,
-    lang: com.example.finance.model.AppLanguage,
+    lang: AppLanguage,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val progressFraction = (status.percentage / 100f).coerceIn(0f, 1f)
-    val indicatorColor = when {
-        status.isOverBudget -> ByeProTheme.colors.financialRed
-        status.percentage >= 90f -> ByeProTheme.colors.financialRed
+    val fraction = (status.percentage / 100f).coerceIn(0f, 1f)
+    val progressColor = when {
+        status.isOverBudget || status.percentage >= 90f -> ByeProTheme.colors.financialRed
         status.percentage >= 75f -> ByeProTheme.colors.goldPrimary
         else -> ByeProTheme.colors.financialGreen
     }
-
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+        modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .35f), RoundedCornerShape(16.dp)),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(16.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = budget.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "${budget.category} • ${budget.period.name}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(budget.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("${budget.currency} • ${periodLabel(budget.period, lang)}",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (status.alertThreshold > 0) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .border(1.dp, indicatorColor, RoundedCornerShape(6.dp))
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "${TextContent.number(status.percentage.toInt(), lang, 0)}%",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = indicatorColor
-                            )
-                        }
+                Row {
+                    IconButton(onClick = onEdit, modifier = Modifier.testTag("edit_budget_${budget.id}")) {
+                        Icon(Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل", "Edit", lang))
                     }
-                    FinanceIconButton(onClick = onDelete) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = WebI18n.tr("حذف", "Delete", lang),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.size(18.dp)
-                        )
+                    IconButton(onClick = onDelete, modifier = Modifier.testTag("delete_budget_${budget.id}")) {
+                        Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.error)
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            LinearProgressIndicator(
-                progress = { progressFraction },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(CircleShape),
-                color = indicatorColor,
-                trackColor = ByeProTheme.colors.borderBase.copy(alpha = 0.65f)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "${Strings.get("spent", lang)}: ${TextContent.money(status.spent, budget.currency, lang)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "${Strings.get("limit_amount", lang)}: ${TextContent.money(status.limit, budget.currency, lang)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+            Text("${WebI18n.tr("من", "From", lang)}: ${budgetDate(budget.startDate)}   •   ${WebI18n.tr("إلى", "To", lang)}: ${budgetDate(budget.endDate)}",
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(12.dp))
+            LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
+                color = progressColor, trackColor = MaterialTheme.colorScheme.surface)
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("${Strings.get("spent", lang)}: ${TextContent.money(status.spent, budget.currency, lang)}",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${Strings.get("limit_amount", lang)}: ${TextContent.money(status.limit, budget.currency, lang)}",
+                    style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
             }
+            Text("${TextContent.number(status.percentage.toInt(), lang, 0)}%",
+                style = MaterialTheme.typography.labelMedium, color = progressColor, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-fun AddBudgetDialog(
-    lang: com.example.finance.model.AppLanguage,
+private fun BudgetFormDialog(
+    lang: AppLanguage,
+    initial: BudgetEntity?,
     onDismiss: () -> Unit,
     onConfirm: (BudgetEntity) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Groceries") }
-    var limitStr by remember { mutableStateOf("") }
+    val today = remember { budgetDate(System.currentTimeMillis()) }
+    var name by remember(initial) { mutableStateOf(initial?.name.orEmpty()) }
+    var amount by remember(initial) { mutableStateOf(initial?.limitAmount?.toString().orEmpty()) }
+    var currency by remember(initial) { mutableStateOf(initial?.currency ?: "LYD") }
+    var period by remember(initial) { mutableStateOf(initial?.period ?: BudgetPeriod.MONTHLY) }
+    var startDate by remember(initial) { mutableStateOf(initial?.startDate?.let(::budgetDate) ?: today) }
+    var endDate by remember(initial) { mutableStateOf(initial?.endDate?.let(::budgetDate) ?: today) }
+    var category by remember(initial) { mutableStateOf(initial?.category ?: "General") }
+    var error by remember { mutableStateOf("") }
+    var currencyMenu by remember { mutableStateOf(false) }
+    var periodMenu by remember { mutableStateOf(false) }
 
-    FinanceAlertDialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = Strings.get("add_budget", lang), fontWeight = FontWeight.Bold) },
+        title = { Text(if (initial == null) WebI18n.tr("إضافة ميزانية", "Add budget", lang) else WebI18n.tr("تعديل الميزانية", "Edit budget", lang), fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                FinanceTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(WebI18n.tr("اسم الميزانية", "Budget name", lang)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("budget_name_input")
-                )
-                FinanceTextField(
-                    value = category,
-                    onValueChange = { category = it },
-                    label = { Text(Strings.get("category", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                FinanceTextField(
-                    value = limitStr,
-                    onValueChange = { limitStr = it },
-                    label = { Text(Strings.get("limit_amount", lang)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("budget_limit_input")
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(name, { name = it.take(100); error = "" }, label = { Text(WebI18n.tr("اسم الميزانية", "Budget name", lang)) },
+                    modifier = Modifier.fillMaxWidth().testTag("budget_name_input"), singleLine = true)
+                OutlinedTextField(amount, { amount = it; error = "" }, label = { Text(WebI18n.tr("المبلغ", "Amount", lang)) },
+                    modifier = Modifier.fillMaxWidth().testTag("budget_limit_input"), singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+                Box {
+                    OutlinedTextField(currency, {}, label = { Text(WebI18n.tr("العملة", "Currency", lang)) },
+                        modifier = Modifier.fillMaxWidth().testTag("budget_currency_input"), readOnly = true)
+                    Box(Modifier.matchParentSize().clickable { currencyMenu = true })
+                    DropdownMenu(expanded = currencyMenu, onDismissRequest = { currencyMenu = false }) {
+                        budgetCurrencies.forEach { code -> DropdownMenuItem(text = { Text(code) }, onClick = { currency = code; currencyMenu = false }) }
+                    }
+                }
+                Box {
+                    OutlinedTextField(periodLabel(period, lang), {}, label = { Text(WebI18n.tr("الفترة", "Period", lang)) },
+                        modifier = Modifier.fillMaxWidth().testTag("budget_period_input"), readOnly = true)
+                    Box(Modifier.matchParentSize().clickable { periodMenu = true })
+                    DropdownMenu(expanded = periodMenu, onDismissRequest = { periodMenu = false }) {
+                        budgetPeriods.forEach { option -> DropdownMenuItem(text = { Text(periodLabel(option, lang)) },
+                            onClick = { period = option; periodMenu = false }) }
+                    }
+                }
+                OutlinedTextField(startDate, { startDate = it; error = "" }, label = { Text(WebI18n.tr("تاريخ البداية (YYYY-MM-DD)", "Start date (YYYY-MM-DD)", lang)) },
+                    modifier = Modifier.fillMaxWidth().testTag("budget_start_date_input"), singleLine = true)
+                OutlinedTextField(endDate, { endDate = it; error = "" }, label = { Text(WebI18n.tr("تاريخ النهاية (YYYY-MM-DD)", "End date (YYYY-MM-DD)", lang)) },
+                    modifier = Modifier.fillMaxWidth().testTag("budget_end_date_input"), singleLine = true)
+                if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = {
-            FinanceButton(
-                onClick = {
-                    val limit = limitStr.toDoubleOrNull() ?: 0.0
-                    if (name.isNotBlank() && limit > 0.0) {
-                        onConfirm(
-                            BudgetEntity(
-                                name = name,
-                                category = category,
-                                limitAmount = limit
-                            )
-                        )
-                    }
-                },
-                modifier = Modifier.testTag("submit_budget_btn")
-            ) {
-                Text(Strings.get("confirm", lang))
+            TextButton(onClick = {
+                val parsedAmount = amount.toDoubleOrNull()
+                val start = parseBudgetDate(startDate)
+                val end = parseBudgetDate(endDate)
+                error = when {
+                    name.isBlank() -> WebI18n.tr("أدخل اسم الميزانية.", "Enter a budget name.", lang)
+                    parsedAmount == null || !parsedAmount.isFinite() || parsedAmount <= 0.0 -> WebI18n.tr("أدخل مبلغاً أكبر من الصفر.", "Enter an amount greater than zero.", lang)
+                    start == null -> WebI18n.tr("تاريخ البداية غير صالح.", "Start date is invalid.", lang)
+                    end == null -> WebI18n.tr("تاريخ النهاية غير صالح.", "End date is invalid.", lang)
+                    end < start -> WebI18n.tr("تاريخ النهاية يجب ألا يسبق البداية.", "End date must not be before start date.", lang)
+                    else -> ""
+                }
+                if (error.isEmpty()) onConfirm(BudgetEntity(
+                    id = initial?.id ?: 0L,
+                    name = name.trim(),
+                    category = category,
+                    period = period,
+                    limitAmount = parsedAmount!!,
+                    currency = currency,
+                    startDate = start!!,
+                    endDate = end!!
+                ))
+            }, modifier = Modifier.testTag("submit_budget_btn")) {
+                Text(if (initial == null) WebI18n.tr("حفظ", "Save", lang) else WebI18n.tr("حفظ التعديلات", "Save changes", lang))
             }
         },
-        dismissButton = {
-            FinanceOutlinedButton(onClick = onDismiss) {
-                Text(Strings.get("cancel", lang))
-            }
-        }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) } }
     )
 }
