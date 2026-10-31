@@ -219,7 +219,7 @@ class LocalAiModelViewModel(application: Application) : AndroidViewModel(applica
     val state: StateFlow<LocalAiModelState> = _state.asStateFlow()
     private var downloadJob: Job? = null
 
-    init { refresh() }
+    init { refresh(); observeBackgroundDownload() }
 
     fun refresh() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -306,6 +306,7 @@ class LocalAiModelViewModel(application: Application) : AndroidViewModel(applica
 
     fun deleteModel() {
         viewModelScope.launch(Dispatchers.IO) {
+            WorkManager.getInstance(getApplication()).cancelUniqueWork(LocalAiModelDownloadWorker.UNIQUE_WORK_NAME).result.get()
             downloadJob?.cancelAndJoin()
             runCatching { LocalAiRuntime.close() }
             LocalAiModelManager.modelFile(getApplication()).delete()
