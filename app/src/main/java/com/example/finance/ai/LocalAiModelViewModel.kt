@@ -89,6 +89,12 @@ object LocalAiModelManager {
 
         val partial = File(modelDir, "$MODEL_FILE_NAME.part")
         val destination = File(modelDir, MODEL_FILE_NAME)
+        if (partial.isFile && partial.length() in MODEL_MIN_BYTES..MODEL_MAX_BYTES && verifyModel(partial)) {
+            if (destination.exists()) destination.delete()
+            check(partial.renameTo(destination)) { "تعذر تثبيت ملف النموذج في مساحة التطبيق." }
+            return@withContext destination
+        }
+        if (partial.exists() && partial.length() >= MODEL_MAX_BYTES) partial.delete()
         val offset = partial.takeIf { it.exists() }?.length() ?: 0L
         val requestBuilder = Request.Builder().url(MODEL_URL)
         if (offset > 0L) requestBuilder.header("Range", "bytes=$offset-")
