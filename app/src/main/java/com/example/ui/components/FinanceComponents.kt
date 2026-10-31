@@ -2,6 +2,8 @@ package com.example.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -33,6 +36,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -245,6 +250,33 @@ fun FinanceIcon(
         modifier = modifier,
         tint = tint
     )
+}
+
+/** Accessible two-state choice styled with the same Web segmented-control tokens. */
+@Composable
+fun FinanceChoiceButton(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val shape = RoundedCornerShape(9.dp)
+    val background = if (selected) ByeProTheme.colors.goldPrimary else ByeProTheme.colors.cardSecondary
+    val foreground = if (selected) MaterialTheme.colorScheme.onPrimary else ByeProTheme.colors.textPrimary
+    val outline = if (selected) ByeProTheme.colors.goldPrimary else ByeProTheme.colors.borderBase
+    CompositionLocalProvider(LocalContentColor provides foreground) {
+        Box(
+            modifier = modifier
+                .heightIn(min = 44.dp)
+                .background(background, shape)
+                .border(1.dp, outline, shape)
+                .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            content()
+        }
+    }
 }
 
 /** Shared icon action control with consistent default accent color. */
