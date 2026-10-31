@@ -562,7 +562,7 @@ private fun DebtPaymentHistoryDialog(
                     payments.forEach { payment ->
                         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                             Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
-                                Text(TextContent.money(payment.amount, debt.currency, lang), fontWeight = FontWeight.Bold)
+                                Text(TextContent.money(payment.amount, payment.currency, lang), fontWeight = FontWeight.Bold)
                                 Text(SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault()).format(Date(payment.date)), style = MaterialTheme.typography.bodySmall)
                                 if (payment.notes.isNotBlank()) Text(payment.notes, style = MaterialTheme.typography.bodySmall)
                             }
