@@ -76,6 +76,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun setTransactionAlerts(value: Boolean) { _transactionAlerts.value = value; preferences.edit().putBoolean("transaction_alerts", value).apply() }
     fun setBillReminders(value: Boolean) { _billReminders.value = value; preferences.edit().putBoolean("bill_reminders", value).apply() }
     fun setBudgetAlerts(value: Boolean) { _budgetAlerts.value = value; preferences.edit().putBoolean("budget_alerts", value).apply() }
+    fun updateLocalProfile(user: UserEntity) { val normalized = user.name.trim(); if (normalized.length < 2 || normalized.length > 100) return; viewModelScope.launch { runCatching { repository.updateCurrentUser(user.copy(name = normalized)) }.onFailure { Log.e("BYE_PRO_FINANCE", "Update local profile failed", it) } } }
     private val _currentScreen = MutableStateFlow("dashboard")
     val currentScreen: StateFlow<String> = _currentScreen.asStateFlow()
     private val _scannedReceipt = MutableStateFlow<ExtractedReceiptData?>(null)
