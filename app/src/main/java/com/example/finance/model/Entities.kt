@@ -97,7 +97,8 @@ data class DebtPaymentEntity(
     val debtId: Long,
     val amount: Double,
     val date: Long = System.currentTimeMillis(),
-    val notes: String = ""
+    val notes: String = "",
+    val currency: String = "LYD"
 )
 
 @Entity(tableName = "bills")
