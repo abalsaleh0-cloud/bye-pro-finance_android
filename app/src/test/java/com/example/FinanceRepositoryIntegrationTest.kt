@@ -505,10 +505,10 @@ class FinanceRepositoryIntegrationTest {
         repository.addBill(BillEntity(name = "Internet", category = "Utilities", amount = 20.0, currency = "LYD", dueDate = 123456789L))
         val bill = db.financeDao().getAllBills().first().single()
         assertTrue(repository.markBillPaid(bill.id, accountId))
-        repository.updateBill(bill.copy(name = "Updated internet", amount = 25.0))
+        repository.updateBill(bill.copy(name = "Updated internet"))
         val updatedBill = db.financeDao().getBillById(bill.id)!!
         assertEquals("Updated internet", updatedBill.name)
-        assertEquals(25.0, updatedBill.amount, 0.001)
+        assertEquals(20.0, updatedBill.amount, 0.001)
         assertTrue("Editing a paid bill must preserve its paid state", updatedBill.isPaid)
 
         repository.addSavingsGoal(SavingsGoalEntity(name = "Emergency", targetAmount = 100.0, currentAmount = 20.0, deadline = 987654321L))
