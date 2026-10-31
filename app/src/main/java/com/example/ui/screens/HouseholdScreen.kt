@@ -1,9 +1,10 @@
 package com.example.ui.screens
 
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.*
-
 import com.example.ui.components.FinanceIcon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 
@@ -212,7 +213,7 @@ fun HouseholdScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             FinanceIconButton(onClick = { editingMember = m; showAddMemberDialog = true }) {
-                                FinanceIcon(Lucide.Pencil, contentDescription = WebI18n.tr("تعديل العضو", "Edit member", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                FinanceIcon(Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل العضو", "Edit member", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -262,10 +263,10 @@ fun HouseholdScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 FinanceIconButton(onClick = { editingExpense = exp; showAddExpenseDialog = true }) {
-                                    FinanceIcon(Lucide.Pencil, contentDescription = WebI18n.tr("تعديل المصروف", "Edit expense", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    FinanceIcon(Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل المصروف", "Edit expense", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 FinanceIconButton(onClick = { viewModel.deleteHouseholdExpense(exp) }) {
-                                    FinanceIcon(Lucide.Trash2, contentDescription = WebI18n.tr("حذف المصروف", "Delete expense", lang), tint = MaterialTheme.colorScheme.error)
+                                    FinanceIcon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف المصروف", "Delete expense", lang), tint = MaterialTheme.colorScheme.error)
                                 }
                             }
                         }
