@@ -40,11 +40,12 @@ object ByeProDesignTokens {
         val radius = 9.dp
     }
     object Buttons {
-        val darkSecondaryBackground = Color(0xFF211E18)
-        val darkSecondaryBorder = Color(0xFF655638)
-        val lightSecondaryBackground = Color(0xFFF7F2E7)
-        val lightSecondaryBorder = Color(0xFFB99B5E)
-        val lightSecondaryText = Color(0xFF6C5420)
+        val darkSecondaryBackground = Color(0xFF1E1F24)
+        val darkSecondaryBorder = Color(0xFF2B2D34)
+        val darkSecondaryText = Color(0xFFF1F0EB)
+        val lightSecondaryBackground = Color(0xFFF0F1F4)
+        val lightSecondaryBorder = Color(0xFFD9DCE3)
+        val lightSecondaryText = Color(0xFF20232A)
     }
     object Spacing {
         val xs = 4.dp; val sm = 8.dp; val md = 12.dp; val lg = 16.dp
