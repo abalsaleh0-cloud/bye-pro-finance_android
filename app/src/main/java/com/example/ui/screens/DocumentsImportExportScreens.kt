@@ -129,11 +129,11 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                                     )
                                 }
                             }) {
-                                Icon(Icons.Default.Visibility, contentDescription = WebI18n.tr("عرض المستند", "View document", lang))
+                                FinanceIcon(Icons.Default.Visibility, contentDescription = WebI18n.tr("عرض المستند", "View document", lang))
                             }
                         }
                         FinanceIconButton(onClick = { viewModel.deleteDocument(document) }) {
-                            Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف المستند", "Delete document", lang))
+                            FinanceIcon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف المستند", "Delete document", lang))
                         }
                     }
                 }
