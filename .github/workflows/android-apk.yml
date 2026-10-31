@@ -85,7 +85,8 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: ./gradlew connectedDebugAndroidTest --stacktrace
+          working-directory: ${{ env.PROJECT_DIR }}
+          script: gradle connectedDebugAndroidTest --stacktrace
 
       - name: Build debug APK
         uses: gradle/gradle-build-action@v3
