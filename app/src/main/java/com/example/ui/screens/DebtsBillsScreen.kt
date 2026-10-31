@@ -609,9 +609,35 @@ fun AddDebtDialog(
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الشخص أو الجهة", "Person or organization", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = creditor, onValueChange = { creditor = it }, label = { Text(WebI18n.tr("تفاصيل الطرف / الدائن", "Counterparty details", lang)) }, modifier = Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FinanceOutlinedButton(onClick = { direction = "owed_to_me" }) { Text(WebI18n.tr("لي عنده", "Owed to me", lang)) }
-                    FinanceOutlinedButton(onClick = { direction = "i_owe" }) { Text(WebI18n.tr("عليّ له", "I owe", lang)) }
+                Text(
+                    WebI18n.tr("اتجاه الدين", "Debt direction", lang),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    if (direction == "owed_to_me") {
+                        FinanceButton(
+                            onClick = { direction = "owed_to_me" },
+                            modifier = Modifier.weight(1f).testTag("debt_direction_creditor_selected")
+                        ) { Text(WebI18n.tr("دائن — لي عنده", "Creditor — Owed to me", lang)) }
+                    } else {
+                        FinanceOutlinedButton(
+                            onClick = { direction = "owed_to_me" },
+                            modifier = Modifier.weight(1f).testTag("debt_direction_creditor")
+                        ) { Text(WebI18n.tr("دائن — لي عنده", "Creditor — Owed to me", lang)) }
+                    }
+                    if (direction == "i_owe") {
+                        FinanceButton(
+                            onClick = { direction = "i_owe" },
+                            modifier = Modifier.weight(1f).testTag("debt_direction_debtor_selected")
+                        ) { Text(WebI18n.tr("مدين — عليّ له", "Debtor — I owe", lang)) }
+                    } else {
+                        FinanceOutlinedButton(
+                            onClick = { direction = "i_owe" },
+                            modifier = Modifier.weight(1f).testTag("debt_direction_debtor")
+                        ) { Text(WebI18n.tr("مدين — عليّ له", "Debtor — I owe", lang)) }
+                    }
                 }
                 FinanceTextField(value = principalStr, onValueChange = { principalStr = it }, label = { Text(WebI18n.tr("المبلغ الأصلي", "Original amount", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(Locale.ROOT) }, label = { Text(WebI18n.tr("العملة (LYD / USD / EUR ...)", "Currency (LYD / USD / EUR ...)", lang)) }, modifier = Modifier.fillMaxWidth())
