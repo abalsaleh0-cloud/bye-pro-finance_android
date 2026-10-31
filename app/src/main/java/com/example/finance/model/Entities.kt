@@ -146,7 +146,8 @@ data class HouseholdMemberEntity(
     val email: String = "",
     val contributionPercent: Double = 0.0,
     @ColumnInfo(defaultValue = "0.0") val monthlyContribution: Double = 0.0,
-    @ColumnInfo(defaultValue = "1") val isActive: Boolean = true
+    @ColumnInfo(defaultValue = "1") val isActive: Boolean = true,
+    @ColumnInfo(defaultValue = "") val remoteId: String = ""
 )
 
 @Entity(tableName = "household_expenses")
@@ -160,7 +161,8 @@ data class HouseholdExpenseEntity(
     val date: Long = System.currentTimeMillis(),
     val isSettled: Boolean = false,
     @ColumnInfo(defaultValue = "0") val isRecurring: Boolean = false,
-    @ColumnInfo(defaultValue = "''") val notes: String = ""
+    @ColumnInfo(defaultValue = "''") val notes: String = "",
+    @ColumnInfo(defaultValue = "") val remoteId: String = ""
 )
 
 @Entity(tableName = "household_budgets")
@@ -172,7 +174,8 @@ data class HouseholdBudgetEntity(
     @ColumnInfo(defaultValue = "'monthly'") val period: String = "monthly",
     val startDate: Long = System.currentTimeMillis(),
     val endDate: Long? = null,
-    @ColumnInfo(defaultValue = "1") val isActive: Boolean = true
+    @ColumnInfo(defaultValue = "1") val isActive: Boolean = true,
+    @ColumnInfo(defaultValue = "") val remoteId: String = ""
 )
 
 @Entity(tableName = "documents")
