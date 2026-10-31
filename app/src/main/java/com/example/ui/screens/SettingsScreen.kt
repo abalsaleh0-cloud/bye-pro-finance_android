@@ -32,6 +32,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
@@ -58,7 +59,15 @@ fun SettingsScreen(
     val isDark by viewModel.isDarkMode.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val primaryCurrency by viewModel.primaryCurrency.collectAsState()
+    val timeZone by viewModel.timeZone.collectAsState()
+    val dateFormat by viewModel.dateFormat.collectAsState()
+    val numberFormat by viewModel.numberFormat.collectAsState()
+    val emailNotifications by viewModel.emailNotifications.collectAsState()
+    val transactionAlerts by viewModel.transactionAlerts.collectAsState()
+    val billReminders by viewModel.billReminders.collectAsState()
+    val budgetAlerts by viewModel.budgetAlerts.collectAsState()
     var currencyMenuExpanded by remember { mutableStateOf(false) }
+    var profileName by remember(currentUser?.id, currentUser?.name) { mutableStateOf(currentUser?.name.orEmpty()) }
 
     LazyColumn(
         modifier = Modifier
@@ -111,6 +120,20 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = profileName,
+                        onValueChange = { profileName = it.take(100) },
+                        modifier = Modifier.fillMaxWidth().testTag("profile_name_input"),
+                        label = { Text(WebI18n.tr("الاسم الشخصي", "Display name", lang)) },
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FinanceButton(
+                        onClick = { currentUser?.let { user -> viewModel.updateLocalProfile(user.copy(name = profileName.trim())) } },
+                        enabled = profileName.trim().length >= 2,
+                        modifier = Modifier.fillMaxWidth().testTag("save_profile_name_btn")
+                    ) { Text(WebI18n.tr("حفظ الاسم محلياً", "Save name locally", lang)) }
                 }
             }
         }
@@ -258,6 +281,39 @@ fun SettingsScreen(
             }
         }
 
+        // Personal regional formats — persisted on device, separate from application-wide configuration.
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(WebI18n.tr("التنسيقات والمنطقة الزمنية", "Formats and time zone", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    SettingsChoiceRow(WebI18n.tr("المنطقة الزمنية", "Time zone", lang), timeZone, listOf("Africa/Tripoli", "Asia/Damascus", "Asia/Amman", "Europe/Istanbul", "Europe/London", "UTC"), viewModel::setTimeZone)
+                    SettingsChoiceRow(WebI18n.tr("تنسيق التاريخ", "Date format", lang), dateFormat, listOf("YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY"), viewModel::setDateFormat)
+                    SettingsChoiceRow(WebI18n.tr("تنسيق الأرقام", "Number format", lang), numberFormat, listOf("1,234.56", "1.234,56", "1 234,56"), viewModel::setNumberFormat)
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(WebI18n.tr("تفضيلات التنبيهات", "Notification preferences", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    SettingsSwitchRow(WebI18n.tr("إشعارات البريد", "Email notifications", lang), emailNotifications, viewModel::setEmailNotifications)
+                    SettingsSwitchRow(WebI18n.tr("تنبيهات المعاملات", "Transaction alerts", lang), transactionAlerts, viewModel::setTransactionAlerts)
+                    SettingsSwitchRow(WebI18n.tr("تذكيرات الفواتير", "Bill reminders", lang), billReminders, viewModel::setBillReminders)
+                    SettingsSwitchRow(WebI18n.tr("تنبيهات الميزانيات", "Budget alerts", lang), budgetAlerts, viewModel::setBudgetAlerts)
+                    Text(WebI18n.tr("هذه التفضيلات تُحفظ على هذا الجهاز حالياً، ولا ترسل إشعارات بريدية أو تربط الحساب بالخادم.", "These preferences are stored on this device; they do not send email or connect to a server.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
         // App System Info
         item {
             Card(
@@ -286,5 +342,29 @@ fun SettingsScreen(
         item {
             Spacer(modifier = Modifier.height(72.dp))
         }
+    }
+}
+
+@Composable
+private fun SettingsChoiceRow(label: String, selected: String, options: List<String>, onSelected: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Column {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Box {
+            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected) }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                options.forEach { option ->
+                    DropdownMenuItem(text = { Text(option) }, onClick = { onSelected(option); expanded = false })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
