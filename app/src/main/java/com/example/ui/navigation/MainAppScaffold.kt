@@ -2,8 +2,7 @@ package com.example.ui.navigation
 
 import com.example.ui.components.FinanceIcon
 
-import com.composables.icons.lucide.Lucide
-
+import com.composables.icons.lucide.*
 import androidx.compose.material.icons.filled.*
 
 import androidx.compose.material.icons.Icons
