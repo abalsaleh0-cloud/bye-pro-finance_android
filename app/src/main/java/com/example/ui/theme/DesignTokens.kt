@@ -7,24 +7,24 @@ import androidx.compose.ui.unit.sp
 /** Android mirror of packages/ui/src/tokens.css and the Web global control contract. */
 object ByeProDesignTokens {
     object Colors {
-        val background = Color(0xFF0B0A0C)
+        val background = Color(0xFF101114)
         val surface = Color(0xFF181A1F)
         val surfaceRaised = Color(0xFF1E1F24)
-        val border = Color(0xFF2A2530)
-        val text = Color(0xFFEDE8DE)
-        val muted = Color(0xFF948C7E)
+        val border = Color(0xFF2B2D34)
+        val text = Color(0xFFF1F0EB)
+        val muted = Color(0xFFA5A7B0)
         val accent = Color(0xFFD6B56D)
         val success = Color(0xFF67D6A1)
         val danger = Color(0xFFFF8585)
     }
     object LightColors {
-        val background = Color(0xFFF5F3EF)
+        val background = Color(0xFFF4F5F7)
         val surface = Color(0xFFFFFFFF)
-        val surfaceRaised = Color(0xFFF1EEE8)
-        val border = Color(0xFFD9D4CA)
-        val text = Color(0xFF202020)
-        val muted = Color(0xFF6B665D)
-        val accent = Color(0xFFD6B56D)
+        val surfaceRaised = Color(0xFFF0F1F4)
+        val border = Color(0xFFD9DCE3)
+        val text = Color(0xFF20232A)
+        val muted = Color(0xFF626875)
+        val accent = Color(0xFF8A671D)
         val success = Color(0xFF16794A)
         val danger = Color(0xFFB42332)
     }
@@ -33,25 +33,31 @@ object ByeProDesignTokens {
         val darkText = Color(0xFFF7F4EC)
         val darkBorder = Color(0xFF363740)
         val lightBackground = Color(0xFFFFFFFF)
-        val lightText = Color(0xFF202020)
-        val lightBorder = Color(0xFFC8C1B5)
-        val focus = Color(0xFFA67C12)
+        val lightText = Color(0xFF17181C)
+        val lightBorder = Color(0xFFC8C9CF)
+        val focus = Color(0xFFD6B56D)
+        val lightFocus = Color(0xFF8A671D)
         val height = 43.dp
         val radius = 9.dp
     }
     object Buttons {
         val darkSecondaryBackground = Color(0xFF1E1F24)
-        val darkSecondaryBorder = Color(0xFF2A2530)
-        val darkSecondaryText = Color(0xFFEDE8DE)
-        val lightSecondaryBackground = Color(0xFFF1EEE8)
-        val lightSecondaryBorder = Color(0xFFD9D4CA)
-        val lightSecondaryText = Color(0xFF202020)
-        val darkQuietBackground = Color.Transparent
-        val darkQuietBorder = Color.Transparent
-        val darkQuietText = Color(0xFFEDE8DE)
-        val lightQuietBackground = Color.Transparent
-        val lightQuietBorder = Color.Transparent
-        val lightQuietText = Color(0xFF202020)
+        val darkSecondaryBorder = Color(0xFF2B2D34)
+        val darkSecondaryText = Color(0xFFF1F0EB)
+        val lightSecondaryBackground = Color(0xFFF0F1F4)
+        val lightSecondaryBorder = Color(0xFFD9DCE3)
+        val lightSecondaryText = Color(0xFF20232A)
+        val darkQuietBackground = Color(0xFF211E18)
+        val darkQuietBorder = Color(0xFF655638)
+        val darkQuietText = Color(0xFFD6B56D)
+        val lightQuietBackground = Color(0xFFF7F2E7)
+        val lightQuietBorder = Color(0xFFB99B5E)
+        val lightQuietText = Color(0xFF6C5420)
+    }
+    object Dialog {
+        val darkBorder = Color(0xFF40372A)
+        val lightBorder = Color(0xFFD7D8DD)
+        val radius = 16.dp
     }
     object Spacing {
         val xs = 4.dp; val sm = 8.dp; val md = 12.dp; val lg = 16.dp
