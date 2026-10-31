@@ -513,7 +513,7 @@ private fun DebtManagementPanel(
                 FinanceButton(
                     onClick = { onDirectionChange("i_owe") },
                     modifier = Modifier.weight(1f).testTag("debts_tab_i_owe"),
-                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = Color(0xFF17130B))
+                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary)
                 ) { Text(WebI18n.tr("مدين — عليّ له", "I owe", lang), fontWeight = FontWeight.Bold) }
             } else {
                 FinanceOutlinedButton(
@@ -649,7 +649,7 @@ fun AddDebtDialog(
                             modifier = Modifier.weight(1f).testTag("debt_direction_owed_to_me"),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = ByeProTheme.colors.goldPrimary,
-                                contentColor = if (ByeProTheme.colors.isDark) Color(0xFF17130B) else Color(0xFF17130B)
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             )
                         ) { Text(WebI18n.tr("لي عنده", "Owed to me", lang), fontWeight = FontWeight.Bold) }
                     } else {
@@ -664,7 +664,7 @@ fun AddDebtDialog(
                             modifier = Modifier.weight(1f).testTag("debt_direction_i_owe"),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = ByeProTheme.colors.goldPrimary,
-                                contentColor = Color(0xFF17130B)
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             )
                         ) { Text(WebI18n.tr("عليّ له", "I owe", lang), fontWeight = FontWeight.Bold) }
                     } else {
