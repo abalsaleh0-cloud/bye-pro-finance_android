@@ -80,6 +80,7 @@ fun DebtsBillsScreen(
     var selectedTabIndex by remember { mutableIntStateOf(initialTabIndex.coerceIn(0, 1)) }
     var showAddDebtDialog by remember { mutableStateOf(false) }
     var showAddBillDialog by remember { mutableStateOf(false) }
+    var editingBill by remember { mutableStateOf<BillEntity?>(null) }
     var debtToPay by remember { mutableStateOf<DebtEntity?>(null) }
     var editingDebt by remember { mutableStateOf<DebtEntity?>(null) }
     var historyDebt by remember { mutableStateOf<DebtEntity?>(null) }
@@ -161,15 +162,20 @@ fun DebtsBillsScreen(
                         }
                     } else {
                         items(bills, key = { it.id }) { bill ->
-                            BillItemCard(
-                                bill = bill,
-                                lang = lang,
-                                onMarkPaid = {
-                                    val defaultAcc = accounts.firstOrNull()?.id ?: 1L
-                                    viewModel.markBillPaid(bill.id, defaultAcc)
-                                },
-                                onDelete = { viewModel.deleteBill(bill) }
-                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                BillItemCard(
+                                    bill = bill,
+                                    lang = lang,
+                                    onMarkPaid = {
+                                        val matchingAccount = accounts.firstOrNull { it.currency.equals(bill.currency, true) && it.balance >= bill.amount }
+                                        if (matchingAccount != null) viewModel.markBillPaid(bill.id, matchingAccount.id)
+                                    },
+                                    onDelete = { viewModel.deleteBill(bill) }
+                                )
+                                FinanceOutlinedButton(onClick = { editingBill = bill }, modifier = Modifier.fillMaxWidth()) {
+                                    Text(WebI18n.tr("تعديل الفاتورة", "Edit bill", lang))
+                                }
+                            }
                         }
                     }
                 }
@@ -277,13 +283,15 @@ fun DebtsBillsScreen(
     }
 
     // Add Bill Dialog
-    if (showAddBillDialog) {
+    if (showAddBillDialog || editingBill != null) {
         AddBillDialog(
             lang = lang,
-            onDismiss = { showAddBillDialog = false },
+            initialBill = editingBill,
+            onDismiss = { showAddBillDialog = false; editingBill = null },
             onConfirm = { newBill ->
-                viewModel.addBill(newBill)
+                if (editingBill == null) viewModel.addBill(newBill) else viewModel.updateBill(newBill)
                 showAddBillDialog = false
+                editingBill = null
             }
         )
     }
