@@ -513,7 +513,7 @@ private fun DebtDirectionSelector(
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                androidx.compose.material3.RadioButton(selected = selected, onClick = { onDirectionChange(value) })
+                androidx.compose.material3.RadioButton(selected = selected, onClick = null)
                 Text(
                     text = label,
                     modifier = Modifier.weight(1f),
