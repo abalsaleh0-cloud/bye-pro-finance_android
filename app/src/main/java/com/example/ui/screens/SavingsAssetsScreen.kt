@@ -508,7 +508,7 @@ fun AddSavingsGoalDialog(
                     deadline == null -> WebI18n.tr("أدخل تاريخاً صحيحاً.", "Enter a valid date.", lang)
                     else -> ""
                 }
-                if (error.isBlank() && deadline != null) onConfirm(SavingsGoalEntity(id = initialGoal?.id ?: 0, name = name.trim(), targetAmount = target, currentAmount = current, currency = currency, deadline = deadline, targetMonthlyDeposit = monthly, colorHex = initialGoal?.colorHex ?: "#F1B942"))
+                if (error.isBlank() && deadline != null) onConfirm(SavingsGoalEntity(id = initialGoal?.id ?: 0, name = name.trim(), targetAmount = target, currentAmount = current, currency = currency, deadline = deadline, targetMonthlyDeposit = monthly, colorHex = initialGoal?.colorHex ?: "#D6B56D"))
             }) { Text(Strings.get("confirm", lang)) }
         },
         dismissButton = { FinanceOutlinedButton(onClick = onDismiss) { Text(Strings.get("cancel", lang)) } }
