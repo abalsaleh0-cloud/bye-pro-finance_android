@@ -368,4 +368,35 @@ class FinanceRepositoryIntegrationTest {
         assertEquals(150.0, account?.balance ?: 0.0, 0.001)
     }
 
+    @Test
+    fun transactionStatusChangesPostAndReverseAccountBalanceExactlyOnce() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Status lifecycle", type = AccountType.CASH, balance = 100.0, currency = "LYD")
+        )
+        val transaction = TransactionEntity(
+            accountId = accountId,
+            type = TransactionType.EXPENSE,
+            amount = 25.0,
+            currency = "LYD",
+            category = "Other",
+            description = "Status lifecycle test",
+            status = TransactionStatus.PENDING
+        )
+        val transactionId = repository.addTransaction(transaction)
+        assertEquals(100.0, repository.accounts.first().first { it.id == accountId }.balance, 0.001)
+
+        val stored = repository.transactions.first().first { it.id == transactionId }
+        repository.updateTransactionStatus(stored, TransactionStatus.COMPLETED)
+        assertEquals(75.0, repository.accounts.first().first { it.id == accountId }.balance, 0.001)
+
+        val completed = repository.transactions.first().first { it.id == transactionId }
+        repository.updateTransactionStatus(completed, TransactionStatus.PENDING)
+        assertEquals(100.0, repository.accounts.first().first { it.id == accountId }.balance, 0.001)
+
+        val pending = repository.transactions.first().first { it.id == transactionId }
+        repository.updateTransactionStatus(pending, TransactionStatus.PENDING)
+        assertEquals(100.0, repository.accounts.first().first { it.id == accountId }.balance, 0.001)
+    }
+
+
 }
