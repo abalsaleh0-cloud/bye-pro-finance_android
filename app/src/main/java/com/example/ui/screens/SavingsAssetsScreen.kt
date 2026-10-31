@@ -1,15 +1,12 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
 import com.example.ui.components.FinanceIcon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 
-
-import androidx.compose.material.icons.filled.*
 
 import com.example.finance.i18n.TextContent
 
@@ -36,7 +33,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
+
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -110,7 +107,7 @@ fun SavingsAssetsScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_savings_asset_fab")
             ) {
-                FinanceIcon(imageVector = Icons.Default.Add, contentDescription = null)
+                FinanceIcon(imageVector = Lucide.Plus, contentDescription = null)
             }
         }
     ) { padding ->
@@ -350,7 +347,7 @@ fun SavingsGoalCard(
                 }
                 FinanceIconButton(onClick = onDelete) {
                     FinanceIcon(
-                        imageVector = Icons.Default.Delete,
+                        imageVector = Lucide.Trash2,
                         contentDescription = WebI18n.tr("حذف", "Delete", lang),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp)
@@ -408,7 +405,7 @@ fun SavingsGoalCard(
                     colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    FinanceIcon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(16.dp))
+                    FinanceIcon(Lucide.Wallet, contentDescription = null, modifier = Modifier.size(16.dp))
                     Text(Strings.get("contribute", lang), modifier = Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelMedium)
                     }
                 }
@@ -461,11 +458,11 @@ fun AssetCardItem(
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 FinanceIconButton(onClick = onEdit) {
-                    FinanceIcon(imageVector = Icons.Default.Add, contentDescription = WebI18n.tr("تعديل", "Edit", lang), modifier = Modifier.size(18.dp))
+                    FinanceIcon(imageVector = Lucide.Plus, contentDescription = WebI18n.tr("تعديل", "Edit", lang), modifier = Modifier.size(18.dp))
                 }
                 FinanceIconButton(onClick = onDelete) {
                     FinanceIcon(
-                        imageVector = Icons.Default.Delete,
+                        imageVector = Lucide.Trash2,
                         contentDescription = WebI18n.tr("حذف", "Delete", lang),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp)
