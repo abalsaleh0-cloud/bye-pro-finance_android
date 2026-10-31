@@ -1,8 +1,8 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.*
 import com.example.ui.components.FinanceIcon
 
-import androidx.compose.material.icons.filled.*
 
 import com.example.finance.i18n.TextContent
 
@@ -28,9 +28,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -156,7 +153,7 @@ fun ReportsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.financialGreen, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    FinanceIcon(Icons.Default.FileDownload, contentDescription = null)
+                    FinanceIcon(Lucide.Download, contentDescription = null)
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(Strings.get("export_csv", lang), fontWeight = FontWeight.Bold)
                 }
@@ -172,7 +169,7 @@ fun ReportsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    FinanceIcon(Icons.Default.TableChart, contentDescription = null)
+                    FinanceIcon(Lucide.Table, contentDescription = null)
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(Strings.get("export_json", lang), fontWeight = FontWeight.Bold)
                 }
