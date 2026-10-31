@@ -593,7 +593,11 @@ class FinanceRepository(
 
     // Documents
     suspend fun addDocument(doc: DocumentEntity) = withContext(Dispatchers.IO) {
-        dao.insertDocument(doc)
+        require(doc.title.isNotBlank()) { "Document title is required" }
+        require(doc.totalAmount.isFinite() && doc.totalAmount >= 0.0) { "Document amount must be finite and non-negative" }
+        require(doc.taxAmount.isFinite() && doc.taxAmount >= 0.0) { "Document tax must be finite and non-negative" }
+        require(doc.currency.matches(Regex("[A-Z]{3}"))) { "Document currency must be a three-letter code" }
+        dao.insertDocument(doc.copy(title = doc.title.trim(), merchant = doc.merchant.trim()))
         logAudit("UPLOAD", "Document", "Saved document ${doc.title} - ${doc.merchant}")
     }
 
@@ -609,6 +613,14 @@ class FinanceRepository(
 
     suspend fun markNotificationRead(id: Long) = withContext(Dispatchers.IO) {
         dao.markNotificationAsRead(id)
+    }
+
+    suspend fun markAllNotificationsRead() = withContext(Dispatchers.IO) {
+        dao.markAllNotificationsRead()
+    }
+
+    suspend fun deleteNotification(id: Long) = withContext(Dispatchers.IO) {
+        dao.deleteNotification(id)
     }
 
     suspend fun clearNotifications() = withContext(Dispatchers.IO) {
