@@ -1,16 +1,12 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
 import com.example.ui.components.FinanceIcon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 
 
 
-import androidx.compose.material.icons.filled.*
 
 import com.example.finance.i18n.TextContent
 
@@ -38,7 +34,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
+
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ClearAll
@@ -139,7 +135,7 @@ fun NotificationsAdminScreen(
                                 Text(WebI18n.tr("قراءة الكل", "Read all", lang), style = MaterialTheme.typography.labelSmall)
                             }
                             if (notifications.isNotEmpty()) FinanceOutlinedButton(onClick = { viewModel.clearNotifications() }, shape = RoundedCornerShape(8.dp)) {
-                                FinanceIcon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(16.dp))
+                                FinanceIcon(Lucide.ListFilter, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Text(WebI18n.tr("مسح الكل", "Clear all", lang), style = MaterialTheme.typography.labelSmall)
                             }
                         }
@@ -216,7 +212,7 @@ fun NotificationsAdminScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                FinanceIcon(Icons.Default.VerifiedUser, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
+                                FinanceIcon(Lucide.ShieldCheck, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                                 Spacer(modifier = Modifier.size(8.dp))
                                 Text(
                                     text = WebI18n.tr("الدور المسجل محلياً (غير موثّق خادمياً): ", "Locally stored role (not server-verified): ", lang) + (currentUser?.role?.name ?: "USER"),
@@ -248,7 +244,7 @@ fun NotificationsAdminScreen(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                FinanceIcon(Icons.Default.Security, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
+                                FinanceIcon(Lucide.Shield, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(WebI18n.tr("تخزين البيانات", "Data storage", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(WebI18n.tr("Room SQLite محلي", "Local Room SQLite", lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
@@ -261,7 +257,7 @@ fun NotificationsAdminScreen(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                FinanceIcon(Icons.Default.Storage, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
+                                FinanceIcon(Lucide.Folder, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(WebI18n.tr("السجلات المحلية", "Local records", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(WebI18n.tr("${TextContent.number(transactions.size + accounts.size + auditLogs.size, lang, 0)} سجل", "${TextContent.number(transactions.size + accounts.size + auditLogs.size, lang, 0)} records", lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.goldPrimary)
@@ -343,11 +339,11 @@ fun NotificationCardItem(
             Column {
                 if (!notification.isRead) {
                     FinanceIconButton(onClick = onRead) {
-                        FinanceIcon(Icons.Default.Check, contentDescription = WebI18n.tr("تحديد كمقروء", "Mark as read", lang), tint = ByeProTheme.colors.financialGreen)
+                        FinanceIcon(Lucide.Check, contentDescription = WebI18n.tr("تحديد كمقروء", "Mark as read", lang), tint = ByeProTheme.colors.financialGreen)
                     }
                 }
                 FinanceIconButton(onClick = onDelete) {
-                    FinanceIcon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف التنبيه", "Delete notification", lang), tint = MaterialTheme.colorScheme.error)
+                    FinanceIcon(Lucide.Trash2, contentDescription = WebI18n.tr("حذف التنبيه", "Delete notification", lang), tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
