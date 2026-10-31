@@ -682,8 +682,9 @@ fun AddBillDialog(
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الفاتورة", "Bill name", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = category, onValueChange = { category = it }, label = { Text(Strings.get("category", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = amountStr, onValueChange = { amountStr = it }, label = { Text(Strings.get("amount", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(Locale.ROOT) }, label = { Text(WebI18n.tr("العملة", "Currency", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = amountStr, onValueChange = { amountStr = it }, enabled = initialBill?.isPaid != true, label = { Text(Strings.get("amount", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(Locale.ROOT) }, enabled = initialBill?.isPaid != true, label = { Text(WebI18n.tr("العملة", "Currency", lang)) }, modifier = Modifier.fillMaxWidth())
+                if (initialBill?.isPaid == true) Text(WebI18n.tr("لا يمكن تغيير مبلغ أو عملة فاتورة مدفوعة لأنها مسجلة في دفتر المصروفات.", "Amount and currency are locked for paid bills because the expense is already posted.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FinanceTextField(value = dueDateText, onValueChange = { dueDateText = it }, label = { Text(WebI18n.tr("تاريخ الاستحقاق YYYY-MM-DD", "Due date YYYY-MM-DD", lang)) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FinanceOutlinedButton(onClick = { recurring = true }) { Text(WebI18n.tr("متكررة", "Recurring", lang)) }
