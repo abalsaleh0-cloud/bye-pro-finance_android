@@ -117,7 +117,10 @@ fun FinanceOutlinedButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     shape: Shape = RoundedCornerShape(12.dp),
-    colors: ButtonColors = ButtonDefaults.outlinedButtonColors(containerColor = ByeProTheme.colors.cardSecondary, contentColor = MaterialTheme.colorScheme.onSurface),containerColor = ByeProTheme.colors.cardSecondary, contentColor = ByeProTheme.colors.goldPrimary),
+    colors: ButtonColors = ButtonDefaults.outlinedButtonColors(
+        containerColor = ByeProTheme.colors.cardSecondary,
+        contentColor = MaterialTheme.colorScheme.onSurface
+    ),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = null,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
