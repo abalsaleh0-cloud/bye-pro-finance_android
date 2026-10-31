@@ -45,7 +45,31 @@ class FinanceViewModel(application:Application):AndroidViewModel(application){
  fun addBill(x:BillEntity)=viewModelScope.launch{repository.addBill(x)};fun updateBill(x:BillEntity)=viewModelScope.launch{repository.updateBill(x)};fun markBillPaid(a:Long,b:Long)=viewModelScope.launch{repository.markBillPaid(a,b)};fun deleteBill(x:BillEntity)=viewModelScope.launch{repository.deleteBill(x)};fun addSavingsGoal(x:SavingsGoalEntity)=viewModelScope.launch{repository.addSavingsGoal(x)};fun updateSavingsGoal(x:SavingsGoalEntity)=viewModelScope.launch{repository.updateSavingsGoal(x)};fun contributeToSavings(a:Long,b:Double,c:Long)=viewModelScope.launch{repository.contributeToSavings(a,b,c)};fun deleteSavingsGoal(x:SavingsGoalEntity)=viewModelScope.launch{repository.deleteSavingsGoal(x)};fun addAsset(x:AssetEntity)=viewModelScope.launch{repository.addAsset(x)};fun updateAsset(x:AssetEntity)=viewModelScope.launch{repository.updateAsset(x)};fun deleteAsset(x:AssetEntity)=viewModelScope.launch{repository.deleteAsset(x)}
  fun addHouseholdMember(a:String,b:String,c:String,d:Double)=viewModelScope.launch{repository.addHouseholdMember(a,b,c,d)};fun updateHouseholdMember(x:HouseholdMemberEntity)=viewModelScope.launch{repository.updateHouseholdMember(x)};fun deleteHouseholdMember(x:HouseholdMemberEntity)=viewModelScope.launch{repository.deleteHouseholdMember(x)};fun addHouseholdExpense(a:String,b:Double,c:Long?,d:String,e:String=primaryCurrency.value,f:Long=System.currentTimeMillis(),g:Boolean=false,h:String="")=viewModelScope.launch{repository.addHouseholdExpense(a,b,c,d,e,f,g,h)};fun updateHouseholdExpense(x:HouseholdExpenseEntity)=viewModelScope.launch{repository.updateHouseholdExpense(x)};fun deleteHouseholdExpense(x:HouseholdExpenseEntity)=viewModelScope.launch{repository.deleteHouseholdExpense(x)};fun addHouseholdBudget(a:String,b:Double,c:String,d:String)=viewModelScope.launch{repository.addHouseholdBudget(a,b,c,d)};fun deleteHouseholdBudget(x:HouseholdBudgetEntity)=viewModelScope.launch{repository.deleteHouseholdBudget(x)}
  fun addDocument(x:DocumentEntity)=viewModelScope.launch{repository.addDocument(x)};fun deleteDocument(x:DocumentEntity)=viewModelScope.launch{repository.deleteDocument(x)};fun markNotificationRead(id:Long)=viewModelScope.launch{repository.markNotificationRead(id)};fun markAllNotificationsRead()=viewModelScope.launch{repository.markAllNotificationsRead()};fun deleteNotification(id:Long)=viewModelScope.launch{repository.deleteNotification(id)};fun clearNotifications()=viewModelScope.launch{repository.clearNotifications()}
- fun clearAiChat(){if(!_isAiLoading.value)resetWelcomeMessage()};fun askAiAssistant(q:String){if(q.isBlank()||_isAiLoading.value)return;_chatMessages.value+=ChatMessage("USER",q.trim());_isAiLoading.value=true;viewModelScope.launch{val modelFile=LocalAiModelManager.modelFile(getApplication());val r=if(modelFile.isFile){runCatching{LocalAiRuntime.ensureLoaded(getApplication(),modelFile.absolutePath);LocalAiRuntime.ask(q.trim())}.getOrElse{aiService.askAssistant(q.trim(),_appLanguage.value)}}else aiService.askAssistant(q.trim(),_appLanguage.value);_isAiLoading.value=false;_chatMessages.value+=ChatMessage("AI",r)}};private val _ocrError=MutableStateFlow<String?>(null);val ocrError=_ocrError.asStateFlow();fun scanReceipt(a:String?=null,b:String?=null)=viewModelScope.launch{aiService.parseReceiptImage(a,b,_appLanguage.value).onFailure{_ocrError.value=it.message}};fun clearScannedReceipt(){_scannedReceipt.value=null;_ocrError.value=null}
+ fun clearAiChat(){if(!_isAiLoading.value)resetWelcomeMessage()};fun askAiAssistant(q:String){if(q.isBlank()||_isAiLoading.value)return;_chatMessages.value+=ChatMessage("USER",q.trim());_isAiLoading.value=true;viewModelScope.launch{val modelFile=LocalAiModelManager.modelFile(getApplication());val r=if(modelFile.isFile){runCatching{LocalAiRuntime.ensureLoaded(getApplication(),modelFile.absolutePath);LocalAiRuntime.ask(buildLocalAiPrompt(q.trim()))}.getOrElse{aiService.askAssistant(q.trim(),_appLanguage.value)}}else aiService.askAssistant(q.trim(),_appLanguage.value);_isAiLoading.value=false;_chatMessages.value+=ChatMessage("AI",r)}};private val _ocrError=MutableStateFlow<String?>(null);val ocrError=_ocrError.asStateFlow();fun scanReceipt(a:String?=null,b:String?=null)=viewModelScope.launch{aiService.parseReceiptImage(a,b,_appLanguage.value).onFailure{_ocrError.value=it.message}};fun clearScannedReceipt(){_scannedReceipt.value=null;_ocrError.value=null}
+ private fun buildLocalAiPrompt(question:String):String {
+  val accountRows=accounts.value.filter{!it.isArchived}.joinToString("\n"){ "- ${it.name}: ${it.balance} ${it.currency}" }.ifBlank{"لا توجد حسابات متاحة"}
+  val transactionRows=transactions.value.filter{it.status==TransactionStatus.COMPLETED}.takeLast(40).joinToString("\n"){ "- ${it.type.name} | ${it.category} | ${it.amount} ${it.currency} | ${it.description.take(80)}" }.ifBlank{"لا توجد معاملات مكتملة"}
+  val budgetRows=budgets.value.joinToString("\n"){ "- ${it.name} | ${it.category} | ${it.limitAmount} ${it.currency}" }.ifBlank{"لا توجد ميزانيات"}
+  val debtRows=debts.value.joinToString("\n"){ "- ${it.name} | ${it.direction} | المتبقي ${it.remaining} ${it.currency} | الأصل ${it.principal}" }.ifBlank{"لا توجد ديون"}
+  return """
+أنت مساعد BYE PRO FINANCE المالي المحلي. حلّل فقط البيانات الواردة أدناه.
+لا تخترع أرقاماً أو معاملات أو أسعار صرف. إذا كانت البيانات غير كافية فاذكر ذلك بوضوح.
+الحسابات والأرصدة:
+$accountRows
+
+المعاملات المكتملة الأخيرة (حتى 40):
+$transactionRows
+
+الميزانيات:
+$budgetRows
+
+الديون:
+$debtRows
+
+سؤال المستخدم:
+$question
+""".trimIndent()
+ }
  fun importTransactionsFromJson(v:String,c:(Result<Int>)->Unit)=viewModelScope.launch{c(runCatching{repository.importTransactions(FinanceExportService.transactionsFromJson(v))})};fun importTransactionsFromCsv(v:String,c:(Result<Int>)->Unit)=viewModelScope.launch{c(runCatching{repository.importTransactions(FinanceExportService.transactionsFromCsv(v))})};fun generateCsvExport()=FinanceExportService.transactionsToCsv(transactions.value);fun generateJsonExport()=FinanceExportService.transactionsToJson(transactions.value);fun restoreBackupFromJson(v:String,c:(Boolean)->Unit)=viewModelScope.launch{c(repository.restoreFromJson(v))}
 }
 private fun <T> Flow<T>.withStartupFallback(f:T):Flow<T>=catch{e->Log.e("BYE_PRO_FINANCE","Remote data stream failed",e);emit(f)}
