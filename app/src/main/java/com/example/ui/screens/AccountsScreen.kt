@@ -1,16 +1,5 @@
 package com.example.ui.screens
 
-import com.example.finance.i18n.TextContent
-
-import com.example.ui.components.FinanceAlertDialog
-import com.example.ui.components.FinanceButton
-import com.example.ui.components.FinanceOutlinedButton
-import com.example.ui.components.FinanceTextField
-import com.example.ui.components.FinanceIconButton
-import com.example.ui.components.FinanceFloatingActionButton
-
-import com.example.finance.i18n.WebI18n
-import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -28,27 +17,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,28 +43,40 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.finance.engine.FinanceEngine
-import com.example.finance.i18n.Strings
+import com.example.finance.i18n.TextContent
+import com.example.finance.i18n.WebI18n
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
 import com.example.finance.model.AppLanguage
 import com.example.finance.ui.FinanceViewModel
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceFloatingActionButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
+import com.example.ui.theme.ByeProTheme
+
+private val accountCurrencies = listOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD")
+private val webAccountTypes = listOf(
+    AccountType.CASH,
+    AccountType.BANK,
+    AccountType.WALLET,
+    AccountType.CREDIT_CARD,
+    AccountType.INVESTMENT,
+    AccountType.OTHER
+)
 
 @Composable
-fun AccountsScreen(
-    viewModel: FinanceViewModel
-) {
+fun AccountsScreen(viewModel: FinanceViewModel) {
     val lang by viewModel.appLanguage.collectAsState()
-    val accounts by viewModel.accounts.collectAsState()
-    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
+    val activeAccounts by viewModel.accounts.collectAsState()
+    val archivedAccounts by viewModel.archivedAccounts.collectAsState()
+    val accounts = (activeAccounts + archivedAccounts).sortedByDescending { it.createdAt }
     var showAddDialog by remember { mutableStateOf(false) }
-
-    var selectedAccountForDelete by remember { mutableStateOf<AccountEntity?>(null) }
 
     Scaffold(
         floatingActionButton = {
@@ -91,84 +86,94 @@ fun AccountsScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_account_fab")
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = Strings.get("add_account", lang))
+                Icon(Icons.Default.Add, contentDescription = WebI18n.tr("إضافة حساب", "Add account", lang))
             }
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    text = Strings.get("accounts_title", lang),
+                    WebI18n.tr("حساباتك", "Your accounts", lang),
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                val totalLiquid = accounts.filter { !it.isArchived && it.currency.equals(primaryCurrency, ignoreCase = true) }.sumOf { it.balance }
                 Text(
-                    text = "${Strings.get("total_balance", lang)}: ${TextContent.money(totalLiquid, primaryCurrency, lang)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = ByeProTheme.colors.financialGreen,
-                    fontWeight = FontWeight.SemiBold
+                    WebI18n.tr("إدارة الأرصدة", "Account balances", lang),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            items(accounts, key = { it.id }) { acc ->
-                AccountDetailedCard(
-                    account = acc,
-                    lang = lang,
-                    onArchive = { viewModel.archiveAccount(acc.id, true) },
-                    onDelete = { selectedAccountForDelete = acc }
-                )
-            }
-
+            val totals = accounts.filter { !it.isArchived }.groupBy { it.currency }
+                .mapValues { (_, rows) -> rows.sumOf { it.balance } }
             item {
-                Spacer(modifier = Modifier.height(72.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant).padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(WebI18n.tr("إجمالي الأرصدة النشطة", "Active balances total", lang), fontWeight = FontWeight.SemiBold)
+                    if (totals.isEmpty()) {
+                        Text("—", style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            WebI18n.tr("أضف حسابًا لعرض الرصيد حسب العملة.", "Add an account to view balances by currency.", lang),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    } else {
+                        totals.toSortedMap().forEach { (currency, total) ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("$currency · ${accounts.count { !it.isArchived && it.currency == currency }} " +
+                                    WebI18n.tr("حساب نشط", "active accounts", lang))
+                                Text(TextContent.money(total, currency, lang), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
             }
+
+            if (accounts.isEmpty()) {
+                item {
+                    Column(
+                        Modifier.fillMaxWidth().padding(vertical = 28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Default.Wallet, null, modifier = Modifier.size(42.dp), tint = ByeProTheme.colors.goldPrimary)
+                        Text(WebI18n.tr("لا توجد حسابات بعد", "No accounts yet", lang), fontWeight = FontWeight.Bold)
+                        Text(
+                            WebI18n.tr("أضف حسابك الأول لبدء تنظيم أموالك.", "Add your first account to start organizing your money.", lang),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        FinanceOutlinedButton(onClick = { showAddDialog = true }) {
+                            Text(WebI18n.tr("إضافة أول حساب", "Add your first account", lang))
+                        }
+                    }
+                }
+            } else {
+                items(accounts, key = { it.id }) { account ->
+                    AccountDetailedCard(
+                        account = account,
+                        lang = lang,
+                        onToggleActive = { viewModel.archiveAccount(account.id, !account.isArchived) }
+                    )
+                }
+            }
+            item { Spacer(Modifier.height(72.dp)) }
         }
     }
 
-    // Add Account Dialog
     if (showAddDialog) {
         AddAccountDialog(
             lang = lang,
             onDismiss = { showAddDialog = false },
-            onConfirm = { newAccount ->
-                viewModel.addAccount(newAccount)
+            onConfirm = { account ->
+                viewModel.addAccount(account)
                 showAddDialog = false
-            }
-        )
-    }
-
-    // Delete confirmation
-    if (selectedAccountForDelete != null) {
-        val target = selectedAccountForDelete!!
-        FinanceAlertDialog(
-            onDismissRequest = { selectedAccountForDelete = null },
-            title = { Text(text = Strings.get("delete", lang)) },
-            text = { Text(WebI18n.tr("هل تريد بالتأكيد حذف حساب", "Are you sure you want to delete account", lang) + " '${target.name}'?") },
-            confirmButton = {
-                FinanceButton(
-                    onClick = {
-                        viewModel.deleteAccount(target)
-                        selectedAccountForDelete = null
-                    },
-                    modifier = Modifier.testTag("confirm_delete_account_btn")
-                ) {
-                    Text(Strings.get("delete", lang))
-                }
-            },
-            dismissButton = {
-                FinanceOutlinedButton(onClick = { selectedAccountForDelete = null }) {
-                    Text(Strings.get("cancel", lang))
-                }
             }
         )
     }
@@ -178,101 +183,58 @@ fun AccountsScreen(
 fun AccountDetailedCard(
     account: AccountEntity,
     lang: AppLanguage,
-    onArchive: () -> Unit,
-    onDelete: () -> Unit
+    onToggleActive: () -> Unit
 ) {
-    val icon: ImageVector = when (account.type) {
-        AccountType.BANK -> Icons.Default.AccountBalance
+    val icon = when (account.type) {
         AccountType.CASH -> Icons.Default.Payments
-        AccountType.SAVINGS -> Icons.Default.Savings
-        AccountType.INVESTMENT -> Icons.Default.TrendingUp
+        AccountType.BANK -> Icons.Default.AccountBalance
+        AccountType.WALLET -> Icons.Default.Wallet
         AccountType.CREDIT_CARD -> Icons.Default.CreditCard
+        AccountType.INVESTMENT -> Icons.Default.TrendingUp
         else -> Icons.Default.AccountBalance
     }
-
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+        modifier = Modifier.fillMaxWidth().border(
+            1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)
+        ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(16.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(ByeProTheme.colors.goldPrimary.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(imageVector = icon, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = account.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "${account.institution} • ${account.accountNumberSafe.ifBlank { account.type.name }}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    FinanceIconButton(
-                        onClick = onArchive,
-                        modifier = Modifier.testTag("archive_account_${account.id}")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Archive,
-                            contentDescription = WebI18n.tr("أرشفة", "Archive", lang),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    FinanceIconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.testTag("delete_account_${account.id}")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = WebI18n.tr("حذف", "Delete", lang),
-                            tint = ByeProTheme.colors.financialRed.copy(alpha = 0.85f),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(42.dp).clip(CircleShape)
+                        .background(ByeProTheme.colors.goldPrimary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) { Icon(icon, null, tint = ByeProTheme.colors.goldPrimary) }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(account.name, fontWeight = FontWeight.Bold)
+                    Text(
+                        account.institution.ifBlank { accountTypeLabel(account.type, lang) } +
+                            if (account.accountNumberSafe.isNotBlank()) " · •••• ${account.accountNumberSafe}" else "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        if (account.isArchived) WebI18n.tr("متوقف", "Inactive", lang)
+                        else WebI18n.tr("نشط", "Active", lang),
+                        color = if (account.isArchived) MaterialTheme.colorScheme.error else ByeProTheme.colors.financialGreen,
+                        style = MaterialTheme.typography.labelSmall
+                    )
                 }
             }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Text(
-                    text = WebI18n.tr("الرصيد الفعلي", "Actual Balance", lang),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = TextContent.money(account.balance, account.currency, lang),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = ByeProTheme.colors.financialGreen
-                )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text(WebI18n.tr("الرصيد الحالي", "Current balance", lang), style = MaterialTheme.typography.labelSmall)
+                    Text(TextContent.money(account.balance, account.currency, lang), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
+                }
+                FinanceOutlinedButton(onClick = onToggleActive, modifier = Modifier.testTag("toggle_account_${account.id}")) {
+                    Text(
+                        if (account.isArchived) WebI18n.tr("تفعيل الحساب", "Activate account", lang)
+                        else WebI18n.tr("إيقاف الحساب", "Deactivate account", lang)
+                    )
+                }
             }
         }
     }
@@ -280,127 +242,146 @@ fun AccountDetailedCard(
 
 @Composable
 fun AddAccountDialog(
-    lang: com.example.finance.model.AppLanguage,
+    lang: AppLanguage,
     onDismiss: () -> Unit,
     onConfirm: (AccountEntity) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
-    var balanceStr by remember { mutableStateOf("") }
+    var openingBalance by remember { mutableStateOf("0") }
     var institution by remember { mutableStateOf("") }
-    var accNumber by remember { mutableStateOf("") }
+    var lastFour by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf(AccountType.CASH) }
     var selectedCurrency by remember { mutableStateOf("LYD") }
     var typeMenuExpanded by remember { mutableStateOf(false) }
     var currencyMenuExpanded by remember { mutableStateOf(false) }
-
-    fun accountTypeLabel(type: AccountType): String = when (type) {
-        AccountType.CASH -> WebI18n.tr("نقدي", "Cash", lang)
-        AccountType.BANK -> Strings.get("account_type_bank", lang)
-        AccountType.WALLET -> Strings.get("account_type_wallet", lang)
-        AccountType.CREDIT_CARD -> Strings.get("account_type_credit", lang)
-        AccountType.SAVINGS -> Strings.get("account_type_savings", lang)
-        AccountType.INVESTMENT -> Strings.get("account_type_invest", lang)
-        AccountType.OTHER -> WebI18n.tr("أخرى", "Other", lang)
-    }
+    var validationMessage by remember { mutableStateOf("") }
 
     FinanceAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = Strings.get("add_account", lang), fontWeight = FontWeight.Bold) },
+        title = { Text(WebI18n.tr("إضافة حساب", "Add account", lang), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(Strings.get("account_type", lang), style = MaterialTheme.typography.labelMedium)
+                Text(WebI18n.tr("نوع الحساب", "Account type", lang), style = MaterialTheme.typography.labelMedium)
                 Box {
-                    OutlinedButton(onClick = { typeMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_type_selector")) {
-                        Text(accountTypeLabel(selectedType))
-                    }
-                    DropdownMenu(expanded = typeMenuExpanded, onDismissRequest = { typeMenuExpanded = false }) {
-                        listOf(AccountType.CASH, AccountType.BANK, AccountType.WALLET, AccountType.CREDIT_CARD, AccountType.INVESTMENT, AccountType.OTHER).forEach { type ->
+                    OutlinedButton(
+                        onClick = { typeMenuExpanded = true },
+                        modifier = Modifier.fillMaxWidth().testTag("account_type_selector")
+                    ) { Text(accountTypeLabel(selectedType, lang)) }
+                    DropdownMenu(typeMenuExpanded, { typeMenuExpanded = false }) {
+                        webAccountTypes.forEach { type ->
                             DropdownMenuItem(
-                                text = { Text(accountTypeLabel(type)) },
+                                text = { Text(accountTypeLabel(type, lang)) },
                                 onClick = { selectedType = type; typeMenuExpanded = false }
                             )
                         }
                     }
                 }
-                Text(Strings.get("currency", lang), style = MaterialTheme.typography.labelMedium)
+
+                Text(WebI18n.tr("العملة", "Currency", lang), style = MaterialTheme.typography.labelMedium)
                 Box {
-                    OutlinedButton(onClick = { currencyMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_currency_selector")) {
-                        Text(selectedCurrency)
-                    }
-                    DropdownMenu(expanded = currencyMenuExpanded, onDismissRequest = { currencyMenuExpanded = false }) {
-                        listOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD").forEach { currency ->
+                    OutlinedButton(
+                        onClick = { currencyMenuExpanded = true },
+                        modifier = Modifier.fillMaxWidth().testTag("account_currency_selector")
+                    ) { Text(currencyLabel(selectedCurrency, lang)) }
+                    DropdownMenu(currencyMenuExpanded, { currencyMenuExpanded = false }) {
+                        accountCurrencies.forEach { currency ->
                             DropdownMenuItem(
-                                text = {
-                                    Text(when (currency) {
-                                        "LYD" -> WebI18n.tr("دينار ليبي (LYD)", "Libyan dinar (LYD)", lang)
-                                        "USD" -> WebI18n.tr("دولار أمريكي (USD)", "US dollar (USD)", lang)
-                                        "EUR" -> WebI18n.tr("يورو (EUR)", "Euro (EUR)", lang)
-                                        "GBP" -> WebI18n.tr("جنيه إسترليني (GBP)", "British pound (GBP)", lang)
-                                        "SYP" -> WebI18n.tr("ليرة سورية (SYP)", "Syrian pound (SYP)", lang)
-                                        else -> WebI18n.tr("دينار أردني (JOD)", "Jordanian dinar (JOD)", lang)
-                                    })
-                                },
+                                text = { Text(currencyLabel(currency, lang)) },
                                 onClick = { selectedCurrency = currency; currencyMenuExpanded = false }
                             )
                         }
                     }
                 }
+
                 FinanceTextField(
                     value = name,
-                    onValueChange = { name = it },
-                    label = { Text(Strings.get("account_name", lang)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("account_name_input")
+                    onValueChange = { name = it.take(80); validationMessage = "" },
+                    label = { Text("Account name *") },
+                    placeholder = { Text("e.g. Daily wallet") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("account_name_input"),
+                    supportingText = { Text("${name.length}/80") },
+                    isError = validationMessage.isNotEmpty() && name.isBlank()
                 )
                 FinanceTextField(
-                    value = balanceStr,
-                    onValueChange = { balanceStr = it },
-                    label = { Text(Strings.get("initial_balance", lang)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("account_balance_input")
+                    value = openingBalance,
+                    onValueChange = { openingBalance = it },
+                    label = { Text(WebI18n.tr("الرصيد الافتتاحي", "Opening balance", lang)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("account_balance_input")
                 )
                 FinanceTextField(
                     value = institution,
-                    onValueChange = { institution = it },
-                    label = { Text(Strings.get("institution", lang)) },
-                    modifier = Modifier.fillMaxWidth()
+                    onValueChange = { institution = it.take(100) },
+                    label = { Text(WebI18n.tr("البنك أو الجهة (اختياري)", "Bank or institution (optional)", lang)) },
+                    supportingText = { Text("${institution.length}/100") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("account_institution_input")
                 )
                 FinanceTextField(
-                    value = accNumber,
-                    onValueChange = { accNumber = it },
-                    label = { Text(Strings.get("safe_number", lang)) },
-                    modifier = Modifier.fillMaxWidth()
+                    value = lastFour,
+                    onValueChange = { value -> lastFour = value.filter(Char::isDigit).take(4); validationMessage = "" },
+                    label = { Text(WebI18n.tr("آخر 4 أرقام (اختياري)", "Last 4 digits (optional)", lang)) },
+                    placeholder = { Text("1234") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("account_last_four_input"),
+                    isError = validationMessage.isNotEmpty() && lastFour.isNotEmpty() && lastFour.length != 4
                 )
+                if (validationMessage.isNotEmpty()) {
+                    Text(validationMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
             }
         },
         confirmButton = {
             FinanceButton(
                 onClick = {
-                    if (name.isNotBlank()) {
-                        val bal = balanceStr.toDoubleOrNull() ?: 0.0
+                    val amount = openingBalance.toDoubleOrNull()
+                    validationMessage = when {
+                        name.trim().isEmpty() -> WebI18n.tr("اسم الحساب مطلوب.", "Account name is required.", lang)
+                        name.trim().length > 80 -> WebI18n.tr("اسم الحساب يجب ألا يتجاوز 80 حرفًا.", "Account name must be 80 characters or fewer.", lang)
+                        amount == null || !amount.isFinite() -> WebI18n.tr("أدخل رصيدًا افتتاحيًا صحيحًا.", "Enter a valid opening balance.", lang)
+                        institution.length > 100 -> WebI18n.tr("اسم البنك أو الجهة يجب ألا يتجاوز 100 حرف.", "Bank or institution must be 100 characters or fewer.", lang)
+                        lastFour.isNotEmpty() && !lastFour.matches(Regex("[0-9]{4}")) -> WebI18n.tr("أدخل 4 أرقام بالضبط.", "Enter exactly 4 digits.", lang)
+                        else -> ""
+                    }
+                    if (validationMessage.isEmpty()) {
                         onConfirm(
                             AccountEntity(
-                                name = name,
+                                name = name.trim(),
                                 type = selectedType,
                                 currency = selectedCurrency,
-                                balance = bal,
-                                institution = institution,
-                                accountNumberSafe = accNumber
+                                balance = amount!!,
+                                institution = institution.trim(),
+                                accountNumberSafe = lastFour
                             )
                         )
                     }
                 },
                 modifier = Modifier.testTag("submit_account_btn")
-            ) {
-                Text(Strings.get("confirm", lang))
-            }
+            ) { Text(WebI18n.tr("حفظ الحساب", "Save account", lang)) }
         },
         dismissButton = {
-            FinanceOutlinedButton(onClick = onDismiss) {
-                Text(Strings.get("cancel", lang))
-            }
+            FinanceOutlinedButton(onClick = onDismiss) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) }
         }
     )
+}
+
+private fun accountTypeLabel(type: AccountType, lang: AppLanguage): String = when (type) {
+    AccountType.CASH -> WebI18n.tr("نقدي", "Cash", lang)
+    AccountType.BANK -> WebI18n.tr("حساب بنكي", "Bank account", lang)
+    AccountType.WALLET -> WebI18n.tr("محفظة إلكترونية", "E-wallet", lang)
+    AccountType.CREDIT_CARD -> WebI18n.tr("بطاقة ائتمان", "Credit card", lang)
+    AccountType.INVESTMENT -> WebI18n.tr("استثمار", "Investment", lang)
+    else -> WebI18n.tr("أخرى", "Other", lang)
+}
+
+private fun currencyLabel(currency: String, lang: AppLanguage): String = when (currency) {
+    "LYD" -> WebI18n.tr("دينار ليبي", "Libyan dinar", lang) + " (LYD)"
+    "USD" -> WebI18n.tr("دولار أمريكي", "US dollar", lang) + " (USD)"
+    "EUR" -> WebI18n.tr("يورو", "Euro", lang) + " (EUR)"
+    "GBP" -> WebI18n.tr("جنيه إسترليني", "British pound", lang) + " (GBP)"
+    "SYP" -> WebI18n.tr("ليرة سورية", "Syrian pound", lang) + " (SYP)"
+    else -> WebI18n.tr("دينار أردني", "Jordanian dinar", lang) + " (JOD)"
 }
