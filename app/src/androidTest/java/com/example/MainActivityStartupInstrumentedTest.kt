@@ -8,8 +8,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Runs on a real Android emulator. Unlike the Robolectric unit test, this verifies
- * that MainActivity survives Android startup and that the first Compose screen renders.
+ * Runs on a real Android emulator. This verifies that MainActivity survives
+ * Android startup and that the unauthenticated cold-start screen renders.
  */
 @RunWith(AndroidJUnit4::class)
 class MainActivityStartupInstrumentedTest {
@@ -17,12 +17,12 @@ class MainActivityStartupInstrumentedTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun dashboardNavigationIsRenderedOnColdStart() {
+    fun authScreenIsRenderedOnUnauthenticatedColdStart() {
         composeRule.waitUntil(timeoutMillis = 20_000) {
             composeRule.onAllNodes(
-                androidx.compose.ui.test.hasTestTag("nav_dashboard_tab")
+                androidx.compose.ui.test.hasTestTag("auth_email")
             ).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag("nav_dashboard_tab").assertExists()
+        composeRule.onNodeWithTag("auth_email").assertExists()
     }
 }
