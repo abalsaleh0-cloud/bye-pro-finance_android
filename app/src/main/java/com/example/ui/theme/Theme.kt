@@ -106,7 +106,7 @@ object ByeProTheme {
 
 private val DarkColorScheme = darkColorScheme(
     primary = GoldPrimary,
-    onPrimary = Color(0xFF101115),
+    onPrimary = Color(0xFF17130B),
     primaryContainer = GoldDark,
     onPrimaryContainer = DarkTextPrimary,
     secondary = FinancialGreen,
