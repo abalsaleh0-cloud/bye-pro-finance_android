@@ -147,7 +147,7 @@ fun AiAssistantScreen(
                         modifier = Modifier.padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
+                        FinanceIcon(
                             imageVector = Icons.Default.Info,
                             contentDescription = null,
                             tint = ByeProTheme.colors.goldPrimary,
@@ -245,7 +245,7 @@ fun AiAssistantScreen(
                             .background(ByeProTheme.colors.financialGreen)
                             .testTag("ai_assistant_send_btn")
                     ) {
-                        Icon(
+                        FinanceIcon(
                             imageVector = Icons.Default.Send,
                             contentDescription = WebI18n.tr("إرسال", "Send", lang),
                             tint = MaterialTheme.colorScheme.onPrimary
@@ -307,7 +307,7 @@ fun AiAssistantScreen(
                                         else -> ByeProTheme.colors.goldPrimary
                                     }
                                 )
-                                Icon(
+                                FinanceIcon(
                                     imageVector = when (insight.impactType) {
                                         "POSITIVE" -> Icons.Default.TrendingUp
                                         "WARNING" -> Icons.Default.Warning
