@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceIcon
+
 import androidx.compose.material.icons.filled.*
 
 import com.example.finance.i18n.TextContent
