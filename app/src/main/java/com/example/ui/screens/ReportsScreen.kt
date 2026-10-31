@@ -68,16 +68,21 @@ fun ReportsScreen(
     val accounts by viewModel.accounts.collectAsState()
     val assets by viewModel.assets.collectAsState()
     val debts by viewModel.debts.collectAsState()
+    val savingsGoals by viewModel.savingsGoals.collectAsState()
+    val bills by viewModel.bills.collectAsState()
     val primaryCurrency by viewModel.primaryCurrency.collectAsState()
 
     var exportModalData by remember { mutableStateOf<String?>(null) }
     var exportTitle by remember { mutableStateOf("") }
-
-    val currencyTransactions = transactions.filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
+    var reportCurrency by remember(primaryCurrency) { mutableStateOf(primaryCurrency) }
+    var reportPeriodDays by remember { mutableStateOf(30) }
+    val reportCurrencies = (transactions.map { it.currency } + accounts.map { it.currency } + assets.map { it.currency } + debts.map { it.currency } + savingsGoals.map { it.currency } + bills.map { it.currency }).distinct().sorted()
+    val cutoff = if (reportPeriodDays == 0) 0L else System.currentTimeMillis() - reportPeriodDays.toLong() * 86400000L
+    val currencyTransactions = transactions.filter { it.currency.equals(reportCurrency, ignoreCase = true) && it.date >= cutoff }
     val totalIncome = FinanceEngine.calculateTotalIncome(currencyTransactions)
     val totalExpenses = FinanceEngine.calculateTotalExpenses(currencyTransactions)
     val netCashFlow = FinanceEngine.calculateNetCashFlow(currencyTransactions)
-    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, primaryCurrency)
+    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, reportCurrency)
 
     // Category breakdown includes only completed expenses in the selected currency.
     val categoryTotals = mutableMapOf<String, Double>()
@@ -107,6 +112,24 @@ fun ReportsScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(WebI18n.tr("الفترة الزمنية", "Date range", lang), fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(30, 90, 365, 0).forEach { days ->
+                            FinanceOutlinedButton(onClick = { reportPeriodDays = days }) { Text(if (days == 0) WebI18n.tr("الكل", "All", lang) else days.toString()) }
+                        }
+                    }
+                    Text(WebI18n.tr("العملة", "Currency", lang), fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        reportCurrencies.forEach { code -> FinanceOutlinedButton(onClick = { reportCurrency = code }) { Text(if (reportCurrency == code) "✓ " + code else code) } }
+                    }
+                    Text(WebI18n.tr("لا يتم جمع عملات مختلفة في مؤشر واحد.", "Different currencies are never combined in one metric.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
 
         // Export Actions Row
@@ -171,15 +194,15 @@ fun ReportsScreen(
                     ) {
                         Column {
                             Text(WebI18n.tr("إجمالي الدخل", "Total income", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(TextContent.money(totalIncome, primaryCurrency, lang), color = ByeProTheme.colors.financialGreen, fontWeight = FontWeight.Bold)
+                            Text(TextContent.money(totalIncome, reportCurrency, lang), color = ByeProTheme.colors.financialGreen, fontWeight = FontWeight.Bold)
                         }
                         Column {
                             Text(WebI18n.tr("إجمالي المصروفات", "Total expenses", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(TextContent.money(totalExpenses, primaryCurrency, lang), color = ByeProTheme.colors.financialRed, fontWeight = FontWeight.Bold)
+                            Text(TextContent.money(totalExpenses, reportCurrency, lang), color = ByeProTheme.colors.financialRed, fontWeight = FontWeight.Bold)
                         }
                         Column {
                             Text(WebI18n.tr("صافي التدفق", "Net cash flow", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(TextContent.money(netCashFlow, primaryCurrency, lang), color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
+                            Text(TextContent.money(netCashFlow, reportCurrency, lang), color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -191,7 +214,7 @@ fun ReportsScreen(
             InteractiveCashFlowChart(
                 income = totalIncome.toDouble(),
                 expense = totalExpenses.toDouble(),
-                currency = primaryCurrency
+                currency = reportCurrency
             )
         }
 
@@ -234,7 +257,7 @@ fun ReportsScreen(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
-                                        text = TextContent.money(amount, primaryCurrency, lang),
+                                        text = TextContent.money(amount, reportCurrency, lang),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = ByeProTheme.colors.goldPrimary
                                     )
