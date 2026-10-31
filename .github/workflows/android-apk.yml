@@ -109,9 +109,11 @@ jobs:
         working-directory: ${{ env.PROJECT_DIR }}
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         shell: bash
         run: |
-          if [[ -z "$KEYSTORE_BASE64" || -z "${{ secrets.STORE_PASSWORD }}" || -z "${{ secrets.KEY_PASSWORD }}" ]]; then
+          if [[ -z "$KEYSTORE_BASE64" || -z "$STORE_PASSWORD" || -z "$KEY_PASSWORD" ]]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "::warning::Release APK skipped: configure KEYSTORE_BASE64, STORE_PASSWORD, and KEY_PASSWORD repository secrets."
             exit 0
@@ -136,7 +138,7 @@ jobs:
         if: ${{ steps.release_signing.outputs.enabled == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: BYE-PRO-FINANCE-Android-Release-10.0.2
+          name: BYE-PRO-FINANCE-Android-Release-10.0.3
           path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
