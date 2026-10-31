@@ -14,7 +14,11 @@ import com.example.ui.components.FinanceFloatingActionButton
 
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,19 +26,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -479,6 +478,44 @@ fun BillItemCard(
 }
 
 @Composable
+private fun DebtDirectionSelector(
+    selectedDirection: String,
+    lang: com.example.finance.model.AppLanguage,
+    tagPrefix: String,
+    onDirectionChange: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        listOf(
+            "owed_to_me" to WebI18n.tr("دائن — لي عنده", "Creditor — owed to me", lang),
+            "i_owe" to WebI18n.tr("مدين — عليّ له", "Debtor — I owe", lang)
+        ).forEach { (value, label) ->
+            val selected = selectedDirection == value
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(46.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (selected) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.surfaceVariant)
+                    .border(1.dp, if (selected) ByeProTheme.colors.goldPrimary else ByeProTheme.colors.fieldBorder, RoundedCornerShape(10.dp))
+                    .selectable(selected = selected, onClick = { onDirectionChange(value) }, role = Role.RadioButton)
+                    .testTag("${tagPrefix}_${value}"),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = label,
+                    color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun DebtManagementPanel(
     debts: List<DebtEntity>,
     lang: com.example.finance.model.AppLanguage,
@@ -498,32 +535,12 @@ private fun DebtManagementPanel(
     val currencyTotals = filtered.groupBy { it.currency }.mapValues { (_, rows) -> rows.sumOf { it.remaining } }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            if (selectedDirection == "owed_to_me") {
-                FinanceButton(
-                    onClick = { onDirectionChange("owed_to_me") },
-                    modifier = Modifier.weight(1f).testTag("debts_tab_owed_to_me"),
-                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary)
-                ) { Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang), fontWeight = FontWeight.Bold) }
-            } else {
-                FinanceOutlinedButton(
-                    onClick = { onDirectionChange("owed_to_me") },
-                    modifier = Modifier.weight(1f).testTag("debts_tab_owed_to_me")
-                ) { Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang)) }
-            }
-            if (selectedDirection == "i_owe") {
-                FinanceButton(
-                    onClick = { onDirectionChange("i_owe") },
-                    modifier = Modifier.weight(1f).testTag("debts_tab_i_owe"),
-                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary)
-                ) { Text(WebI18n.tr("مدين — عليّ له", "I owe", lang), fontWeight = FontWeight.Bold) }
-            } else {
-                FinanceOutlinedButton(
-                    onClick = { onDirectionChange("i_owe") },
-                    modifier = Modifier.weight(1f).testTag("debts_tab_i_owe")
-                ) { Text(WebI18n.tr("مدين — عليّ له", "I owe", lang)) }
-            }
-        }
+        DebtDirectionSelector(
+            selectedDirection = selectedDirection,
+            lang = lang,
+            tagPrefix = "debts_tab",
+            onDirectionChange = onDirectionChange
+        )
         FinanceTextField(
             value = search,
             onValueChange = { search = it },
@@ -641,41 +658,12 @@ fun AddDebtDialog(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (direction == "owed_to_me") {
-                        FinanceButton(
-                            onClick = { direction = "owed_to_me" },
-                            modifier = Modifier.weight(1f).testTag("debt_direction_owed_to_me"),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = ByeProTheme.colors.goldPrimary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        ) { Text(WebI18n.tr("لي عنده", "Owed to me", lang), fontWeight = FontWeight.Bold) }
-                    } else {
-                        FinanceOutlinedButton(
-                            onClick = { direction = "owed_to_me" },
-                            modifier = Modifier.weight(1f).testTag("debt_direction_owed_to_me")
-                        ) { Text(WebI18n.tr("لي عنده", "Owed to me", lang)) }
-                    }
-                    if (direction == "i_owe") {
-                        FinanceButton(
-                            onClick = { direction = "i_owe" },
-                            modifier = Modifier.weight(1f).testTag("debt_direction_i_owe"),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = ByeProTheme.colors.goldPrimary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        ) { Text(WebI18n.tr("عليّ له", "I owe", lang), fontWeight = FontWeight.Bold) }
-                    } else {
-                        FinanceOutlinedButton(
-                            onClick = { direction = "i_owe" },
-                            modifier = Modifier.weight(1f).testTag("debt_direction_i_owe")
-                        ) { Text(WebI18n.tr("عليّ له", "I owe", lang)) }
-                    }
-                }
+                DebtDirectionSelector(
+                    selectedDirection = direction,
+                    lang = lang,
+                    tagPrefix = "debt_direction",
+                    onDirectionChange = { direction = it }
+                )
                 FinanceTextField(value = principalStr, onValueChange = { principalStr = it }, label = { Text(WebI18n.tr("المبلغ الأصلي", "Original amount", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(Locale.ROOT) }, label = { Text(WebI18n.tr("العملة (LYD / USD / EUR ...)", "Currency (LYD / USD / EUR ...)", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = minPaymentStr, onValueChange = { minPaymentStr = it }, label = { Text(WebI18n.tr("القسط / الدفعة المتوقعة", "Expected installment", lang)) }, modifier = Modifier.fillMaxWidth())
