@@ -4,8 +4,6 @@ import androidx.compose.material.icons.filled.*
 
 import androidx.compose.material.icons.Icons
 
-import com.example.ui.components.FinanceIcon
-
 import com.composables.icons.lucide.*
 
 import com.example.ui.components.FinanceAlertDialog
@@ -105,7 +103,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        FinanceIcon(Icons.Default.PersonRound, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
+                        Icon(Icons.Default.PersonRound, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                         Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                         Text(
                             text = WebI18n.tr("الملف الشخصي والحساب", "Profile and account", lang),
@@ -153,7 +151,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        FinanceIcon(Lucide.Languages, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
+                        Icon(Icons.Default.Info, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                         Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                         Text(
                             text = Strings.get("language", lang),
