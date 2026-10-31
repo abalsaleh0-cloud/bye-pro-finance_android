@@ -50,7 +50,27 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: gradle --no-daemon :app:connectedDebugAndroidTest
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -wipe-data
+          script: |
+            adb wait-for-device
+            boot_ready=false
+            for attempt in $(seq 1 60); do
+              boot_completed=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\\r')
+              package_service=$(adb shell service check package 2>/dev/null || true)
+              activity_service=$(adb shell service check activity 2>/dev/null || true)
+              if [ "$boot_completed" = "1" ] && echo "$package_service" | grep -q "found" && echo "$activity_service" | grep -q "found"; then
+                boot_ready=true
+                break
+              fi
+              sleep 5
+            done
+            if [ "$boot_ready" != "true" ]; then
+              adb logcat -d -t 300 || true
+              echo "Android emulator package/activity services did not become ready"
+              exit 1
+            fi
+            adb shell cmd package list packages >/dev/null
+            gradle --no-daemon :app:connectedDebugAndroidTest
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
