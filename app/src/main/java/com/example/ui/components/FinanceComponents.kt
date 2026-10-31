@@ -7,6 +7,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -19,6 +20,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
@@ -30,6 +32,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -227,6 +230,22 @@ fun FinanceAlertDialog(
     )
 }
 
+
+/** Lucide-sized semantic icon wrapper for consistent 20dp glyphs across screens. */
+@Composable
+fun FinanceIcon(
+    imageVector: ImageVector,
+    contentDescription: String?,
+    modifier: Modifier = Modifier.size(20.dp),
+    tint: Color = LocalContentColor.current
+) {
+    Icon(
+        imageVector = imageVector,
+        contentDescription = contentDescription,
+        modifier = modifier,
+        tint = tint
+    )
+}
 
 /** Shared icon action control with consistent default accent color. */
 @Composable
