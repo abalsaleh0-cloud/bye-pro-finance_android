@@ -3,14 +3,13 @@ package com.example.ui.navigation
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.*
 
-import androidx.compose.material.icons.filled.*
 
-import androidx.compose.material.icons.Icons
 
 import com.composables.icons.lucide.*
 
 import com.example.finance.i18n.TextContent
 
+import com.example.ui.components.FinanceIcon
 import com.example.ui.components.FinanceIconButton
 import com.example.ui.theme.ByeProTheme
 import androidx.activity.compose.BackHandler
