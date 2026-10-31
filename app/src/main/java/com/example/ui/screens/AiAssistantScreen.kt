@@ -129,6 +129,11 @@ fun AiAssistantScreen(
                 onClick = { selectedTabIndex = 1 },
                 text = { Text(Strings.get("nav_ai_insights", lang), fontWeight = FontWeight.Bold) }
             )
+            Tab(
+                selected = selectedTabIndex == 2,
+                onClick = { selectedTabIndex = 2 },
+                text = { Text(WebI18n.tr("النموذج المحلي", "Local Model", lang), fontWeight = FontWeight.Bold) }
+            )
         }
 
         if (selectedTabIndex == 0) {
@@ -262,7 +267,7 @@ fun AiAssistantScreen(
                     }
                 }
             }
-        } else {
+        } else if (selectedTabIndex == 1) {
             // Insights Tab
             val insights = viewModel.aiService.generateInsights(transactions, budgets, lang)
             LazyColumn(
@@ -349,6 +354,8 @@ fun AiAssistantScreen(
                     }
                 }
             }
+        } else {
+            LocalAiModelScreen()
         }
     }
 }
