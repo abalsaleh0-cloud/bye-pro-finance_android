@@ -1,20 +1,13 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
 import com.example.ui.components.FinanceIcon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 
 
 
 
-import androidx.compose.material.icons.filled.*
 
 import com.example.finance.i18n.TextContent
 
@@ -46,7 +39,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
+
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Send
@@ -164,7 +157,7 @@ fun AiAssistantScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         FinanceIcon(
-                            imageVector = Icons.Default.Info,
+                            imageVector = Lucide.Info,
                             contentDescription = null,
                             tint = ByeProTheme.colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -262,7 +255,7 @@ fun AiAssistantScreen(
                             .testTag("ai_assistant_send_btn")
                     ) {
                         FinanceIcon(
-                            imageVector = Icons.Default.Send,
+                            imageVector = Lucide.ArrowRight,
                             contentDescription = WebI18n.tr("إرسال", "Send", lang),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
@@ -325,9 +318,9 @@ fun AiAssistantScreen(
                                 )
                                 FinanceIcon(
                                     imageVector = when (insight.impactType) {
-                                        "POSITIVE" -> Icons.Default.TrendingUp
-                                        "WARNING" -> Icons.Default.Info
-                                        else -> Icons.Default.AutoAwesome
+                                        "POSITIVE" -> Lucide.TrendingUp
+                                        "WARNING" -> Lucide.Info
+                                        else -> Lucide.Sparkles
                                     },
                                     contentDescription = null,
                                     tint = when (insight.impactType) {
