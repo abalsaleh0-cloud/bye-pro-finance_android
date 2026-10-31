@@ -218,7 +218,8 @@ fun DashboardScreen(
                             title = bill.name,
                             subtitle = "${dashboardDate(bill.dueDate, locale)} · " +
                                 WebI18n.tr(if (bill.dueDate < System.currentTimeMillis()) "متأخرة" else "قادمة", if (bill.dueDate < System.currentTimeMillis()) "Overdue" else "Upcoming", lang),
-                            amount = TextContent.money(bill.amount, bill.currency, lang)
+                            amount = TextContent.money(bill.amount, bill.currency, lang),
+                            showDivider = index < minOf(5, dashboardBills.size) - 1
                         )
                     }
                 }
@@ -243,7 +244,7 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall
                 )
-                dashboardBudgets.take(4).forEach { budget ->
+                dashboardBudgets.take(4).forEachIndexed { index, budget ->
                     DashboardLine(
                         title = budget.name,
                         subtitle = budgetPeriodLabel(budget, lang),
