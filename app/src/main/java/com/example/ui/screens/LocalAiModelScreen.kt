@@ -93,7 +93,7 @@ fun LocalAiModelScreen(modelViewModel: LocalAiModelViewModel = viewModel()) {
             }
         }
         if (state.installed || state.downloadedBytes > 0L) {
-            OutlinedButton(onClick = modelViewModel::deleteModel, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = modelViewModel::deleteModel, enabled = !state.downloading, modifier = Modifier.fillMaxWidth()) {
                 Text("حذف النموذج وملف التنزيل")
             }
         }
