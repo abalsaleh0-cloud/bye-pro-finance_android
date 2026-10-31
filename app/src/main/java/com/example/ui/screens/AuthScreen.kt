@@ -30,6 +30,9 @@ import androidx.compose.ui.unit.dp
 import com.example.finance.auth.AuthOutcome
 import com.example.finance.auth.SupabaseAuthRepository
 import com.example.finance.model.AppLanguage
+import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceIconButton
 import com.example.ui.theme.ByeProTheme
 import kotlinx.coroutines.launch
 
@@ -82,7 +85,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
                         PasswordField(password, { password = it }, tr("كلمة المرور", "Password"), passwordVisible, { passwordVisible = !passwordVisible }, tr("إظهار كلمة المرور", "Show password"), tr("إخفاء كلمة المرور", "Hide password"), "auth_password")
                         if (signup) PasswordField(confirm, { confirm = it }, tr("تأكيد كلمة المرور", "Confirm password"), confirmVisible, { confirmVisible = !confirmVisible }, tr("إظهار تأكيد كلمة المرور", "Show confirm password"), tr("إخفاء تأكيد كلمة المرور", "Hide confirm password"), "auth_confirm_password")
                         message?.let { Text(it, color = if (error) MaterialTheme.colorScheme.error else ByeProTheme.colors.statusSuccess, style = MaterialTheme.typography.bodySmall) }
-                        Button(
+                        FinanceButton(
                             onClick = {
                                 message = null
                                 when {
@@ -143,13 +146,9 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
 
 @Composable
 private fun AuthTextField(value: String, onValueChange: (String) -> Unit, label: String, tag: String, type: KeyboardType = KeyboardType.Text) {
-    OutlinedTextField(
+    FinanceTextField(
         value = value, onValueChange = onValueChange, modifier = Modifier.fillMaxWidth().testTag(tag),
         label = { Text(label) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = type),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = ByeProTheme.colors.fieldFocus, unfocusedBorderColor = ByeProTheme.colors.fieldBorder,
-            focusedContainerColor = ByeProTheme.colors.fieldBg, unfocusedContainerColor = ByeProTheme.colors.fieldBg
-        )
     )
 }
 
@@ -165,7 +164,7 @@ private fun PasswordField(
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         trailingIcon = {
-            IconButton(onClick = onToggle, modifier = Modifier.testTag("${tag}_visibility")) {
+            FinanceIconButton(onClick = onToggle, modifier = Modifier.testTag("${tag}_visibility")) {
                 Icon(
                     imageVector = if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                     contentDescription = if (visible) hideDescription else showDescription,
