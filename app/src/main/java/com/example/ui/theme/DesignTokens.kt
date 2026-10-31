@@ -67,7 +67,7 @@ object ByeProDesignTokens {
         val sm = 8.dp; val md = 12.dp; val lg = 16.dp; val xl = 22.dp
     }
     object Control {
-        val height = 44.dp
+        val height = 43.dp
         val contentMaxWidth = 1440.dp
         val focusRingWidth = 2.dp
     }
