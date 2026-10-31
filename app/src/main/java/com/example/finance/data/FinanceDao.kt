@@ -164,6 +164,12 @@ interface FinanceDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHouseholdMember(member: HouseholdMemberEntity): Long
 
+    @Update
+    suspend fun updateHouseholdMember(member: HouseholdMemberEntity)
+
+    @Delete
+    suspend fun deleteHouseholdMember(member: HouseholdMemberEntity)
+
     @Query("SELECT * FROM household_expenses ORDER BY date DESC")
     fun getAllHouseholdExpenses(): Flow<List<HouseholdExpenseEntity>>
 
@@ -172,6 +178,9 @@ interface FinanceDao {
 
     @Update
     suspend fun updateHouseholdExpense(expense: HouseholdExpenseEntity)
+
+    @Delete
+    suspend fun deleteHouseholdExpense(expense: HouseholdExpenseEntity)
 
     // --- Documents ---
     @Query("SELECT * FROM documents ORDER BY date DESC")
