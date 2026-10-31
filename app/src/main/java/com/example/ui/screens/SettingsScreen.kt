@@ -1,5 +1,9 @@
 package com.example.ui.screens
 
+import androidx.compose.material.icons.filled.*
+
+import androidx.compose.material.icons.Icons
+
 import com.example.ui.components.FinanceIcon
 
 import com.composables.icons.lucide.*
@@ -101,7 +105,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        FinanceIcon(Lucide.UserRound, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
+                        FinanceIcon(Icons.Default.PersonRound, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                         Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                         Text(
                             text = WebI18n.tr("الملف الشخصي والحساب", "Profile and account", lang),
