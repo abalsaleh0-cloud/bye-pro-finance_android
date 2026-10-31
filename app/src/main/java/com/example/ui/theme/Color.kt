@@ -3,13 +3,13 @@ package com.example.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Exact semantic colors mirrored from apps/web/src/styles.css and unified-ui.css.
-val DarkBgMain = Color(0xFF101115)
+val DarkBgMain = Color(0xFF101114)
 val DarkSurfaceMain = Color(0xFF181A1F)
-val DarkCardMain = Color(0xFF1E1F24)
-val DarkCardSecondary = Color(0xFF181A1F)
+val DarkCardMain = Color(0xFF181A1F)
+val DarkCardSecondary = Color(0xFF1E1F24)
 val DarkHoverInteractive = Color(0xFF1E1F24)
 val DarkBorderBase = Color(0xFF2B2D34)
-val DarkBorderProminent = Color(0xFF363740)
+val DarkBorderProminent = Color(0xFF3A3341)
 val DarkTextPrimary = Color(0xFFF1F0EB)
 val DarkTextSecondary = Color(0xFFA5A7B0)
 val DarkTextMuted = Color(0xFFA5A7B0)
@@ -28,17 +28,17 @@ val PositiveDarkGreen = StatusSuccessDark
 val WarningDarkRed = StatusErrorDark
 
 // Light palette from [data-theme="light"] in apps/web/src/unified-ui.css.
-val LightBgMain = Color(0xFFF4F4F6)
+val LightBgMain = Color(0xFFF4F5F7)
 val LightSurfaceMain = Color(0xFFFFFFFF)
-val LightSurfaceSecondary = Color(0xFFF3F3F5)
-val LightCardSecondary = Color(0xFFF3F3F5)
-val LightHoverInteractive = Color(0xFFF1F1F3)
-val LightBorderBase = Color(0xFFD7D8DD)
-val LightBorderProminent = Color(0xFFC8C9CF)
-val LightTextPrimary = Color(0xFF17181C)
-val LightTextSecondary = Color(0xFF666A74)
-val LightTextMuted = Color(0xFF666A74)
-val LightGoldPrimary = Color(0xFFD6B56D)
+val LightSurfaceSecondary = Color(0xFFF0F1F4)
+val LightCardSecondary = Color(0xFFF0F1F4)
+val LightHoverInteractive = Color(0xFFF2F3F5)
+val LightBorderBase = Color(0xFFD9DCE3)
+val LightBorderProminent = Color(0xFFCBD0D9)
+val LightTextPrimary = Color(0xFF20232A)
+val LightTextSecondary = Color(0xFF626875)
+val LightTextMuted = Color(0xFF626875)
+val LightGoldPrimary = Color(0xFF8A671D)
 val LightGoldFeatured = Color(0xFFD6B56D)
 val LightStatusSuccess = Color(0xFF16794A)
 val LightStatusError = Color(0xFFB42332)
@@ -48,9 +48,9 @@ val DarkFieldText = Color(0xFFF7F4EC)
 val DarkFieldBorder = Color(0xFF363740)
 val DarkFieldFocus = GoldPrimary
 val LightFieldBg = Color(0xFFFFFFFF)
-val LightFieldText = Color(0xFF17181C)
-val LightFieldBorder = Color(0xFFC8C9CF)
-val LightFieldFocus = GoldPrimary
+val LightFieldText = Color(0xFF20232A)
+val LightFieldBorder = Color(0xFFCBD0D9)
+val LightFieldFocus = LightGoldPrimary
 
 val LogoBgDark = DarkBgMain
 val LogoGoldBorder = GoldPrimary
