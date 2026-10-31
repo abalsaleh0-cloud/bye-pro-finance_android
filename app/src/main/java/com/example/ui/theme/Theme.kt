@@ -72,7 +72,7 @@ val ByeProDarkTokens = ByeProColorTokens(
     quietButtonBg = GoldDark,
     quietButtonBorder = GoldMuted,
     quietButtonText = GoldPrimary,
-    dialogBorder = Color(0xFF40372A),
+    dialogBorder = DarkBorderBase,
     isDark = true
 )
 
@@ -105,7 +105,7 @@ val ByeProLightTokens = ByeProColorTokens(
     quietButtonBg = Color(0xFFF7F2E7),
     quietButtonBorder = Color(0xFFB99B5E),
     quietButtonText = Color(0xFF6C5420),
-    dialogBorder = Color(0xFFD7D8DD),
+    dialogBorder = LightBorderBase,
     isDark = false
 )
 
