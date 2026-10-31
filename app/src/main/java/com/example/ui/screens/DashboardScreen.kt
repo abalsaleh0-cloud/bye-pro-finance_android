@@ -68,7 +68,7 @@ fun DashboardScreen(
     val bills by viewModel.bills.collectAsState()
     val goals by viewModel.savingsGoals.collectAsState()
     val activeAccounts = accounts.filter { !it.isArchived }
-    val dashboardTransactions = transactions.sortedByDescending { it.date }.take(50).filter { it.status != TransactionStatus.CANCELLED }
+    val dashboardTransactions = transactions.sortedByDescending { it.date }.take(50)
     val dashboardBills = bills.filter { !it.isPaid }.sortedBy { it.dueDate }.take(20)
     val dashboardDebts = debts.filter { it.status.name != "PAID" }.sortedBy { it.dueDate }.take(20)
     val dashboardGoals = goals.sortedBy { it.deadline }.take(20)
@@ -82,7 +82,7 @@ fun DashboardScreen(
         ?: currencyOrder.firstOrNull()
         ?: "LYD"
     val currencyAccounts = activeAccounts.filter { it.currency.equals(dashboardCurrency, true) }
-    val currencyTransactions = dashboardTransactions.filter { it.currency.equals(dashboardCurrency, true) }
+    val currencyTransactions = dashboardTransactions.filter { it.currency.equals(dashboardCurrency, true) && it.status != TransactionStatus.CANCELLED }
     val currencyAssets = dashboardAssets.filter { it.currency.equals(dashboardCurrency, true) }
     val currencyBudgets = budgets.filter { it.currency.equals(dashboardCurrency, true) }
     val currencyDebts = dashboardDebts.filter { it.currency.equals(dashboardCurrency, true) }
