@@ -22,6 +22,7 @@ data class AccountEntity(
     val type: AccountType,
     val currency: String = "LYD",
     val balance: Double = 0.0,
+    val openingBalance: Double = balance,
     val accountNumberSafe: String = "",
     val institution: String = "",
     val isArchived: Boolean = false,
