@@ -144,7 +144,7 @@ fun DashboardScreen(
                     )
                     Spacer(Modifier.width(7.dp))
                     Text(
-                        WebI18n.tr("بيانات قاعدة الجهاز", "On-device database", lang),
+                        WebI18n.tr("متصل بقاعدة البيانات", "Connected to database", lang),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelSmall
                     )
