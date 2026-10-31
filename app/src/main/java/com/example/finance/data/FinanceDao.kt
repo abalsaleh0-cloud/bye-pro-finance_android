@@ -161,6 +161,9 @@ interface FinanceDao {
     @Query("SELECT * FROM household_members ORDER BY id ASC")
     fun getAllHouseholdMembers(): Flow<List<HouseholdMemberEntity>>
 
+    @Query("SELECT * FROM household_members WHERE id = :id LIMIT 1")
+    suspend fun getHouseholdMemberById(id: Long): HouseholdMemberEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHouseholdMember(member: HouseholdMemberEntity): Long
 
