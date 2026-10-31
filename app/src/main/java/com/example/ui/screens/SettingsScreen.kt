@@ -166,7 +166,7 @@ fun SettingsScreen(
                             onClick = { viewModel.setLanguage(AppLanguage.AR) },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (lang == AppLanguage.AR) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = if (lang == AppLanguage.AR) Color(0xFF17130B) else MaterialTheme.colorScheme.onSurface
+                                contentColor = if (lang == AppLanguage.AR) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                             ),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier
