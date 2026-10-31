@@ -26,6 +26,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.LocalContentColor
@@ -202,6 +204,30 @@ fun FinanceLinkButton(
         border = null,
         contentPadding = PaddingValues(0.dp),
         content = content
+    )
+}
+
+/** Shared Web-token switch styling for every settings toggle. */
+@Composable
+fun FinanceSwitch(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)?,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+        enabled = enabled,
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+            checkedTrackColor = ByeProTheme.colors.goldPrimary,
+            checkedBorderColor = ByeProTheme.colors.goldPrimary,
+            uncheckedThumbColor = ByeProTheme.colors.textMuted,
+            uncheckedTrackColor = ByeProTheme.colors.cardSecondary,
+            uncheckedBorderColor = ByeProTheme.colors.borderBase
+        )
     )
 }
 
