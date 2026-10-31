@@ -90,12 +90,15 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     }
     fun deleteDebt(debt: DebtEntity) { viewModelScope.launch { repository.deleteDebt(debt) } }
     fun addBill(bill: BillEntity) { viewModelScope.launch { repository.addBill(bill) } }
+    fun updateBill(bill: BillEntity) { viewModelScope.launch { repository.updateBill(bill) } }
     fun markBillPaid(billId: Long, accountId: Long) { viewModelScope.launch { repository.markBillPaid(billId, accountId) } }
     fun deleteBill(bill: BillEntity) { viewModelScope.launch { repository.deleteBill(bill) } }
     fun addSavingsGoal(goal: SavingsGoalEntity) { viewModelScope.launch { repository.addSavingsGoal(goal) } }
+    fun updateSavingsGoal(goal: SavingsGoalEntity) { viewModelScope.launch { repository.updateSavingsGoal(goal) } }
     fun contributeToSavings(goalId: Long, amount: Double, accountId: Long) { viewModelScope.launch { repository.contributeToSavings(goalId, amount, accountId) } }
     fun deleteSavingsGoal(goal: SavingsGoalEntity) { viewModelScope.launch { repository.deleteSavingsGoal(goal) } }
     fun addAsset(asset: AssetEntity) { viewModelScope.launch { repository.addAsset(asset) } }
+    fun updateAsset(asset: AssetEntity) { viewModelScope.launch { repository.updateAsset(asset) } }
     fun deleteAsset(asset: AssetEntity) { viewModelScope.launch { repository.deleteAsset(asset) } }
     fun addHouseholdMember(name: String, email: String, role: String, percent: Double) { viewModelScope.launch { repository.addHouseholdMember(name, email, role, percent) } }
     fun addHouseholdExpense(title: String, amount: Double, payerId: Long, category: String, currency: String = primaryCurrency.value) { viewModelScope.launch { repository.addHouseholdExpense(title, amount, payerId, category, currency) } }
