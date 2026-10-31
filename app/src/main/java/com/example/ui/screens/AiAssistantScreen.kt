@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
 import androidx.compose.material.icons.filled.*
 
 import com.example.finance.i18n.TextContent
@@ -149,8 +152,8 @@ fun AiAssistantScreen(
                         modifier = Modifier.padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
+                        FinanceIcon(
+                            imageVector = Lucide.Info,
                             contentDescription = null,
                             tint = ByeProTheme.colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -247,8 +250,8 @@ fun AiAssistantScreen(
                             .background(ByeProTheme.colors.financialGreen)
                             .testTag("ai_assistant_send_btn")
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Send,
+                        FinanceIcon(
+                            imageVector = Lucide.Send,
                             contentDescription = WebI18n.tr("إرسال", "Send", lang),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
@@ -309,11 +312,11 @@ fun AiAssistantScreen(
                                         else -> ByeProTheme.colors.goldPrimary
                                     }
                                 )
-                                Icon(
+                                FinanceIcon(
                                     imageVector = when (insight.impactType) {
-                                        "POSITIVE" -> Icons.Default.TrendingUp
-                                        "WARNING" -> Icons.Default.Warning
-                                        else -> Icons.Default.AutoAwesome
+                                        "POSITIVE" -> Lucide.TrendingUp
+                                        "WARNING" -> Lucide.AlertTriangle
+                                        else -> Lucide.Sparkles
                                     },
                                     contentDescription = null,
                                     tint = when (insight.impactType) {
