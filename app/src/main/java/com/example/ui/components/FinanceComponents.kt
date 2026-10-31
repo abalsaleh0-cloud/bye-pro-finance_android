@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardActions
@@ -64,14 +65,14 @@ fun FinanceTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    singleLine: Boolean = false,
+    singleLine: Boolean = true,
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     interactionSource: MutableInteractionSource? = null,
     shape: Shape = RoundedCornerShape(9.dp)
 ) {
     OutlinedTextField(
-        value = value, onValueChange = onValueChange, modifier = modifier,
+        value = value, onValueChange = onValueChange, modifier = if (singleLine) modifier.height(43.dp) else modifier.heightIn(min = 43.dp),
         enabled = enabled, readOnly = readOnly, textStyle = textStyle,
         label = label, placeholder = placeholder, leadingIcon = leadingIcon,
         trailingIcon = trailingIcon, prefix = prefix, suffix = suffix,
