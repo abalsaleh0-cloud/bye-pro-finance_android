@@ -1,6 +1,6 @@
 package com.example.ui.screens
 
-import com.composables.icons.lucide.Lucide
+import androidx.compose.material.icons.filled.*
 
 import com.example.finance.i18n.TextContent
 
@@ -149,8 +149,8 @@ fun AiAssistantScreen(
                         modifier = Modifier.padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        FinanceIcon(
-                            imageVector = Lucide.Info,
+                        Icon(
+                            imageVector = Icons.Default.Info,
                             contentDescription = null,
                             tint = ByeProTheme.colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -247,8 +247,8 @@ fun AiAssistantScreen(
                             .background(ByeProTheme.colors.financialGreen)
                             .testTag("ai_assistant_send_btn")
                     ) {
-                        FinanceIcon(
-                            imageVector = Lucide.Send,
+                        Icon(
+                            imageVector = Icons.Default.Send,
                             contentDescription = WebI18n.tr("إرسال", "Send", lang),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
@@ -309,11 +309,11 @@ fun AiAssistantScreen(
                                         else -> ByeProTheme.colors.goldPrimary
                                     }
                                 )
-                                FinanceIcon(
+                                Icon(
                                     imageVector = when (insight.impactType) {
-                                        "POSITIVE" -> Lucide.TrendingUp
-                                        "WARNING" -> Lucide.AlertTriangle
-                                        else -> Lucide.Sparkles
+                                        "POSITIVE" -> Icons.Default.TrendingUp
+                                        "WARNING" -> Icons.Default.Warning
+                                        else -> Icons.Default.AutoAwesome
                                     },
                                     contentDescription = null,
                                     tint = when (insight.impactType) {
