@@ -27,7 +27,6 @@ import com.example.finance.model.TransactionType
 import com.example.finance.model.TransferEntity
 import com.example.finance.model.UserEntity
 import com.example.finance.model.UserRole
-import androidx.room.withTransaction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
