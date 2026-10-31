@@ -261,7 +261,7 @@ fun TransfersScreen(viewModel: FinanceViewModel) {
 
                     if (feedback != null) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (feedbackSuccess) FinanceIcon(Lucide.CheckCircle2, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
+                            if (feedbackSuccess) FinanceIcon(Lucide.CircleCheck, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                             Text(
                                 text = feedback.orEmpty(),
                                 style = MaterialTheme.typography.bodySmall,
