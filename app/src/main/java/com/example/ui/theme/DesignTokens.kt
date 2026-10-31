@@ -4,38 +4,38 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Android mirror of apps/web/src/advanced-finance.css and the shared Web control contract. */
+/** Android mirror of packages/ui/src/tokens.css and the active Web light/dark theme tokens. */
 object ByeProDesignTokens {
     object Colors {
-        val background = Color(0xFF0B0A0C)
-        val surface = Color(0xFF111015)
-        val surfaceRaised = Color(0xFF1C1721)
-        val surfaceHover = Color(0xFF211C25)
-        val border = Color(0xFF2A2530)
-        val borderStrong = Color(0xFF3A3341)
-        val text = Color(0xFFEDE8DE)
-        val textMain = Color(0xFFEDE8DE)
-        val textSecondary = Color(0xFFD8D3CA)
-        val muted = Color(0xFF948C7E)
+        val background = Color(0xFF101114)
+        val surface = Color(0xFF181A1F)
+        val surfaceRaised = Color(0xFF1E1F24)
+        val surfaceHover = Color(0xFF1E1F24)
+        val border = Color(0xFF2B2D34)
+        val borderStrong = Color(0xFF3A3B43)
+        val text = Color(0xFFF1F0EB)
+        val textMain = Color(0xFFF1F0EB)
+        val textSecondary = Color(0xFFA5A7B0)
+        val muted = Color(0xFFA5A7B0)
         val accent = Color(0xFFD6B56D)
         val success = Color(0xFF67D6A1)
         val danger = Color(0xFFFF8585)
     }
     object LightColors {
-        val background = Color(0xFFF5F3EF)
+        val background = Color(0xFFF4F5F7)
         val surface = Color(0xFFFFFFFF)
-        val surfaceSecondary = Color(0xFFFBFAF7)
-        val surfaceRaised = Color(0xFFF1EEE8)
-        val surfaceHover = Color(0xFFE9E5DD)
-        val border = Color(0xFFD9D4CA)
-        val borderStrong = Color(0xFFC8C1B5)
-        val text = Color(0xFF202020)
-        val textSecondary = Color(0xFF303030)
-        val muted = Color(0xFF6B665D)
-        val mutedSecondary = Color(0xFF68645C)
-        val accent = Color(0xFFD6B56D)
+        val surfaceSecondary = Color(0xFFF0F1F4)
+        val surfaceRaised = Color(0xFFF0F1F4)
+        val surfaceHover = Color(0xFFF2F3F5)
+        val border = Color(0xFFD9DCE3)
+        val borderStrong = Color(0xFFCBD0D9)
+        val text = Color(0xFF20232A)
+        val textSecondary = Color(0xFF626875)
+        val muted = Color(0xFF626875)
+        val mutedSecondary = Color(0xFF626875)
+        val accent = Color(0xFF8A671D)
         val success = Color(0xFF16794A)
-        val danger = Color(0xFFA43E45)
+        val danger = Color(0xFFB42332)
     }
     object Fields {
         val darkBackground = Color(0xFF101115)
