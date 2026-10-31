@@ -655,7 +655,7 @@ fun AddDebtDialog(
                         FinanceOutlinedButton(
                             onClick = { direction = "owed_to_me" },
                             modifier = Modifier.weight(1f).testTag("debt_direction_owed_to_me")
-                        ) { Text(WebI18n.tr("لي عنده", "Owed to me")) }
+                        ) { Text(WebI18n.tr("لي عنده", "Owed to me", lang)) }
                     }
                     if (direction == "i_owe") {
                         FinanceButton(
@@ -670,7 +670,7 @@ fun AddDebtDialog(
                         FinanceOutlinedButton(
                             onClick = { direction = "i_owe" },
                             modifier = Modifier.weight(1f).testTag("debt_direction_i_owe")
-                        ) { Text(WebI18n.tr("عليّ له", "I owe")) }
+                        ) { Text(WebI18n.tr("عليّ له", "I owe", lang)) }
                     }
                 }
                 FinanceTextField(value = principalStr, onValueChange = { principalStr = it }, label = { Text(WebI18n.tr("المبلغ الأصلي", "Original amount", lang)) }, modifier = Modifier.fillMaxWidth())
