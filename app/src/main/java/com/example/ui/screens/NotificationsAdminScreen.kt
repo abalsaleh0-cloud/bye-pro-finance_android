@@ -81,6 +81,8 @@ fun NotificationsAdminScreen(
     val accounts by viewModel.accounts.collectAsState()
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var notificationFilter by remember { mutableIntStateOf(0) }
+    val filteredNotifications = when (notificationFilter) { 1 -> notifications.filter { !it.isRead }; 2 -> notifications.filter { it.isRead }; else -> notifications }
     val isAdmin = currentUser?.role == UserRole.ADMIN
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -120,20 +122,30 @@ fun NotificationsAdminScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        if (notifications.isNotEmpty()) {
-                            FinanceOutlinedButton(
-                                onClick = { viewModel.clearNotifications() },
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (notifications.any { !it.isRead }) FinanceOutlinedButton(onClick = { viewModel.markAllNotificationsRead() }, shape = RoundedCornerShape(8.dp)) {
+                                Text(WebI18n.tr("قراءة الكل", "Read all", lang), style = MaterialTheme.typography.labelSmall)
+                            }
+                            if (notifications.isNotEmpty()) FinanceOutlinedButton(onClick = { viewModel.clearNotifications() }, shape = RoundedCornerShape(8.dp)) {
                                 Icon(Icons.Default.ClearAll, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.size(4.dp))
                                 Text(WebI18n.tr("مسح الكل", "Clear all", lang), style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
                 }
 
-                if (notifications.isEmpty()) {
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(WebI18n.tr("الكل", "All", lang), WebI18n.tr("غير مقروء", "Unread", lang), WebI18n.tr("مقروء", "Read", lang)).forEachIndexed { index, label ->
+                            FinanceOutlinedButton(onClick = { notificationFilter = index }, shape = RoundedCornerShape(8.dp)) {
+                                Text((if (notificationFilter == index) "✓ " else "") + label, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                    Text(WebI18n.tr("غير المقروء: ", "Unread: ", lang) + notifications.count { !it.isRead }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                if (filteredNotifications.isEmpty()) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -148,11 +160,12 @@ fun NotificationsAdminScreen(
                         }
                     }
                 } else {
-                    items(notifications, key = { it.id }) { notif ->
+                    items(filteredNotifications, key = { it.id }) { notif ->
                         NotificationCardItem(
                             notification = notif,
                             lang = lang,
-                            onRead = { viewModel.markNotificationRead(notif.id) }
+                            onRead = { viewModel.markNotificationRead(notif.id) },
+                            onDelete = { viewModel.deleteNotification(notif.id) }
                         )
                     }
                 }
@@ -295,7 +308,8 @@ fun NotificationsAdminScreen(
 fun NotificationCardItem(
     notification: NotificationEntity,
     lang: com.example.finance.model.AppLanguage,
-    onRead: () -> Unit
+    onRead: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -329,9 +343,14 @@ fun NotificationCardItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            if (!notification.isRead) {
-                FinanceIconButton(onClick = onRead) {
-                    Icon(Icons.Default.Check, contentDescription = WebI18n.tr("تحديد كمقروء", "Mark as read", lang), tint = ByeProTheme.colors.financialGreen)
+            Column {
+                if (!notification.isRead) {
+                    FinanceIconButton(onClick = onRead) {
+                        Icon(Icons.Default.Check, contentDescription = WebI18n.tr("تحديد كمقروء", "Mark as read", lang), tint = ByeProTheme.colors.financialGreen)
+                    }
+                }
+                FinanceIconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف التنبيه", "Delete notification", lang), tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
