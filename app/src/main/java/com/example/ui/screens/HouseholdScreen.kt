@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
@@ -87,7 +89,7 @@ fun HouseholdScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_household_expense_fab")
             ) {
-                FinanceIcon(Icons.Default.Add, contentDescription = Strings.get("add_shared_expense", lang))
+                FinanceIcon(Lucide.Plus, contentDescription = Strings.get("add_shared_expense", lang))
             }
         }
     ) { padding ->
@@ -122,7 +124,7 @@ fun HouseholdScreen(
                         onClick = { editingMember = null; showAddMemberDialog = true },
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        FinanceIcon(Icons.Default.Group, contentDescription = null, modifier = Modifier.size(16.dp))
+                        FinanceIcon(Lucide.Users, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.size(4.dp))
                         Text(Strings.get("add_member", lang), style = MaterialTheme.typography.labelMedium)
                     }
@@ -185,7 +187,7 @@ fun HouseholdScreen(
                                     .border(1.dp, ByeProTheme.colors.financialGreen, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                FinanceIcon(Icons.Default.Person, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
+                                FinanceIcon(Lucide.User, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                             }
                             Spacer(modifier = Modifier.size(10.dp))
                             Column {
@@ -201,7 +203,7 @@ fun HouseholdScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             FinanceIconButton(onClick = { editingMember = m; showAddMemberDialog = true }) {
-                                FinanceIcon(Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل العضو", "Edit member", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                FinanceIcon(Lucide.Pencil, contentDescription = WebI18n.tr("تعديل العضو", "Edit member", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -251,10 +253,10 @@ fun HouseholdScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 FinanceIconButton(onClick = { editingExpense = exp; showAddExpenseDialog = true }) {
-                                    FinanceIcon(Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل المصروف", "Edit expense", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    FinanceIcon(Lucide.Pencil, contentDescription = WebI18n.tr("تعديل المصروف", "Edit expense", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 FinanceIconButton(onClick = { viewModel.deleteHouseholdExpense(exp) }) {
-                                    FinanceIcon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف المصروف", "Delete expense", lang), tint = MaterialTheme.colorScheme.error)
+                                    FinanceIcon(Lucide.Trash, contentDescription = WebI18n.tr("حذف المصروف", "Delete expense", lang), tint = MaterialTheme.colorScheme.error)
                                 }
                             }
                         }
