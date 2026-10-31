@@ -323,11 +323,15 @@ fun DashboardScreen(
                 eyebrow = WebI18n.tr("الاستحقاقات", "Due items", lang),
                 count = null
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    DashboardQuickStat(activeAccounts.size, WebI18n.tr("حسابات", "Accounts", lang), Modifier.weight(1f))
-                    DashboardQuickStat(dashboardTransactions.size, WebI18n.tr("معاملات", "Transactions", lang), Modifier.weight(1f))
-                    DashboardQuickStat(dashboardBills.size, WebI18n.tr("الفواتير", "Bills", lang), Modifier.weight(1f))
-                    DashboardQuickStat(dashboardDebts.size, WebI18n.tr("الديون", "Debts", lang), Modifier.weight(1f))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        DashboardQuickStat(activeAccounts.size, WebI18n.tr("حسابات", "Accounts", lang), Modifier.weight(1f))
+                        DashboardQuickStat(dashboardTransactions.size, WebI18n.tr("معاملات", "Transactions", lang), Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        DashboardQuickStat(dashboardBills.size, WebI18n.tr("الفواتير", "Bills", lang), Modifier.weight(1f))
+                        DashboardQuickStat(dashboardDebts.size, WebI18n.tr("الديون", "Debts", lang), Modifier.weight(1f))
+                    }
                 }
                 Text(
                     WebI18n.tr("الفواتير القادمة:", "Upcoming bills:", lang) +
@@ -395,8 +399,18 @@ private fun DashboardPanel(
                     Text(eyebrow, style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary)
                     Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 }
-                if (count != null) Text(count.toString(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (count != null) {
+                    Box(
+                        modifier = Modifier
+                            .border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(9.dp))
+                            .padding(horizontal = 8.dp, vertical = 5.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(count.toString(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(ByeProTheme.colors.borderBase))
             content()
         }
     }
