@@ -31,6 +31,7 @@ import com.example.finance.auth.AuthOutcome
 import com.example.finance.auth.SupabaseAuthRepository
 import com.example.finance.model.AppLanguage
 import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceTextButton
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceIconButton
 import com.example.ui.theme.ByeProTheme
@@ -62,7 +63,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
         ) {
             Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onToggleLanguage) {
+                    FinanceTextButton(onClick = onToggleLanguage) {
                         Text(if (language == AppLanguage.AR) "EN" else "عربي")
                     }
                 }
@@ -126,7 +127,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                             Text(tr(if (signup) "لديك حساب بالفعل؟" else "ليس لديك حساب؟", if (signup) "Already have an account?" else "Don't have an account?"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            TextButton(onClick = {
+                            FinanceTextButton(onClick = {
                                 signup = !signup
                                 message = null
                                 password = ""
