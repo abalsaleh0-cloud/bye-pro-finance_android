@@ -103,7 +103,7 @@ fun SavingsAssetsScreen(
                 onClick = {
                     if (selectedTabIndex == 0) showAddGoalDialog = true else showAddAssetDialog = true
                 },
-                containerColor = ByeProTheme.colors.goldPrimary,
+                containerColor = ByeProTheme.colors.primaryButtonBg,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_savings_asset_fab")
             ) {
@@ -402,7 +402,7 @@ fun SavingsGoalCard(
                     FinanceOutlinedButton(onClick = onEdit) { Text(WebI18n.tr("تعديل", "Edit", lang)) }
                     FinanceButton(
                     onClick = onContribute,
-                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.primaryButtonBg, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     FinanceIcon(Lucide.Wallet, contentDescription = null, modifier = Modifier.size(16.dp))
