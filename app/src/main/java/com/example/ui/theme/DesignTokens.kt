@@ -18,13 +18,13 @@ object ByeProDesignTokens {
         val danger = Color(0xFFFF8585)
     }
     object LightColors {
-        val background = Color(0xFFF4F5F7)
+        val background = Color(0xFFF4F4F6)
         val surface = Color(0xFFFFFFFF)
-        val surfaceRaised = Color(0xFFF0F1F4)
-        val border = Color(0xFFD9DCE3)
-        val text = Color(0xFF20232A)
-        val muted = Color(0xFF626875)
-        val accent = Color(0xFF8A671D)
+        val surfaceRaised = Color(0xFFF3F3F5)
+        val border = Color(0xFFD7D8DD)
+        val text = Color(0xFF17181C)
+        val muted = Color(0xFF666A74)
+        val accent = Color(0xFFD6B56D)
         val success = Color(0xFF16794A)
         val danger = Color(0xFFB42332)
     }
@@ -36,7 +36,7 @@ object ByeProDesignTokens {
         val lightBackground = Color(0xFFFFFFFF)
         val lightText = Color(0xFF20232A)
         val lightPlaceholder = Color(0xFF626875)
-        val lightBorder = Color(0xFFCBD0D9)
+        val lightBorder = Color(0xFFC8C9CF)
         val darkFocus = Color(0xFFD6B56D)
         val lightFocus = Color(0xFF8A671D)
         val height = 44.dp
