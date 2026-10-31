@@ -609,9 +609,45 @@ fun AddDebtDialog(
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الشخص أو الجهة", "Person or organization", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = creditor, onValueChange = { creditor = it }, label = { Text(WebI18n.tr("تفاصيل الطرف / الدائن", "Counterparty details", lang)) }, modifier = Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FinanceOutlinedButton(onClick = { direction = "owed_to_me" }) { Text(WebI18n.tr("لي عنده", "Owed to me", lang)) }
-                    FinanceOutlinedButton(onClick = { direction = "i_owe" }) { Text(WebI18n.tr("عليّ له", "I owe", lang)) }
+                Text(
+                    WebI18n.tr("نوع الدين", "Debt direction", lang),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (direction == "owed_to_me") {
+                        FinanceButton(
+                            onClick = { direction = "owed_to_me" },
+                            modifier = Modifier.weight(1f).testTag("debt_direction_owed_to_me"),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ByeProTheme.colors.goldPrimary,
+                                contentColor = if (ByeProTheme.colors.isDark) Color(0xFF17130B) else Color(0xFF17130B)
+                            )
+                        ) { Text(WebI18n.tr("لي عنده", "Owed to me"), fontWeight = FontWeight.Bold) }
+                    } else {
+                        FinanceOutlinedButton(
+                            onClick = { direction = "owed_to_me" },
+                            modifier = Modifier.weight(1f).testTag("debt_direction_owed_to_me")
+                        ) { Text(WebI18n.tr("لي عنده", "Owed to me")) }
+                    }
+                    if (direction == "i_owe") {
+                        FinanceButton(
+                            onClick = { direction = "i_owe" },
+                            modifier = Modifier.weight(1f).testTag("debt_direction_i_owe"),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ByeProTheme.colors.goldPrimary,
+                                contentColor = Color(0xFF17130B)
+                            )
+                        ) { Text(WebI18n.tr("عليّ له", "I owe"), fontWeight = FontWeight.Bold) }
+                    } else {
+                        FinanceOutlinedButton(
+                            onClick = { direction = "i_owe" },
+                            modifier = Modifier.weight(1f).testTag("debt_direction_i_owe")
+                        ) { Text(WebI18n.tr("عليّ له", "I owe")) }
+                    }
                 }
                 FinanceTextField(value = principalStr, onValueChange = { principalStr = it }, label = { Text(WebI18n.tr("المبلغ الأصلي", "Original amount", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(Locale.ROOT) }, label = { Text(WebI18n.tr("العملة (LYD / USD / EUR ...)", "Currency (LYD / USD / EUR ...)", lang)) }, modifier = Modifier.fillMaxWidth())
