@@ -78,6 +78,15 @@ jobs:
           build-root-directory: ${{ env.PROJECT_DIR }}
           arguments: testDebugUnitTest --stacktrace
 
+      - name: Run Android emulator UI tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: ./gradlew connectedDebugAndroidTest --stacktrace
+
       - name: Build debug APK
         uses: gradle/gradle-build-action@v3
         with:
