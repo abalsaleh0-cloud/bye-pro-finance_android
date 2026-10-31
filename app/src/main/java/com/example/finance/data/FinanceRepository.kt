@@ -404,8 +404,22 @@ class FinanceRepository(
 
     // Bills
     suspend fun addBill(bill: BillEntity) = withContext(Dispatchers.IO) {
+        require(bill.name.isNotBlank() && bill.category.isNotBlank()) { "Bill name and category are required" }
+        require(bill.amount.isFinite() && bill.amount > 0.0) { "Bill amount must be finite and positive" }
+        require(bill.currency.matches(Regex("[A-Z]{3}"))) { "Bill currency must be a three-letter code" }
+        require(bill.recurrenceIntervalDays > 0 && bill.reminderDaysBefore >= 0) { "Bill recurrence and reminder values are invalid" }
         dao.insertBill(bill)
         logAudit("CREATE", "Bill", "Created bill ${bill.name} (${bill.amount} ${bill.currency})")
+    }
+
+    suspend fun updateBill(bill: BillEntity) = withContext(Dispatchers.IO) {
+        require(bill.id > 0 && bill.name.isNotBlank() && bill.category.isNotBlank()) { "Bill identity, name and category are required" }
+        require(bill.amount.isFinite() && bill.amount > 0.0) { "Bill amount must be finite and positive" }
+        require(bill.currency.matches(Regex("[A-Z]{3}"))) { "Bill currency must be a three-letter code" }
+        require(bill.recurrenceIntervalDays > 0 && bill.reminderDaysBefore >= 0) { "Bill recurrence and reminder values are invalid" }
+        val existing = dao.getBillById(bill.id) ?: return@withContext
+        dao.updateBill(bill.copy(isPaid = existing.isPaid))
+        logAudit("UPDATE", "Bill", "Updated bill ${bill.name}")
     }
 
     suspend fun markBillPaid(billId: Long, accountId: Long): Boolean = withContext(Dispatchers.IO) {
@@ -448,8 +462,23 @@ class FinanceRepository(
 
     // Savings
     suspend fun addSavingsGoal(goal: SavingsGoalEntity) = withContext(Dispatchers.IO) {
+        require(goal.name.isNotBlank()) { "Savings goal name is required" }
+        require(goal.targetAmount.isFinite() && goal.targetAmount > 0.0) { "Savings target must be finite and positive" }
+        require(goal.currentAmount.isFinite() && goal.currentAmount >= 0.0 && goal.currentAmount <= goal.targetAmount) { "Current savings must be between zero and target" }
+        require(goal.currency.matches(Regex("[A-Z]{3}"))) { "Savings currency must be a three-letter code" }
+        require(goal.targetMonthlyDeposit.isFinite() && goal.targetMonthlyDeposit >= 0.0) { "Monthly deposit must be non-negative" }
         dao.insertSavingsGoal(goal)
         logAudit("CREATE", "Savings", "Created savings goal ${goal.name}")
+    }
+
+    suspend fun updateSavingsGoal(goal: SavingsGoalEntity) = withContext(Dispatchers.IO) {
+        require(goal.id > 0 && goal.name.isNotBlank()) { "Savings goal identity and name are required" }
+        require(goal.targetAmount.isFinite() && goal.targetAmount > 0.0) { "Savings target must be finite and positive" }
+        require(goal.currentAmount.isFinite() && goal.currentAmount >= 0.0 && goal.currentAmount <= goal.targetAmount) { "Current savings must be between zero and target" }
+        require(goal.currency.matches(Regex("[A-Z]{3}"))) { "Savings currency must be a three-letter code" }
+        require(goal.targetMonthlyDeposit.isFinite() && goal.targetMonthlyDeposit >= 0.0) { "Monthly deposit must be non-negative" }
+        dao.updateSavingsGoal(goal)
+        logAudit("UPDATE", "Savings", "Updated savings goal ${goal.name}")
     }
 
     suspend fun contributeToSavings(goalId: Long, amount: Double, accountId: Long): Boolean = withContext(Dispatchers.IO) {
@@ -493,8 +522,19 @@ class FinanceRepository(
 
     // Assets
     suspend fun addAsset(asset: AssetEntity) = withContext(Dispatchers.IO) {
+        require(asset.name.isNotBlank()) { "Asset name is required" }
+        require(asset.value.isFinite() && asset.value >= 0.0) { "Asset value must be finite and non-negative" }
+        require(asset.currency.matches(Regex("[A-Z]{3}"))) { "Asset currency must be a three-letter code" }
         dao.insertAsset(asset)
         logAudit("CREATE", "Asset", "Added asset ${asset.name} valued at ${asset.value} ${asset.currency}")
+    }
+
+    suspend fun updateAsset(asset: AssetEntity) = withContext(Dispatchers.IO) {
+        require(asset.id > 0 && asset.name.isNotBlank()) { "Asset identity and name are required" }
+        require(asset.value.isFinite() && asset.value >= 0.0) { "Asset value must be finite and non-negative" }
+        require(asset.currency.matches(Regex("[A-Z]{3}"))) { "Asset currency must be a three-letter code" }
+        dao.updateAsset(asset)
+        logAudit("UPDATE", "Asset", "Updated asset ${asset.name}")
     }
 
     suspend fun deleteAsset(asset: AssetEntity) = withContext(Dispatchers.IO) {
