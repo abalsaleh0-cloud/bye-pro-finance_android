@@ -7,7 +7,7 @@ import androidx.compose.ui.unit.sp
 /** Android mirror of packages/ui/src/tokens.css and the Web global control contract. */
 object ByeProDesignTokens {
     object Colors {
-        val background = Color(0xFF101114)
+        val background = Color(0xFF0B0A0C)
         val surface = Color(0xFF181A1F)
         val surfaceRaised = Color(0xFF1E1F24)
         val border = Color(0xFF2B2D34)
