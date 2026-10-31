@@ -14,6 +14,8 @@ import com.example.finance.model.BillEntity
 import com.example.finance.model.DebtEntity
 import com.example.finance.model.DebtStatus
 import com.example.finance.model.SavingsGoalEntity
+import com.example.finance.model.AssetEntity
+import com.example.finance.model.AssetType
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
 import com.example.finance.model.TransactionStatus
@@ -496,4 +498,33 @@ class FinanceRepositoryIntegrationTest {
         assertTrue(repository.debts.first().isEmpty())
     }
 
+
+    @Test
+    fun billSavingsAndAssetUpdatesPersistAndKeepPaymentState() = runBlocking {
+        val accountId = repository.addAccount(AccountEntity(name = "Bill account", type = AccountType.CASH, balance = 200.0, currency = "LYD"))
+        repository.addBill(BillEntity(name = "Internet", category = "Utilities", amount = 20.0, currency = "LYD", dueDate = 123456789L))
+        val bill = db.financeDao().getAllBills().first().single()
+        assertTrue(repository.markBillPaid(bill.id, accountId))
+        repository.updateBill(bill.copy(name = "Updated internet", amount = 25.0))
+        val updatedBill = db.financeDao().getBillById(bill.id)!!
+        assertEquals("Updated internet", updatedBill.name)
+        assertEquals(25.0, updatedBill.amount, 0.001)
+        assertTrue("Editing a paid bill must preserve its paid state", updatedBill.isPaid)
+
+        repository.addSavingsGoal(SavingsGoalEntity(name = "Emergency", targetAmount = 100.0, currentAmount = 20.0, deadline = 987654321L))
+        val goal = db.financeDao().getAllSavingsGoals().first().single()
+        repository.updateSavingsGoal(goal.copy(name = "Emergency reserve", targetAmount = 150.0, targetMonthlyDeposit = 15.0))
+        val updatedGoal = db.financeDao().getSavingsGoalById(goal.id)!!
+        assertEquals("Emergency reserve", updatedGoal.name)
+        assertEquals(150.0, updatedGoal.targetAmount, 0.001)
+        assertEquals(15.0, updatedGoal.targetMonthlyDeposit, 0.001)
+
+        repository.addAsset(AssetEntity(name = "Gold", type = AssetType.GOLD, value = 50.0, currency = "LYD"))
+        val asset = db.financeDao().getAllAssets().first().single()
+        repository.updateAsset(asset.copy(name = "Gold bars", value = 75.0, notes = "Vault"))
+        val updatedAsset = db.financeDao().getAllAssets().first().single()
+        assertEquals("Gold bars", updatedAsset.name)
+        assertEquals(75.0, updatedAsset.value, 0.001)
+        assertEquals("Vault", updatedAsset.notes)
+    }
 }
