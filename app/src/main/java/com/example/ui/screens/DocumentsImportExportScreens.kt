@@ -41,6 +41,7 @@ import com.example.finance.model.DocumentType
 import com.example.finance.model.DocumentEntity
 import com.example.finance.ui.FinanceViewModel
 import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceIconButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
 
