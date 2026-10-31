@@ -356,14 +356,17 @@ private fun DashboardMetric(
     currency: String? = null
 ) {
     val shape = RoundedCornerShape(16.dp)
+    val metricSurface = if (ByeProTheme.colors.isDark) {
+        Modifier.background(
+            brush = Brush.linearGradient(listOf(Color(0xFF1B1C21), Color(0xFF141519))),
+            shape = shape
+        )
+    } else {
+        Modifier.background(ByeProTheme.colors.cardMain, shape)
+    }
     Card(
         modifier = modifier
-            .background(
-                brush = Brush.linearGradient(
-                    listOf(ByeProTheme.colors.cardMain, ByeProTheme.colors.cardSecondary)
-                ),
-                shape = shape
-            )
+            .then(metricSurface)
             .border(1.dp, ByeProTheme.colors.borderBase, shape),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = shape
@@ -372,7 +375,7 @@ private fun DashboardMetric(
             Modifier.fillMaxWidth().padding(17.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(title + (currency?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title + (currency?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
             Text(amount, style = MaterialTheme.typography.titleMedium, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
             Text(note, style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -452,7 +455,13 @@ private fun DashboardTransactionLine(transaction: TransactionEntity, lang: AppLa
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
-                transaction.description.ifBlank { WebI18n.tr("معاملة مالية", "Financial transaction", lang) },
+                transaction.description.ifBlank {
+                    when (transaction.type) {
+                        TransactionType.INCOME -> WebI18n.tr("دخل", "Income", lang)
+                        TransactionType.EXPENSE -> WebI18n.tr("مصروف", "Expense", lang)
+                        else -> WebI18n.tr("تسوية", "Adjustment", lang)
+                    }
+                },
                 style = MaterialTheme.typography.bodySmall,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
