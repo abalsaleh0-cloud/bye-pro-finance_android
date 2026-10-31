@@ -4,6 +4,9 @@ import com.example.BuildConfig
 import com.example.finance.engine.LedgerSummary
 import com.example.finance.i18n.TextContent
 import com.example.finance.model.AccountEntity
+import com.example.finance.model.AssetEntity
+import com.example.finance.model.BillEntity
+import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.AppLanguage
 import com.example.finance.model.BudgetEntity
 import com.example.finance.model.DebtEntity
@@ -62,7 +65,10 @@ class GeminiFinanceService {
         transactions: List<TransactionEntity>,
         budgets: List<BudgetEntity>,
         debts: List<DebtEntity>,
-        language: AppLanguage
+        language: AppLanguage,
+        savingsGoals: List<SavingsGoalEntity> = emptyList(),
+        assets: List<AssetEntity> = emptyList(),
+        bills: List<BillEntity> = emptyList()
     ): String = withContext(Dispatchers.IO) {
         val accountsByCurrency = accounts.groupBy { it.currency.trim().ifBlank { "UNKNOWN" }.uppercase() }
         val accountSummary = if (accountsByCurrency.isEmpty()) {
@@ -97,6 +103,10 @@ class GeminiFinanceService {
             budgets.joinToString("; ") { "${it.category}: limit ${it.limitAmount} ${it.currency}, period ${it.startDate}-${it.endDate}" }
         }
 
+        val savingsSummary = if (savingsGoals.isEmpty()) "No savings goals recorded" else savingsGoals.groupBy { it.currency.uppercase() }.entries.joinToString("; ") { (currency, rows) -> "$currency: " + rows.joinToString(", ") { "${it.name}: ${it.currentAmount}/${it.targetAmount}" } }
+        val assetsSummary = if (assets.isEmpty()) "No assets recorded" else assets.groupBy { it.currency.uppercase() }.entries.joinToString("; ") { (currency, rows) -> "$currency: " + rows.joinToString(", ") { "${it.name}: ${it.value}" } }
+        val billsSummary = if (bills.isEmpty()) "No bills recorded" else bills.groupBy { it.currency.uppercase() }.entries.joinToString("; ") { (currency, rows) -> "$currency: " + rows.joinToString(", ") { "${it.name}: ${it.amount} ${if (it.isPaid) "paid" else "unpaid"}" } }
+
         val langPrompt = if (language == AppLanguage.AR) "Arabic" else "English"
         val contextPrompt = """
             You are BYE PRO AI, a personal financial assistant.
@@ -109,6 +119,9 @@ class GeminiFinanceService {
             Ledger totals by currency: $ledgerSummary
             Debts by currency: $debtSummary
             Budgets: $budgetSummary
+            Savings goals: $savingsSummary
+            Assets by currency: $assetsSummary
+            Bills by currency: $billsSummary
             User question: $userQuery
             End with a brief note that this is analytical guidance, not licensed financial advice.
         """.trimIndent()
@@ -124,11 +137,11 @@ class GeminiFinanceService {
 
         if (language == AppLanguage.AR) {
             "تعذر الوصول إلى خدمة الذكاء الاصطناعي حالياً. هذه خلاصة السجلات المتاحة دون إجراء تحويل بين العملات:\n" +
-                "الحسابات: $accountSummary\nالمعاملات: $ledgerSummary\nالديون: $debtSummary\nالميزانيات: $budgetSummary\n" +
+                "الحسابات: $accountSummary\nالمعاملات: $ledgerSummary\nالديون: $debtSummary\nالميزانيات: $budgetSummary\nالمدخرات: $savingsSummary\nالأصول: $assetsSummary\nالفواتير: $billsSummary\n" +
                 "لا تتوفر بيانات كافية لإضافة توصية موثوقة. (تحليل استرشادي وليس استشارة مالية مرخصة)"
         } else {
             "The AI service is currently unavailable. Here is the available record summary without cross-currency conversion:\n" +
-                "Accounts: $accountSummary\nTransactions: $ledgerSummary\nDebts: $debtSummary\nBudgets: $budgetSummary\n" +
+                "Accounts: $accountSummary\nTransactions: $ledgerSummary\nDebts: $debtSummary\nBudgets: $budgetSummary\nSavings: $savingsSummary\nAssets: $assetsSummary\nBills: $billsSummary\n" +
                 "There is not enough data to add a reliable recommendation. (Analytical guidance, not licensed financial advice)"
         }
     }
