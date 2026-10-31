@@ -650,7 +650,7 @@ fun AddDebtDialog(
                                 containerColor = ByeProTheme.colors.goldPrimary,
                                 contentColor = if (ByeProTheme.colors.isDark) Color(0xFF17130B) else Color(0xFF17130B)
                             )
-                        ) { Text(WebI18n.tr("لي عنده", "Owed to me"), fontWeight = FontWeight.Bold) }
+                        ) { Text(WebI18n.tr("لي عنده", "Owed to me", lang), fontWeight = FontWeight.Bold) }
                     } else {
                         FinanceOutlinedButton(
                             onClick = { direction = "owed_to_me" },
@@ -665,7 +665,7 @@ fun AddDebtDialog(
                                 containerColor = ByeProTheme.colors.goldPrimary,
                                 contentColor = Color(0xFF17130B)
                             )
-                        ) { Text(WebI18n.tr("عليّ له", "I owe"), fontWeight = FontWeight.Bold) }
+                        ) { Text(WebI18n.tr("عليّ له", "I owe", lang), fontWeight = FontWeight.Bold) }
                     } else {
                         FinanceOutlinedButton(
                             onClick = { direction = "i_owe" },
