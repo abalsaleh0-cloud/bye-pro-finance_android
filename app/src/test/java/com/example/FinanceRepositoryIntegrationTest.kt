@@ -8,6 +8,8 @@ import com.example.finance.data.FinanceRepository
 import com.example.finance.engine.FinanceEngine
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
+import com.example.finance.model.BudgetEntity
+import com.example.finance.model.BudgetPeriod
 import com.example.finance.model.BillEntity
 import com.example.finance.model.DebtEntity
 import com.example.finance.model.SavingsGoalEntity
