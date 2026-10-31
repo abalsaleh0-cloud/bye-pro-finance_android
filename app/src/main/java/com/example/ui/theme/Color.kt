@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 // BYE PRO FINANCE — exact semantic palette from the Web design system.
 val DarkBgMain = Color(0xFF101114)
 val DarkSurfaceMain = Color(0xFF181A1F)
-val DarkCardMain = Color(0xFF181A1F)
+val DarkCardMain = Color(0xFF1E1F24)
 val DarkCardSecondary = Color(0xFF1E1F24)
 val DarkHoverInteractive = Color(0xFF1E1F24)
 val DarkBorderBase = Color(0xFF2B2D34)
