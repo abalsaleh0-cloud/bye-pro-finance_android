@@ -178,7 +178,7 @@ private fun PasswordField(
         trailingIcon = {
             FinanceIconButton(onClick = onToggle, modifier = Modifier.testTag("${tag}_visibility")) {
                 FinanceIcon(
-                    imageVector = if (visible) Lucide.EyeOff else Lucide.Eye,
+                    imageVector = if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                     contentDescription = if (visible) hideDescription else showDescription,
                     tint = ByeProTheme.colors.goldPrimary
                 )
