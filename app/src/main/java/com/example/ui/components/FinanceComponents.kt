@@ -149,13 +149,16 @@ fun FinanceOutlinedButton(
     }
 }
 
-/** Shared quiet/text action following the Web .text-button contract. */
+/** Shared bordered quiet action following the Web .text-button contract. */
 @Composable
 fun FinanceTextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    colors: ButtonColors = ButtonDefaults.textButtonColors(contentColor = ByeProTheme.colors.goldPrimary),
+    colors: ButtonColors = ButtonDefaults.textButtonColors(
+        containerColor = ByeProTheme.colors.quietButtonBg,
+        contentColor = ByeProTheme.colors.quietButtonText
+    ),
     contentPadding: PaddingValues = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
     content: @Composable RowScope.() -> Unit
 ) {
@@ -163,8 +166,33 @@ fun FinanceTextButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = 38.dp),
         enabled = enabled,
+        shape = RoundedCornerShape(9.dp),
         colors = colors,
+        border = BorderStroke(1.dp, ByeProTheme.colors.quietButtonBorder),
         contentPadding = contentPadding,
+        content = content
+    )
+}
+
+/** Inline text action used for links such as auth mode switching. */
+@Composable
+fun FinanceLinkButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 32.dp),
+        enabled = enabled,
+        shape = RoundedCornerShape(9.dp),
+        colors = ButtonDefaults.textButtonColors(
+            containerColor = Color.Transparent,
+            contentColor = ByeProTheme.colors.goldPrimary
+        ),
+        border = null,
+        contentPadding = PaddingValues(0.dp),
         content = content
     )
 }
