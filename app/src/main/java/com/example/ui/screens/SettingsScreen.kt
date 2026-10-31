@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceSwitch
+
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.*
 
@@ -275,7 +277,7 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Switch(
+                        FinanceSwitch(
                             checked = isDark,
                             onCheckedChange = viewModel::setDarkMode,
                             modifier = Modifier.testTag("theme_mode_switch")
@@ -369,6 +371,6 @@ private fun SettingsChoiceRow(label: String, selected: String, options: List<Str
 private fun SettingsSwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodyMedium)
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        FinanceSwitch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
