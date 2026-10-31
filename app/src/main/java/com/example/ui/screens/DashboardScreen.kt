@@ -155,37 +155,36 @@ fun DashboardScreen(
         }
 
         item {
-            DashboardMetric(
-                title = WebI18n.tr("الرصيد المتاح", "Available balance", lang),
-                amount = TextContent.money(availableBalance, dashboardCurrency, lang),
-                note = "${activeAccounts.size} " + WebI18n.tr("حساب نشط", "active accounts", lang),
-                currency = dashboardCurrency,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        item {
-            DashboardMetric(
-                title = WebI18n.tr("الدخل المسجل", "Recorded income", lang),
-                amount = TextContent.money(recordedIncome, dashboardCurrency, lang),
-                note = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        item {
-            DashboardMetric(
-                title = WebI18n.tr("المصروفات المسجلة", "Recorded expenses", lang),
-                amount = TextContent.money(recordedExpenses, dashboardCurrency, lang),
-                note = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        item {
-            DashboardMetric(
-                title = WebI18n.tr("قيمة الأصول", "Asset value", lang),
-                amount = TextContent.money(assetValue, dashboardCurrency, lang),
-                note = "${dashboardAssets.size} " + WebI18n.tr("أصل", "assets", lang),
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                DashboardMetric(
+                    title = WebI18n.tr("الرصيد المتاح", "Available balance", lang),
+                    amount = TextContent.money(availableBalance, dashboardCurrency, lang),
+                    note = "${activeAccounts.size} " + WebI18n.tr("حساب نشط", "active accounts", lang),
+                    currency = dashboardCurrency,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                DashboardMetric(
+                    title = WebI18n.tr("الدخل المسجل", "Recorded income", lang),
+                    amount = TextContent.money(recordedIncome, dashboardCurrency, lang),
+                    note = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                DashboardMetric(
+                    title = WebI18n.tr("المصروفات المسجلة", "Recorded expenses", lang),
+                    amount = TextContent.money(recordedExpenses, dashboardCurrency, lang),
+                    note = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                DashboardMetric(
+                    title = WebI18n.tr("قيمة الأصول", "Asset value", lang),
+                    amount = TextContent.money(assetValue, dashboardCurrency, lang),
+                    note = "${dashboardAssets.size} " + WebI18n.tr("أصل", "assets", lang),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
 
         item {
