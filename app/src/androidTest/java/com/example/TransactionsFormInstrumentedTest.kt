@@ -3,6 +3,8 @@ package com.example
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -60,8 +62,9 @@ class TransactionsFormInstrumentedTest {
         composeRule.onNodeWithTag("submit_transaction_btn").performScrollTo().performClick()
         composeRule.onNodeWithText("أدخل مبلغاً أكبر من الصفر.").fetchSemanticsNode()
 
-        composeRule.onNodeWithTag("transaction_amount_input").performScrollTo().performTextInput("25.5")
-        composeRule.onNodeWithTag("transaction_description_input").performScrollTo().performTextInput("Groceries")
+        composeRule.onNodeWithTag("transaction_amount_input").performScrollTo().assertHeightIsAtLeast(56.dp).performTextInput("25.5")
+        composeRule.onNodeWithTag("transaction_description_input").performScrollTo().assertHeightIsAtLeast(56.dp).performTextInput("Groceries")
+        composeRule.onNodeWithTag("transaction_description_input").assertTextContains("Groceries")
         composeRule.onNodeWithTag("submit_transaction_btn").performScrollTo().performClick()
 
         composeRule.runOnIdle { assertEquals(true, saved) }
