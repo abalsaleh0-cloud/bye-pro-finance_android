@@ -463,6 +463,7 @@ class FinanceRepositoryIntegrationTest {
         val history = repository.debtPayments(created.id).first()
         assertEquals(1, history.size)
         assertEquals(paymentDate, history.single().date)
+        assertEquals("USD", history.single().currency)
         assertEquals("First installment", history.single().notes)
 
         assertFalse(repository.recordDebtPayment(created.id, 700.0, "Overpayment", paymentDate))
