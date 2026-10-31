@@ -80,6 +80,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun deleteTransaction(tx: TransactionEntity) { viewModelScope.launch { repository.deleteTransaction(tx) } }
     fun executeTransfer(fromAccountId: Long, toAccountId: Long, amount: Double, fee: Double, currency: String, description: String, reference: String, onComplete: (Boolean) -> Unit) { viewModelScope.launch { onComplete(repository.executeTransfer(fromAccountId, toAccountId, amount, fee, currency, description, reference)) } }
     fun addBudget(budget: BudgetEntity) { viewModelScope.launch { repository.addBudget(budget) } }
+    fun updateBudget(budget: BudgetEntity) { viewModelScope.launch { repository.updateBudget(budget) } }
     fun deleteBudget(budget: BudgetEntity) { viewModelScope.launch { repository.deleteBudget(budget) } }
     fun addDebt(debt: DebtEntity) { viewModelScope.launch { repository.addDebt(debt) } }
     fun payDebt(debtId: Long, amount: Double, notes: String) { viewModelScope.launch { repository.recordDebtPayment(debtId, amount, notes) } }
