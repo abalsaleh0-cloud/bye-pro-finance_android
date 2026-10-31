@@ -83,7 +83,6 @@ fun NotificationsAdminScreen(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var notificationFilter by remember { mutableIntStateOf(0) }
     val filteredNotifications = when (notificationFilter) { 1 -> notifications.filter { !it.isRead }; 2 -> notifications.filter { it.isRead }; else -> notifications }
-    val isAdmin = currentUser?.role == UserRole.ADMIN
 
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(
@@ -195,43 +194,28 @@ fun NotificationsAdminScreen(
                     )
                 }
 
-                // RBAC Role Card
+                // Local profile role is informational only; it is not server-enforced RBAC.
                 item {
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
+                        modifier = Modifier.fillMaxWidth().border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
-                                    Spacer(modifier = Modifier.size(8.dp))
-                                    Text(
-                                        text = "${Strings.get("active_role", lang)}: ${currentUser?.role?.name ?: "ADMIN"}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                                FinanceButton(
-                                    onClick = { viewModel.toggleUserRole() },
-                                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.testTag("toggle_rbac_role_btn")
-                                ) {
-                                    Text(WebI18n.tr("تبديل الدور", "Switch role", lang), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-                                }
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
+                                Spacer(modifier = Modifier.size(8.dp))
+                                Text(
+                                    text = WebI18n.tr("الدور المحلي: ", "Local profile role: ", lang) + (currentUser?.role?.name ?: "USER"),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = if (isAdmin) WebI18n.tr("صلاحية المدير كاملة: الوصول لسجلات التدقيق، إدارة الحسابات، وتصدير البيانات الحساسة.", "Full administrator access: audit logs, account management, and sensitive data export.", lang)
-                                else WebI18n.tr("صلاحية مستخدم عادي (User Mode): قيود أمان مفعلة.", "Standard user access (User Mode): security restrictions enabled.", lang),
+                                text = WebI18n.tr(
+                                    "هذه نسخة محلية تعمل بقاعدة Room على الجهاز. إدارة الأدوار الحقيقية وسجل التدقيق المركزي يتطلبان مصادقة وخادماً متصلاً؛ لذلك لا يمكن منح أو سحب صلاحيات من هذه الشاشة.",
+                                    "This is a local Room-based build. Real role management and centralized audit logging require authenticated server access; roles cannot be granted or revoked here."
+                                , lang),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -253,8 +237,8 @@ fun NotificationsAdminScreen(
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Icon(Icons.Default.Security, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(WebI18n.tr("تشفير البيانات", "Data encryption", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("AES-256", fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
+                                Text(WebI18n.tr("تخزين البيانات", "Data storage", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(WebI18n.tr("Room SQLite محلي", "Local Room SQLite", lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
                             }
                         }
 
@@ -266,7 +250,7 @@ fun NotificationsAdminScreen(
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Icon(Icons.Default.Storage, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(WebI18n.tr("إجمالي القيود", "Total ledger entries", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(WebI18n.tr("السجلات المحلية", "Local records", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(WebI18n.tr("${TextContent.number(transactions.size + accounts.size + auditLogs.size, lang, 0)} سجل", "${TextContent.number(transactions.size + accounts.size + auditLogs.size, lang, 0)} records", lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.goldPrimary)
                             }
                         }
