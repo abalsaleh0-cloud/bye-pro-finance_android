@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceIcon
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -101,7 +103,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Person, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
+                        FinanceIcon(Icons.Default.Person, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                         Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                         Text(
                             text = WebI18n.tr("الملف الشخصي والحساب", "Profile and account", lang),
@@ -149,7 +151,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Language, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
+                        FinanceIcon(Icons.Default.Language, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                         Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                         Text(
                             text = Strings.get("language", lang),
