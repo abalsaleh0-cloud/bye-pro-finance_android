@@ -29,6 +29,7 @@ import com.example.finance.model.AppLanguage
 import com.example.finance.model.BudgetEntity
 import com.example.finance.model.BudgetPeriod
 import com.example.finance.ui.FinanceViewModel
+import com.example.ui.components.FinanceTextField
 import com.example.ui.theme.ByeProTheme
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -89,7 +90,7 @@ fun BudgetsScreen(viewModel: FinanceViewModel) {
                 Text(WebI18n.tr("خطط الإنفاق مع متابعة المبلغ المخصص لكل فترة.", "Plan spending and track allocations for each period.", lang),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
+                FinanceTextField(
                     value = search, onValueChange = { search = it },
                     modifier = Modifier.fillMaxWidth().testTag("budget_search_input"),
                     label = { Text(WebI18n.tr("بحث في الميزانيات…", "Search budgets…", lang)) },
