@@ -220,17 +220,17 @@ fun FinanceAlertDialog(
     AlertDialog(
         onDismissRequest = onDismissRequest,
         confirmButton = confirmButton,
-        modifier = modifier,
         dismissButton = dismissButton,
         icon = icon,
         title = title,
         text = text,
         shape = RoundedCornerShape(16.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        containerColor = ByeProTheme.colors.surfaceMain,
+        modifier = modifier.border(1.dp, ByeProTheme.colors.dialogBorder, RoundedCornerShape(16.dp)),
         iconContentColor = MaterialTheme.colorScheme.secondary,
         titleContentColor = MaterialTheme.colorScheme.onSurface,
         textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        tonalElevation = AlertDialogDefaults.TonalElevation,
+        tonalElevation = 0.dp,
         properties = properties
     )
 }
@@ -287,7 +287,7 @@ fun FinanceIconButton(
     enabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    CompositionLocalProvider(LocalContentColor provides ByeProTheme.colors.goldPrimary) {
+    CompositionLocalProvider(LocalContentColor provides ByeProTheme.colors.textPrimary) {
         IconButton(
             onClick = onClick,
             modifier = modifier
