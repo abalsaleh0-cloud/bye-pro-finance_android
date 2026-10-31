@@ -6,6 +6,7 @@ import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceIconButton
 import com.example.ui.components.FinanceFloatingActionButton
 
@@ -192,7 +193,7 @@ fun DebtsBillsScreen(
 
     if (deleteDebtTarget != null) {
         val target = deleteDebtTarget!!
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { deleteDebtTarget = null },
             title = { Text(WebI18n.tr("تأكيد حذف الدين", "Confirm debt deletion", lang)) },
             text = { Text(WebI18n.tr("هل تريد حذف هذا السجل نهائياً؟", "Do you want to permanently delete this record?", lang)) },
@@ -500,7 +501,7 @@ private fun DebtManagementPanel(
                 FinanceButton(
                     onClick = { onDirectionChange("owed_to_me") },
                     modifier = Modifier.weight(1f).testTag("debts_tab_owed_to_me"),
-                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = Color(0xFF17130B))
+                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary)
                 ) { Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang), fontWeight = FontWeight.Bold) }
             } else {
                 FinanceOutlinedButton(
