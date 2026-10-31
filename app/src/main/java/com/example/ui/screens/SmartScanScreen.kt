@@ -195,6 +195,7 @@ fun SmartScanScreen(
                         value = manualReceiptText,
                         onValueChange = { manualReceiptText = it },
                         modifier = Modifier.fillMaxWidth().testTag("manual_receipt_text_input"),
+                        singleLine = false,
                         minLines = 3,
                         maxLines = 6,
                         label = { Text(WebI18n.tr("نص الإيصال", "Receipt text", lang)) }
