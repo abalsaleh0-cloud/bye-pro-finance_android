@@ -3,7 +3,7 @@ package com.example.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Exact semantic colors mirrored from apps/web/src/styles.css and unified-ui.css.
-val DarkBgMain = Color(0xFF101114)
+val DarkBgMain = Color(0xFF101115)
 val DarkSurfaceMain = Color(0xFF181A1F)
 val DarkCardMain = Color(0xFF1E1F24)
 val DarkCardSecondary = Color(0xFF181A1F)
@@ -40,8 +40,8 @@ val LightTextSecondary = Color(0xFF666A74)
 val LightTextMuted = Color(0xFF666A74)
 val LightGoldPrimary = Color(0xFFD6B56D)
 val LightGoldFeatured = Color(0xFFD6B56D)
-val LightStatusSuccess = Color(0xFF67D6A1)
-val LightStatusError = Color(0xFFA43E45)
+val LightStatusSuccess = Color(0xFF16794A)
+val LightStatusError = Color(0xFFB42332)
 
 val DarkFieldBg = Color(0xFF101115)
 val DarkFieldText = Color(0xFFF7F4EC)
