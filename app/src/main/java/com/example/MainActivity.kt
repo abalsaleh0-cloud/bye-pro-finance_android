@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
                         isAuthenticated -> MainAppScaffold(viewModel = financeViewModel)
                         else -> AuthScreen(
                             language = language,
+                            onToggleLanguage = { financeViewModel.toggleLanguage() },
                             onAuthenticated = { isAuthenticated = true }
                         )
                     }
