@@ -27,7 +27,7 @@ data class AccountEntity(
     val institution: String = "",
     val isArchived: Boolean = false,
     val notes: String = "",
-    val colorHex: String = "#00D09C",
+    val colorHex: String = "#D6B56D",
     val createdAt: Long = System.currentTimeMillis()
 )
 
@@ -124,7 +124,7 @@ data class SavingsGoalEntity(
     val currency: String = "LYD",
     val deadline: Long,
     val targetMonthlyDeposit: Double = 0.0,
-    val colorHex: String = "#F1B942"
+    val colorHex: String = "#D6B56D"
 )
 
 @Entity(tableName = "assets")
