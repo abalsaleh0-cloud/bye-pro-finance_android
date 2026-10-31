@@ -338,7 +338,7 @@ fun NotificationCardItem(
             Column {
                 if (!notification.isRead) {
                     FinanceIconButton(onClick = onRead) {
-                        FinanceIcon(Icons.Default.Check, contentDescription = WebI18n.tr("تحديد كمقروء", "Mark as read", lang), tint = ByeProTheme.colors.financialGreen)
+                        FinanceIcon(Lucide.Check, contentDescription = WebI18n.tr("تحديد كمقروء", "Mark as read", lang), tint = ByeProTheme.colors.financialGreen)
                     }
                 }
                 FinanceIconButton(onClick = onDelete) {
