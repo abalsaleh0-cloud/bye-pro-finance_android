@@ -99,7 +99,7 @@ fun SavingsAssetsScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_savings_asset_fab")
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = null)
+                FinanceIcon(imageVector = Icons.Default.Add, contentDescription = null)
             }
         }
     ) { padding ->
@@ -338,7 +338,7 @@ fun SavingsGoalCard(
                     )
                 }
                 FinanceIconButton(onClick = onDelete) {
-                    Icon(
+                    FinanceIcon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = WebI18n.tr("حذف", "Delete", lang),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
@@ -397,7 +397,7 @@ fun SavingsGoalCard(
                     colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Icon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(16.dp))
+                    FinanceIcon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(16.dp))
                     Text(Strings.get("contribute", lang), modifier = Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelMedium)
                     }
                 }
@@ -450,10 +450,10 @@ fun AssetCardItem(
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 FinanceIconButton(onClick = onEdit) {
-                    Icon(imageVector = Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل", "Edit", lang), modifier = Modifier.size(18.dp))
+                    FinanceIcon(imageVector = Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل", "Edit", lang), modifier = Modifier.size(18.dp))
                 }
                 FinanceIconButton(onClick = onDelete) {
-                    Icon(
+                    FinanceIcon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = WebI18n.tr("حذف", "Delete", lang),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
