@@ -116,7 +116,7 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                             )
                         }
                         if (document.fileUri.isNotBlank()) {
-                            IconButton(onClick = {
+                            FinanceIconButton(onClick = {
                                 runCatching {
                                     val uri = Uri.parse(document.fileUri)
                                     val mimeType = context.contentResolver.getType(uri) ?: "*/*"
@@ -131,7 +131,7 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                                 Icon(Icons.Default.Visibility, contentDescription = WebI18n.tr("عرض المستند", "View document", lang))
                             }
                         }
-                        IconButton(onClick = { viewModel.deleteDocument(document) }) {
+                        FinanceIconButton(onClick = { viewModel.deleteDocument(document) }) {
                             Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف المستند", "Delete document", lang))
                         }
                     }
