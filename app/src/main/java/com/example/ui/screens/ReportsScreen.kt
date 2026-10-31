@@ -75,7 +75,7 @@ fun ReportsScreen(
     var exportModalData by remember { mutableStateOf<String?>(null) }
     var exportTitle by remember { mutableStateOf("") }
     var reportCurrency by remember(primaryCurrency) { mutableStateOf(primaryCurrency) }
-    var reportPeriodDays by remember { mutableStateOf(30) }
+    var reportPeriodDays by remember { mutableStateOf(0) }
     val reportCurrencies = (transactions.map { it.currency } + accounts.map { it.currency } + assets.map { it.currency } + debts.map { it.currency } + savingsGoals.map { it.currency } + bills.map { it.currency }).distinct().sorted()
     val cutoff = if (reportPeriodDays == 0) 0L else System.currentTimeMillis() - reportPeriodDays.toLong() * 86400000L
     val currencyTransactions = transactions.filter { it.currency.equals(reportCurrency, ignoreCase = true) && it.date >= cutoff }
