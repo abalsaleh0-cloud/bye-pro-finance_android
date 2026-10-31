@@ -157,7 +157,7 @@ private fun PasswordField(
     value: String, onValueChange: (String) -> Unit, label: String, visible: Boolean,
     onToggle: () -> Unit, showDescription: String, hideDescription: String, tag: String
 ) {
-    FinanceTextField
+    FinanceTextField(
         value = value, onValueChange = onValueChange, modifier = Modifier.fillMaxWidth().testTag(tag),
         label = { Text(label) }, singleLine = true,
         textStyle = MaterialTheme.typography.bodyLarge.copy(textDirection = TextDirection.Rtl),
