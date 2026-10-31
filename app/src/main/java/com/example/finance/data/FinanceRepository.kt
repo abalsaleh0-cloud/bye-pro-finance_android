@@ -331,8 +331,20 @@ class FinanceRepository(
 
     // Budgets
     suspend fun addBudget(budget: BudgetEntity) = withContext(Dispatchers.IO) {
+        require(budget.name.isNotBlank()) { "Budget name is required" }
+        require(budget.limitAmount.isFinite() && budget.limitAmount > 0.0) { "Budget amount must be finite and positive" }
+        require(budget.endDate >= budget.startDate) { "Budget end date must not be before start date" }
         dao.insertBudget(budget)
         logAudit("CREATE", "Budget", "Created budget for ${budget.category}: ${budget.limitAmount} ${budget.currency}")
+    }
+
+    suspend fun updateBudget(budget: BudgetEntity) = withContext(Dispatchers.IO) {
+        require(budget.id > 0L) { "Budget id is required for update" }
+        require(budget.name.isNotBlank()) { "Budget name is required" }
+        require(budget.limitAmount.isFinite() && budget.limitAmount > 0.0) { "Budget amount must be finite and positive" }
+        require(budget.endDate >= budget.startDate) { "Budget end date must not be before start date" }
+        dao.updateBudget(budget)
+        logAudit("UPDATE", "Budget", "Updated budget ${budget.name}: ${budget.limitAmount} ${budget.currency}")
     }
 
     suspend fun deleteBudget(budget: BudgetEntity) = withContext(Dispatchers.IO) {
