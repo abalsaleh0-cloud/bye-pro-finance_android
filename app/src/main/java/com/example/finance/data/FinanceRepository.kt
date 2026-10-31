@@ -390,7 +390,7 @@ class FinanceRepository(
                 .subtract(FinanceEngine.toBigDecimal(amount))
             val newStatus = if (remaining <= BigDecimal.ZERO) DebtStatus.PAID else DebtStatus.ACTIVE
             dao.updateDebt(debt.copy(remaining = remaining.toDouble(), status = newStatus))
-            dao.insertDebtPayment(DebtPaymentEntity(debtId = debtId, amount = amount, date = paymentDate, notes = notes.trim()))
+            dao.insertDebtPayment(DebtPaymentEntity(debtId = debtId, amount = amount, date = paymentDate, notes = notes.trim(), currency = debt.currency))
             logAudit("PAYMENT", "Debt", "Paid $amount toward ${debt.name}, remaining $remaining")
             true
         }
