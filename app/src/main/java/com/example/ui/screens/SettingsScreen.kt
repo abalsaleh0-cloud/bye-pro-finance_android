@@ -212,7 +212,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Box {
-                        FinanceFinanceOutlinedButton
+                        FinanceOutlinedButton(
                             onClick = { currencyMenuExpanded = true },
                             modifier = Modifier.fillMaxWidth().testTag("primary_currency_selector")
                         ) {
@@ -351,7 +351,7 @@ private fun SettingsChoiceRow(label: String, selected: String, options: List<Str
     Column {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Box {
-            FinanceOutlinedButtononClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected) }
+            FinanceOutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected) }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
                     DropdownMenuItem(text = { Text(option) }, onClick = { onSelected(option); expanded = false })
