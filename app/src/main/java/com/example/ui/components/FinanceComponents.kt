@@ -19,6 +19,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.LocalContentColor
@@ -154,7 +155,7 @@ fun FinanceTextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    colors: ButtonColors = TextButtonDefaults.textButtonColors(contentColor = ByeProTheme.colors.goldPrimary),
+    colors: ButtonColors = ButtonDefaults.textButtonColors(contentColor = ByeProTheme.colors.goldPrimary),
     contentPadding: PaddingValues = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
     content: @Composable RowScope.() -> Unit
 ) {
