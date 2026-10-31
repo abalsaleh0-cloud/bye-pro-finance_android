@@ -129,6 +129,12 @@ fun AiAssistantScreen(
                     .fillMaxSize()
                     .padding(12.dp)
             ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    FinanceOutlinedButton(onClick = { viewModel.clearAiChat() }, enabled = !isAiLoading) {
+                        Text(WebI18n.tr("مسح المحادثة", "Clear chat", lang), style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+
                 // Safety Disclaimer banner
                 Card(
                     modifier = Modifier
