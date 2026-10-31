@@ -157,7 +157,7 @@ private fun PasswordField(
     value: String, onValueChange: (String) -> Unit, label: String, visible: Boolean,
     onToggle: () -> Unit, showDescription: String, hideDescription: String, tag: String
 ) {
-    OutlinedTextField(
+    FinanceTextField
         value = value, onValueChange = onValueChange, modifier = Modifier.fillMaxWidth().testTag(tag),
         label = { Text(label) }, singleLine = true,
         textStyle = MaterialTheme.typography.bodyLarge.copy(textDirection = TextDirection.Rtl),
@@ -172,9 +172,5 @@ private fun PasswordField(
                 )
             }
         },
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = ByeProTheme.colors.fieldFocus, unfocusedBorderColor = ByeProTheme.colors.fieldBorder,
-            focusedContainerColor = ByeProTheme.colors.fieldBg, unfocusedContainerColor = ByeProTheme.colors.fieldBg
-        )
     )
 }
