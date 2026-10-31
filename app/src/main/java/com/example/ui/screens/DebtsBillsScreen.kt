@@ -464,73 +464,190 @@ fun BillItemCard(
 }
 
 @Composable
+private fun DebtManagementPanel(
+    debts: List<DebtEntity>,
+    lang: com.example.finance.model.AppLanguage,
+    onAdd: () -> Unit,
+    onPay: (DebtEntity) -> Unit,
+    onEdit: (DebtEntity) -> Unit,
+    onHistory: (DebtEntity) -> Unit,
+    onDelete: (DebtEntity) -> Unit
+) {
+    var direction by remember { mutableStateOf("owed_to_me") }
+    var search by remember { mutableStateOf("") }
+    val filtered = debts.filter { debt ->
+        debt.direction == direction &&
+            (search.isBlank() || debt.name.contains(search, true) || debt.creditor.contains(search, true) || debt.notes.contains(search, true))
+    }
+    val currencyTotals = filtered.groupBy { it.currency }.mapValues { (_, rows) -> rows.sumOf { it.remaining } }
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            FinanceOutlinedButton(onClick = { direction = "owed_to_me" }) {
+                Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang))
+            }
+            FinanceOutlinedButton(onClick = { direction = "i_owe" }) {
+                Text(WebI18n.tr("مدين — عليّ له", "I owe", lang))
+            }
+        }
+        FinanceTextField(
+            value = search,
+            onValueChange = { search = it },
+            label = { Text(WebI18n.tr("بحث في الديون", "Search debts", lang)) },
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (currencyTotals.isNotEmpty()) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(WebI18n.tr("إجمالي المتبقي حسب العملة", "Remaining totals by currency", lang), fontWeight = FontWeight.Bold)
+                    currencyTotals.forEach { (currency, total) ->
+                        Text("${TextContent.money(total, currency, lang)}", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
+        }
+        if (filtered.isEmpty()) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Text(
+                    if (search.isBlank()) WebI18n.tr("لا توجد سجلات في هذا التصنيف بعد.", "No records in this debt category yet.", lang)
+                    else WebI18n.tr("لا توجد نتائج مطابقة للبحث.", "No matching search results.", lang),
+                    modifier = Modifier.padding(20.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (debts.none { it.direction == direction }) {
+                FinanceButton(onClick = onAdd) { Text(WebI18n.tr("إضافة أول سجل", "Add first record", lang)) }
+            }
+        } else {
+            Text(WebI18n.tr("${filtered.size} سجل", "${filtered.size} records", lang), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            filtered.forEach { debt ->
+                val payoffMonths = FinanceEngine.calculateDebtPayoffMonths(
+                    remainingPrincipal = debt.remaining,
+                    annualInterestRatePercent = debt.interestRate,
+                    monthlyPayment = if (debt.minimumPayment > 0) debt.minimumPayment else 1000.0
+                )
+                DebtItemCard(
+                    debt = debt,
+                    payoffMonths = payoffMonths,
+                    lang = lang,
+                    onPay = { onPay(debt) },
+                    onDelete = { onDelete(debt) }
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    FinanceOutlinedButton(onClick = { onEdit(debt) }) { Text(WebI18n.tr("تعديل", "Edit", lang)) }
+                    FinanceOutlinedButton(onClick = { onHistory(debt) }) { Text(WebI18n.tr("سجل السداد", "Payment history", lang)) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DebtPaymentHistoryDialog(
+    debt: DebtEntity,
+    viewModel: FinanceViewModel,
+    lang: com.example.finance.model.AppLanguage,
+    onDismiss: () -> Unit
+) {
+    val payments by remember(debt.id) { viewModel.debtPayments(debt.id) }.collectAsState(initial = emptyList())
+    FinanceAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(WebI18n.tr("سجل السداد", "Payment history", lang) + " — " + debt.name) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(WebI18n.tr("المتبقي", "Remaining", lang) + ": " + TextContent.money(debt.remaining, debt.currency, lang))
+                if (payments.isEmpty()) {
+                    Text(WebI18n.tr("لا توجد دفعات مسجلة لهذا الدين بعد.", "No payments recorded for this debt yet.", lang))
+                } else {
+                    payments.forEach { payment ->
+                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
+                                Text(TextContent.money(payment.amount, debt.currency, lang), fontWeight = FontWeight.Bold)
+                                Text(SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault()).format(Date(payment.date)), style = MaterialTheme.typography.bodySmall)
+                                if (payment.notes.isNotBlank()) Text(payment.notes, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { FinanceButton(onClick = onDismiss) { Text(WebI18n.tr("إغلاق", "Close", lang)) } }
+    )
+}
+
+@Composable
 fun AddDebtDialog(
     lang: com.example.finance.model.AppLanguage,
+    initialDebt: DebtEntity? = null,
     onDismiss: () -> Unit,
     onConfirm: (DebtEntity) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var creditor by remember { mutableStateOf("") }
-    var principalStr by remember { mutableStateOf("") }
-    var minPaymentStr by remember { mutableStateOf("") }
+    var name by remember(initialDebt?.id) { mutableStateOf(initialDebt?.name ?: "") }
+    var creditor by remember(initialDebt?.id) { mutableStateOf(initialDebt?.creditor ?: "") }
+    var principalStr by remember(initialDebt?.id) { mutableStateOf(initialDebt?.principal?.toString() ?: "") }
+    var minPaymentStr by remember(initialDebt?.id) { mutableStateOf(initialDebt?.minimumPayment?.toString() ?: "") }
+    var currency by remember(initialDebt?.id) { mutableStateOf(initialDebt?.currency ?: "LYD") }
+    var direction by remember(initialDebt?.id) { mutableStateOf(initialDebt?.direction ?: "i_owe") }
+    var dueDateText by remember(initialDebt?.id) {
+        mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(initialDebt?.dueDate ?: (System.currentTimeMillis() + 90L * 24 * 60 * 60 * 1000))))
+    }
+    var notes by remember(initialDebt?.id) { mutableStateOf(initialDebt?.notes ?: "") }
+    var error by remember { mutableStateOf("") }
 
     FinanceAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = Strings.get("add_debt", lang), fontWeight = FontWeight.Bold) },
+        title = { Text(text = if (initialDebt == null) Strings.get("add_debt", lang) else WebI18n.tr("تعديل الدين", "Edit debt", lang), fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                FinanceTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(WebI18n.tr("اسم التمويل / القرض", "Financing / loan name", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                FinanceTextField(
-                    value = creditor,
-                    onValueChange = { creditor = it },
-                    label = { Text(Strings.get("creditor", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                FinanceTextField(
-                    value = principalStr,
-                    onValueChange = { principalStr = it },
-                    label = { Text(Strings.get("principal", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                FinanceTextField(
-                    value = minPaymentStr,
-                    onValueChange = { minPaymentStr = it },
-                    label = { Text(Strings.get("min_payment", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الشخص أو الجهة", "Person or organization", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = creditor, onValueChange = { creditor = it }, label = { Text(WebI18n.tr("تفاصيل الطرف / الدائن", "Counterparty details", lang)) }, modifier = Modifier.fillMaxWidth())
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FinanceOutlinedButton(onClick = { direction = "owed_to_me" }) { Text(WebI18n.tr("لي عنده", "Owed to me", lang)) }
+                    FinanceOutlinedButton(onClick = { direction = "i_owe" }) { Text(WebI18n.tr("عليّ له", "I owe", lang)) }
+                }
+                FinanceTextField(value = principalStr, onValueChange = { principalStr = it }, label = { Text(WebI18n.tr("المبلغ الأصلي", "Original amount", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(Locale.ROOT) }, label = { Text(WebI18n.tr("العملة (LYD / USD / EUR ...)", "Currency (LYD / USD / EUR ...)", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = minPaymentStr, onValueChange = { minPaymentStr = it }, label = { Text(WebI18n.tr("القسط / الدفعة المتوقعة", "Expected installment", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = dueDateText, onValueChange = { dueDateText = it }, label = { Text(WebI18n.tr("تاريخ الاستحقاق (YYYY-MM-DD)", "Due date (YYYY-MM-DD)", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = notes, onValueChange = { notes = it }, label = { Text(Strings.get("notes", lang)) }, modifier = Modifier.fillMaxWidth())
+                if (error.isNotBlank()) Text(error, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = {
-            FinanceButton(
-                onClick = {
-                    val p = principalStr.toDoubleOrNull() ?: 0.0
-                    val min = minPaymentStr.toDoubleOrNull() ?: 0.0
-                    if (name.isNotBlank() && p > 0.0) {
-                        onConfirm(
-                            DebtEntity(
-                                name = name,
-                                creditor = creditor,
-                                principal = p,
-                                remaining = p,
-                                minimumPayment = min
-                            )
-                        )
-                    }
+            FinanceButton(onClick = {
+                val principal = principalStr.toDoubleOrNull() ?: Double.NaN
+                val installment = if (minPaymentStr.isBlank()) 0.0 else minPaymentStr.toDoubleOrNull() ?: Double.NaN
+                val dueDate = try { SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(dueDateText)?.time } catch (_: Exception) { null }
+                error = when {
+                    name.isBlank() -> WebI18n.tr("أدخل اسم الشخص أو الجهة.", "Enter a person or organization.", lang)
+                    !principal.isFinite() || principal <= 0.0 -> WebI18n.tr("أدخل مبلغاً أصلياً صحيحاً أكبر من صفر.", "Enter a valid original amount greater than zero.", lang)
+                    !installment.isFinite() || installment < 0.0 -> WebI18n.tr("أدخل قيمة قسط صحيحة.", "Enter a valid installment.", lang)
+                    !currency.matches(Regex("[A-Z]{3}")) -> WebI18n.tr("أدخل رمز عملة من ثلاثة أحرف.", "Enter a three-letter currency code.", lang)
+                    dueDate == null -> WebI18n.tr("أدخل تاريخ استحقاق صحيحاً.", "Enter a valid due date.", lang)
+                    initialDebt != null && principal < initialDebt.remaining -> WebI18n.tr("المبلغ الأصلي لا يمكن أن يقل عن المتبقي.", "Original amount cannot be lower than the remaining balance.", lang)
+                    else -> ""
                 }
-            ) {
-                Text(Strings.get("confirm", lang))
-            }
+                if (error.isBlank() && dueDate != null) {
+                    onConfirm(
+                        DebtEntity(
+                            id = initialDebt?.id ?: 0,
+                            name = name.trim(),
+                            creditor = creditor.trim(),
+                            principal = principal,
+                            remaining = initialDebt?.remaining ?: principal,
+                            interestRate = initialDebt?.interestRate ?: 0.0,
+                            dueDate = dueDate,
+                            minimumPayment = installment,
+                            currency = currency,
+                            status = if ((initialDebt?.remaining ?: principal) <= 0.0) DebtStatus.PAID else DebtStatus.ACTIVE,
+                            notes = notes.trim(),
+                            direction = direction
+                        )
+                    )
+                }
+            }) { Text(Strings.get("confirm", lang)) }
         },
-        dismissButton = {
-            FinanceOutlinedButton(onClick = onDismiss) {
-                Text(Strings.get("cancel", lang))
-            }
-        }
+        dismissButton = { FinanceOutlinedButton(onClick = onDismiss) { Text(Strings.get("cancel", lang)) } }
     )
 }
 
