@@ -48,8 +48,8 @@ val DarkFieldText = Color(0xFFF7F4EC)
 val DarkFieldBorder = Color(0xFF363740)
 val DarkFieldFocus = GoldPrimary
 val LightFieldBg = Color(0xFFFFFFFF)
-val LightFieldText = Color(0xFF20232A)
-val LightFieldBorder = Color(0xFFCBD0D9)
+val LightFieldText = Color(0xFF17181C)
+val LightFieldBorder = Color(0xFFC8C9CF)
 val LightFieldFocus = LightGoldPrimary
 
 val LogoBgDark = DarkBgMain
