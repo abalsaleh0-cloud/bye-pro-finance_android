@@ -29,6 +29,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -70,6 +72,7 @@ fun HouseholdScreen(
     val primaryCurrency by viewModel.primaryCurrency.collectAsState()
 
     var showAddMemberDialog by remember { mutableStateOf(false) }
+    var editingMember by remember { mutableStateOf<HouseholdMemberEntity?>(null) }
     var showAddExpenseDialog by remember { mutableStateOf(false) }
 
     val currencyExpenses = expenses.filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
@@ -115,7 +118,7 @@ fun HouseholdScreen(
                         )
                     }
                     FinanceOutlinedButton(
-                        onClick = { showAddMemberDialog = true },
+                        onClick = { editingMember = null; showAddMemberDialog = true },
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(Icons.Default.Group, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -189,12 +192,17 @@ fun HouseholdScreen(
                                 Text(m.role, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        Text(
-                            text = WebI18n.tr("نسبة المشاركة:", "Contribution:", lang) + " ${TextContent.number(m.contributionPercent.toInt(), lang, 0)}%",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = ByeProTheme.colors.financialGreen,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = WebI18n.tr("نسبة المشاركة:", "Contribution:", lang) + " ${TextContent.number(m.contributionPercent.toInt(), lang, 0)}%",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ByeProTheme.colors.financialGreen,
+                                fontWeight = FontWeight.Bold
+                            )
+                            FinanceIconButton(onClick = { editingMember = m; showAddMemberDialog = true }) {
+                                Icon(Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل العضو", "Edit member", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
@@ -235,11 +243,16 @@ fun HouseholdScreen(
                                 Text(exp.title, fontWeight = FontWeight.Bold)
                                 Text(WebI18n.tr("الدافع:", "Paid by:", lang) + " $payerName • ${exp.category}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Text(
-                                TextContent.money(exp.amount, exp.currency, lang),
-                                color = ByeProTheme.colors.financialRed,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    TextContent.money(exp.amount, exp.currency, lang),
+                                    color = ByeProTheme.colors.financialRed,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                FinanceIconButton(onClick = { viewModel.deleteHouseholdExpense(exp) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف المصروف", "Delete expense", lang), tint = MaterialTheme.colorScheme.error)
+                                }
+                            }
                         }
                     }
                 }
@@ -253,13 +266,13 @@ fun HouseholdScreen(
 
     // Add Member Dialog
     if (showAddMemberDialog) {
-        var name by remember { mutableStateOf("") }
-        var role by remember { mutableStateOf(WebI18n.tr("عضو", "Member", lang)) }
-        var percentStr by remember { mutableStateOf("50") }
+        var name by remember(editingMember?.id) { mutableStateOf(editingMember?.name.orEmpty()) }
+        var role by remember(editingMember?.id) { mutableStateOf(editingMember?.role ?: WebI18n.tr("عضو", "Member", lang)) }
+        var percentStr by remember(editingMember?.id) { mutableStateOf(editingMember?.contributionPercent?.toString() ?: "50") }
 
         FinanceAlertDialog(
-            onDismissRequest = { showAddMemberDialog = false },
-            title = { Text(Strings.get("add_member", lang), fontWeight = FontWeight.Bold) },
+            onDismissRequest = { showAddMemberDialog = false; editingMember = null },
+            title = { Text(if (editingMember == null) Strings.get("add_member", lang) else WebI18n.tr("تعديل عضو الأسرة", "Edit household member", lang), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     FinanceTextField(
@@ -285,10 +298,13 @@ fun HouseholdScreen(
             confirmButton = {
                 FinanceButton(
                     onClick = {
-                        val p = percentStr.toDoubleOrNull() ?: 50.0
-                        if (name.isNotBlank()) {
-                            viewModel.addHouseholdMember(name, "", role, p)
+                        val p = percentStr.toDoubleOrNull()
+                        if (name.isNotBlank() && role.isNotBlank() && p != null && p.isFinite() && p in 0.0..100.0) {
+                            val existing = editingMember
+                            if (existing == null) viewModel.addHouseholdMember(name, "", role, p)
+                            else viewModel.updateHouseholdMember(existing.copy(name = name, role = role, contributionPercent = p))
                             showAddMemberDialog = false
+                            editingMember = null
                         }
                     }
                 ) {
@@ -296,7 +312,7 @@ fun HouseholdScreen(
                 }
             },
             dismissButton = {
-                FinanceOutlinedButton(onClick = { showAddMemberDialog = false }) {
+                FinanceOutlinedButton(onClick = { showAddMemberDialog = false; editingMember = null }) {
                     Text(Strings.get("cancel", lang))
                 }
             }
@@ -308,13 +324,14 @@ fun HouseholdScreen(
         var title by remember { mutableStateOf("") }
         var amountStr by remember { mutableStateOf("") }
         var category by remember { mutableStateOf("Home Supplies") }
-        val payerId = members.firstOrNull()?.id ?: 1L
+        val payerId = members.firstOrNull()?.id
 
         FinanceAlertDialog(
             onDismissRequest = { showAddExpenseDialog = false },
             title = { Text(Strings.get("add_shared_expense", lang), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (payerId == null) Text(WebI18n.tr("أضف فرداً من الأسرة أولاً قبل تسجيل مصروف مشترك.", "Add a household member before recording a shared expense.", lang), color = MaterialTheme.colorScheme.error)
                     FinanceTextField(
                         value = title,
                         onValueChange = { title = it },
@@ -339,7 +356,7 @@ fun HouseholdScreen(
                 FinanceButton(
                     onClick = {
                         val amt = amountStr.toDoubleOrNull() ?: 0.0
-                        if (title.isNotBlank() && amt > 0.0) {
+                        if (title.isNotBlank() && category.isNotBlank() && amt.isFinite() && amt > 0.0 && payerId != null) {
                             viewModel.addHouseholdExpense(title, amt, payerId, category)
                             showAddExpenseDialog = false
                         }
