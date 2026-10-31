@@ -7,6 +7,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -91,7 +92,7 @@ fun FinanceButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(9.dp),
+    shape: Shape = RoundedCornerShape(12.dp),
     colors: ButtonColors = ButtonDefaults.buttonColors(
         containerColor = ByeProTheme.colors.goldPrimary,
         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -103,7 +104,7 @@ fun FinanceButton(
     content: @Composable RowScope.() -> Unit
 ) {
     Button(
-        onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
+        onClick = onClick, modifier = modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape,
         colors = colors, elevation = elevation, border = border,
         contentPadding = contentPadding, interactionSource = interactionSource, content = content
     )
@@ -115,8 +116,8 @@ fun FinanceOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(9.dp),
-    colors: ButtonColors = ButtonDefaults.outlinedButtonColors(containerColor = ByeProTheme.colors.cardSecondary, contentColor = ByeProTheme.colors.goldPrimary),
+    shape: Shape = RoundedCornerShape(12.dp),
+    colors: ButtonColors = ButtonDefaults.outlinedButtonColors(containerColor = ByeProTheme.colors.cardSecondary, contentColor = MaterialTheme.colorScheme.onSurface),containerColor = ByeProTheme.colors.cardSecondary, contentColor = ByeProTheme.colors.goldPrimary),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = null,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
@@ -125,13 +126,13 @@ fun FinanceOutlinedButton(
 ) {
     if (border == null) {
         OutlinedButton(
-            onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
+            onClick = onClick, modifier = modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape,
             colors = colors, elevation = elevation, contentPadding = contentPadding,
             interactionSource = interactionSource, content = content
         )
     } else {
         OutlinedButton(
-            onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
+            onClick = onClick, modifier = modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape,
             colors = colors, elevation = elevation, border = border,
             contentPadding = contentPadding, interactionSource = interactionSource, content = content
         )
@@ -182,8 +183,8 @@ fun FinanceIconButton(
             onClick = onClick,
             modifier = modifier
                 .then(Modifier.sizeIn(minWidth = 44.dp, minHeight = 44.dp))
-                .border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(9.dp))
-                .background(ByeProTheme.colors.surfaceMain, RoundedCornerShape(9.dp)),
+                .border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(12.dp))
+                .background(ByeProTheme.colors.surfaceMain, RoundedCornerShape(12.dp)),
             enabled = enabled,
             content = content
         )
