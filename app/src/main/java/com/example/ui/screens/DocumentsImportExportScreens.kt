@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.provider.OpenableColumns
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -37,15 +38,32 @@ import androidx.compose.ui.unit.dp
 import com.example.finance.i18n.TextContent
 import com.example.finance.i18n.WebI18n
 import com.example.finance.model.DocumentType
+import com.example.finance.model.DocumentEntity
 import com.example.finance.ui.FinanceViewModel
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
 
 @Composable
 fun DocumentsScreen(viewModel: FinanceViewModel) {
     val lang by viewModel.appLanguage.collectAsState()
     val documents by viewModel.documents.collectAsState()
     val context = LocalContext.current
+    var search by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf<String?>(null) }
+    val documentPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            status = runCatching {
+                runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+                val title = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) cursor.getString(0) else null
+                }?.takeIf { it.isNotBlank() } ?: uri.lastPathSegment ?: "Document"
+                viewModel.addDocument(DocumentEntity(title = title, type = DocumentType.OTHER, fileUri = uri.toString(), currency = viewModel.primaryCurrency.value))
+                WebI18n.tr("تم حفظ المستند في الأرشيف.", "Document saved to the archive.", lang)
+            }.getOrElse { WebI18n.tr("تعذر حفظ المستند: ", "Could not save document: ", lang) + (it.message ?: "") }
+        }
+    }
+    val filteredDocuments = documents.filter { search.isBlank() || it.title.contains(search, true) || it.merchant.contains(search, true) || it.notes.contains(search, true) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -58,8 +76,13 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            FinanceButton(onClick = { documentPicker.launch(arrayOf("application/pdf", "image/*", "text/plain")) }, modifier = Modifier.fillMaxWidth()) {
+                Text(WebI18n.tr("إضافة مستند أو إيصال", "Add document or receipt", lang))
+            }
+            FinanceTextField(value = search, onValueChange = { search = it }, label = { Text(WebI18n.tr("بحث في الأرشيف", "Search archive", lang)) }, modifier = Modifier.fillMaxWidth())
+            if (status != null) Text(status!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         }
-        if (documents.isEmpty()) {
+        if (filteredDocuments.isEmpty()) {
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Text(
@@ -70,7 +93,7 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                 }
             }
         } else {
-            items(documents, key = { it.id }) { document ->
+            items(filteredDocuments, key = { it.id }) { document ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -95,9 +118,11 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                         if (document.fileUri.isNotBlank()) {
                             IconButton(onClick = {
                                 runCatching {
+                                    val uri = Uri.parse(document.fileUri)
+                                    val mimeType = context.contentResolver.getType(uri) ?: "*/*"
                                     context.startActivity(
                                         Intent(Intent.ACTION_VIEW).apply {
-                                            setDataAndType(Uri.parse(document.fileUri), "image/*")
+                                            setDataAndType(uri, mimeType)
                                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                         }
                                     )
