@@ -110,7 +110,7 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
         floatingActionButton = {
             FinanceFloatingActionButton(
                 onClick = { showAddDialog = true },
-                containerColor = ByeProTheme.colors.goldPrimary,
+                containerColor = ByeProTheme.colors.primaryButtonBg,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_account_fab")
             ) {
