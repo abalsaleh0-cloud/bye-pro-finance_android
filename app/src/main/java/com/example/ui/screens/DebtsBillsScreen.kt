@@ -11,6 +11,7 @@ import com.example.ui.components.FinanceFloatingActionButton
 
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -491,11 +492,23 @@ private fun DebtManagementPanel(
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            FinanceOutlinedButton(onClick = { direction = "owed_to_me" }) {
-                Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang))
+            if (direction == "owed_to_me") {
+                FinanceButton(onClick = { direction = "owed_to_me" }, modifier = Modifier.weight(1f).testTag("debt_filter_creditor_selected")) {
+                    Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang))
+                }
+            } else {
+                FinanceOutlinedButton(onClick = { direction = "owed_to_me" }, modifier = Modifier.weight(1f).testTag("debt_filter_creditor")) {
+                    Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang))
+                }
             }
-            FinanceOutlinedButton(onClick = { direction = "i_owe" }) {
-                Text(WebI18n.tr("مدين — عليّ له", "I owe", lang))
+            if (direction == "i_owe") {
+                FinanceButton(onClick = { direction = "i_owe" }, modifier = Modifier.weight(1f).testTag("debt_filter_debtor_selected")) {
+                    Text(WebI18n.tr("مدين — عليّ له", "I owe", lang))
+                }
+            } else {
+                FinanceOutlinedButton(onClick = { direction = "i_owe" }, modifier = Modifier.weight(1f).testTag("debt_filter_debtor")) {
+                    Text(WebI18n.tr("مدين — عليّ له", "I owe", lang))
+                }
             }
         }
         FinanceTextField(
