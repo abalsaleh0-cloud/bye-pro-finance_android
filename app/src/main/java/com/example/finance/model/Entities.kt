@@ -87,7 +87,8 @@ data class DebtEntity(
     val minimumPayment: Double = 0.0,
     val currency: String = "LYD",
     val status: DebtStatus = DebtStatus.ACTIVE,
-    val notes: String = ""
+    val notes: String = "",
+    val direction: String = "i_owe"
 )
 
 @Entity(tableName = "debt_payments")
