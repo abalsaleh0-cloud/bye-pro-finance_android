@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -129,11 +131,11 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                                     )
                                 }
                             }) {
-                                FinanceIcon(Icons.Default.Visibility, contentDescription = WebI18n.tr("عرض المستند", "View document", lang))
+                                FinanceIcon(Lucide.Eye, contentDescription = WebI18n.tr("عرض المستند", "View document", lang))
                             }
                         }
                         FinanceIconButton(onClick = { viewModel.deleteDocument(document) }) {
-                            FinanceIcon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف المستند", "Delete document", lang))
+                            FinanceIcon(Lucide.Trash, contentDescription = WebI18n.tr("حذف المستند", "Delete document", lang))
                         }
                     }
                 }
