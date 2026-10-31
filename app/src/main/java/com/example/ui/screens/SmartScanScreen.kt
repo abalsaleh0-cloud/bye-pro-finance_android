@@ -251,7 +251,7 @@ fun SmartScanScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            FinanceIcon(Lucide.CheckCircle2, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
+                            FinanceIcon(Lucide.CircleCheck, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                             Spacer(modifier = Modifier.size(6.dp))
                             Text(
                                 text = WebI18n.tr("مراجعة وتأكيد البيانات المستخرجة من الإيصال", "Review and confirm extracted receipt data", lang),
