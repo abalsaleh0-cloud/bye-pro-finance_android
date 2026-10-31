@@ -75,7 +75,7 @@ fun FinanceTextField(
     shape: Shape = RoundedCornerShape(9.dp)
 ) {
     OutlinedTextField(
-        value = value, onValueChange = onValueChange, modifier = if (singleLine) modifier.height(43.dp) else modifier.heightIn(min = 120.dp),
+        value = value, onValueChange = onValueChange, modifier = if (singleLine) modifier.heightIn(min = 56.dp) else modifier.heightIn(min = 120.dp),
         enabled = enabled, readOnly = readOnly, textStyle = textStyle,
         label = label, placeholder = placeholder, leadingIcon = leadingIcon,
         trailingIcon = trailingIcon, prefix = prefix, suffix = suffix,
