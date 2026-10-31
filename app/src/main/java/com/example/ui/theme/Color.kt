@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 
 // BYE PRO FINANCE — exact dark and light values from the Web token system.
 val DarkBgMain = Color(0xFF101114)
-val DarkSurfaceMain = Color(0xFF1E1F24)
+val DarkSurfaceMain = Color(0xFF181A1F)
 val DarkCardMain = Color(0xFF1E1F24)
 val DarkCardSecondary = Color(0xFF181A1F)
 val DarkHoverInteractive = Color(0xFF1E1F24)
