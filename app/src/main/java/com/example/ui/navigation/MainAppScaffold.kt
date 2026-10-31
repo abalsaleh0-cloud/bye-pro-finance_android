@@ -1,5 +1,9 @@
 package com.example.ui.navigation
 
+import androidx.compose.material.icons.filled.*
+
+import androidx.compose.material.icons.Icons
+
 import com.composables.icons.lucide.*
 
 import com.example.finance.i18n.TextContent
@@ -121,20 +125,20 @@ fun MainAppScaffold(
     }
 
     val hubMenuItems = listOf(
-        HubMenuItem("transfers", "nav_transfers", Lucide.ArrowLeftRight, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("debts", "nav_debts", Lucide.HandCoins, ByeProTheme.colors.financialRed),
-        HubMenuItem("bills", "nav_bills", Lucide.Receipt, ByeProTheme.colors.financialRed),
-        HubMenuItem("savings", "nav_savings", Lucide.PiggyBank, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("assets", "nav_assets", Lucide.Landmark, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("reports", "nav_reports", Lucide.Table, ByeProTheme.colors.financialGreen),
-        HubMenuItem("household", "nav_household", Lucide.Users, ByeProTheme.colors.financialGreen),
-        HubMenuItem("documents", "nav_documents", Lucide.Receipt, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("smart_scan", "nav_smart_scan", Lucide.ScanLine, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("import_export", "nav_import_export", Lucide.Table, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("ai_assistant", "nav_ai_assistant", Lucide.Sparkles, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("notifications", "nav_notifications", Lucide.Bell, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("admin", "nav_admin", Lucide.ShieldCheck, ByeProTheme.colors.financialGreen),
-        HubMenuItem("settings", "nav_settings", Lucide.Settings, MaterialTheme.colorScheme.onSurface)
+        HubMenuItem("transfers", "nav_transfers", Icons.Default.SwapHoriz, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("debts", "nav_debts", Icons.Default.Payments, ByeProTheme.colors.financialRed),
+        HubMenuItem("bills", "nav_bills", Icons.Default.Receipt, ByeProTheme.colors.financialRed),
+        HubMenuItem("savings", "nav_savings", Icons.Default.Savings, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("assets", "nav_assets", Icons.Default.AccountBalance, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("reports", "nav_reports", Icons.Default.TableChart, ByeProTheme.colors.financialGreen),
+        HubMenuItem("household", "nav_household", Icons.Default.Group, ByeProTheme.colors.financialGreen),
+        HubMenuItem("documents", "nav_documents", Icons.Default.Receipt, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("smart_scan", "nav_smart_scan", Icons.Default.QrCodeScanner, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("import_export", "nav_import_export", Icons.Default.TableChart, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("ai_assistant", "nav_ai_assistant", Icons.Default.AutoAwesome, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("notifications", "nav_notifications", Icons.Default.Notifications, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("admin", "nav_admin", Icons.Default.VerifiedUser, ByeProTheme.colors.financialGreen),
+        HubMenuItem("settings", "nav_settings", Icons.Default.Settings, MaterialTheme.colorScheme.onSurface)
     )
 
     CompositionLocalProvider(
@@ -186,7 +190,7 @@ fun MainAppScaffold(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 FinanceIcon(
-                                    imageVector = Lucide.Languages,
+                                    imageVector = Icons.Default.Language,
                                     contentDescription = null,
                                     tint = ByeProTheme.colors.goldPrimary,
                                     modifier = Modifier.size(16.dp)
@@ -215,7 +219,7 @@ fun MainAppScaffold(
                                 }
                             ) {
                                 FinanceIcon(
-                                    imageVector = Lucide.Bell,
+                                    imageVector = Icons.Default.Notifications,
                                     contentDescription = Strings.get("nav_notifications", lang),
                                     tint = if (unreadCount > 0) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.onSurface
                                 )
@@ -235,7 +239,7 @@ fun MainAppScaffold(
                     NavigationBarItem(
                         selected = currentScreen == "dashboard",
                         onClick = { viewModel.setScreen("dashboard") },
-                        icon = { FinanceIcon(Lucide.LayoutDashboard, contentDescription = Strings.get("nav_dashboard", lang)) },
+                        icon = { FinanceIcon(Icons.Default.Dashboard, contentDescription = Strings.get("nav_dashboard", lang)) },
                         label = { Text(appText("nav_dashboard"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
@@ -248,7 +252,7 @@ fun MainAppScaffold(
                     NavigationBarItem(
                         selected = currentScreen == "accounts",
                         onClick = { viewModel.setScreen("accounts") },
-                        icon = { FinanceIcon(Lucide.Landmark, contentDescription = Strings.get("nav_accounts", lang)) },
+                        icon = { FinanceIcon(Icons.Default.AccountBalance, contentDescription = Strings.get("nav_accounts", lang)) },
                         label = { Text(appText("nav_accounts"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
@@ -261,7 +265,7 @@ fun MainAppScaffold(
                     NavigationBarItem(
                         selected = currentScreen == "transactions",
                         onClick = { viewModel.setScreen("transactions") },
-                        icon = { FinanceIcon(Lucide.Receipt, contentDescription = Strings.get("nav_transactions", lang)) },
+                        icon = { FinanceIcon(Icons.Default.Receipt, contentDescription = Strings.get("nav_transactions", lang)) },
                         label = { Text(appText("nav_transactions"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
@@ -274,7 +278,7 @@ fun MainAppScaffold(
                     NavigationBarItem(
                         selected = currentScreen == "budgets",
                         onClick = { viewModel.setScreen("budgets") },
-                        icon = { FinanceIcon(Lucide.ChartPie, contentDescription = Strings.get("nav_budgets", lang)) },
+                        icon = { FinanceIcon(Icons.Default.PieChart, contentDescription = Strings.get("nav_budgets", lang)) },
                         label = { Text(appText("nav_budgets"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
@@ -287,7 +291,7 @@ fun MainAppScaffold(
                     NavigationBarItem(
                         selected = currentScreen !in listOf("dashboard", "accounts", "transactions", "budgets"),
                         onClick = { showHubBottomSheet = true },
-                        icon = { FinanceIcon(Lucide.Menu, contentDescription = WebI18n.tr("القائمة", "Hub menu", lang)) },
+                        icon = { FinanceIcon(Icons.Default.Menu, contentDescription = WebI18n.tr("القائمة", "Hub menu", lang)) },
                         label = { Text(WebI18n.tr("المزيد", "More", lang), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
