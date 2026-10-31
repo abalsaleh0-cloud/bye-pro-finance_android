@@ -250,7 +250,8 @@ fun DebtsBillsScreen(
                         value = payNotes,
                         onValueChange = { payNotes = it },
                         label = { Text(WebI18n.tr("ملاحظات", "Notes", lang)) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false
                     )
                     if (paymentError.isNotBlank()) Text(paymentError, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
                 }
@@ -672,7 +673,7 @@ fun AddDebtDialog(
                 FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(Locale.ROOT) }, label = { Text(WebI18n.tr("العملة (LYD / USD / EUR ...)", "Currency (LYD / USD / EUR ...)", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = minPaymentStr, onValueChange = { minPaymentStr = it }, label = { Text(WebI18n.tr("القسط / الدفعة المتوقعة", "Expected installment", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = dueDateText, onValueChange = { dueDateText = it }, label = { Text(WebI18n.tr("تاريخ الاستحقاق (YYYY-MM-DD)", "Due date (YYYY-MM-DD)", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = notes, onValueChange = { notes = it }, label = { Text(Strings.get("notes", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = notes, onValueChange = { notes = it }, label = { Text(Strings.get("notes", lang)) }, modifier = Modifier.fillMaxWidth(), singleLine = false)
                 if (error.isNotBlank()) Text(error, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
             }
         },
