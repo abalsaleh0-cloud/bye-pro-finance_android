@@ -49,7 +49,7 @@ class AccountsFormInstrumentedTest {
         composeRule.onNodeWithTag("account_name_input").performScrollTo().performTextInput("Daily wallet")
         composeRule.onNodeWithTag("account_institution_input").performScrollTo().performTextInput("Local bank")
         composeRule.onNodeWithTag("account_last_four_input").performScrollTo().performTextInput("1234")
-        composeRule.onNodeWithTag("submit_account_btn").performClick()
+        composeRule.onNodeWithTag("submit_account_btn").performScrollTo().performClick()
 
         composeRule.runOnIdle {
             assertNotNull(saved)
