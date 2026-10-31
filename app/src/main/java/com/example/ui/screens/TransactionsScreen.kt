@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceIcon
+
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.*
 
