@@ -332,4 +332,40 @@ class FinanceRepositoryIntegrationTest {
         assertEquals("Seeding twice must not duplicate accounts", seededAccounts.size, repository.accounts.first().size)
     }
 
+    @Test
+    fun accountCanBeDeactivatedAndReactivatedWithoutBeingDeleted() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Status account", type = AccountType.CASH, balance = 75.0, currency = "LYD")
+        )
+
+        repository.archiveAccount(accountId, true)
+        assertTrue(repository.accounts.first().isEmpty())
+        assertEquals(accountId, repository.archivedAccounts.first().single().id)
+
+        repository.archiveAccount(accountId, false)
+        assertEquals(accountId, repository.accounts.first().single().id)
+        assertTrue(repository.archivedAccounts.first().isEmpty())
+        assertEquals(75.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun openingBalanceRemainsUnchangedWhenCurrentBalanceChanges() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Opening balance", type = AccountType.CASH, balance = 125.0, currency = "LYD")
+        )
+        repository.addTransaction(
+            TransactionEntity(
+                accountId = accountId,
+                type = TransactionType.INCOME,
+                amount = 25.0,
+                currency = "LYD",
+                category = "Income",
+                description = "Opening balance regression"
+            )
+        )
+        val account = db.financeDao().getAccountById(accountId)
+        assertEquals(125.0, account?.openingBalance ?: 0.0, 0.001)
+        assertEquals(150.0, account?.balance ?: 0.0, 0.001)
+    }
+
 }
