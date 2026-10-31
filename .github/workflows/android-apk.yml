@@ -78,6 +78,11 @@ jobs:
           build-root-directory: ${{ env.PROJECT_DIR }}
           arguments: testDebugUnitTest --stacktrace
 
+      - name: Stop Gradle daemons before emulator
+        working-directory: ${{ env.PROJECT_DIR }}
+        shell: bash
+        run: gradle --stop || true
+
       - name: Run Android emulator UI tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
