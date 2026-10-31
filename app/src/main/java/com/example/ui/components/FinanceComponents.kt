@@ -1,9 +1,12 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -55,7 +58,7 @@ fun FinanceTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     interactionSource: MutableInteractionSource? = null,
-    shape: Shape = RoundedCornerShape(12.dp)
+    shape: Shape = RoundedCornerShape(9.dp)
 ) {
     OutlinedTextField(
         value = value, onValueChange = onValueChange, modifier = modifier,
@@ -88,7 +91,7 @@ fun FinanceButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(12.dp),
+    shape: Shape = RoundedCornerShape(9.dp),
     colors: ButtonColors = ButtonDefaults.buttonColors(
         containerColor = ByeProTheme.colors.goldPrimary,
         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -112,8 +115,8 @@ fun FinanceOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(12.dp),
-    colors: ButtonColors = ButtonDefaults.outlinedButtonColors(contentColor = ByeProTheme.colors.goldPrimary),
+    shape: Shape = RoundedCornerShape(9.dp),
+    colors: ButtonColors = ButtonDefaults.outlinedButtonColors(containerColor = ByeProTheme.colors.cardSecondary, contentColor = ByeProTheme.colors.goldPrimary),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = null,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
@@ -155,7 +158,7 @@ fun FinanceAlertDialog(
         icon = icon,
         title = title,
         text = text,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         containerColor = MaterialTheme.colorScheme.surfaceVariant,
         iconContentColor = MaterialTheme.colorScheme.secondary,
         titleContentColor = MaterialTheme.colorScheme.onSurface,
@@ -175,7 +178,15 @@ fun FinanceIconButton(
     content: @Composable () -> Unit
 ) {
     CompositionLocalProvider(LocalContentColor provides ByeProTheme.colors.goldPrimary) {
-        IconButton(onClick = onClick, modifier = modifier, enabled = enabled, content = content)
+        IconButton(
+            onClick = onClick,
+            modifier = modifier
+                .then(Modifier.sizeIn(minWidth = 44.dp, minHeight = 44.dp))
+                .border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(9.dp))
+                .background(ByeProTheme.colors.surfaceMain, RoundedCornerShape(9.dp)),
+            enabled = enabled,
+            content = content
+        )
     }
 }
 
