@@ -30,6 +30,8 @@ import com.example.finance.model.BudgetEntity
 import com.example.finance.model.BudgetPeriod
 import com.example.finance.ui.FinanceViewModel
 import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceTextButton
+import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceIconButton
 import com.example.ui.theme.ByeProTheme
 import java.text.SimpleDateFormat
@@ -142,16 +144,16 @@ fun BudgetsScreen(viewModel: FinanceViewModel) {
     }
 
     deleting?.let { target ->
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { deleting = null },
             title = { Text(WebI18n.tr("تأكيد الحذف", "Confirm deletion", lang)) },
             text = { Text(WebI18n.tr("هل تريد حذف الميزانية", "Delete budget", lang) + " «${target.name}»؟") },
             confirmButton = {
-                TextButton(onClick = { viewModel.deleteBudget(target); deleting = null }) {
+                FinanceTextButton(onClick = { viewModel.deleteBudget(target); deleting = null }) {
                     Text(Strings.get("delete", lang), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text(Strings.get("cancel", lang)) } }
+            dismissButton = { FinanceTextButton(onClick = { deleting = null }) { Text(Strings.get("cancel", lang)) } }
         )
     }
 }
@@ -228,7 +230,7 @@ private fun BudgetFormDialog(
     var currencyMenu by remember { mutableStateOf(false) }
     var periodMenu by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    FinanceAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (initial == null) WebI18n.tr("إضافة ميزانية", "Add budget", lang) else WebI18n.tr("تعديل الميزانية", "Edit budget", lang), fontWeight = FontWeight.Bold) },
         text = {
@@ -263,7 +265,7 @@ private fun BudgetFormDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = {
+            FinanceTextButton(onClick = {
                 val parsedAmount = amount.toDoubleOrNull()
                 val start = parseBudgetDate(startDate)
                 val end = parseBudgetDate(endDate)
@@ -289,6 +291,6 @@ private fun BudgetFormDialog(
                 Text(if (initial == null) WebI18n.tr("حفظ", "Save", lang) else WebI18n.tr("حفظ التعديلات", "Save changes", lang))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) } }
+        dismissButton = { FinanceTextButton(onClick = onDismiss) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) } }
     )
 }
