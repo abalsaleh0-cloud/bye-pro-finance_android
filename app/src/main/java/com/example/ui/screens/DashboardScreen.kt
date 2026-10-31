@@ -196,8 +196,8 @@ fun DashboardScreen(
                 if (recentTransactions.isEmpty()) {
                     DashboardEmpty(WebI18n.tr("لا توجد معاملات بعد.", "No transactions yet.", lang))
                 } else {
-                    recentTransactions.forEach { tx ->
-                        DashboardTransactionLine(tx, lang, onClick = { onNavigate("transactions") })
+                    recentTransactions.forEachIndexed { index, tx ->
+                        DashboardTransactionLine(tx, lang, onClick = { onNavigate("transactions") }, showDivider = index < recentTransactions.lastIndex)
                     }
                 }
             }
@@ -213,7 +213,7 @@ fun DashboardScreen(
                 if (currencyBills.isEmpty()) {
                     DashboardEmpty(WebI18n.tr("لا توجد فواتير مستحقة.", "No bills due.", lang))
                 } else {
-                    dashboardBills.take(5).forEach { bill ->
+                    dashboardBills.take(5).forEachIndexed { index, bill ->
                         DashboardLine(
                             title = bill.name,
                             subtitle = "${dashboardDate(bill.dueDate, locale)} · " +
@@ -247,7 +247,8 @@ fun DashboardScreen(
                     DashboardLine(
                         title = budget.name,
                         subtitle = budgetPeriodLabel(budget, lang),
-                        amount = TextContent.money(budget.limitAmount, budget.currency, lang)
+                        amount = TextContent.money(budget.limitAmount, budget.currency, lang),
+                        showDivider = index < minOf(4, dashboardBudgets.size) - 1
                     )
                 }
                 if (currencyBudgets.isEmpty()) DashboardEmpty(WebI18n.tr("لا توجد ميزانيات نشطة.", "No active budgets.", lang))
@@ -301,13 +302,14 @@ fun DashboardScreen(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                dashboardDebts.take(3).forEach { debt ->
+                dashboardDebts.take(3).forEachIndexed { index, debt ->
                     DashboardLine(
                         title = debt.name,
                         subtitle = if (debt.direction == "owed_to_me")
                             WebI18n.tr("لي عنده", "Owed to me", lang)
                         else WebI18n.tr("عليّ له", "I owe", lang),
-                        amount = TextContent.money(debt.remaining, debt.currency, lang)
+                        amount = TextContent.money(debt.remaining, debt.currency, lang),
+                        showDivider = index < minOf(3, dashboardDebts.size) - 1
                     )
                 }
                 if (currencyDebts.isEmpty()) DashboardEmpty(WebI18n.tr("لا توجد ديون نشطة.", "No active debts.", lang))
@@ -350,16 +352,26 @@ private fun DashboardMetric(
     modifier: Modifier = Modifier,
     currency: String? = null
 ) {
+    val shape = RoundedCornerShape(16.dp)
     Card(
         modifier = modifier
-            .border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain),
-        shape = RoundedCornerShape(16.dp)
+            .background(
+                brush = if (ByeProTheme.colors.isDark) Brush.linearGradient(
+                    listOf(Color(0xFF1B1C21), Color(0xFF141519))
+                ) else Brush.linearGradient(listOf(Color.White, Color.White)),
+                shape = shape
+            )
+            .border(1.dp, ByeProTheme.colors.borderBase, shape),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        shape = shape
     ) {
-        Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            Text(title + (currency?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(amount, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            Text(note, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(
+            Modifier.fillMaxWidth().padding(17.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(title + (currency?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(amount, style = MaterialTheme.typography.titleMedium, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(note, style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -372,22 +384,23 @@ private fun DashboardPanel(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
+    val shape = RoundedCornerShape(16.dp)
     Card(
         modifier = Modifier.fillMaxWidth()
-            .border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(16.dp))
+            .border(1.dp, ByeProTheme.colors.borderBase, shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain),
-        shape = RoundedCornerShape(16.dp)
+        shape = shape
     ) {
-        Column(Modifier.fillMaxWidth().padding(17.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(17.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 13.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(eyebrow, style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary)
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 }
                 if (count != null) {
                     Box(
@@ -401,56 +414,59 @@ private fun DashboardPanel(
                 }
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(ByeProTheme.colors.borderBase))
+            Spacer(Modifier.height(14.dp))
             content()
         }
     }
 }
 
 @Composable
-private fun DashboardLine(title: String, subtitle: String, amount: String) {
+private fun DashboardLine(title: String, subtitle: String, amount: String, showDivider: Boolean = true) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, style = MaterialTheme.typography.bodySmall, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            Text(subtitle, style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.width(8.dp))
-        Text(amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+        Text(amount, style = MaterialTheme.typography.bodySmall, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
     }
-    Box(Modifier.fillMaxWidth().height(1.dp).background(ByeProTheme.colors.borderBase))
+    if (showDivider) Box(Modifier.fillMaxWidth().height(1.dp).background(ByeProTheme.colors.borderBase))
 }
 
 @Composable
-private fun DashboardTransactionLine(transaction: TransactionEntity, lang: AppLanguage, onClick: () -> Unit) {
+private fun DashboardTransactionLine(transaction: TransactionEntity, lang: AppLanguage, onClick: () -> Unit, showDivider: Boolean = true) {
     val isExpense = transaction.type == TransactionType.EXPENSE
     val sign = if (isExpense) "−" else "+"
     val color = if (isExpense) ByeProTheme.colors.financialRed else ByeProTheme.colors.financialGreen
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 5.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
                 transaction.description.ifBlank { WebI18n.tr("معاملة مالية", "Financial transaction", lang) },
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Text(dashboardDate(transaction.date, if (lang == AppLanguage.AR) Locale("ar") else Locale.ENGLISH), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(dashboardDate(transaction.date, if (lang == AppLanguage.AR) Locale("ar") else Locale.ENGLISH), style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.width(8.dp))
         Text(
             "$sign${TextContent.money(transaction.amount, transaction.currency, lang)}",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = color
         )
     }
-    Box(Modifier.fillMaxWidth().height(1.dp).background(ByeProTheme.colors.borderBase))
+    if (showDivider) Box(Modifier.fillMaxWidth().height(1.dp).background(ByeProTheme.colors.borderBase))
 }
 
 @Composable
