@@ -2,7 +2,6 @@ package com.example
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -43,7 +42,7 @@ class AccountsFormInstrumentedTest {
         }
 
         composeRule.onNodeWithTag("submit_account_btn").performScrollTo().performClick()
-        composeRule.onNodeWithText("اسم الحساب مطلوب.").assertExists()
+        composeRule.onNodeWithText("اسم الحساب مطلوب.").fetchSemanticsNode()
 
         composeRule.onNodeWithTag("account_name_input").performScrollTo().performTextInput("Daily wallet")
         composeRule.onNodeWithTag("account_institution_input").performScrollTo().performTextInput("Local bank")
