@@ -547,7 +547,7 @@ fun AddAssetDialog(
                 FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(java.util.Locale.ROOT) }, label = { Text(WebI18n.tr("العملة", "Currency", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = typeText, onValueChange = { typeText = it.uppercase(java.util.Locale.ROOT) }, label = { Text(WebI18n.tr("النوع: PROPERTY / GOLD / VEHICLE / CASH / INVESTMENTS / OTHER", "Type: PROPERTY / GOLD / VEHICLE / CASH / INVESTMENTS / OTHER", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = purchaseDateText, onValueChange = { purchaseDateText = it }, label = { Text(WebI18n.tr("تاريخ الشراء YYYY-MM-DD", "Purchase date YYYY-MM-DD", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = notes, onValueChange = { notes = it }, label = { Text(Strings.get("notes", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = notes, onValueChange = { notes = it }, label = { Text(Strings.get("notes", lang)) }, modifier = Modifier.fillMaxWidth(), singleLine = false)
                 if (error.isNotBlank()) Text(error, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
             }
         },
