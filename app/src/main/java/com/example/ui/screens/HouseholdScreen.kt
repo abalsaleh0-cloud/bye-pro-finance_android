@@ -98,7 +98,7 @@ fun HouseholdScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_household_expense_fab")
             ) {
-                FinanceIcon(Lucide.Plus, contentDescription = Strings.get("add_shared_expense", lang))
+                FinanceIcon(Icons.Default.Add, contentDescription = Strings.get("add_shared_expense", lang))
             }
         }
     ) { padding ->
@@ -133,7 +133,7 @@ fun HouseholdScreen(
                         onClick = { editingMember = null; showAddMemberDialog = true },
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        FinanceIcon(Lucide.Users, contentDescription = null, modifier = Modifier.size(16.dp))
+                        FinanceIcon(Icons.Default.Group, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.size(4.dp))
                         Text(Strings.get("add_member", lang), style = MaterialTheme.typography.labelMedium)
                     }
@@ -196,7 +196,7 @@ fun HouseholdScreen(
                                     .border(1.dp, ByeProTheme.colors.financialGreen, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                FinanceIcon(Lucide.UserRound, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
+                                FinanceIcon(Icons.Default.Person, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                             }
                             Spacer(modifier = Modifier.size(10.dp))
                             Column {
