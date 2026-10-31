@@ -189,7 +189,7 @@ fun NotificationsAdminScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = WebI18n.tr("نظام الصلاحيات (RBAC) وسجل التدقيق الأمني للعمليات المالية.", "Role-based access control (RBAC) and financial security audit log.", lang),
+                        text = WebI18n.tr("مراجعة السجلات المحلية وحالة تشغيل التطبيق. إدارة الصلاحيات المركزية غير متاحة في الوضع المحلي.", "Review local records and app runtime status. Centralized role management is unavailable in local mode.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -207,7 +207,7 @@ fun NotificationsAdminScreen(
                                 Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                                 Spacer(modifier = Modifier.size(8.dp))
                                 Text(
-                                    text = WebI18n.tr("الدور المحلي: ", "Local profile role: ", lang) + (currentUser?.role?.name ?: "USER"),
+                                    text = WebI18n.tr("الدور المسجل محلياً (غير موثّق خادمياً): ", "Locally stored role (not server-verified): ", lang) + (currentUser?.role?.name ?: "USER"),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -261,7 +261,7 @@ fun NotificationsAdminScreen(
                 // Audit Logs Header
                 item {
                     Text(
-                        text = Strings.get("audit_logs", lang),
+                        text = WebI18n.tr("سجل التدقيق المحلي", "Local audit log", lang),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
