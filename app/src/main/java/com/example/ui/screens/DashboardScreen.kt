@@ -61,19 +61,24 @@ fun DashboardScreen(
     val assets by viewModel.assets.collectAsState()
     val bills by viewModel.bills.collectAsState()
     val goals by viewModel.savingsGoals.collectAsState()
-    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
-
     val activeAccounts = accounts.filter { !it.isArchived }
-    val currencyAccounts = activeAccounts.filter { it.currency.equals(primaryCurrency, true) }
-    val currencyTransactions = transactions.filter {
-        it.currency.equals(primaryCurrency, true) && it.status != TransactionStatus.CANCELLED
-    }
-    val currencyAssets = assets.filter { it.currency.equals(primaryCurrency, true) }
-    val currencyBudgets = budgets.filter { it.currency.equals(primaryCurrency, true) }
-    val currencyDebts = debts.filter { it.currency.equals(primaryCurrency, true) && it.status.name != "PAID" }
-    val currencyBills = bills.filter { it.currency.equals(primaryCurrency, true) && !it.isPaid }
+    val dashboardTransactions = transactions.filter { it.status != TransactionStatus.CANCELLED }
+    val currencyOrder = buildList {
+        activeAccounts.forEach { add(it.currency) }
+        dashboardTransactions.forEach { add(it.currency) }
+        assets.forEach { add(it.currency) }
+    }.distinct()
+    val dashboardCurrency = currencyOrder.firstOrNull { it.equals("LYD", true) }
+        ?: currencyOrder.firstOrNull()
+        ?: "LYD"
+    val currencyAccounts = activeAccounts.filter { it.currency.equals(dashboardCurrency, true) }
+    val currencyTransactions = dashboardTransactions.filter { it.currency.equals(dashboardCurrency, true) }
+    val currencyAssets = assets.filter { it.currency.equals(dashboardCurrency, true) }
+    val currencyBudgets = budgets.filter { it.currency.equals(dashboardCurrency, true) }
+    val currencyDebts = debts.filter { it.currency.equals(dashboardCurrency, true) && it.status.name != "PAID" }
+    val currencyBills = bills.filter { it.currency.equals(dashboardCurrency, true) && !it.isPaid }
         .sortedBy { it.dueDate }
-    val currencyGoals = goals.filter { it.currency.equals(primaryCurrency, true) }
+    val currencyGoals = goals.filter { it.currency.equals(dashboardCurrency, true) }
 
     val availableBalance = currencyAccounts.sumOf { it.balance }
     val recordedIncome = currencyTransactions.filter {
@@ -89,7 +94,7 @@ fun DashboardScreen(
     val savingsProgress = currencyGoals.sumOf { it.currentAmount }
     val savingsTarget = currencyGoals.sumOf { it.targetAmount }
     val savingsPercent = if (savingsTarget > 0.0) (savingsProgress / savingsTarget * 100).toInt().coerceIn(0, 100) else 0
-    val recentTransactions = transactions.filter { it.status != TransactionStatus.CANCELLED }.take(6)
+    val recentTransactions = dashboardTransactions.take(6)
     val locale = if (lang == AppLanguage.AR) Locale("ar") else Locale.ENGLISH
 
     LazyColumn(
@@ -141,14 +146,14 @@ fun DashboardScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 DashboardMetric(
                     title = WebI18n.tr("الرصيد المتاح", "Available balance", lang),
-                    amount = TextContent.money(availableBalance, primaryCurrency, lang),
+                    amount = TextContent.money(availableBalance, dashboardCurrency, lang),
                     note = "${activeAccounts.size} " + WebI18n.tr("حساب نشط", "active accounts", lang),
-                    currency = primaryCurrency,
+                    currency = dashboardCurrency,
                     modifier = Modifier.weight(1f)
                 )
                 DashboardMetric(
                     title = WebI18n.tr("الدخل المسجل", "Recorded income", lang),
-                    amount = TextContent.money(recordedIncome, primaryCurrency, lang),
+                    amount = TextContent.money(recordedIncome, dashboardCurrency, lang),
                     note = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang),
                     modifier = Modifier.weight(1f),
                     accent = ByeProTheme.colors.financialGreen
@@ -159,14 +164,14 @@ fun DashboardScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 DashboardMetric(
                     title = WebI18n.tr("المصروفات المسجلة", "Recorded expenses", lang),
-                    amount = TextContent.money(recordedExpenses, primaryCurrency, lang),
+                    amount = TextContent.money(recordedExpenses, dashboardCurrency, lang),
                     note = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang),
                     modifier = Modifier.weight(1f),
                     accent = ByeProTheme.colors.financialRed
                 )
                 DashboardMetric(
                     title = WebI18n.tr("قيمة الأصول", "Asset value", lang),
-                    amount = TextContent.money(assetValue, primaryCurrency, lang),
+                    amount = TextContent.money(assetValue, dashboardCurrency, lang),
                     note = "${assets.size} " + WebI18n.tr("أصل", "assets", lang),
                     modifier = Modifier.weight(1f)
                 )
@@ -220,13 +225,13 @@ fun DashboardScreen(
                 onClick = { onNavigate("budgets") }
             ) {
                 Text(
-                    TextContent.money(budgetTotal, primaryCurrency, lang),
+                    TextContent.money(budgetTotal, dashboardCurrency, lang),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    WebI18n.tr("إجمالي المخصص النشط", "Total active allocation", lang) + " · $primaryCurrency",
+                    WebI18n.tr("إجمالي المخصص النشط", "Total active allocation", lang) + " · $dashboardCurrency",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall
                 )
@@ -261,9 +266,9 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    "${TextContent.money(savingsProgress, primaryCurrency, lang)} " +
+                    "${TextContent.money(savingsProgress, dashboardCurrency, lang)} " +
                         WebI18n.tr("من", "of", lang) + " " +
-                        TextContent.money(savingsTarget, primaryCurrency, lang),
+                        TextContent.money(savingsTarget, dashboardCurrency, lang),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -278,13 +283,13 @@ fun DashboardScreen(
                 onClick = { onNavigate("debts") }
             ) {
                 Text(
-                    TextContent.money(debtRemaining, primaryCurrency, lang),
+                    TextContent.money(debtRemaining, dashboardCurrency, lang),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    WebI18n.tr("إجمالي المتبقي", "Total remaining", lang) + " · $primaryCurrency",
+                    WebI18n.tr("إجمالي المتبقي", "Total remaining", lang) + " · $dashboardCurrency",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -315,7 +320,7 @@ fun DashboardScreen(
                 }
                 Text(
                     WebI18n.tr("الفواتير القادمة:", "Upcoming bills:", lang) +
-                        " " + TextContent.money(billsDue, primaryCurrency, lang) + " · $primaryCurrency",
+                        " " + TextContent.money(billsDue, dashboardCurrency, lang) + " · $dashboardCurrency",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
