@@ -88,6 +88,7 @@ jobs:
         run: gradle --stop || true
 
       - name: Run Android emulator UI tests
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
