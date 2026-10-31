@@ -5,9 +5,6 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.Icons
 
 import com.composables.icons.lucide.*
-import com.example.ui.components.FinanceIcon
-
-
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
@@ -157,7 +154,7 @@ fun ReportsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.financialGreen, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    FinanceIcon(Lucide.Download, contentDescription = null)
+                    Icon(Icons.Default.FileDownload, contentDescription = null)
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(Strings.get("export_csv", lang), fontWeight = FontWeight.Bold)
                 }
@@ -173,7 +170,7 @@ fun ReportsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    FinanceIcon(Icons.Default.TableChart, contentDescription = null)
+                    Icon(Icons.Default.TableChart, contentDescription = null)
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(Strings.get("export_json", lang), fontWeight = FontWeight.Bold)
                 }
