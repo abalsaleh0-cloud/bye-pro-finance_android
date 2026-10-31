@@ -75,7 +75,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.finance.engine.FinanceEngine
+import com.example.finance.engine.FinanceInsightsEngine
 import com.example.finance.i18n.Strings
 import com.example.finance.ui.ChatMessage
 import com.example.finance.model.AppLanguage
@@ -269,7 +269,7 @@ fun AiAssistantScreen(
             }
         } else if (selectedTabIndex == 1) {
             // Insights Tab
-            val insights = viewModel.aiService.generateInsights(transactions, budgets, lang)
+            val insights = FinanceInsightsEngine.generateInsights(transactions, budgets, lang)
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
