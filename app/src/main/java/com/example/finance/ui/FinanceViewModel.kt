@@ -34,7 +34,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+
+data class AccountActionFeedback(val operation: String, val succeeded: Boolean)
 
 data class ChatMessage(
     val sender: String,
@@ -50,6 +53,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     val accounts: StateFlow<List<AccountEntity>> = repository.accounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val archivedAccounts: StateFlow<List<AccountEntity>> = repository.archivedAccounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _accountsLoading = MutableStateFlow(true)
+    val accountsLoading: StateFlow<Boolean> = _accountsLoading.asStateFlow()
+    private val _accountActionFeedback = MutableStateFlow<AccountActionFeedback?>(null)
+    val accountActionFeedback: StateFlow<AccountActionFeedback?> = _accountActionFeedback.asStateFlow()
     val transactions: StateFlow<List<TransactionEntity>> = repository.transactions.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val transfers: StateFlow<List<TransferEntity>> = repository.transfers.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val budgets: StateFlow<List<BudgetEntity>> = repository.budgets.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -96,6 +103,13 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     init {
         // Match the web app: never inject fictitious accounts or transactions into a new profile.
         resetWelcomeMessage()
+        viewModelScope.launch {
+            runCatching {
+                repository.accounts.first()
+                repository.archivedAccounts.first()
+            }
+            _accountsLoading.value = false
+        }
     }
 
     private fun resetWelcomeMessage() {
@@ -131,10 +145,22 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     fun toggleTheme() { setDarkMode(!_isDarkMode.value) }
 
-    fun addAccount(account: AccountEntity) { viewModelScope.launch { repository.addAccount(account) } }
+    fun addAccount(account: AccountEntity) {
+        viewModelScope.launch {
+            _accountActionFeedback.value = AccountActionFeedback("add", runCatching { repository.addAccount(account) }.isSuccess)
+        }
+    }
+    fun clearAccountActionFeedback() { _accountActionFeedback.value = null }
     fun updateAccount(account: AccountEntity) { viewModelScope.launch { repository.updateAccount(account) } }
     fun deleteAccount(account: AccountEntity) { viewModelScope.launch { repository.deleteAccount(account) } }
-    fun archiveAccount(accountId: Long, isArchived: Boolean) { viewModelScope.launch { repository.archiveAccount(accountId, isArchived) } }
+    fun archiveAccount(accountId: Long, isArchived: Boolean) {
+        viewModelScope.launch {
+            _accountActionFeedback.value = AccountActionFeedback(
+                if (isArchived) "deactivate" else "activate",
+                runCatching { repository.archiveAccount(accountId, isArchived) }.isSuccess
+            )
+        }
+    }
     fun addTransaction(tx: TransactionEntity) { viewModelScope.launch { repository.addTransaction(tx) } }
     fun deleteTransaction(tx: TransactionEntity) { viewModelScope.launch { repository.deleteTransaction(tx) } }
 
