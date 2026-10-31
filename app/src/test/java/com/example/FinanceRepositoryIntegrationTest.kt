@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceRepository
+import com.example.finance.data.seedInitialDataIfEmpty
 import com.example.finance.engine.FinanceEngine
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
