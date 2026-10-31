@@ -2,6 +2,7 @@ package com.example.ui.navigation
 
 import com.example.finance.i18n.TextContent
 
+import com.example.ui.components.FinanceIconButton
 import com.example.ui.theme.ByeProTheme
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -214,7 +215,7 @@ fun MainAppScaffold(
                         }
 
                         // Notifications Badge Button
-                        IconButton(
+                        FinanceIconButton(
                             onClick = { viewModel.setScreen("notifications") },
                             modifier = Modifier.testTag("top_notifications_btn")
                         ) {
