@@ -88,7 +88,7 @@ fun DashboardScreen(
     val savingsProgress = currencyGoals.sumOf { it.currentAmount }
     val savingsTarget = currencyGoals.sumOf { it.targetAmount }
     val savingsPercent = if (savingsTarget > 0.0) (savingsProgress / savingsTarget * 100).toInt().coerceIn(0, 100) else 0
-    val recentTransactions = transactions.take(6)
+    val recentTransactions = transactions.filter { it.status != TransactionStatus.CANCELLED }.take(6)
     val locale = if (lang == AppLanguage.AR) Locale("ar") else Locale.ENGLISH
 
     LazyColumn(
@@ -141,7 +141,7 @@ fun DashboardScreen(
                 DashboardMetric(
                     title = WebI18n.tr("الرصيد المتاح", "Available balance", lang),
                     amount = TextContent.money(availableBalance, primaryCurrency, lang),
-                    note = "${currencyAccounts.size} " + WebI18n.tr("حساب نشط", "active accounts", lang),
+                    note = "${accounts.size} " + WebI18n.tr("حساب نشط", "active accounts", lang),
                     currency = primaryCurrency,
                     modifier = Modifier.weight(1f)
                 )
@@ -166,7 +166,7 @@ fun DashboardScreen(
                 DashboardMetric(
                     title = WebI18n.tr("قيمة الأصول", "Asset value", lang),
                     amount = TextContent.money(assetValue, primaryCurrency, lang),
-                    note = "${currencyAssets.size} " + WebI18n.tr("أصل", "assets", lang),
+                    note = "${assets.size} " + WebI18n.tr("أصل", "assets", lang),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -193,13 +193,13 @@ fun DashboardScreen(
             DashboardPanel(
                 title = WebI18n.tr("الفواتير", "Bills", lang),
                 eyebrow = WebI18n.tr("التزامات قريبة", "Upcoming obligations", lang),
-                count = currencyBills.size,
+                count = bills.size,
                 onClick = { onNavigate("bills") }
             ) {
                 if (currencyBills.isEmpty()) {
                     DashboardEmpty(WebI18n.tr("لا توجد فواتير مستحقة.", "No bills due.", lang))
                 } else {
-                    currencyBills.take(5).forEach { bill ->
+                    bills.take(5).forEach { bill ->
                         DashboardLine(
                             title = bill.name,
                             subtitle = "${dashboardDate(bill.dueDate, locale)} · " +
@@ -215,7 +215,7 @@ fun DashboardScreen(
             DashboardPanel(
                 title = WebI18n.tr("الميزانيات", "Budgets", lang),
                 eyebrow = WebI18n.tr("التخطيط", "Planning", lang),
-                count = currencyBudgets.size,
+                count = budgets.size,
                 onClick = { onNavigate("budgets") }
             ) {
                 Text(
@@ -229,7 +229,7 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall
                 )
-                currencyBudgets.take(4).forEach { budget ->
+                budgets.take(4).forEach { budget ->
                     DashboardLine(
                         title = budget.name,
                         subtitle = budgetPeriodLabel(budget, lang),
@@ -244,7 +244,7 @@ fun DashboardScreen(
             DashboardPanel(
                 title = WebI18n.tr("الادخار", "Savings", lang),
                 eyebrow = WebI18n.tr("الأهداف", "Goals", lang),
-                count = currencyGoals.size,
+                count = goals.size,
                 onClick = { onNavigate("savings") }
             ) {
                 LinearProgressIndicator(
@@ -273,7 +273,7 @@ fun DashboardScreen(
             DashboardPanel(
                 title = WebI18n.tr("الديون", "Debts", lang),
                 eyebrow = WebI18n.tr("الالتزامات", "Liabilities", lang),
-                count = currencyDebts.size,
+                count = debts.size,
                 onClick = { onNavigate("debts") }
             ) {
                 Text(
@@ -287,7 +287,7 @@ fun DashboardScreen(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                currencyDebts.take(3).forEach { debt ->
+                debts.take(3).forEach { debt ->
                     DashboardLine(
                         title = debt.name,
                         subtitle = if (debt.direction == "owed_to_me")
@@ -307,10 +307,10 @@ fun DashboardScreen(
                 count = null
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    DashboardQuickStat(currencyAccounts.size, WebI18n.tr("حسابات", "Accounts", lang), Modifier.weight(1f))
+                    DashboardQuickStat(accounts.size, WebI18n.tr("حسابات", "Accounts", lang), Modifier.weight(1f))
                     DashboardQuickStat(transactions.size, WebI18n.tr("معاملات", "Transactions", lang), Modifier.weight(1f))
-                    DashboardQuickStat(currencyBills.size, WebI18n.tr("الفواتير", "Bills", lang), Modifier.weight(1f))
-                    DashboardQuickStat(currencyDebts.size, WebI18n.tr("الديون", "Debts", lang), Modifier.weight(1f))
+                    DashboardQuickStat(bills.size, WebI18n.tr("الفواتير", "Bills", lang), Modifier.weight(1f))
+                    DashboardQuickStat(debts.size, WebI18n.tr("الديون", "Debts", lang), Modifier.weight(1f))
                 }
                 Text(
                     WebI18n.tr("الفواتير القادمة:", "Upcoming bills:", lang) +
