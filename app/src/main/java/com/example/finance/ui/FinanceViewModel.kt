@@ -54,7 +54,28 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
     private val _primaryCurrency = MutableStateFlow(preferences.getString("currency_code", "LYD") ?: "LYD")
     val primaryCurrency: StateFlow<String> = _primaryCurrency.asStateFlow()
+    private val _timeZone = MutableStateFlow(preferences.getString("time_zone", "Africa/Tripoli") ?: "Africa/Tripoli")
+    val timeZone: StateFlow<String> = _timeZone.asStateFlow()
+    private val _dateFormat = MutableStateFlow(preferences.getString("date_format", "YYYY-MM-DD") ?: "YYYY-MM-DD")
+    val dateFormat: StateFlow<String> = _dateFormat.asStateFlow()
+    private val _numberFormat = MutableStateFlow(preferences.getString("number_format", "1,234.56") ?: "1,234.56")
+    val numberFormat: StateFlow<String> = _numberFormat.asStateFlow()
+    private val _emailNotifications = MutableStateFlow(preferences.getBoolean("email_notifications", true))
+    val emailNotifications: StateFlow<Boolean> = _emailNotifications.asStateFlow()
+    private val _transactionAlerts = MutableStateFlow(preferences.getBoolean("transaction_alerts", true))
+    val transactionAlerts: StateFlow<Boolean> = _transactionAlerts.asStateFlow()
+    private val _billReminders = MutableStateFlow(preferences.getBoolean("bill_reminders", true))
+    val billReminders: StateFlow<Boolean> = _billReminders.asStateFlow()
+    private val _budgetAlerts = MutableStateFlow(preferences.getBoolean("budget_alerts", true))
+    val budgetAlerts: StateFlow<Boolean> = _budgetAlerts.asStateFlow()
     fun setPrimaryCurrency(currency: String) { val normalized = currency.trim().uppercase(); if (normalized !in setOf("LYD", "USD", "EUR", "GBP", "SAR", "AED", "EGP")) return; _primaryCurrency.value = normalized; preferences.edit().putString("currency_code", normalized).apply() }
+    fun setTimeZone(value: String) { if (value !in setOf("Africa/Tripoli", "Asia/Damascus", "Asia/Amman", "Europe/Istanbul", "Europe/London", "UTC")) return; _timeZone.value = value; preferences.edit().putString("time_zone", value).apply() }
+    fun setDateFormat(value: String) { if (value !in setOf("YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY")) return; _dateFormat.value = value; preferences.edit().putString("date_format", value).apply() }
+    fun setNumberFormat(value: String) { if (value !in setOf("1,234.56", "1.234,56", "1 234,56")) return; _numberFormat.value = value; preferences.edit().putString("number_format", value).apply() }
+    fun setEmailNotifications(value: Boolean) { _emailNotifications.value = value; preferences.edit().putBoolean("email_notifications", value).apply() }
+    fun setTransactionAlerts(value: Boolean) { _transactionAlerts.value = value; preferences.edit().putBoolean("transaction_alerts", value).apply() }
+    fun setBillReminders(value: Boolean) { _billReminders.value = value; preferences.edit().putBoolean("bill_reminders", value).apply() }
+    fun setBudgetAlerts(value: Boolean) { _budgetAlerts.value = value; preferences.edit().putBoolean("budget_alerts", value).apply() }
     private val _currentScreen = MutableStateFlow("dashboard")
     val currentScreen: StateFlow<String> = _currentScreen.asStateFlow()
     private val _scannedReceipt = MutableStateFlow<ExtractedReceiptData?>(null)
@@ -112,7 +133,6 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun markAllNotificationsRead() { viewModelScope.launch { runCatching { repository.markAllNotificationsRead() }.onFailure { Log.e("BYE_PRO_FINANCE", "Mark all notifications read failed", it) } } }
     fun deleteNotification(id: Long) { viewModelScope.launch { runCatching { repository.deleteNotification(id) }.onFailure { Log.e("BYE_PRO_FINANCE", "Delete notification failed", it) } } }
     fun clearNotifications() { viewModelScope.launch { runCatching { repository.clearNotifications() }.onFailure { Log.e("BYE_PRO_FINANCE", "Clear notifications failed", it) } } }
-    fun toggleUserRole() { viewModelScope.launch { val user = currentUser.value ?: return@launch; repository.updateCurrentUser(user.copy(role = if (user.role == UserRole.ADMIN) UserRole.USER else UserRole.ADMIN)) } }
     fun clearAiChat() { if (_isAiLoading.value) return; resetWelcomeMessage() }
     fun askAiAssistant(query: String) { if (query.isBlank() || _isAiLoading.value) return; _chatMessages.value = _chatMessages.value + ChatMessage("USER", query.trim()); _isAiLoading.value = true; viewModelScope.launch { val response = runCatching { aiService.askAssistant(query.trim(), accounts.value, transactions.value, budgets.value, debts.value, _appLanguage.value, savingsGoals.value, assets.value, bills.value) }.getOrElse { WebI18n.tr("تعذر إكمال التحليل المالي حالياً.", "The financial analysis could not be completed right now.", _appLanguage.value) }; _isAiLoading.value = false; _chatMessages.value = _chatMessages.value + ChatMessage("AI", response) } }
     private val _ocrError = MutableStateFlow<String?>(null)
