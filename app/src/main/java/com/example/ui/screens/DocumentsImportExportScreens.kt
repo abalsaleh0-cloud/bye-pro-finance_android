@@ -167,6 +167,21 @@ fun ImportExportScreen(viewModel: FinanceViewModel) {
             }.getOrElse { WebI18n.tr("تعذر تصدير الملف: ", "Export failed: ", lang) + (it.message ?: "") }
         }
     }
+    val csvImport = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+                    ?: error("Unable to read selected file")
+            }.onSuccess { csv ->
+                viewModel.importTransactionsFromCsv(csv) { result ->
+                    status = result.fold(
+                        { count -> WebI18n.tr("تم استيراد ", "Imported ", lang) + TextContent.number(count, lang, 0) + WebI18n.tr(" معاملة من CSV.", " transactions from CSV.", lang) },
+                        { error -> WebI18n.tr("فشل استيراد CSV: ", "CSV import failed: ", lang) + (error.message ?: "") }
+                    )
+                }
+            }.onFailure { status = WebI18n.tr("تعذر قراءة ملف CSV: ", "Unable to read CSV: ", lang) + (it.message ?: "") }
+        }
+    }
     val jsonImport = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             val readResult = runCatching {
@@ -220,6 +235,9 @@ fun ImportExportScreen(viewModel: FinanceViewModel) {
                     )
                     FinanceButton(onClick = { jsonImport.launch("application/json") }, modifier = Modifier.fillMaxWidth()) {
                         Text(WebI18n.tr("اختيار ملف JSON للاستيراد", "Choose JSON file to import", lang))
+                    }
+                    FinanceOutlinedButton(onClick = { csvImport.launch("text/*") }, modifier = Modifier.fillMaxWidth()) {
+                        Text(WebI18n.tr("استيراد معاملات CSV", "Import CSV transactions", lang))
                     }
                 }
             }
