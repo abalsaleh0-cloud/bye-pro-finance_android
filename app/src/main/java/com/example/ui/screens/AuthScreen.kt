@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -155,6 +156,7 @@ private fun PasswordField(
     OutlinedTextField(
         value = value, onValueChange = onValueChange, modifier = Modifier.fillMaxWidth().testTag(tag),
         label = { Text(label) }, singleLine = true,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(textDirection = TextDirection.Rtl),
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         trailingIcon = {
