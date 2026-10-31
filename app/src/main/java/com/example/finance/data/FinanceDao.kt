@@ -205,6 +205,9 @@ interface FinanceDao {
     @Query("UPDATE notifications SET isRead = 1 WHERE id = :id")
     suspend fun markNotificationAsRead(id: Long)
 
+    @Query("UPDATE notifications SET isRead = 1")
+    suspend fun markAllNotificationsRead()
+
     @Query("DELETE FROM notifications WHERE id = :id")
     suspend fun deleteNotification(id: Long)
 
