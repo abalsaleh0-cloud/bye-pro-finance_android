@@ -101,10 +101,16 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun updateAsset(asset: AssetEntity) { viewModelScope.launch { repository.updateAsset(asset) } }
     fun deleteAsset(asset: AssetEntity) { viewModelScope.launch { repository.deleteAsset(asset) } }
     fun addHouseholdMember(name: String, email: String, role: String, percent: Double) { viewModelScope.launch { repository.addHouseholdMember(name, email, role, percent) } }
+    fun updateHouseholdMember(member: HouseholdMemberEntity) { viewModelScope.launch { repository.updateHouseholdMember(member) } }
+    fun deleteHouseholdMember(member: HouseholdMemberEntity) { viewModelScope.launch { repository.deleteHouseholdMember(member) } }
     fun addHouseholdExpense(title: String, amount: Double, payerId: Long, category: String, currency: String = primaryCurrency.value) { viewModelScope.launch { repository.addHouseholdExpense(title, amount, payerId, category, currency) } }
+    fun updateHouseholdExpense(expense: HouseholdExpenseEntity) { viewModelScope.launch { repository.updateHouseholdExpense(expense) } }
+    fun deleteHouseholdExpense(expense: HouseholdExpenseEntity) { viewModelScope.launch { repository.deleteHouseholdExpense(expense) } }
     fun addDocument(doc: DocumentEntity) { viewModelScope.launch { repository.addDocument(doc) } }
     fun deleteDocument(doc: DocumentEntity) { viewModelScope.launch { repository.deleteDocument(doc) } }
     fun markNotificationRead(id: Long) { viewModelScope.launch { repository.markNotificationRead(id) } }
+    fun markAllNotificationsRead() { viewModelScope.launch { repository.markAllNotificationsRead() } }
+    fun deleteNotification(id: Long) { viewModelScope.launch { repository.deleteNotification(id) } }
     fun clearNotifications() { viewModelScope.launch { repository.clearNotifications() } }
     fun toggleUserRole() { viewModelScope.launch { val user = currentUser.value ?: return@launch; repository.updateCurrentUser(user.copy(role = if (user.role == UserRole.ADMIN) UserRole.USER else UserRole.ADMIN)) } }
     fun askAiAssistant(query: String) { if (query.isBlank()) return; _chatMessages.value = _chatMessages.value + ChatMessage("USER", query); _isAiLoading.value = true; viewModelScope.launch { val response = aiService.askAssistant(query, accounts.value, transactions.value, budgets.value, debts.value, _appLanguage.value); _isAiLoading.value = false; _chatMessages.value = _chatMessages.value + ChatMessage("AI", response) } }
