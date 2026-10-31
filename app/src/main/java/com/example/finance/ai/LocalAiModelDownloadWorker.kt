@@ -20,17 +20,18 @@ class LocalAiModelDownloadWorker(
     override suspend fun doWork(): Result {
         createNotificationChannel()
         return try {
-            setForeground(foregroundInfo("بدء تنزيل نموذج الذكاء الاصطناعي", 0, false))
-            val file = LocalAiModelManager.download(applicationContext as android.app.Application) { downloaded, total ->
+            setForeground(foregroundInfo("بدء تنزيل نموذج الذكاء الاصطناعي", 0, true))
+            var lastNotifiedPercent = -1
+            val file = LocalAiModelManager.download(applicationContext.applicationContext as android.app.Application) { downloaded, total ->
                 val progress = if (total > 0L) ((downloaded * 100L) / total).toInt().coerceIn(0, 100) else 0
-                setProgressAsync(workDataOf(KEY_DOWNLOADED to downloaded, KEY_TOTAL to total))
-                val notification = buildNotification(
-                    "جارٍ تنزيل نموذج Gemma 4 E2B",
-                    progress,
-                    total > 0L,
-                    true
-                )
-                notificationManager().notify(NOTIFICATION_ID, notification)
+                if (progress != lastNotifiedPercent) {
+                    lastNotifiedPercent = progress
+                    setProgressAsync(workDataOf(KEY_DOWNLOADED to downloaded, KEY_TOTAL to total))
+                    val notification = buildNotification(
+                        "جارٍ تنزيل نموذج Gemma 4 E2B", progress, total > 0L, true
+                    )
+                    notificationManager().notify(NOTIFICATION_ID, notification)
+                }
             }
             notificationManager().notify(
                 NOTIFICATION_ID,
