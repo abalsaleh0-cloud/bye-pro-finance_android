@@ -35,7 +35,7 @@ object ByeProDesignTokens {
         val lightBackground = Color(0xFFFFFFFF)
         val lightText = Color(0xFF202020)
         val lightBorder = Color(0xFFC8C1B5)
-        val focus = Color(0xFFD6B56D)
+        val focus = Color(0xFFA67C12)
         val height = 43.dp
         val radius = 9.dp
     }
@@ -48,8 +48,8 @@ object ByeProDesignTokens {
         val lightSecondaryText = Color(0xFF202020)
         val darkQuietBackground = Color.Transparent
         val darkQuietBorder = Color.Transparent
-        val darkQuietText = Color(0xFFD6B56D)
-        val lightQuietBackground = Color(0xFFF7F2E7)
+        val darkQuietText = Color(0xFFEDE8DE)
+        val lightQuietBackground = Color.Transparent
         val lightQuietBorder = Color.Transparent
         val lightQuietText = Color(0xFF202020)
     }
