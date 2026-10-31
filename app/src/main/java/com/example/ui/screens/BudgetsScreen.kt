@@ -30,6 +30,7 @@ import com.example.finance.model.BudgetEntity
 import com.example.finance.model.BudgetPeriod
 import com.example.finance.ui.FinanceViewModel
 import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceIconButton
 import com.example.ui.theme.ByeProTheme
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -182,10 +183,10 @@ private fun BudgetItemCard(
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row {
-                    IconButton(onClick = onEdit, modifier = Modifier.testTag("edit_budget_${budget.id}")) {
+                    FinanceIconButton(onClick = onEdit, modifier = Modifier.testTag("edit_budget_${budget.id}")) {
                         Icon(Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل", "Edit", lang))
                     }
-                    IconButton(onClick = onDelete, modifier = Modifier.testTag("delete_budget_${budget.id}")) {
+                    FinanceIconButton(onClick = onDelete, modifier = Modifier.testTag("delete_budget_${budget.id}")) {
                         Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.error)
                     }
                 }
