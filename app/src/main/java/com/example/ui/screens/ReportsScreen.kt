@@ -83,6 +83,9 @@ fun ReportsScreen(
     val totalExpenses = FinanceEngine.calculateTotalExpenses(currencyTransactions)
     val netCashFlow = FinanceEngine.calculateNetCashFlow(currencyTransactions)
     val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, reportCurrency)
+    val currentSavings = savingsGoals.filter { it.currency.equals(reportCurrency, true) }.sumOf { it.currentAmount }
+    val savingsTargets = savingsGoals.filter { it.currency.equals(reportCurrency, true) }.sumOf { it.targetAmount }
+    val unpaidBillsTotal = bills.filter { !it.isPaid && it.currency.equals(reportCurrency, true) }.sumOf { it.amount }
 
     // Category breakdown includes only completed expenses in the selected currency.
     val categoryTotals = mutableMapOf<String, Double>()
@@ -204,6 +207,30 @@ fun ReportsScreen(
                             Text(WebI18n.tr("صافي التدفق", "Net cash flow", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(TextContent.money(netCashFlow, reportCurrency, lang), color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
                         }
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Text(WebI18n.tr("المدخرات والالتزامات", "Savings and obligations", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(WebI18n.tr("المدخر الحالي", "Current savings", lang), style = MaterialTheme.typography.bodySmall)
+                        Text(TextContent.money(currentSavings, reportCurrency, lang), fontWeight = FontWeight.Bold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(WebI18n.tr("أهداف الادخار", "Savings targets", lang), style = MaterialTheme.typography.bodySmall)
+                        Text(TextContent.money(savingsTargets, reportCurrency, lang), fontWeight = FontWeight.Bold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(WebI18n.tr("الفواتير غير المسددة", "Unpaid bills", lang), style = MaterialTheme.typography.bodySmall)
+                        Text(TextContent.money(unpaidBillsTotal, reportCurrency, lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialRed)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(WebI18n.tr("صافي الثروة التقديري", "Estimated net worth", lang), style = MaterialTheme.typography.bodySmall)
+                        Text(TextContent.money(netWorth, reportCurrency, lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
                     }
                 }
             }
