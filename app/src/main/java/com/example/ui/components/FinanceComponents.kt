@@ -101,7 +101,7 @@ fun FinanceButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(12.dp),
+    shape: Shape = RoundedCornerShape(10.dp),
     colors: ButtonColors = ButtonDefaults.buttonColors(
         containerColor = ByeProTheme.colors.goldPrimary,
         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -119,7 +119,7 @@ fun FinanceButton(
     content: @Composable RowScope.() -> Unit
 ) {
     Button(
-        onClick = onClick, modifier = modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape,
+        onClick = onClick, modifier = modifier.heightIn(min = 46.dp), enabled = enabled, shape = shape,
         colors = colors, elevation = elevation, border = border,
         contentPadding = contentPadding, interactionSource = interactionSource, content = content
     )
@@ -131,7 +131,7 @@ fun FinanceOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(12.dp),
+    shape: Shape = RoundedCornerShape(9.dp),
     colors: ButtonColors = ButtonDefaults.outlinedButtonColors(
         containerColor = ByeProTheme.colors.cardSecondary,
         contentColor = MaterialTheme.colorScheme.onSurface
@@ -144,7 +144,7 @@ fun FinanceOutlinedButton(
 ) {
     if (border == null) {
         OutlinedButton(
-            onClick = onClick, modifier = modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape,
+            onClick = onClick, modifier = modifier.heightIn(min = 40.dp), enabled = enabled, shape = shape,
             colors = colors, elevation = elevation, contentPadding = contentPadding,
             interactionSource = interactionSource, content = content
         )
@@ -176,7 +176,7 @@ fun FinanceTextButton(
         enabled = enabled,
         shape = RoundedCornerShape(9.dp),
         colors = colors,
-        border = null,
+        border = BorderStroke(1.dp, ByeProTheme.colors.quietButtonBorder),
         contentPadding = contentPadding,
         content = content
     )
