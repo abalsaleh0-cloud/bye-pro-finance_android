@@ -104,7 +104,7 @@ fun FinanceButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(10.dp),
+    shape: Shape = RoundedCornerShape(12.dp),
     colors: ButtonColors = ButtonDefaults.buttonColors(
         containerColor = ByeProTheme.colors.goldPrimary,
         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -122,7 +122,7 @@ fun FinanceButton(
     content: @Composable RowScope.() -> Unit
 ) {
     Button(
-        onClick = onClick, modifier = modifier.heightIn(min = 46.dp), enabled = enabled, shape = shape,
+        onClick = onClick, modifier = modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape,
         colors = colors, elevation = elevation, border = border,
         contentPadding = contentPadding, interactionSource = interactionSource, content = content
     )
@@ -167,18 +167,19 @@ fun FinanceTextButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     colors: ButtonColors = ButtonDefaults.textButtonColors(
-        containerColor = Color.Transparent,
-        contentColor = ByeProTheme.colors.textPrimary
+        containerColor = ByeProTheme.colors.quietButtonBg,
+        contentColor = ByeProTheme.colors.quietButtonText
     ),
-    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
     content: @Composable RowScope.() -> Unit
 ) {
     TextButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 44.dp),
+        modifier = modifier.heightIn(min = 38.dp),
         enabled = enabled,
         shape = RoundedCornerShape(9.dp),
         colors = colors,
+        border = BorderStroke(1.dp, ByeProTheme.colors.quietButtonBorder),
         contentPadding = contentPadding,
         content = content
     )
