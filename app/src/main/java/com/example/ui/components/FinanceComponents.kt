@@ -290,7 +290,7 @@ fun FinanceChoiceButton(
     val shape = RoundedCornerShape(13.dp)
     val background = if (selected) ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f) else ByeProTheme.colors.cardSecondary
     val foreground = if (selected) ByeProTheme.colors.goldPrimary else ByeProTheme.colors.textPrimary
-    val outline = if (selected) ByeProTheme.colors.goldPrimary else ByeProTheme.colors.borderBase
+    val outline = if (selected) ByeProTheme.colors.primaryButtonBg else ByeProTheme.colors.borderBase
     CompositionLocalProvider(LocalContentColor provides foreground) {
         Box(
             modifier = modifier
