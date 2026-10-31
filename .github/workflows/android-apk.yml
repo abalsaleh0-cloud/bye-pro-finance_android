@@ -12,6 +12,10 @@ on:
       - ".github/scripts/fix-android-language.sh"
   workflow_dispatch:
 
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
