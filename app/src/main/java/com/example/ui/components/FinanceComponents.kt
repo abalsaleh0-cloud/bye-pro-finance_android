@@ -104,9 +104,9 @@ fun FinanceButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(10.dp),
+    shape: Shape = RoundedCornerShape(12.dp),
     colors: ButtonColors = ButtonDefaults.buttonColors(
-        containerColor = ByeProTheme.colors.goldFeatured,
+        containerColor = ByeProTheme.colors.primaryButtonBg,
         contentColor = MaterialTheme.colorScheme.onPrimary
     ),
     elevation: ButtonElevation? = ButtonDefaults.buttonElevation(
@@ -122,7 +122,7 @@ fun FinanceButton(
     content: @Composable RowScope.() -> Unit
 ) {
     Button(
-        onClick = onClick, modifier = modifier.heightIn(min = 46.dp), enabled = enabled, shape = shape,
+        onClick = onClick, modifier = modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape,
         colors = colors, elevation = elevation, border = border,
         contentPadding = contentPadding, interactionSource = interactionSource, content = content
     )
@@ -279,7 +279,7 @@ fun FinanceIcon(
     )
 }
 
-/** Accessible two-state choice styled with the same Web segmented-control tokens. */
+/** Accessible two-state choice styled with the Web control geometry. */
 @Composable
 fun FinanceChoiceButton(
     selected: Boolean,
@@ -287,18 +287,18 @@ fun FinanceChoiceButton(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val shape = RoundedCornerShape(13.dp)
-    val background = if (selected) ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f) else ByeProTheme.colors.cardSecondary
-    val foreground = if (selected) ByeProTheme.colors.goldPrimary else ByeProTheme.colors.textPrimary
+    val shape = RoundedCornerShape(9.dp)
+    val background = if (selected) ByeProTheme.colors.primaryButtonBg else ByeProTheme.colors.cardSecondary
+    val foreground = if (selected) MaterialTheme.colorScheme.onPrimary else ByeProTheme.colors.textPrimary
     val outline = if (selected) ByeProTheme.colors.primaryButtonBg else ByeProTheme.colors.borderBase
     CompositionLocalProvider(LocalContentColor provides foreground) {
         Box(
             modifier = modifier
-                .heightIn(min = 62.dp)
+                .heightIn(min = 44.dp)
                 .background(background, shape)
                 .border(1.dp, outline, shape)
                 .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-                .padding(horizontal = 10.dp, vertical = 10.dp),
+                .padding(horizontal = 14.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) {
             content()
@@ -332,7 +332,7 @@ fun FinanceIconButton(
 fun FinanceFloatingActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    containerColor: Color = ByeProTheme.colors.goldPrimary,
+    containerColor: Color = ByeProTheme.colors.primaryButtonBg,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
     content: @Composable () -> Unit
 ) {
