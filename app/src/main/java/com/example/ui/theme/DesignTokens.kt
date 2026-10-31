@@ -46,6 +46,12 @@ object ByeProDesignTokens {
         val lightSecondaryBackground = Color(0xFFF0F1F4)
         val lightSecondaryBorder = Color(0xFFD9DCE3)
         val lightSecondaryText = Color(0xFF20232A)
+        val darkQuietBackground = Color(0xFF211E18)
+        val darkQuietBorder = Color(0xFF655638)
+        val darkQuietText = Color(0xFFD6B56D)
+        val lightQuietBackground = Color(0xFFF7F2E7)
+        val lightQuietBorder = Color(0xFFB99B5E)
+        val lightQuietText = Color(0xFF6C5420)
     }
     object Spacing {
         val xs = 4.dp; val sm = 8.dp; val md = 12.dp; val lg = 16.dp
