@@ -430,6 +430,7 @@ private fun DashboardLine(title: String, subtitle: String, amount: String) {
         Spacer(Modifier.width(8.dp))
         Text(amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
     }
+    Box(Modifier.fillMaxWidth().height(1.dp).background(ByeProTheme.colors.borderBase))
 }
 
 @Composable
@@ -459,6 +460,7 @@ private fun DashboardTransactionLine(transaction: TransactionEntity, lang: AppLa
             color = color
         )
     }
+    Box(Modifier.fillMaxWidth().height(1.dp).background(ByeProTheme.colors.borderBase))
 }
 
 @Composable
