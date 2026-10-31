@@ -128,14 +128,14 @@ fun MainAppScaffold(
     val hubMenuItems = listOf(
         HubMenuItem("transfers", "nav_transfers", Lucide.ArrowLeftRight, ByeProTheme.colors.goldPrimary),
         HubMenuItem("debts", "nav_debts", Lucide.HandCoins, ByeProTheme.colors.financialRed),
-        HubMenuItem("bills", "nav_bills", Lucide.FileText, ByeProTheme.colors.financialRed),
+        HubMenuItem("bills", "nav_bills", Lucide.ReceiptText, ByeProTheme.colors.financialRed),
         HubMenuItem("savings", "nav_savings", Lucide.Wallet, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("assets", "nav_assets", Lucide.Wallet, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("reports", "nav_reports", Lucide.FileText, ByeProTheme.colors.financialGreen),
+        HubMenuItem("assets", "nav_assets", Lucide.Landmark, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("reports", "nav_reports", Lucide.ChartPie, ByeProTheme.colors.financialGreen),
         HubMenuItem("household", "nav_household", Lucide.Users, ByeProTheme.colors.financialGreen),
-        HubMenuItem("documents", "nav_documents", Lucide.Info, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("smart_scan", "nav_smart_scan", Lucide.FileText, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("import_export", "nav_import_export", Lucide.FileText, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("documents", "nav_documents", Lucide.Folder, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("smart_scan", "nav_smart_scan", Lucide.ScanLine, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("import_export", "nav_import_export", Lucide.ArrowDownUp, ByeProTheme.colors.goldPrimary),
         HubMenuItem("ai_assistant", "nav_ai_assistant", Lucide.Sparkles, ByeProTheme.colors.goldPrimary),
         HubMenuItem("notifications", "nav_notifications", Lucide.Bell, ByeProTheme.colors.goldPrimary),
         HubMenuItem("admin", "nav_admin", Lucide.ShieldCheck, ByeProTheme.colors.financialGreen),
@@ -266,7 +266,7 @@ fun MainAppScaffold(
                     NavigationBarItem(
                         selected = currentScreen == "transactions",
                         onClick = { viewModel.setScreen("transactions") },
-                        icon = { FinanceIcon(Lucide.Info, contentDescription = Strings.get("nav_transactions", lang)) },
+                        icon = { FinanceIcon(Lucide.ArrowLeftRight, contentDescription = Strings.get("nav_transactions", lang)) },
                         label = { Text(appText("nav_transactions"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
@@ -279,7 +279,7 @@ fun MainAppScaffold(
                     NavigationBarItem(
                         selected = currentScreen == "budgets",
                         onClick = { viewModel.setScreen("budgets") },
-                        icon = { FinanceIcon(Lucide.PieChart, contentDescription = Strings.get("nav_budgets", lang)) },
+                        icon = { FinanceIcon(Lucide.ChartPie, contentDescription = Strings.get("nav_budgets", lang)) },
                         label = { Text(appText("nav_budgets"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
