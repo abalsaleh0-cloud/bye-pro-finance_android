@@ -121,7 +121,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(10.dp))
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = profileName,
                         onValueChange = { profileName = it.take(100) },
                         modifier = Modifier.fillMaxWidth().testTag("profile_name_input"),
@@ -212,7 +212,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Box {
-                        OutlinedButton(
+                        FinanceOutlinedButton(
                             onClick = { currencyMenuExpanded = true },
                             modifier = Modifier.fillMaxWidth().testTag("primary_currency_selector")
                         ) {
