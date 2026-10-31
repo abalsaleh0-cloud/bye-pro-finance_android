@@ -109,6 +109,9 @@ interface FinanceDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDebtPayment(payment: DebtPaymentEntity): Long
 
+    @Query("SELECT * FROM debt_payments WHERE debtId = :debtId ORDER BY date DESC, id DESC")
+    fun getDebtPayments(debtId: Long): Flow<List<DebtPaymentEntity>>
+
     // --- Bills ---
     @Query("SELECT * FROM bills ORDER BY dueDate ASC")
     fun getAllBills(): Flow<List<BillEntity>>
