@@ -359,9 +359,9 @@ private fun DashboardMetric(
     Card(
         modifier = modifier
             .background(
-                brush = if (ByeProTheme.colors.isDark) Brush.linearGradient(
-                    listOf(Color(0xFF1B1C21), Color(0xFF141519))
-                ) else Brush.linearGradient(listOf(Color.White, Color.White)),
+                brush = Brush.linearGradient(
+                    listOf(ByeProTheme.colors.cardMain, ByeProTheme.colors.cardSecondary)
+                ),
                 shape = shape
             )
             .border(1.dp, ByeProTheme.colors.borderBase, shape),
