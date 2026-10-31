@@ -1,7 +1,5 @@
 package com.example.ui.screens
 
-import com.example.ui.components.FinanceIcon
-
 import com.composables.icons.lucide.*
 
 import androidx.compose.material.icons.filled.*
@@ -135,11 +133,11 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                                     )
                                 }
                             }) {
-                                FinanceIcon(Icons.Default.Visibility, contentDescription = WebI18n.tr("عرض المستند", "View document", lang))
+                                Icon(Icons.Default.Visibility, contentDescription = WebI18n.tr("عرض المستند", "View document", lang))
                             }
                         }
                         FinanceIconButton(onClick = { viewModel.deleteDocument(document) }) {
-                            FinanceIcon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف المستند", "Delete document", lang))
+                            Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف المستند", "Delete document", lang))
                         }
                     }
                 }
