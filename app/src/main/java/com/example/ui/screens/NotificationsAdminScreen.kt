@@ -71,7 +71,8 @@ import java.util.Locale
 
 @Composable
 fun NotificationsAdminScreen(
-    viewModel: FinanceViewModel
+    viewModel: FinanceViewModel,
+    initialTabIndex: Int = 0
 ) {
     val lang by viewModel.appLanguage.collectAsState()
     val notifications by viewModel.notifications.collectAsState()
@@ -80,7 +81,7 @@ fun NotificationsAdminScreen(
     val transactions by viewModel.transactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
 
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by remember(initialTabIndex) { mutableIntStateOf(initialTabIndex.coerceIn(0, 1)) }
     var notificationFilter by remember { mutableIntStateOf(0) }
     val filteredNotifications = when (notificationFilter) { 1 -> notifications.filter { !it.isRead }; 2 -> notifications.filter { it.isRead }; else -> notifications }
 
