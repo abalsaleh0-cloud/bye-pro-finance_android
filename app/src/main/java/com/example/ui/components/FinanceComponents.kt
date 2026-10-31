@@ -97,7 +97,13 @@ fun FinanceButton(
         containerColor = ByeProTheme.colors.goldPrimary,
         contentColor = MaterialTheme.colorScheme.onPrimary
     ),
-    elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
+    elevation: ButtonElevation? = ButtonDefaults.buttonElevation(
+        defaultElevation = 0.dp,
+        pressedElevation = 0.dp,
+        focusedElevation = 0.dp,
+        hoveredElevation = 0.dp,
+        disabledElevation = 0.dp
+    ),
     border: BorderStroke? = null,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
