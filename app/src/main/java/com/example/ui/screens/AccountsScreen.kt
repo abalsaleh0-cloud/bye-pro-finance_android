@@ -299,7 +299,15 @@ fun AddAccountForm(
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(WebI18n.tr("إضافة حساب", "Add account", lang), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            FinanceTextField(
+                value = name,
+                onValueChange = { name = it.take(80); validationMessage = "" },
+                label = { Text("Account name *") },
+                placeholder = { Text("e.g. Daily wallet") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag("account_name_input"),
+                supportingText = { Text("${name.length}/80") }
+            )
             Text(WebI18n.tr("نوع الحساب", "Account type", lang), style = MaterialTheme.typography.labelMedium)
             Box {
                 OutlinedButton(onClick = { typeMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_type_selector")) {
@@ -322,15 +330,6 @@ fun AddAccountForm(
                     }
                 }
             }
-            FinanceTextField(
-                value = name,
-                onValueChange = { name = it.take(80); validationMessage = "" },
-                label = { Text("Account name *") },
-                placeholder = { Text("e.g. Daily wallet") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().testTag("account_name_input"),
-                supportingText = { Text("${name.length}/80") }
-            )
             FinanceTextField(
                 value = openingBalance,
                 onValueChange = { openingBalance = it },
