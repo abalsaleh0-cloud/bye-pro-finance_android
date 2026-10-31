@@ -165,8 +165,8 @@ fun SettingsScreen(
                         FinanceButton(
                             onClick = { viewModel.setLanguage(AppLanguage.AR) },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (lang == AppLanguage.AR) ByeProTheme.colors.financialGreen else MaterialTheme.colorScheme.background,
-                                contentColor = if (lang == AppLanguage.AR) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                containerColor = if (lang == AppLanguage.AR) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = if (lang == AppLanguage.AR) Color(0xFF17130B) else MaterialTheme.colorScheme.onSurface
                             ),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier
@@ -179,8 +179,8 @@ fun SettingsScreen(
                         FinanceButton(
                             onClick = { viewModel.setLanguage(AppLanguage.EN) },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (lang == AppLanguage.EN) ByeProTheme.colors.financialGreen else MaterialTheme.colorScheme.background,
-                                contentColor = if (lang == AppLanguage.EN) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                containerColor = if (lang == AppLanguage.EN) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = if (lang == AppLanguage.EN) Color(0xFF17130B) else MaterialTheme.colorScheme.onSurface
                             ),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier
