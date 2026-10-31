@@ -18,15 +18,15 @@ object ByeProDesignTokens {
         val danger = Color(0xFFFF8585)
     }
     object LightColors {
-        val background = Color(0xFFF4F4F6)
+        val background = Color(0xFFF4F5F7)
         val surface = Color(0xFFFFFFFF)
-        val surfaceRaised = Color(0xFFF3F3F5)
-        val border = Color(0xFFD7D8DD)
-        val text = Color(0xFF17181C)
-        val muted = Color(0xFF666A74)
-        val accent = Color(0xFFD6B56D)
-        val success = Color(0xFF67D6A1)
-        val danger = Color(0xFFA43E45)
+        val surfaceRaised = Color(0xFFF0F1F4)
+        val border = Color(0xFFD9DCE3)
+        val text = Color(0xFF20232A)
+        val muted = Color(0xFF626875)
+        val accent = Color(0xFF8A671D)
+        val success = Color(0xFF16794A)
+        val danger = Color(0xFFB42332)
     }
     object Fields {
         val darkBackground = Color(0xFF101115)
@@ -34,31 +34,31 @@ object ByeProDesignTokens {
         val darkPlaceholder = Color(0xFFA5A7B0)
         val darkBorder = Color(0xFF363740)
         val lightBackground = Color(0xFFFFFFFF)
-        val lightText = Color(0xFF17181C)
-        val lightPlaceholder = Color(0xFF666A74)
-        val lightBorder = Color(0xFFC8C9CF)
+        val lightText = Color(0xFF20232A)
+        val lightPlaceholder = Color(0xFF626875)
+        val lightBorder = Color(0xFFCBD0D9)
         val darkFocus = Color(0xFFD6B56D)
-        val lightFocus = Color(0xFFD6B56D)
-        val height = 43.dp
-        val radius = 9.dp
+        val lightFocus = Color(0xFF8A671D)
+        val height = 44.dp
+        val radius = 10.dp
     }
     object Buttons {
-        val darkSecondaryBackground = Color(0xFF1E1F24)
-        val darkSecondaryBorder = Color(0xFF2B2D34)
-        val darkSecondaryText = Color(0xFFF1F0EB)
-        val lightSecondaryBackground = Color(0xFFF3F3F5)
-        val lightSecondaryBorder = Color(0xFFD7D8DD)
-        val lightSecondaryText = Color(0xFF17181C)
-        val darkQuietBackground = Color(0xFF211E18)
-        val darkQuietBorder = Color(0xFF655638)
-        val darkQuietText = Color(0xFFD6B56D)
-        val lightQuietBackground = Color(0xFFF7F2E7)
-        val lightQuietBorder = Color(0xFFB99B5E)
-        val lightQuietText = Color(0xFF6C5420)
+        val darkSecondaryBackground = Color(0xFF211E18)
+        val darkSecondaryBorder = Color(0xFF655638)
+        val darkSecondaryText = Color(0xFFD6B56D)
+        val lightSecondaryBackground = Color(0xFFF7F2E7)
+        val lightSecondaryBorder = Color(0xFFB99B5E)
+        val lightSecondaryText = Color(0xFF6C5420)
+        val darkQuietBackground = Color.Transparent
+        val darkQuietBorder = Color.Transparent
+        val darkQuietText = Color(0xFFF1F0EB)
+        val lightQuietBackground = Color.Transparent
+        val lightQuietBorder = Color.Transparent
+        val lightQuietText = Color(0xFF20232A)
     }
     object Dialog {
         val darkBorder = Color(0xFF40372A)
-        val lightBorder = Color(0xFFD7D8DD)
+        val lightBorder = Color(0xFFD9DCE3)
         val radius = 16.dp
     }
     object Spacing {
@@ -69,7 +69,7 @@ object ByeProDesignTokens {
         val sm = 8.dp; val md = 12.dp; val lg = 16.dp; val xl = 22.dp
     }
     object Control {
-        val height = 43.dp
+        val height = 44.dp
         val contentMaxWidth = 1440.dp
         val focusRingWidth = 2.dp
     }
