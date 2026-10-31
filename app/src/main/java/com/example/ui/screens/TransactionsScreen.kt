@@ -1,8 +1,7 @@
 package com.example.ui.screens
 
-import androidx.compose.material.icons.filled.*
+import com.example.ui.components.FinanceIcon
 
-import androidx.compose.material.icons.Icons
 
 import com.composables.icons.lucide.*
 
@@ -120,7 +119,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
                 containerColor = ByeProTheme.colors.goldPrimary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_transaction_fab")
-            ) { Icon(Icons.Default.Add, contentDescription = WebI18n.tr("إضافة معاملة", "Add transaction", lang)) }
+            ) { FinanceIcon(Lucide.Plus, contentDescription = WebI18n.tr("إضافة معاملة", "Add transaction", lang)) }
         }
     ) { padding ->
         LazyColumn(
@@ -138,7 +137,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
                     value = search,
                     onValueChange = { search = it },
                     placeholder = { Text(WebI18n.tr("ابحث في الوصف أو الحساب…", "Search description or account…", lang)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    leadingIcon = { FinanceIcon(Lucide.Search, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth().testTag("transaction_search_input"),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
@@ -280,7 +279,7 @@ fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?,
     val dateText = runCatching { SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(Date(transaction.date)) }.getOrDefault("")
     Surface(Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .25f), RoundedCornerShape(14.dp)), color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(14.dp)) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(42.dp).clip(CircleShape).background(color.copy(alpha = .15f)), contentAlignment = Alignment.Center) { Icon(if (incomeLike) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward, contentDescription = null, tint = color) }
+            Box(Modifier.size(42.dp).clip(CircleShape).background(color.copy(alpha = .15f)), contentAlignment = Alignment.Center) { FinanceIcon(if (incomeLike) Lucide.ArrowDown else Lucide.ArrowUp, contentDescription = null, tint = color) }
             Spacer(Modifier.size(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(transaction.description, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -291,7 +290,7 @@ fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?,
                 Text(statusLabel(transaction.status, lang), style = MaterialTheme.typography.labelSmall)
                 if (transaction.status != TransactionStatus.CANCELLED) Text(if (transaction.status == TransactionStatus.COMPLETED) WebI18n.tr("تعليق", "Set pending", lang) else WebI18n.tr("إكمال", "Complete", lang), style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary, modifier = Modifier.testTag("toggle_tx_status_${transaction.id}").clip(RoundedCornerShape(6.dp)).background(ByeProTheme.colors.goldPrimary.copy(alpha = .08f)).clickable(onClick = onToggleStatus).padding(4.dp))
             }
-            FinanceIconButton(onClick = onDelete, modifier = Modifier.testTag("delete_tx_${transaction.id}")) { Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .6f)) }
+            FinanceIconButton(onClick = onDelete, modifier = Modifier.testTag("delete_tx_${transaction.id}")) { FinanceIcon(Lucide.Trash2, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .6f)) }
         }
     }
 }
