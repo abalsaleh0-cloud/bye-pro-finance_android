@@ -489,7 +489,7 @@ private fun DebtManagementPanel(
 ) {
     var search by remember { mutableStateOf("") }
     val filtered = debts.filter { debt ->
-        debt.selectedDirection == selectedDirection &&
+        debt.direction == selectedDirection &&
             (search.isBlank() || debt.name.contains(search, true) || debt.creditor.contains(search, true) || debt.notes.contains(search, true))
     }
     val currencyTotals = filtered.groupBy { it.currency }.mapValues { (_, rows) -> rows.sumOf { it.remaining } }
@@ -504,7 +504,7 @@ private fun DebtManagementPanel(
                 ) { Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang), fontWeight = FontWeight.Bold) }
             } else {
                 FinanceOutlinedButton(
-                    onClick = { selectedDirection = "owed_to_me" },
+                    onClick = { onDirectionChange("owed_to_me") },
                     modifier = Modifier.weight(1f).testTag("debts_tab_owed_to_me")
                 ) { Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang)) }
             }
@@ -516,7 +516,7 @@ private fun DebtManagementPanel(
                 ) { Text(WebI18n.tr("مدين — عليّ له", "I owe", lang), fontWeight = FontWeight.Bold) }
             } else {
                 FinanceOutlinedButton(
-                    onClick = { selectedDirection = "i_owe" },
+                    onClick = { onDirectionChange("i_owe") },
                     modifier = Modifier.weight(1f).testTag("debts_tab_i_owe")
                 ) { Text(WebI18n.tr("مدين — عليّ له", "I owe", lang)) }
             }
@@ -546,7 +546,7 @@ private fun DebtManagementPanel(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            if (debts.none { it.selectedDirection == selectedDirection }) {
+            if (debts.none { it.direction == selectedDirection }) {
                 FinanceButton(onClick = { onAdd(selectedDirection) }) { Text(WebI18n.tr("إضافة أول سجل", "Add first record", lang)) }
             }
         } else {
