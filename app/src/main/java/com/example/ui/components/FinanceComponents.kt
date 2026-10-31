@@ -176,7 +176,7 @@ fun FinanceTextButton(
         enabled = enabled,
         shape = RoundedCornerShape(9.dp),
         colors = colors,
-        border = BorderStroke(1.dp, ByeProTheme.colors.quietButtonBorder),
+        border = null,
         contentPadding = contentPadding,
         content = content
     )
