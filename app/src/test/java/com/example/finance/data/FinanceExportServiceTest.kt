@@ -11,6 +11,28 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class FinanceExportServiceTest {
     @Test
+    fun csvExportRoundTripsQuotedCommasQuotesAndMultilineText() {
+        val original = TransactionEntity(
+            accountId = 9,
+            type = TransactionType.EXPENSE,
+            amount = 25.75,
+            currency = "LYD",
+            category = "Food, groceries",
+            description = "Receipt for \"family lunch\"\nsecond line",
+            merchant = "Cafe, Tripoli",
+            notes = "paid, confirmed"
+        )
+        val csv = FinanceExportService.transactionsToCsv(listOf(original))
+        val restored = FinanceExportService.transactionsFromCsv(csv).single()
+        assertEquals(original.accountId, restored.accountId)
+        assertEquals(original.amount, restored.amount, 0.001)
+        assertEquals(original.category, restored.category)
+        assertEquals(original.description, restored.description)
+        assertEquals(original.merchant, restored.merchant)
+        assertEquals(original.notes, restored.notes)
+    }
+
+    @Test
     fun jsonExportRoundTripsTransactionPayload() {
         val original = TransactionEntity(
             accountId = 7,
