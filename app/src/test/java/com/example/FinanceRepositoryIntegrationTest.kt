@@ -16,6 +16,12 @@ import com.example.finance.model.DebtStatus
 import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.AssetEntity
 import com.example.finance.model.AssetType
+import com.example.finance.model.HouseholdMemberEntity
+import com.example.finance.model.HouseholdExpenseEntity
+import com.example.finance.model.DocumentEntity
+import com.example.finance.model.DocumentType
+import com.example.finance.model.NotificationType
+import com.example.finance.model.NotificationEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
 import com.example.finance.model.TransactionStatus
@@ -498,6 +504,48 @@ class FinanceRepositoryIntegrationTest {
         assertTrue(repository.debts.first().isEmpty())
     }
 
+
+    @Test
+    fun householdCrudValidatesContributionsAndProtectsReferencedMembers() = runBlocking {
+        try {
+            repository.addHouseholdMember("Invalid", "", "Member", 120.0)
+            fail("Expected contribution above 100% to be rejected")
+        } catch (_: IllegalArgumentException) {
+            // expected
+        }
+        repository.addHouseholdMember("Family member", "", "Partner", 40.0)
+        val member = repository.householdMembers.first().single()
+        repository.updateHouseholdMember(member.copy(name = "Updated member", contributionPercent = 45.0))
+        val updated = repository.householdMembers.first().single()
+        assertEquals("Updated member", updated.name)
+        assertEquals(45.0, updated.contributionPercent, 0.001)
+        repository.addHouseholdExpense("Groceries", 30.0, updated.id, "Food", "LYD")
+        val expense = repository.householdExpenses.first().single()
+        try {
+            repository.deleteHouseholdMember(updated)
+            fail("A member referenced by an expense must not be deleted")
+        } catch (_: IllegalArgumentException) {
+            // expected
+        }
+        repository.deleteHouseholdExpense(expense)
+        repository.deleteHouseholdMember(updated)
+        assertTrue(repository.householdMembers.first().isEmpty())
+        assertTrue(repository.householdExpenses.first().isEmpty())
+    }
+
+    @Test
+    fun documentsAndNotificationsSupportValidatedPersistenceAndBulkRead() = runBlocking {
+        repository.addDocument(DocumentEntity(title = "Invoice PDF", type = DocumentType.INVOICE, fileUri = "content://invoice/1"))
+        assertEquals("Invoice PDF", repository.documents.first().single().title)
+        repository.addNotification("Due date", "Bill due soon", NotificationType.BILL_DUE)
+        repository.addNotification("Budget", "Budget warning", NotificationType.BUDGET_WARNING)
+        assertEquals(2, repository.notifications.first().size)
+        repository.markAllNotificationsRead()
+        assertTrue(repository.notifications.first().all { it.isRead })
+        val notification = repository.notifications.first().first()
+        repository.deleteNotification(notification.id)
+        assertEquals(1, repository.notifications.first().size)
+    }
 
     @Test
     fun billSavingsAndAssetUpdatesPersistAndKeepPaymentState() = runBlocking {
