@@ -1,9 +1,10 @@
 package com.example.ui.screens
 
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.*
-
 import com.example.ui.components.FinanceIcon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 
@@ -114,7 +115,7 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_account_fab")
             ) {
-                FinanceIcon(Lucide.Plus, contentDescription = WebI18n.tr("إضافة حساب", "Add account", lang))
+                FinanceIcon(Icons.Default.Add, contentDescription = WebI18n.tr("إضافة حساب", "Add account", lang))
             }
         }
     ) { padding ->
@@ -199,7 +200,7 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        FinanceIcon(Lucide.Wallet, null, modifier = Modifier.size(42.dp), tint = ByeProTheme.colors.goldPrimary)
+                        FinanceIcon(Icons.Default.Wallet, null, modifier = Modifier.size(42.dp), tint = ByeProTheme.colors.goldPrimary)
                         Text(WebI18n.tr("لا توجد حسابات بعد", "No accounts yet", lang), fontWeight = FontWeight.Bold)
                         Text(
                             WebI18n.tr("أضف حسابك الأول لبدء تنظيم أموالك.", "Add your first account to start organizing your money.", lang),
@@ -232,12 +233,12 @@ fun AccountDetailedCard(
     onToggleActive: () -> Unit
 ) {
     val icon = when (account.type) {
-        AccountType.CASH -> Lucide.HandCoins
-        AccountType.BANK -> Lucide.CreditCard
-        AccountType.WALLET -> Lucide.Wallet
-        AccountType.CREDIT_CARD -> Lucide.CreditCard
-        AccountType.INVESTMENT -> Lucide.TrendingUp
-        else -> Lucide.CreditCard
+        AccountType.CASH -> Icons.Default.Payments
+        AccountType.BANK -> Icons.Default.CreditCard
+        AccountType.WALLET -> Icons.Default.Wallet
+        AccountType.CREDIT_CARD -> Icons.Default.CreditCard
+        AccountType.INVESTMENT -> Icons.Default.TrendingUp
+        else -> Icons.Default.CreditCard
     }
     Card(
         modifier = Modifier.fillMaxWidth().border(
