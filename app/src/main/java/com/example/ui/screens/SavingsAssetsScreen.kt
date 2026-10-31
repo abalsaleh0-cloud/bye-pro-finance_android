@@ -1,7 +1,10 @@
 package com.example.ui.screens
 
-
 import com.example.ui.components.FinanceIcon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 
@@ -458,11 +461,11 @@ fun AssetCardItem(
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 FinanceIconButton(onClick = onEdit) {
-                    FinanceIcon(imageVector = Lucide.Plus, contentDescription = WebI18n.tr("تعديل", "Edit", lang), modifier = Modifier.size(18.dp))
+                    FinanceIcon(imageVector = Icons.Default.Add, contentDescription = WebI18n.tr("تعديل", "Edit", lang), modifier = Modifier.size(18.dp))
                 }
                 FinanceIconButton(onClick = onDelete) {
                     FinanceIcon(
-                        imageVector = Lucide.Trash2,
+                        imageVector = Icons.Default.Delete,
                         contentDescription = WebI18n.tr("حذف", "Delete", lang),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp)
