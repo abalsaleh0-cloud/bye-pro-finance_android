@@ -37,6 +37,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -73,7 +74,7 @@ private fun householdDateTimestamp(value: String): Long =
     runCatching { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(value)?.time }.getOrNull()
         ?: System.currentTimeMillis()
 
-private fun householdRoleLabel(role: String, lang: com.example.finance.i18n.AppLanguage): String {
+private fun householdRoleLabel(role: String, lang: com.example.finance.model.AppLanguage): String {
     val labels = mapOf(
         "owner" to ("المالك" to "Owner"),
         "partner" to ("الشريك" to "Partner"),
@@ -86,14 +87,14 @@ private fun householdRoleLabel(role: String, lang: com.example.finance.i18n.AppL
     return WebI18n.tr(pair.first, pair.second, lang)
 }
 
-private fun householdCategoryLabel(category: String, lang: com.example.finance.i18n.AppLanguage): String {
+private fun householdCategoryLabel(category: String, lang: com.example.finance.model.AppLanguage): String {
     val labels = mapOf(
         "طعام" to "Food", "كهرباء" to "Electricity", "ماء" to "Water",
         "إيجار" to "Rent", "غاز" to "Gas", "إنترنت" to "Internet",
         "تعليم" to "Education", "صحة" to "Health", "مواصلات" to "Transport",
         "تسوق" to "Shopping", "عام" to "General"
     )
-    return if (lang == com.example.finance.i18n.AppLanguage.EN) labels[category] ?: category else category
+    return if (lang == com.example.finance.model.AppLanguage.EN) labels[category] ?: category else category
 }
 
 @Composable
@@ -174,7 +175,7 @@ fun HouseholdScreen(viewModel: FinanceViewModel) {
                         Text(WebI18n.tr("استهلاك الميزانية", "Budget used", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(progress.toInt().toString() + "%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     }
-                    LinearProgressIndicator(progress = { (progress / 100.0).toFloat() }, modifier = Modifier.fillMaxWidth())
+                    LinearProgressIndicator(progress = (progress / 100.0).toFloat(), modifier = Modifier.fillMaxWidth())
                 }
             }
             if (monthExpenses.isEmpty()) {
@@ -318,7 +319,7 @@ private fun HouseholdRecordCard(
     trailing: String,
     onEdit: (() -> Unit)?,
     onDelete: () -> Unit,
-    lang: com.example.finance.i18n.AppLanguage
+    lang: com.example.finance.model.AppLanguage
 ) {
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(12.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -337,7 +338,7 @@ private fun HouseholdRecordCard(
 private fun HouseholdMemberDialog(
     initial: HouseholdMemberEntity?,
     currency: String,
-    lang: com.example.finance.i18n.AppLanguage,
+    lang: com.example.finance.model.AppLanguage,
     onDismiss: () -> Unit,
     onSave: (String, String, Double) -> Unit
 ) {
@@ -367,12 +368,13 @@ private fun HouseholdMemberDialog(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HouseholdExpenseDialog(
     initial: HouseholdExpenseEntity?,
     members: List<HouseholdMemberEntity>,
     currency: String,
-    lang: com.example.finance.i18n.AppLanguage,
+    lang: com.example.finance.model.AppLanguage,
     onDismiss: () -> Unit,
     onSave: (String, Double, Long?, String, String, Long, Boolean, String) -> Unit
 ) {
@@ -428,7 +430,7 @@ private fun HouseholdExpenseDialog(
 @Composable
 private fun HouseholdBudgetDialog(
     currency: String,
-    lang: com.example.finance.i18n.AppLanguage,
+    lang: com.example.finance.model.AppLanguage,
     onDismiss: () -> Unit,
     onSave: (String, Double, String, String) -> Unit
 ) {
