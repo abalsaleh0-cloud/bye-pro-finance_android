@@ -1,19 +1,13 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
 import com.example.ui.components.FinanceIcon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 
 
 
-import androidx.compose.material.icons.filled.*
+
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,7 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
+
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -96,7 +90,7 @@ fun BudgetsScreen(viewModel: FinanceViewModel) {
                 onClick = { editing = null; showForm = true },
                 containerColor = ByeProTheme.colors.goldPrimary,
                 modifier = Modifier.testTag("add_budget_fab")
-            ) { FinanceIcon(Icons.Default.Add, contentDescription = WebI18n.tr("إضافة ميزانية", "Add budget", lang)) }
+            ) { FinanceIcon(Lucide.Plus, contentDescription = WebI18n.tr("إضافة ميزانية", "Add budget", lang)) }
         }
     ) { padding ->
         LazyColumn(
@@ -202,10 +196,10 @@ private fun BudgetItemCard(
                 }
                 Row {
                     FinanceIconButton(onClick = onEdit, modifier = Modifier.testTag("edit_budget_${budget.id}")) {
-                        FinanceIcon(Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل", "Edit", lang))
+                        FinanceIcon(Lucide.Pencil, contentDescription = WebI18n.tr("تعديل", "Edit", lang))
                     }
                     FinanceIconButton(onClick = onDelete, modifier = Modifier.testTag("delete_budget_${budget.id}")) {
-                        FinanceIcon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.error)
+                        FinanceIcon(Lucide.Trash2, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.error)
                     }
                 }
             }
