@@ -62,23 +62,27 @@ fun DashboardScreen(
     val bills by viewModel.bills.collectAsState()
     val goals by viewModel.savingsGoals.collectAsState()
     val activeAccounts = accounts.filter { !it.isArchived }
-    val dashboardTransactions = transactions.filter { it.status != TransactionStatus.CANCELLED }
+    val dashboardTransactions = transactions.sortedByDescending { it.date }.take(50).filter { it.status != TransactionStatus.CANCELLED }
+    val dashboardBills = bills.filter { !it.isPaid }.sortedBy { it.dueDate }.take(20)
+    val dashboardDebts = debts.filter { it.status.name != "PAID" }.sortedBy { it.dueDate }.take(20)
+    val dashboardGoals = goals.sortedBy { it.deadline }.take(20)
+    val dashboardAssets = assets.sortedByDescending { it.purchaseDate }.take(20)
     val currencyOrder = buildList {
         activeAccounts.forEach { add(it.currency) }
         dashboardTransactions.forEach { add(it.currency) }
-        assets.forEach { add(it.currency) }
+        dashboardAssets.forEach { add(it.currency) }
     }.distinct()
     val dashboardCurrency = currencyOrder.firstOrNull { it.equals("LYD", true) }
         ?: currencyOrder.firstOrNull()
         ?: "LYD"
     val currencyAccounts = activeAccounts.filter { it.currency.equals(dashboardCurrency, true) }
     val currencyTransactions = dashboardTransactions.filter { it.currency.equals(dashboardCurrency, true) }
-    val currencyAssets = assets.filter { it.currency.equals(dashboardCurrency, true) }
+    val currencyAssets = dashboardAssets.filter { it.currency.equals(dashboardCurrency, true) }
     val currencyBudgets = budgets.filter { it.currency.equals(dashboardCurrency, true) }
-    val currencyDebts = debts.filter { it.currency.equals(dashboardCurrency, true) && it.status.name != "PAID" }
-    val currencyBills = bills.filter { it.currency.equals(dashboardCurrency, true) && !it.isPaid }
+    val currencyDebts = dashboardDebts.filter { it.currency.equals(dashboardCurrency, true) }
+    val currencyBills = dashboardBills.filter { it.currency.equals(dashboardCurrency, true) }
         .sortedBy { it.dueDate }
-    val currencyGoals = goals.filter { it.currency.equals(dashboardCurrency, true) }
+    val currencyGoals = dashboardGoals.filter { it.currency.equals(dashboardCurrency, true) }
 
     val availableBalance = currencyAccounts.sumOf { it.balance }
     val recordedIncome = currencyTransactions.filter {
@@ -172,7 +176,7 @@ fun DashboardScreen(
                 DashboardMetric(
                     title = WebI18n.tr("قيمة الأصول", "Asset value", lang),
                     amount = TextContent.money(assetValue, dashboardCurrency, lang),
-                    note = "${assets.size} " + WebI18n.tr("أصل", "assets", lang),
+                    note = "${dashboardAssets.size} " + WebI18n.tr("أصل", "assets", lang),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -199,13 +203,13 @@ fun DashboardScreen(
             DashboardPanel(
                 title = WebI18n.tr("الفواتير", "Bills", lang),
                 eyebrow = WebI18n.tr("التزامات قريبة", "Upcoming obligations", lang),
-                count = bills.size,
+                count = dashboardBills.size,
                 onClick = { onNavigate("bills") }
             ) {
                 if (currencyBills.isEmpty()) {
                     DashboardEmpty(WebI18n.tr("لا توجد فواتير مستحقة.", "No bills due.", lang))
                 } else {
-                    bills.take(5).forEach { bill ->
+                    dashboardBills.take(5).forEach { bill ->
                         DashboardLine(
                             title = bill.name,
                             subtitle = "${dashboardDate(bill.dueDate, locale)} · " +
@@ -250,7 +254,7 @@ fun DashboardScreen(
             DashboardPanel(
                 title = WebI18n.tr("الادخار", "Savings", lang),
                 eyebrow = WebI18n.tr("الأهداف", "Goals", lang),
-                count = goals.size,
+                count = dashboardGoals.size,
                 onClick = { onNavigate("savings") }
             ) {
                 LinearProgressIndicator(
@@ -279,7 +283,7 @@ fun DashboardScreen(
             DashboardPanel(
                 title = WebI18n.tr("الديون", "Debts", lang),
                 eyebrow = WebI18n.tr("الالتزامات", "Liabilities", lang),
-                count = debts.size,
+                count = dashboardDebts.size,
                 onClick = { onNavigate("debts") }
             ) {
                 Text(
@@ -293,7 +297,7 @@ fun DashboardScreen(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                debts.take(3).forEach { debt ->
+                dashboardDebts.take(3).forEach { debt ->
                     DashboardLine(
                         title = debt.name,
                         subtitle = if (debt.direction == "owed_to_me")
@@ -314,9 +318,9 @@ fun DashboardScreen(
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     DashboardQuickStat(activeAccounts.size, WebI18n.tr("حسابات", "Accounts", lang), Modifier.weight(1f))
-                    DashboardQuickStat(transactions.size, WebI18n.tr("معاملات", "Transactions", lang), Modifier.weight(1f))
-                    DashboardQuickStat(bills.size, WebI18n.tr("الفواتير", "Bills", lang), Modifier.weight(1f))
-                    DashboardQuickStat(debts.size, WebI18n.tr("الديون", "Debts", lang), Modifier.weight(1f))
+                    DashboardQuickStat(dashboardTransactions.size, WebI18n.tr("معاملات", "Transactions", lang), Modifier.weight(1f))
+                    DashboardQuickStat(dashboardBills.size, WebI18n.tr("الفواتير", "Bills", lang), Modifier.weight(1f))
+                    DashboardQuickStat(dashboardDebts.size, WebI18n.tr("الديون", "Debts", lang), Modifier.weight(1f))
                 }
                 Text(
                     WebI18n.tr("الفواتير القادمة:", "Upcoming bills:", lang) +
