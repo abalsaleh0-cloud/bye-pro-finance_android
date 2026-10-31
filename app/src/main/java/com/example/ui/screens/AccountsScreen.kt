@@ -53,7 +53,6 @@ import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
 import com.example.finance.model.AppLanguage
 import com.example.finance.ui.FinanceViewModel
-import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceFloatingActionButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -106,6 +105,16 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+
+            if (showAddDialog) {
+                item {
+                    AddAccountForm(
+                        lang = lang,
+                        onCancel = { showAddDialog = false },
+                        onSave = { account -> viewModel.addAccount(account); showAddDialog = false }
+                    )
+                }
             }
 
             val totals = accounts.filter { !it.isArchived }.groupBy { it.currency }
@@ -167,16 +176,6 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
         }
     }
 
-    if (showAddDialog) {
-        AddAccountDialog(
-            lang = lang,
-            onDismiss = { showAddDialog = false },
-            onConfirm = { account ->
-                viewModel.addAccount(account)
-                showAddDialog = false
-            }
-        )
-    }
 }
 
 @Composable
@@ -241,10 +240,10 @@ fun AccountDetailedCard(
 }
 
 @Composable
-fun AddAccountDialog(
+fun AddAccountForm(
     lang: AppLanguage,
-    onDismiss: () -> Unit,
-    onConfirm: (AccountEntity) -> Unit
+    onCancel: () -> Unit,
+    onSave: (AccountEntity) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var openingBalance by remember { mutableStateOf("0") }
@@ -256,116 +255,95 @@ fun AddAccountDialog(
     var currencyMenuExpanded by remember { mutableStateOf(false) }
     var validationMessage by remember { mutableStateOf("") }
 
-    FinanceAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(WebI18n.tr("إضافة حساب", "Add account", lang), fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(WebI18n.tr("نوع الحساب", "Account type", lang), style = MaterialTheme.typography.labelMedium)
-                Box {
-                    OutlinedButton(
-                        onClick = { typeMenuExpanded = true },
-                        modifier = Modifier.fillMaxWidth().testTag("account_type_selector")
-                    ) { Text(accountTypeLabel(selectedType, lang)) }
-                    DropdownMenu(typeMenuExpanded, { typeMenuExpanded = false }) {
-                        webAccountTypes.forEach { type ->
-                            DropdownMenuItem(
-                                text = { Text(accountTypeLabel(type, lang)) },
-                                onClick = { selectedType = type; typeMenuExpanded = false }
-                            )
-                        }
-                    }
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("account_form"),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(WebI18n.tr("إضافة حساب", "Add account", lang), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            Text(WebI18n.tr("نوع الحساب", "Account type", lang), style = MaterialTheme.typography.labelMedium)
+            Box {
+                OutlinedButton(onClick = { typeMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_type_selector")) {
+                    Text(accountTypeLabel(selectedType, lang))
                 }
-
-                Text(WebI18n.tr("العملة", "Currency", lang), style = MaterialTheme.typography.labelMedium)
-                Box {
-                    OutlinedButton(
-                        onClick = { currencyMenuExpanded = true },
-                        modifier = Modifier.fillMaxWidth().testTag("account_currency_selector")
-                    ) { Text(currencyLabel(selectedCurrency, lang)) }
-                    DropdownMenu(currencyMenuExpanded, { currencyMenuExpanded = false }) {
-                        accountCurrencies.forEach { currency ->
-                            DropdownMenuItem(
-                                text = { Text(currencyLabel(currency, lang)) },
-                                onClick = { selectedCurrency = currency; currencyMenuExpanded = false }
-                            )
-                        }
+                DropdownMenu(typeMenuExpanded, { typeMenuExpanded = false }) {
+                    webAccountTypes.forEach { type ->
+                        DropdownMenuItem(text = { Text(accountTypeLabel(type, lang)) }, onClick = { selectedType = type; typeMenuExpanded = false })
                     }
-                }
-
-                FinanceTextField(
-                    value = name,
-                    onValueChange = { name = it.take(80); validationMessage = "" },
-                    label = { Text("Account name *") },
-                    placeholder = { Text("e.g. Daily wallet") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().testTag("account_name_input"),
-                    supportingText = { Text("${name.length}/80") },
-                    isError = validationMessage.isNotEmpty() && name.isBlank()
-                )
-                FinanceTextField(
-                    value = openingBalance,
-                    onValueChange = { openingBalance = it },
-                    label = { Text(WebI18n.tr("الرصيد الافتتاحي", "Opening balance", lang)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().testTag("account_balance_input")
-                )
-                FinanceTextField(
-                    value = institution,
-                    onValueChange = { institution = it.take(100) },
-                    label = { Text(WebI18n.tr("البنك أو الجهة (اختياري)", "Bank or institution (optional)", lang)) },
-                    supportingText = { Text("${institution.length}/100") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().testTag("account_institution_input")
-                )
-                FinanceTextField(
-                    value = lastFour,
-                    onValueChange = { value -> lastFour = value.filter(Char::isDigit).take(4); validationMessage = "" },
-                    label = { Text(WebI18n.tr("آخر 4 أرقام (اختياري)", "Last 4 digits (optional)", lang)) },
-                    placeholder = { Text("1234") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().testTag("account_last_four_input"),
-                    isError = validationMessage.isNotEmpty() && lastFour.isNotEmpty() && lastFour.length != 4
-                )
-                if (validationMessage.isNotEmpty()) {
-                    Text(validationMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
             }
-        },
-        confirmButton = {
-            FinanceButton(
-                onClick = {
-                    val amount = openingBalance.toDoubleOrNull()
-                    validationMessage = when {
-                        name.trim().isEmpty() -> WebI18n.tr("اسم الحساب مطلوب.", "Account name is required.", lang)
-                        name.trim().length > 80 -> WebI18n.tr("اسم الحساب يجب ألا يتجاوز 80 حرفًا.", "Account name must be 80 characters or fewer.", lang)
-                        amount == null || !amount.isFinite() -> WebI18n.tr("أدخل رصيدًا افتتاحيًا صحيحًا.", "Enter a valid opening balance.", lang)
-                        institution.length > 100 -> WebI18n.tr("اسم البنك أو الجهة يجب ألا يتجاوز 100 حرف.", "Bank or institution must be 100 characters or fewer.", lang)
-                        lastFour.isNotEmpty() && !lastFour.matches(Regex("[0-9]{4}")) -> WebI18n.tr("أدخل 4 أرقام بالضبط.", "Enter exactly 4 digits.", lang)
-                        else -> ""
+            Text(WebI18n.tr("العملة", "Currency", lang), style = MaterialTheme.typography.labelMedium)
+            Box {
+                OutlinedButton(onClick = { currencyMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_currency_selector")) {
+                    Text(currencyLabel(selectedCurrency, lang))
+                }
+                DropdownMenu(currencyMenuExpanded, { currencyMenuExpanded = false }) {
+                    accountCurrencies.forEach { currency ->
+                        DropdownMenuItem(text = { Text(currencyLabel(currency, lang)) }, onClick = { selectedCurrency = currency; currencyMenuExpanded = false })
                     }
-                    if (validationMessage.isEmpty()) {
-                        onConfirm(
+                }
+            }
+            FinanceTextField(
+                value = name,
+                onValueChange = { name = it.take(80); validationMessage = "" },
+                label = { Text("Account name *") },
+                placeholder = { Text("e.g. Daily wallet") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag("account_name_input"),
+                supportingText = { Text("${name.length}/80") }
+            )
+            FinanceTextField(
+                value = openingBalance,
+                onValueChange = { openingBalance = it },
+                label = { Text(WebI18n.tr("الرصيد الافتتاحي", "Opening balance", lang)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag("account_balance_input")
+            )
+            FinanceTextField(
+                value = institution,
+                onValueChange = { institution = it.take(100) },
+                label = { Text(WebI18n.tr("البنك أو الجهة (اختياري)", "Bank or institution (optional)", lang)) },
+                supportingText = { Text("${institution.length}/100") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag("account_institution_input")
+            )
+            FinanceTextField(
+                value = lastFour,
+                onValueChange = { value -> lastFour = value.filter(Char::isDigit).take(4); validationMessage = "" },
+                label = { Text(WebI18n.tr("آخر 4 أرقام (اختياري)", "Last 4 digits (optional)", lang)) },
+                placeholder = { Text("1234") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag("account_last_four_input")
+            )
+            if (validationMessage.isNotEmpty()) Text(validationMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FinanceOutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
+                    Text(WebI18n.tr("إلغاء", "Cancel", lang))
+                }
+                FinanceButton(
+                    onClick = {
+                        val amount = openingBalance.toDoubleOrNull()
+                        validationMessage = when {
+                            name.trim().isEmpty() -> WebI18n.tr("اسم الحساب مطلوب.", "Account name is required.", lang)
+                            amount == null || !amount.isFinite() -> WebI18n.tr("أدخل رصيدًا افتتاحيًا صحيحًا.", "Enter a valid opening balance.", lang)
+                            lastFour.isNotEmpty() && !lastFour.matches(Regex("[0-9]{4}")) -> WebI18n.tr("أدخل 4 أرقام بالضبط.", "Enter exactly 4 digits.", lang)
+                            else -> ""
+                        }
+                        if (validationMessage.isEmpty()) onSave(
                             AccountEntity(
-                                name = name.trim(),
-                                type = selectedType,
-                                currency = selectedCurrency,
-                                balance = amount!!,
-                                institution = institution.trim(),
-                                accountNumberSafe = lastFour
+                                name = name.trim(), type = selectedType, currency = selectedCurrency,
+                                balance = amount!!, institution = institution.trim(), accountNumberSafe = lastFour
                             )
                         )
-                    }
-                },
-                modifier = Modifier.testTag("submit_account_btn")
-            ) { Text(WebI18n.tr("حفظ الحساب", "Save account", lang)) }
-        },
-        dismissButton = {
-            FinanceOutlinedButton(onClick = onDismiss) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) }
+                    },
+                    modifier = Modifier.weight(1f).testTag("submit_account_btn")
+                ) { Text(WebI18n.tr("حفظ الحساب", "Save account", lang)) }
+            }
         }
-    )
+    }
 }
 
 private fun accountTypeLabel(type: AccountType, lang: AppLanguage): String = when (type) {
