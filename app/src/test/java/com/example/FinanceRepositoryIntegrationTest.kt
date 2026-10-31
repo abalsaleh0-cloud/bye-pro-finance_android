@@ -506,31 +506,25 @@ class FinanceRepositoryIntegrationTest {
 
 
     @Test
-    fun householdCrudValidatesContributionsAndProtectsReferencedMembers() = runBlocking {
+    fun householdCrudValidatesMonthlyContributionsAndPreservesExpensesWhenMemberIsDeleted() = runBlocking {
         try {
-            repository.addHouseholdMember("Invalid", "", "Member", 120.0)
-            fail("Expected contribution above 100% to be rejected")
+            repository.addHouseholdMember("Invalid", "", "family", -1.0)
+            fail("Expected a negative monthly contribution to be rejected")
         } catch (_: IllegalArgumentException) {
             // expected
         }
-        repository.addHouseholdMember("Family member", "", "Partner", 40.0)
+        repository.addHouseholdMember("Family member", "", "partner", 400.0)
         val member = repository.householdMembers.first().single()
-        repository.updateHouseholdMember(member.copy(name = "Updated member", contributionPercent = 45.0))
+        repository.updateHouseholdMember(member.copy(name = "Updated member", monthlyContribution = 450.0))
         val updated = repository.householdMembers.first().single()
         assertEquals("Updated member", updated.name)
-        assertEquals(45.0, updated.contributionPercent, 0.001)
-        repository.addHouseholdExpense("Groceries", 30.0, updated.id, "Food", "LYD")
-        val expense = repository.householdExpenses.first().single()
-        try {
-            repository.deleteHouseholdMember(updated)
-            fail("A member referenced by an expense must not be deleted")
-        } catch (_: IllegalArgumentException) {
-            // expected
-        }
-        repository.deleteHouseholdExpense(expense)
+        assertEquals(450.0, updated.monthlyContribution, 0.001)
+        repository.addHouseholdExpense("Groceries", 30.0, updated.id, "طعام", "LYD")
         repository.deleteHouseholdMember(updated)
         assertTrue(repository.householdMembers.first().isEmpty())
-        assertTrue(repository.householdExpenses.first().isEmpty())
+        val retainedExpense = repository.householdExpenses.first().single()
+        assertEquals("Groceries", retainedExpense.title)
+        assertEquals(null, retainedExpense.payerMemberId)
     }
 
     @Test
