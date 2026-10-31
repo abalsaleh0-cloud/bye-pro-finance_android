@@ -177,7 +177,7 @@ fun SmartScanScreen(
                             statusMessage = null
                             receiptPicker.launch(arrayOf("image/jpeg", "image/png", "image/webp"))
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                        colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.primaryButtonBg, contentColor = MaterialTheme.colorScheme.onPrimary),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth().testTag("pick_receipt_image_btn")
                     ) {
