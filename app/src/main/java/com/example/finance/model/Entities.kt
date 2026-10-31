@@ -142,9 +142,11 @@ data class AssetEntity(
 data class HouseholdMemberEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
-    val role: String = "Member",
+    val role: String = "family",
     val email: String = "",
-    val contributionPercent: Double = 50.0
+    val contributionPercent: Double = 0.0,
+    @ColumnInfo(defaultValue = "0.0") val monthlyContribution: Double = 0.0,
+    @ColumnInfo(defaultValue = "1") val isActive: Boolean = true
 )
 
 @Entity(tableName = "household_expenses")
@@ -152,11 +154,25 @@ data class HouseholdExpenseEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
     val amount: Double,
-    val payerMemberId: Long,
+    val payerMemberId: Long?,
     val category: String,
     @ColumnInfo(defaultValue = "'LYD'") val currency: String = "LYD",
     val date: Long = System.currentTimeMillis(),
-    val isSettled: Boolean = false
+    val isSettled: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val isRecurring: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val notes: String = ""
+)
+
+@Entity(tableName = "household_budgets")
+data class HouseholdBudgetEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val amount: Double,
+    @ColumnInfo(defaultValue = "'LYD'") val currencyCode: String = "LYD",
+    @ColumnInfo(defaultValue = "'monthly'") val period: String = "monthly",
+    val startDate: Long = System.currentTimeMillis(),
+    val endDate: Long? = null,
+    @ColumnInfo(defaultValue = "1") val isActive: Boolean = true
 )
 
 @Entity(tableName = "documents")
