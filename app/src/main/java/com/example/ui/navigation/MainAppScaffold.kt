@@ -8,7 +8,6 @@ import com.composables.icons.lucide.*
 
 import com.example.finance.i18n.TextContent
 
-import com.example.ui.components.FinanceIcon
 import com.example.ui.components.FinanceIconButton
 import com.example.ui.theme.ByeProTheme
 import androidx.activity.compose.BackHandler
@@ -189,7 +188,7 @@ fun MainAppScaffold(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                FinanceIcon(
+                                Icon(
                                     imageVector = Icons.Default.Language,
                                     contentDescription = null,
                                     tint = ByeProTheme.colors.goldPrimary,
@@ -218,7 +217,7 @@ fun MainAppScaffold(
                                     }
                                 }
                             ) {
-                                FinanceIcon(
+                                Icon(
                                     imageVector = Icons.Default.Notifications,
                                     contentDescription = Strings.get("nav_notifications", lang),
                                     tint = if (unreadCount > 0) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.onSurface
@@ -239,7 +238,7 @@ fun MainAppScaffold(
                     NavigationBarItem(
                         selected = currentScreen == "dashboard",
                         onClick = { viewModel.setScreen("dashboard") },
-                        icon = { FinanceIcon(Icons.Default.Dashboard, contentDescription = Strings.get("nav_dashboard", lang)) },
+                        icon = { Icon(Icons.Default.Dashboard, contentDescription = Strings.get("nav_dashboard", lang)) },
                         label = { Text(appText("nav_dashboard"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
@@ -252,7 +251,7 @@ fun MainAppScaffold(
                     NavigationBarItem(
                         selected = currentScreen == "accounts",
                         onClick = { viewModel.setScreen("accounts") },
-                        icon = { FinanceIcon(Icons.Default.AccountBalance, contentDescription = Strings.get("nav_accounts", lang)) },
+                        icon = { Icon(Icons.Default.AccountBalance, contentDescription = Strings.get("nav_accounts", lang)) },
                         label = { Text(appText("nav_accounts"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
@@ -265,7 +264,7 @@ fun MainAppScaffold(
                     NavigationBarItem(
                         selected = currentScreen == "transactions",
                         onClick = { viewModel.setScreen("transactions") },
-                        icon = { FinanceIcon(Icons.Default.Receipt, contentDescription = Strings.get("nav_transactions", lang)) },
+                        icon = { Icon(Icons.Default.Receipt, contentDescription = Strings.get("nav_transactions", lang)) },
                         label = { Text(appText("nav_transactions"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
@@ -278,7 +277,7 @@ fun MainAppScaffold(
                     NavigationBarItem(
                         selected = currentScreen == "budgets",
                         onClick = { viewModel.setScreen("budgets") },
-                        icon = { FinanceIcon(Icons.Default.PieChart, contentDescription = Strings.get("nav_budgets", lang)) },
+                        icon = { Icon(Icons.Default.PieChart, contentDescription = Strings.get("nav_budgets", lang)) },
                         label = { Text(appText("nav_budgets"), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
@@ -291,7 +290,7 @@ fun MainAppScaffold(
                     NavigationBarItem(
                         selected = currentScreen !in listOf("dashboard", "accounts", "transactions", "budgets"),
                         onClick = { showHubBottomSheet = true },
-                        icon = { FinanceIcon(Icons.Default.Menu, contentDescription = WebI18n.tr("القائمة", "Hub menu", lang)) },
+                        icon = { Icon(Icons.Default.Menu, contentDescription = WebI18n.tr("القائمة", "Hub menu", lang)) },
                         label = { Text(WebI18n.tr("المزيد", "More", lang), fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ByeProTheme.colors.goldPrimary,
@@ -390,7 +389,7 @@ fun MainAppScaffold(
                                         .background(item.accentColor.copy(alpha = 0.15f)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    FinanceIcon(
+                                    Icon(
                                         imageVector = item.icon,
                                         contentDescription = null,
                                         tint = item.accentColor,
