@@ -104,6 +104,44 @@ jobs:
           build-root-directory: ${{ env.PROJECT_DIR }}
           arguments: assembleDebug --stacktrace
 
+      - name: Prepare production signing key
+        if: ${{ secrets.KEYSTORE_BASE64 != '' && secrets.STORE_PASSWORD != '' && secrets.KEY_PASSWORD != '' }}
+        working-directory: ${{ env.PROJECT_DIR }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > release.keystore
+          chmod 600 release.keystore
+          echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/release.keystore" >> "$GITHUB_ENV"
+          echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> "$GITHUB_ENV"
+
+      - name: Build signed production Release APK
+        if: ${{ secrets.KEYSTORE_BASE64 != '' && secrets.STORE_PASSWORD != '' && secrets.KEY_PASSWORD != '' }}
+        uses: gradle/gradle-build-action@v3
+        env:
+          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
+          STORE_PASSWORD: ${{ env.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
+        with:
+          gradle-version: "9.3.1"
+          build-root-directory: ${{ env.PROJECT_DIR }}
+          arguments: assembleRelease --stacktrace
+
+      - name: Upload signed Release APK
+        if: ${{ secrets.KEYSTORE_BASE64 != '' && secrets.STORE_PASSWORD != '' && secrets.KEY_PASSWORD != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: BYE-PRO-FINANCE-Android-Release-10.0.1
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Report missing production signing secrets
+        if: ${{ secrets.KEYSTORE_BASE64 == '' || secrets.STORE_PASSWORD == '' || secrets.KEY_PASSWORD == '' }}
+        run: echo "::warning::Release APK skipped: configure KEYSTORE_BASE64, STORE_PASSWORD, and KEY_PASSWORD repository secrets."
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
