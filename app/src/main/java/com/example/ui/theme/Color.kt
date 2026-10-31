@@ -2,17 +2,17 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// BYE PRO FINANCE — exact semantic palette from the Web design system.
+// Exact semantic colors mirrored from apps/web/src/styles.css and unified-ui.css.
 val DarkBgMain = Color(0xFF101114)
 val DarkSurfaceMain = Color(0xFF181A1F)
-val DarkCardMain = Color(0xFF181A1F)
-val DarkCardSecondary = Color(0xFF1E1F24)
-val DarkHoverInteractive = Color(0xFF211C25)
-val DarkBorderBase = Color(0xFF2A2530)
-val DarkBorderProminent = Color(0xFF3A3341)
-val DarkTextPrimary = Color(0xFFEDE8DE)
-val DarkTextSecondary = Color(0xFFD8D3CA)
-val DarkTextMuted = Color(0xFF948C7E)
+val DarkCardMain = Color(0xFF1E1F24)
+val DarkCardSecondary = Color(0xFF181A1F)
+val DarkHoverInteractive = Color(0xFF1E1F24)
+val DarkBorderBase = Color(0xFF2B2D34)
+val DarkBorderProminent = Color(0xFF363740)
+val DarkTextPrimary = Color(0xFFF1F0EB)
+val DarkTextSecondary = Color(0xFFA5A7B0)
+val DarkTextMuted = Color(0xFFA5A7B0)
 val DarkTextNeutral = Color(0xFFA5A7B0)
 
 val GoldPrimary = Color(0xFFD6B56D)
@@ -27,36 +27,36 @@ val StatusErrorDark = FinancialRed
 val PositiveDarkGreen = StatusSuccessDark
 val WarningDarkRed = StatusErrorDark
 
-// Light theme values match the Web [data-theme="light"] tokens.
-val LightBgMain = Color(0xFFF5F3EF)
+// Light palette from [data-theme="light"] in apps/web/src/unified-ui.css.
+val LightBgMain = Color(0xFFF4F4F6)
 val LightSurfaceMain = Color(0xFFFFFFFF)
-val LightSurfaceSecondary = Color(0xFFFBFAF7)
-val LightCardSecondary = Color(0xFFF1EEE8)
-val LightHoverInteractive = Color(0xFFE9E5DD)
-val LightBorderBase = Color(0xFFD9D4CA)
-val LightBorderProminent = Color(0xFFC8C1B5)
-val LightTextPrimary = Color(0xFF202020)
-val LightTextSecondary = Color(0xFF303030)
-val LightTextMuted = Color(0xFF6B665D)
+val LightSurfaceSecondary = Color(0xFFF3F3F5)
+val LightCardSecondary = Color(0xFFF3F3F5)
+val LightHoverInteractive = Color(0xFFF1F1F3)
+val LightBorderBase = Color(0xFFD7D8DD)
+val LightBorderProminent = Color(0xFFC8C9CF)
+val LightTextPrimary = Color(0xFF17181C)
+val LightTextSecondary = Color(0xFF666A74)
+val LightTextMuted = Color(0xFF666A74)
 val LightGoldPrimary = Color(0xFFD6B56D)
-val LightGoldFeatured = Color(0xFF765715)
+val LightGoldFeatured = Color(0xFFD6B56D)
 val LightStatusSuccess = Color(0xFF67D6A1)
 val LightStatusError = Color(0xFFA43E45)
 
-val DarkFieldBg = Color(0xFF101114)
+val DarkFieldBg = Color(0xFF101115)
 val DarkFieldText = Color(0xFFF7F4EC)
-val DarkFieldBorder = Color(0xFF2B2D34)
+val DarkFieldBorder = Color(0xFF363740)
 val DarkFieldFocus = GoldPrimary
 val LightFieldBg = Color(0xFFFFFFFF)
-val LightFieldText = Color(0xFF202020)
-val LightFieldBorder = Color(0xFFC8C1B5)
+val LightFieldText = Color(0xFF17181C)
+val LightFieldBorder = Color(0xFFC8C9CF)
 val LightFieldFocus = GoldPrimary
 
 val LogoBgDark = DarkBgMain
 val LogoGoldBorder = GoldPrimary
 val LogoIvoryIcon = DarkTextPrimary
 
-// Compatibility aliases resolve only to the approved Web semantic palette.
+// Compatibility aliases resolve only to approved Web semantic tokens.
 val DarkElementInner = DarkCardSecondary
 val EmeraldMint = FinancialGreen
 val EmeraldMintDark = PositiveDarkGreen
