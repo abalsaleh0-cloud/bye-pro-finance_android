@@ -81,6 +81,9 @@ fun DebtsBillsScreen(
     var showAddDebtDialog by remember { mutableStateOf(false) }
     var showAddBillDialog by remember { mutableStateOf(false) }
     var debtToPay by remember { mutableStateOf<DebtEntity?>(null) }
+    var editingDebt by remember { mutableStateOf<DebtEntity?>(null) }
+    var historyDebt by remember { mutableStateOf<DebtEntity?>(null) }
+    var deleteDebtTarget by remember { mutableStateOf<DebtEntity?>(null) }
 
     Scaffold(
         floatingActionButton = {
@@ -129,37 +132,16 @@ fun DebtsBillsScreen(
                 }
 
                 if (selectedTabIndex == 0) {
-                    // Debts list
-                    if (debts.isEmpty()) {
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                            ) {
-                                Text(
-                                    text = WebI18n.tr("لا توجد ديون أو التزامات قائمة. وضعك المالي حر تماماً!", "No outstanding debts or liabilities. You are debt-free!", lang),
-                                    modifier = Modifier.padding(24.dp),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    } else {
-                        items(debts, key = { it.id }) { debt ->
-                            val payoffMonths = FinanceEngine.calculateDebtPayoffMonths(
-                                remainingPrincipal = debt.remaining,
-                                annualInterestRatePercent = debt.interestRate,
-                                monthlyPayment = if (debt.minimumPayment > 0) debt.minimumPayment else 1000.0
-                            )
-
-                            DebtItemCard(
-                                debt = debt,
-                                payoffMonths = payoffMonths,
-                                lang = lang,
-                                onPay = { debtToPay = debt },
-                                onDelete = { viewModel.deleteDebt(debt) }
-                            )
-                        }
+                    item {
+                        DebtManagementPanel(
+                            debts = debts,
+                            lang = lang,
+                            onAdd = { showAddDebtDialog = true },
+                            onPay = { debtToPay = it },
+                            onEdit = { editingDebt = it },
+                            onHistory = { historyDebt = it },
+                            onDelete = { deleteDebtTarget = it }
+                        )
                     }
                 } else {
                     // Bills list
@@ -199,11 +181,32 @@ fun DebtsBillsScreen(
         }
     }
 
+    if (deleteDebtTarget != null) {
+        val target = deleteDebtTarget!!
+        AlertDialog(
+            onDismissRequest = { deleteDebtTarget = null },
+            title = { Text(WebI18n.tr("تأكيد حذف الدين", "Confirm debt deletion", lang)) },
+            text = { Text(WebI18n.tr("هل تريد حذف هذا السجل نهائياً؟", "Do you want to permanently delete this record?", lang)) },
+            confirmButton = {
+                FinanceButton(onClick = { viewModel.deleteDebt(target); deleteDebtTarget = null }) {
+                    Text(WebI18n.tr("حذف نهائياً", "Delete permanently", lang))
+                }
+            },
+            dismissButton = { FinanceOutlinedButton(onClick = { deleteDebtTarget = null }) { Text(Strings.get("cancel", lang)) } }
+        )
+    }
+
+    if (historyDebt != null) {
+        DebtPaymentHistoryDialog(debt = historyDebt!!, viewModel = viewModel, lang = lang, onDismiss = { historyDebt = null })
+    }
+
     // Pay Debt Dialog
     if (debtToPay != null) {
         val target = debtToPay!!
         var payAmountStr by remember { mutableStateOf(target.minimumPayment.toString()) }
-        var payNotes by remember { mutableStateOf(WebI18n.tr("دفعة سداد شهرية", "Monthly debt payment", lang)) }
+        var payNotes by remember { mutableStateOf(WebI18n.tr("دفعة سداد", "Debt payment", lang)) }
+        var paymentDateText by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())) }
+        var paymentError by remember { mutableStateOf("") }
 
         FinanceAlertDialog(
             onDismissRequest = { debtToPay = null },
@@ -218,19 +221,33 @@ fun DebtsBillsScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     FinanceTextField(
+                        value = paymentDateText,
+                        onValueChange = { paymentDateText = it },
+                        label = { Text(WebI18n.tr("تاريخ الدفعة (YYYY-MM-DD)", "Payment date (YYYY-MM-DD)", lang)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    FinanceTextField(
                         value = payNotes,
                         onValueChange = { payNotes = it },
                         label = { Text(WebI18n.tr("ملاحظات", "Notes", lang)) },
                         modifier = Modifier.fillMaxWidth()
                     )
+                    if (paymentError.isNotBlank()) Text(paymentError, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
                 }
             },
             confirmButton = {
                 FinanceButton(
                     onClick = {
                         val amt = payAmountStr.toDoubleOrNull() ?: 0.0
-                        if (amt > 0.0) {
-                            viewModel.payDebt(target.id, amt, payNotes)
+                        val parsedDate = try { SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(paymentDateText)?.time } catch (_: Exception) { null }
+                        paymentError = when {
+                            !amt.isFinite() || amt <= 0.0 -> WebI18n.tr("أدخل مبلغ دفعة صحيحاً.", "Enter a valid payment amount.", lang)
+                            amt > target.remaining -> WebI18n.tr("مبلغ الدفعة أكبر من المتبقي.", "Payment exceeds remaining balance.", lang)
+                            parsedDate == null -> WebI18n.tr("أدخل تاريخاً صحيحاً.", "Enter a valid date.", lang)
+                            else -> ""
+                        }
+                        if (paymentError.isBlank() && parsedDate != null) {
+                            viewModel.payDebt(target.id, amt, payNotes, parsedDate)
                             debtToPay = null
                         }
                     }
@@ -246,14 +263,15 @@ fun DebtsBillsScreen(
         )
     }
 
-    // Add Debt Dialog
-    if (showAddDebtDialog) {
+    if (showAddDebtDialog || editingDebt != null) {
         AddDebtDialog(
             lang = lang,
-            onDismiss = { showAddDebtDialog = false },
+            initialDebt = editingDebt,
+            onDismiss = { showAddDebtDialog = false; editingDebt = null },
             onConfirm = { newDebt ->
-                viewModel.addDebt(newDebt)
+                if (editingDebt == null) viewModel.addDebt(newDebt) else viewModel.updateDebt(newDebt)
                 showAddDebtDialog = false
+                editingDebt = null
             }
         )
     }
