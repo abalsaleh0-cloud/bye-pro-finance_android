@@ -12,6 +12,7 @@ import com.example.finance.model.BudgetEntity
 import com.example.finance.model.BudgetPeriod
 import com.example.finance.model.BillEntity
 import com.example.finance.model.DebtEntity
+import com.example.finance.model.DebtStatus
 import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
@@ -432,5 +433,66 @@ class FinanceRepositoryIntegrationTest {
         assertTrue(repository.transfers.first().isEmpty())
     }
 
+
+
+    @Test
+    fun debtDirectionsEditingAndTimestampedPaymentsPersistCorrectly() = runBlocking {
+        val dueDate = 1_800_000_000_000L
+        repository.addDebt(
+            DebtEntity(
+                name = "Client A",
+                creditor = "Contract",
+                principal = 900.0,
+                remaining = 900.0,
+                dueDate = dueDate,
+                currency = "USD",
+                notes = "Invoice settlement",
+                direction = "owed_to_me"
+            )
+        )
+        val created = repository.debts.first().single()
+        assertEquals("owed_to_me", created.direction)
+        assertEquals("USD", created.currency)
+        assertEquals(dueDate, created.dueDate)
+
+        val paymentDate = 1_800_000_123_000L
+        assertTrue(repository.recordDebtPayment(created.id, 250.0, "First installment", paymentDate))
+        val afterPartial = repository.debts.first().single()
+        assertEquals(650.0, afterPartial.remaining, 0.001)
+        assertEquals(DebtStatus.ACTIVE, afterPartial.status)
+        val history = repository.debtPayments(created.id).first()
+        assertEquals(1, history.size)
+        assertEquals(paymentDate, history.single().date)
+        assertEquals("First installment", history.single().notes)
+
+        assertFalse(repository.recordDebtPayment(created.id, 700.0, "Overpayment", paymentDate))
+        assertEquals(650.0, repository.debts.first().single().remaining, 0.001)
+
+        repository.updateDebt(afterPartial.copy(name = "Client A updated", direction = "i_owe"))
+        val updated = repository.debts.first().single()
+        assertEquals("Client A updated", updated.name)
+        assertEquals("i_owe", updated.direction)
+
+        assertTrue(repository.recordDebtPayment(created.id, 650.0, "Final payment", paymentDate + 1000))
+        assertEquals(DebtStatus.PAID, repository.debts.first().single().status)
+        assertEquals(2, repository.debtPayments(created.id).first().size)
+    }
+
+    @Test
+    fun debtCreationRejectsInvalidPrincipalAndDirection() = runBlocking {
+        try {
+            repository.addDebt(DebtEntity(name = "Invalid", creditor = "", principal = 0.0, remaining = 0.0))
+            fail("Expected invalid principal to be rejected")
+        } catch (_: IllegalArgumentException) {
+            // expected
+        }
+        try {
+            repository.addDebt(DebtEntity(name = "Invalid direction", creditor = "", principal = 10.0, remaining = 10.0, direction = "unknown"))
+            fail("Expected invalid direction to be rejected")
+        } catch (_: IllegalArgumentException) {
+            // expected
+        }
+        assertTrue(repository.debts.first().isEmpty())
+    }
 
 }
