@@ -49,6 +49,68 @@ object FinanceExportService {
         return root.toString(2)
     }
 
+    fun transactionsFromCsv(csvText: String): List<TransactionEntity> {
+        val rows = parseCsv(csvText)
+        require(rows.isNotEmpty()) { "CSV file is empty" }
+        val header = rows.first().map { it.trim() }
+        val required = listOf("accountId", "type", "amount", "currency", "category", "date")
+        require(required.all { it in header }) { "CSV header is missing required transaction columns" }
+        val index = header.withIndex().associate { it.value to it.index }
+        fun value(row: List<String>, key: String): String = row.getOrNull(index[key] ?: -1).orEmpty()
+        return rows.drop(1).filter { row -> row.any { it.isNotBlank() } }.map { row ->
+            val type = runCatching { TransactionType.valueOf(value(row, "type").trim().uppercase(Locale.ROOT)) }
+                .getOrElse { throw IllegalArgumentException("Invalid transaction type in CSV") }
+            val status = value(row, "status").takeIf { it.isNotBlank() }?.let {
+                runCatching { TransactionStatus.valueOf(it.trim().uppercase(Locale.ROOT)) }.getOrElse { throw IllegalArgumentException("Invalid transaction status in CSV") }
+            } ?: TransactionStatus.COMPLETED
+            val amount = value(row, "amount").toDoubleOrNull()
+                ?: throw IllegalArgumentException("Invalid transaction amount in CSV")
+            require(amount.isFinite() && amount > 0.0) { "Transaction amount must be finite and positive" }
+            TransactionEntity(
+                accountId = value(row, "accountId").toLongOrNull() ?: throw IllegalArgumentException("Invalid accountId in CSV"),
+                type = type,
+                amount = amount,
+                currency = value(row, "currency").ifBlank { "LYD" }.uppercase(Locale.ROOT),
+                category = value(row, "category").ifBlank { "Other" },
+                date = value(row, "date").toLongOrNull() ?: throw IllegalArgumentException("Invalid date in CSV"),
+                description = value(row, "description"),
+                merchant = value(row, "merchant"),
+                tags = value(row, "tags"),
+                notes = value(row, "notes"),
+                attachmentUri = value(row, "attachmentUri").takeIf { it.isNotBlank() },
+                isRecurring = value(row, "isRecurring").toBooleanStrictOrNull() ?: false,
+                status = status,
+                targetAccountId = value(row, "targetAccountId").toLongOrNull()
+            )
+        }
+    }
+
+    private fun parseCsv(text: String): List<List<String>> {
+        val rows = mutableListOf<List<String>>()
+        var row = mutableListOf<String>()
+        val cell = StringBuilder()
+        var quoted = false
+        var i = 0
+        while (i < text.length) {
+            val ch = text[i]
+            when {
+                ch == '"' && quoted && i + 1 < text.length && text[i + 1] == '"' -> { cell.append('"'); i++ }
+                ch == '"' -> quoted = !quoted
+                ch == ',' && !quoted -> { row.add(cell.toString()); cell.setLength(0) }
+                (ch == '\n' || ch == '\r') && !quoted -> {
+                    if (ch == '\r' && i + 1 < text.length && text[i + 1] == '\n') i++
+                    row.add(cell.toString()); cell.setLength(0)
+                    rows.add(row); row = mutableListOf()
+                }
+                else -> cell.append(ch)
+            }
+            i++
+        }
+        require(!quoted) { "CSV contains an unterminated quoted field" }
+        if (cell.isNotEmpty() || row.isNotEmpty()) { row.add(cell.toString()); rows.add(row) }
+        return rows
+    }
+
     fun transactionsFromJson(json: String): List<TransactionEntity> {
         val root = JSONObject(json)
         require(root.optInt("version", -1) == 1) { "Unsupported export version" }
