@@ -28,7 +28,7 @@ val PositiveDarkGreen = StatusSuccessDark
 val WarningDarkRed = StatusErrorDark
 
 // Light theme values match the Web [data-theme="light"] tokens.
-val LightBgMain = Color(0xFFF5F3EF)
+val LightBgMain = Color(0xFFF4F4F6)
 val LightSurfaceMain = Color(0xFFFFFFFF)
 val LightSurfaceSecondary = Color(0xFFFBFAF7)
 val LightCardSecondary = Color(0xFFF1EEE8)
@@ -41,7 +41,7 @@ val LightTextMuted = Color(0xFF6B665D)
 val LightGoldPrimary = Color(0xFFD6B56D)
 val LightGoldFeatured = Color(0xFF765715)
 val LightStatusSuccess = Color(0xFF16794A)
-val LightStatusError = Color(0xFFB42332)
+val LightStatusError = Color(0xFFA43E45)
 
 val DarkFieldBg = Color(0xFF101115)
 val DarkFieldText = Color(0xFFF7F4EC)
