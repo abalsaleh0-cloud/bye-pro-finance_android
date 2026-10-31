@@ -2,6 +2,7 @@ package com.example
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.junit4.setContent
 import androidx.compose.ui.test.onNodeWithTag
