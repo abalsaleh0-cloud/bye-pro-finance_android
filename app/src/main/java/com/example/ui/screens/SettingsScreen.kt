@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+
 import com.example.ui.components.FinanceIcon
 
 import com.example.ui.components.FinanceAlertDialog
@@ -103,7 +105,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        FinanceIcon(Icons.Default.Person, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
+                        FinanceIcon(Lucide.User, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                         Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                         Text(
                             text = WebI18n.tr("الملف الشخصي والحساب", "Profile and account", lang),
@@ -151,7 +153,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        FinanceIcon(Icons.Default.Language, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
+                        FinanceIcon(Lucide.Globe, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                         Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                         Text(
                             text = Strings.get("language", lang),
