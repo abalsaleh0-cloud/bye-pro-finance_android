@@ -153,39 +153,39 @@ fun DashboardScreen(
         }
 
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                DashboardMetric(
-                    title = WebI18n.tr("الرصيد المتاح", "Available balance", lang),
-                    amount = TextContent.money(availableBalance, dashboardCurrency, lang),
-                    note = "${activeAccounts.size} " + WebI18n.tr("حساب نشط", "active accounts", lang),
-                    currency = dashboardCurrency,
-                    modifier = Modifier.weight(1f)
-                )
-                DashboardMetric(
-                    title = WebI18n.tr("الدخل المسجل", "Recorded income", lang),
-                    amount = TextContent.money(recordedIncome, dashboardCurrency, lang),
-                    note = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang),
-                    modifier = Modifier.weight(1f),
-                    accent = ByeProTheme.colors.financialGreen
-                )
-            }
+            DashboardMetric(
+                title = WebI18n.tr("الرصيد المتاح", "Available balance", lang),
+                amount = TextContent.money(availableBalance, dashboardCurrency, lang),
+                note = "${activeAccounts.size} " + WebI18n.tr("حساب نشط", "active accounts", lang),
+                currency = dashboardCurrency,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                DashboardMetric(
-                    title = WebI18n.tr("المصروفات المسجلة", "Recorded expenses", lang),
-                    amount = TextContent.money(recordedExpenses, dashboardCurrency, lang),
-                    note = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang),
-                    modifier = Modifier.weight(1f),
-                    accent = ByeProTheme.colors.financialRed
-                )
-                DashboardMetric(
-                    title = WebI18n.tr("قيمة الأصول", "Asset value", lang),
-                    amount = TextContent.money(assetValue, dashboardCurrency, lang),
-                    note = "${dashboardAssets.size} " + WebI18n.tr("أصل", "assets", lang),
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            DashboardMetric(
+                title = WebI18n.tr("الدخل المسجل", "Recorded income", lang),
+                amount = TextContent.money(recordedIncome, dashboardCurrency, lang),
+                note = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang),
+                modifier = Modifier.fillMaxWidth(),
+                accent = ByeProTheme.colors.financialGreen
+            )
+        }
+        item {
+            DashboardMetric(
+                title = WebI18n.tr("المصروفات المسجلة", "Recorded expenses", lang),
+                amount = TextContent.money(recordedExpenses, dashboardCurrency, lang),
+                note = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang),
+                modifier = Modifier.fillMaxWidth(),
+                accent = ByeProTheme.colors.financialRed
+            )
+        }
+        item {
+            DashboardMetric(
+                title = WebI18n.tr("قيمة الأصول", "Asset value", lang),
+                amount = TextContent.money(assetValue, dashboardCurrency, lang),
+                note = "${dashboardAssets.size} " + WebI18n.tr("أصل", "assets", lang),
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         item {
@@ -350,11 +350,11 @@ private fun DashboardMetric(
     accent: Color = ByeProTheme.colors.goldPrimary
 ) {
     Card(
-        modifier = modifier.border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(14.dp)),
+        modifier = modifier.border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(16.dp)),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(14.dp)
     ) {
-        Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Text(title + (currency?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(amount, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
             Text(note, style = MaterialTheme.typography.labelSmall, color = accent)
