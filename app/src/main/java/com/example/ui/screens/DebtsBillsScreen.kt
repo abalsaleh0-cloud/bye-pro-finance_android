@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
 import com.example.ui.components.FinanceIcon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -107,7 +110,7 @@ fun DebtsBillsScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_debt_bill_fab")
             ) {
-                FinanceIcon(imageVector = Icons.Default.Info, contentDescription = null)
+                FinanceIcon(imageVector = Lucide.HandCoins, contentDescription = null)
             }
         }
     ) { padding ->
@@ -347,7 +350,7 @@ fun DebtItemCard(
                 }
                 FinanceIconButton(onClick = onDelete) {
                     FinanceIcon(
-                        imageVector = Icons.Default.Delete,
+                        imageVector = Lucide.Trash2,
                         contentDescription = WebI18n.tr("حذف", "Delete", lang),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp)
@@ -397,7 +400,7 @@ fun DebtItemCard(
                     colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    FinanceIcon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp))
+                    FinanceIcon(Lucide.HandCoins, contentDescription = null, modifier = Modifier.size(16.dp))
                     Text(Strings.get("pay_debt", lang), modifier = Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelMedium)
                 }
             }
@@ -461,7 +464,7 @@ fun BillItemCard(
                         colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        FinanceIcon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                        FinanceIcon(Lucide.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                         Text(Strings.get("mark_paid", lang), modifier = Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelMedium)
                     }
                 } else {
@@ -474,7 +477,7 @@ fun BillItemCard(
                 }
                 FinanceIconButton(onClick = onDelete) {
                     FinanceIcon(
-                        imageVector = Icons.Default.Delete,
+                        imageVector = Lucide.Trash2,
                         contentDescription = WebI18n.tr("حذف", "Delete", lang),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp)
