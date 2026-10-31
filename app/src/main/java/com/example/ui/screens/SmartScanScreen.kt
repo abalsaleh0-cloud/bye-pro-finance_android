@@ -81,6 +81,7 @@ fun SmartScanScreen(
     var selectedReceiptUri by remember { mutableStateOf<String?>(null) }
 
     var statusMessage by remember { mutableStateOf<String?>(null) }
+    var manualReceiptText by remember { mutableStateOf("") }
 
     // Editable confirmation fields
     var merchantField by remember(scannedReceipt) { mutableStateOf(scannedReceipt?.merchant ?: "") }
@@ -183,33 +184,30 @@ fun SmartScanScreen(
                         Text(WebI18n.tr("اختيار صورة إيصال", "Choose receipt image", lang), fontWeight = FontWeight.Bold)
                     }
 
-                    FinanceButton(
-                        onClick = {
-                            statusMessage = null
-                            viewModel.scanReceipt("متجر تجريبي - طرابلس\nتاريخ: 2026-10-30\nالمجموع الفرعي: 162.40 د.ل\nالضريبة: 24.35 د.ل\nالإجمالي: 186.75 د.ل")
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.financialGreen, contentColor = MaterialTheme.colorScheme.onPrimary),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("scan_sample_receipt_btn")
-                    ) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = null)
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(Strings.get("scan_sample", lang), fontWeight = FontWeight.Bold)
-                    }
-
+                    Text(
+                        WebI18n.tr("أو الصق نص الإيصال المستخرج من أي ماسح ضوئي", "Or paste receipt text from any scanner", lang),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = manualReceiptText,
+                        onValueChange = { manualReceiptText = it },
+                        modifier = Modifier.fillMaxWidth().testTag("manual_receipt_text_input"),
+                        minLines = 3,
+                        maxLines = 6,
+                        label = { Text(WebI18n.tr("نص الإيصال", "Receipt text", lang)) }
+                    )
                     FinanceOutlinedButton(
                         onClick = {
                             statusMessage = null
-                            viewModel.scanReceipt("مقهى تجريبي - طرابلس\nتاريخ: 2026-10-30\nالضريبة: 8.35 د.ل\nالإجمالي: 64.00 د.ل")
+                            viewModel.scanReceipt(sampleText = manualReceiptText)
                         },
-                        shape = RoundedCornerShape(10.dp),
+                        enabled = manualReceiptText.isNotBlank(),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Receipt, contentDescription = null)
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null)
                         Spacer(modifier = Modifier.size(8.dp))
-                        Text(WebI18n.tr("مسح إيصال مقهى تجريبي", "Scan sample cafe receipt", lang), color = MaterialTheme.colorScheme.onSurface)
+                        Text(WebI18n.tr("تحليل النص", "Analyze text", lang), color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
