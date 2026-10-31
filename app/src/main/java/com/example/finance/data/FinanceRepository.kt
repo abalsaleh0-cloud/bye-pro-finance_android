@@ -547,14 +547,48 @@ class FinanceRepository(
 
     // Household
     suspend fun addHouseholdMember(name: String, email: String, role: String, percent: Double) = withContext(Dispatchers.IO) {
-        dao.insertHouseholdMember(HouseholdMemberEntity(name = name, email = email, role = role, contributionPercent = percent))
+        require(name.isNotBlank() && role.isNotBlank()) { "Household member name and role are required" }
+        require(percent.isFinite() && percent in 0.0..100.0) { "Contribution percentage must be between 0 and 100" }
+        dao.insertHouseholdMember(HouseholdMemberEntity(name = name.trim(), email = email.trim(), role = role.trim(), contributionPercent = percent))
         logAudit("CREATE", "Household", "Added member $name")
     }
 
+    suspend fun updateHouseholdMember(member: HouseholdMemberEntity) = withContext(Dispatchers.IO) {
+        require(member.id > 0 && member.name.isNotBlank() && member.role.isNotBlank()) { "Household member identity, name and role are required" }
+        require(member.contributionPercent.isFinite() && member.contributionPercent in 0.0..100.0) { "Contribution percentage must be between 0 and 100" }
+        dao.updateHouseholdMember(member.copy(name = member.name.trim(), role = member.role.trim(), email = member.email.trim()))
+        logAudit("UPDATE", "Household", "Updated member " + member.name)
+    }
+
+    suspend fun deleteHouseholdMember(member: HouseholdMemberEntity) = withContext(Dispatchers.IO) {
+        require(dao.getAllHouseholdExpenses().firstOrNull().orEmpty().none { it.payerMemberId == member.id }) {
+            "Cannot delete a household member who has recorded expenses"
+        }
+        dao.deleteHouseholdMember(member)
+        logAudit("DELETE", "Household", "Deleted member " + member.name)
+    }
+
     suspend fun addHouseholdExpense(title: String, amount: Double, payerId: Long, category: String, currency: String = "LYD") = withContext(Dispatchers.IO) {
+        require(title.isNotBlank() && category.isNotBlank()) { "Household expense title and category are required" }
         require(amount.isFinite() && amount > 0.0) { "Household expense must be finite and positive" }
-        dao.insertHouseholdExpense(HouseholdExpenseEntity(title = title, amount = amount, payerMemberId = payerId, category = category, currency = currency))
-        logAudit("CREATE", "Household", "Added household expense $title ($amount)")
+        require(currency.matches(Regex("[A-Z]{3}"))) { "Household expense currency must be a three-letter code" }
+        require(dao.getHouseholdMemberById(payerId) != null) { "Household payer does not exist" }
+        dao.insertHouseholdExpense(HouseholdExpenseEntity(title = title.trim(), amount = amount, payerMemberId = payerId, category = category.trim(), currency = currency))
+        logAudit("CREATE", "Household", "Added household expense " + title + " (" + amount + ")")
+    }
+
+    suspend fun updateHouseholdExpense(expense: HouseholdExpenseEntity) = withContext(Dispatchers.IO) {
+        require(expense.id > 0 && expense.title.isNotBlank() && expense.category.isNotBlank()) { "Household expense identity, title and category are required" }
+        require(expense.amount.isFinite() && expense.amount > 0.0) { "Household expense must be finite and positive" }
+        require(expense.currency.matches(Regex("[A-Z]{3}"))) { "Household expense currency must be a three-letter code" }
+        require(dao.getHouseholdMemberById(expense.payerMemberId) != null) { "Household payer does not exist" }
+        dao.updateHouseholdExpense(expense.copy(title = expense.title.trim(), category = expense.category.trim()))
+        logAudit("UPDATE", "Household", "Updated household expense " + expense.title)
+    }
+
+    suspend fun deleteHouseholdExpense(expense: HouseholdExpenseEntity) = withContext(Dispatchers.IO) {
+        dao.deleteHouseholdExpense(expense)
+        logAudit("DELETE", "Household", "Deleted household expense " + expense.title)
     }
 
     // Documents
