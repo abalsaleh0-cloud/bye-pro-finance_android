@@ -206,7 +206,7 @@ fun ImportExportScreen(viewModel: FinanceViewModel) {
         item {
             Text(WebI18n.tr("استيراد وتصدير البيانات", "Import & export", lang), style = MaterialTheme.typography.titleLarge)
             Text(
-                WebI18n.tr("احفظ معاملاتك أو استعدها من ملف JSON متوافق.", "Export your transactions or restore them from a compatible JSON file.", lang),
+                WebI18n.tr("صدّر معاملاتك بصيغتي CSV وJSON أو استوردها من ملف متوافق.", "Export transactions as CSV or JSON, or import them from a compatible file.", lang),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
