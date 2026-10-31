@@ -2,7 +2,6 @@ package com.example.ui.screens
 
 import com.example.ui.components.FinanceIcon
 
-import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.*
 
 import androidx.compose.material.icons.filled.*
@@ -155,7 +154,7 @@ fun AiAssistantScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         FinanceIcon(
-                            imageVector = Lucide.Info,
+                            imageVector = Icons.Default.Info,
                             contentDescription = null,
                             tint = ByeProTheme.colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -253,7 +252,7 @@ fun AiAssistantScreen(
                             .testTag("ai_assistant_send_btn")
                     ) {
                         FinanceIcon(
-                            imageVector = Lucide.Send,
+                            imageVector = Icons.Default.Send,
                             contentDescription = WebI18n.tr("إرسال", "Send", lang),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
@@ -316,9 +315,9 @@ fun AiAssistantScreen(
                                 )
                                 FinanceIcon(
                                     imageVector = when (insight.impactType) {
-                                        "POSITIVE" -> Lucide.TrendingUp
-                                        "WARNING" -> Lucide.AlertTriangle
-                                        else -> Lucide.Sparkles
+                                        "POSITIVE" -> Icons.Default.TrendingUp
+                                        "WARNING" -> Icons.Default.Warning
+                                        else -> Icons.Default.AutoAwesome
                                     },
                                     contentDescription = null,
                                     tint = when (insight.impactType) {
