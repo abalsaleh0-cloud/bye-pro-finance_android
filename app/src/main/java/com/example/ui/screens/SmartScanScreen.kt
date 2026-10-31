@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
-import com.composables.icons.lucide.Lucide
+import com.example.ui.components.FinanceIcon
+import com.composables.icons.lucide.*
 
 import android.content.Intent
 import android.util.Base64
