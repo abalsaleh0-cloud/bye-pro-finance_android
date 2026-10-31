@@ -43,9 +43,9 @@ object ByeProDesignTokens {
         val darkPlaceholder = Color(0xFFA5A7B0)
         val darkBorder = Color(0xFF363740)
         val lightBackground = Color(0xFFFFFFFF)
-        val lightText = Color(0xFF202020)
+        val lightText = Color(0xFF17181C)
         val lightPlaceholder = Color(0xFF8A857C)
-        val lightBorder = Color(0xFFC8C1B5)
+        val lightBorder = Color(0xFFC8C9CF)
         val darkFocus = Color(0xFFD6B56D)
         val lightFocus = Color(0xFFA67C12)
         val height = 43.dp
