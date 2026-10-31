@@ -11,6 +11,7 @@ import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -289,6 +290,7 @@ class LocalAiModelViewModel(application: Application) : AndroidViewModel(applica
 
     fun deleteModel() {
         viewModelScope.launch(Dispatchers.IO) {
+            downloadJob?.cancelAndJoin()
             runCatching { LocalAiRuntime.close() }
             LocalAiModelManager.modelFile(getApplication()).delete()
             LocalAiModelManager.partialFile(getApplication()).delete()
