@@ -13,8 +13,8 @@ android {
     applicationId = "com.aistudio.byeprofinance.kxmpzq"
     minSdk = 24
     targetSdk = 36
-    versionCode = 10009
-    versionName = "10.0.9"
+    versionCode = 10010
+    versionName = "10.0.10"
     buildConfigField("String", "FINANCE_API_BASE_URL", "\"https://bye-pro-finance.vercel.app/\"")
     buildConfigField("String", "SUPABASE_URL", "\"https://ngfaukvfsesoslfiwaue.supabase.co\"")
     buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_5zPaJKKmtGZtYUv1GGytjA_tsk9LaSR\"")
@@ -47,6 +47,7 @@ kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarg
 secrets { propertiesFileName = ".env"; defaultPropertiesFileName = ".env.example"; ignoreList.add("FIREBASE_APPCHECK_DEBUG_TOKEN") }
 dependencies {
   implementation(platform(libs.androidx.compose.bom)); implementation(libs.androidx.activity.compose)
+  implementation("com.google.ai.edge.litertlm:litertlm-android:0.18.0")
   implementation(libs.androidx.compose.material.icons.core); implementation(libs.androidx.compose.material.icons.extended)
   implementation("com.composables:icons-lucide-cmp:2.2.1"); implementation(libs.androidx.compose.material3); implementation(libs.androidx.compose.ui)
   implementation(libs.androidx.compose.ui.graphics); implementation(libs.androidx.compose.ui.tooling.preview); implementation(libs.androidx.core.ktx)
