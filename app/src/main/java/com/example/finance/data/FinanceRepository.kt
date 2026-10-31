@@ -354,21 +354,43 @@ class FinanceRepository(
 
     // Debts
     suspend fun addDebt(debt: DebtEntity) = withContext(Dispatchers.IO) {
+        require(debt.name.isNotBlank()) { "Debt party name is required" }
+        require(debt.principal.isFinite() && debt.principal > 0.0) { "Debt principal must be positive" }
+        require(debt.remaining.isFinite() && debt.remaining in 0.0..debt.principal) { "Invalid remaining debt amount" }
+        require(debt.direction == "owed_to_me" || debt.direction == "i_owe") { "Invalid debt direction" }
+        require(debt.currency.matches(Regex("[A-Z]{3}"))) { "Invalid debt currency" }
         dao.insertDebt(debt)
         logAudit("CREATE", "Debt", "Added debt ${debt.name} (${debt.remaining} ${debt.currency})")
     }
 
-    suspend fun recordDebtPayment(debtId: Long, amount: Double, notes: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun updateDebt(debt: DebtEntity) = withContext(Dispatchers.IO) {
+        require(debt.name.isNotBlank()) { "Debt party name is required" }
+        require(debt.principal.isFinite() && debt.principal > 0.0) { "Debt principal must be positive" }
+        require(debt.remaining.isFinite() && debt.remaining in 0.0..debt.principal) { "Invalid remaining debt amount" }
+        require(debt.direction == "owed_to_me" || debt.direction == "i_owe") { "Invalid debt direction" }
+        require(debt.currency.matches(Regex("[A-Z]{3}"))) { "Invalid debt currency" }
+        dao.updateDebt(debt)
+        logAudit("UPDATE", "Debt", "Updated debt ${debt.name}")
+    }
+
+    val debtPayments: (Long) -> Flow<List<DebtPaymentEntity>> = { debtId -> dao.getDebtPayments(debtId) }
+
+    suspend fun recordDebtPayment(
+        debtId: Long,
+        amount: Double,
+        notes: String,
+        paymentDate: Long = System.currentTimeMillis()
+    ): Boolean = withContext(Dispatchers.IO) {
         val operation: suspend () -> Boolean = operation@{
             val debt = dao.getDebtById(debtId) ?: return@operation false
-            if (!amount.isFinite() || amount <= 0.0 || !debt.remaining.isFinite() || amount > debt.remaining) {
-                return@operation false
-            }
+            if (debt.status == DebtStatus.PAID || !amount.isFinite() || amount <= 0.0 ||
+                !debt.remaining.isFinite() || amount > debt.remaining || paymentDate <= 0L
+            ) return@operation false
             val remaining = FinanceEngine.toBigDecimal(debt.remaining)
                 .subtract(FinanceEngine.toBigDecimal(amount))
             val newStatus = if (remaining <= BigDecimal.ZERO) DebtStatus.PAID else DebtStatus.ACTIVE
             dao.updateDebt(debt.copy(remaining = remaining.toDouble(), status = newStatus))
-            dao.insertDebtPayment(DebtPaymentEntity(debtId = debtId, amount = amount, notes = notes))
+            dao.insertDebtPayment(DebtPaymentEntity(debtId = debtId, amount = amount, date = paymentDate, notes = notes.trim()))
             logAudit("PAYMENT", "Debt", "Paid $amount toward ${debt.name}, remaining $remaining")
             true
         }
