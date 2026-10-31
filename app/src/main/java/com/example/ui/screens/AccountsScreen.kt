@@ -1,7 +1,5 @@
 package com.example.ui.screens
 
-import com.example.ui.components.FinanceIcon
-
 import com.composables.icons.lucide.*
 
 import androidx.compose.material.icons.filled.*
@@ -111,7 +109,7 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_account_fab")
             ) {
-                FinanceIcon(Icons.Default.Add, contentDescription = WebI18n.tr("إضافة حساب", "Add account", lang))
+                Icon(Icons.Default.Add, contentDescription = WebI18n.tr("إضافة حساب", "Add account", lang))
             }
         }
     ) { padding ->
@@ -196,7 +194,7 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        FinanceIcon(Icons.Default.AccountBalanceWallet, null, modifier = Modifier.size(42.dp), tint = ByeProTheme.colors.goldPrimary)
+                        Icon(Icons.Default.AccountBalanceWallet, null, modifier = Modifier.size(42.dp), tint = ByeProTheme.colors.goldPrimary)
                         Text(WebI18n.tr("لا توجد حسابات بعد", "No accounts yet", lang), fontWeight = FontWeight.Bold)
                         Text(
                             WebI18n.tr("أضف حسابك الأول لبدء تنظيم أموالك.", "Add your first account to start organizing your money.", lang),
@@ -249,7 +247,7 @@ fun AccountDetailedCard(
                     Modifier.size(42.dp).clip(CircleShape)
                         .background(ByeProTheme.colors.goldPrimary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
-                ) { FinanceIcon(icon, null, tint = ByeProTheme.colors.goldPrimary) }
+                ) { Icon(icon, null, tint = ByeProTheme.colors.goldPrimary) }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(account.name, fontWeight = FontWeight.Bold)
