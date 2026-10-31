@@ -142,7 +142,7 @@ fun DashboardScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier.width(7.dp).height(7.dp)
-                            .background(ByeProTheme.colors.goldPrimary, RoundedCornerShape(50))
+                            .background(ByeProTheme.colors.financialGreen, RoundedCornerShape(50))
                     )
                     Spacer(Modifier.width(7.dp))
                     Text(
@@ -374,7 +374,7 @@ private fun DashboardMetric(
             Modifier.fillMaxWidth().padding(17.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(title + (currency?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+            Text(title + (currency?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(amount, style = MaterialTheme.typography.titleMedium, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
             Text(note, style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -414,7 +414,7 @@ private fun DashboardPanel(
                             .padding(horizontal = 8.dp, vertical = 5.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(count.toString(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(count.toString(), style = MaterialTheme.typography.labelMedium, color = ByeProTheme.colors.goldPrimary)
                     }
                 }
             }
