@@ -67,6 +67,8 @@ class WebTranslationContractTest {
         assertEquals(ByeProDesignTokens.Colors.danger, com.example.ui.theme.ByeProLightTokens.financialRed)
         assertEquals(Color(0xFF246744), com.example.ui.theme.ByeProLightTokens.statusSuccess)
         assertEquals(Color(0xFF8D2833), com.example.ui.theme.ByeProLightTokens.statusError)
+        assertEquals(Color(0xFFA9E9C6), com.example.ui.theme.ByeProDarkTokens.statusSuccess)
+        assertEquals(Color(0xFFFFB4B4), com.example.ui.theme.ByeProDarkTokens.statusError)
         assertEquals(Color(0xFF67D6A1), ByeProDesignTokens.LightColors.success)
         assertEquals(Color(0xFFFF8585), ByeProDesignTokens.LightColors.danger)
     }

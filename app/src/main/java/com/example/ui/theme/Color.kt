@@ -22,8 +22,8 @@ val GoldDark = Color(0xFF211E18)
 
 val FinancialGreen = Color(0xFF67D6A1)
 val FinancialRed = Color(0xFFFF8585)
-val StatusSuccessDark = FinancialGreen
-val StatusErrorDark = FinancialRed
+val StatusSuccessDark = Color(0xFFA9E9C6)
+val StatusErrorDark = Color(0xFFFFB4B4)
 val PositiveDarkGreen = StatusSuccessDark
 val WarningDarkRed = StatusErrorDark
 
