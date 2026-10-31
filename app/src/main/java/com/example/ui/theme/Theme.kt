@@ -27,6 +27,7 @@ data class ByeProColorTokens(
     val goldFeatured: Color,
     val primaryButtonBg: Color,
     val primaryButtonBorder: Color,
+    val statusLive: Color,
     val goldMuted: Color,
     val goldDark: Color,
     val financialGreen: Color,
@@ -61,6 +62,7 @@ val ByeProDarkTokens = ByeProColorTokens(
     goldFeatured = GoldFeatured,
     primaryButtonBg = GoldPrimary,
     primaryButtonBorder = DarkPrimaryButtonBorder,
+    statusLive = LiveStatusAccent,
     goldMuted = GoldMuted,
     goldDark = GoldDark,
     financialGreen = FinancialGreen,
@@ -74,7 +76,7 @@ val ByeProDarkTokens = ByeProColorTokens(
     quietButtonBg = GoldDark,
     quietButtonBorder = GoldMuted,
     quietButtonText = GoldPrimary,
-    dialogBorder = DarkBorderBase,
+    dialogBorder = DarkDialogBorder,
     isDark = true
 )
 
@@ -95,6 +97,7 @@ val ByeProLightTokens = ByeProColorTokens(
     goldFeatured = LightGoldFeatured,
     primaryButtonBg = LightPrimaryButtonBg,
     primaryButtonBorder = LightPrimaryButtonBorder,
+    statusLive = LiveStatusAccent,
     goldMuted = LightGoldFeatured,
     goldDark = LightGoldPrimary,
     financialGreen = LightStatusSuccess,

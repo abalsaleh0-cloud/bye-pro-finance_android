@@ -4,6 +4,7 @@ import com.example.finance.model.AppLanguage
 import com.example.ui.theme.ByeProDesignTokens
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -79,6 +80,12 @@ class WebTranslationContractTest {
         assertEquals(Color(0xFF17130B), ByeProDesignTokens.Buttons.lightPrimaryText)
         assertEquals(ByeProDesignTokens.Buttons.darkPrimaryBorder, com.example.ui.theme.ByeProDarkTokens.primaryButtonBorder)
         assertEquals(ByeProDesignTokens.Buttons.lightPrimaryBorder, com.example.ui.theme.ByeProLightTokens.primaryButtonBorder)
+        assertEquals(43.dp, ByeProDesignTokens.Fields.height)
+        assertEquals(9.dp, ByeProDesignTokens.Fields.radius)
+        assertEquals(ByeProDesignTokens.Dialog.darkBorder, com.example.ui.theme.ByeProDarkTokens.dialogBorder)
+        assertEquals(ByeProDesignTokens.Dialog.lightBorder, com.example.ui.theme.ByeProLightTokens.dialogBorder)
+        assertEquals(ByeProDesignTokens.Status.live, com.example.ui.theme.ByeProDarkTokens.statusLive)
+        assertEquals(ByeProDesignTokens.Status.live, com.example.ui.theme.ByeProLightTokens.statusLive)
     }
 
     @Test

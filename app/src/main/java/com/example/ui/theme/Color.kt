@@ -43,6 +43,8 @@ val LightGoldFeatured = Color(0xFFD6B56D)
 val LightPrimaryButtonBg = Color(0xFFD6B56D)
 val DarkPrimaryButtonBorder = Color(0xFFE0C17E)
 val LightPrimaryButtonBorder = Color(0xFFB99B5E)
+val DarkDialogBorder = Color(0xFF40372A)
+val LiveStatusAccent = Color(0xFFE4AD5B)
 val LightStatusSuccess = Color(0xFF16794A)
 val LightStatusError = Color(0xFFB42332)
 

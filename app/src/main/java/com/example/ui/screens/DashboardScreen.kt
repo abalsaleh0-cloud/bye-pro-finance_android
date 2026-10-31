@@ -142,7 +142,7 @@ fun DashboardScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier.width(7.dp).height(7.dp)
-                            .background(ByeProTheme.colors.financialGreen, RoundedCornerShape(50))
+                            .background(ByeProTheme.colors.statusLive, RoundedCornerShape(50))
                     )
                     Spacer(Modifier.width(7.dp))
                     Text(
@@ -411,6 +411,8 @@ private fun DashboardPanel(
                     Box(
                         modifier = Modifier
                             .border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(9.dp))
+                            .widthIn(min = 30.dp)
+                            .heightIn(min = 30.dp)
                             .padding(horizontal = 8.dp, vertical = 5.dp),
                         contentAlignment = Alignment.Center
                     ) {
