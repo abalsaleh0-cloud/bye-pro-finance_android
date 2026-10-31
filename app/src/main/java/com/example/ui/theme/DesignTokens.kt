@@ -58,12 +58,12 @@ object ByeProDesignTokens {
         val lightSecondaryBackground = Color(0xFFF7F2E7)
         val lightSecondaryBorder = Color(0xFFB99B5E)
         val lightSecondaryText = Color(0xFF6C5420)
-        val darkQuietBackground = Color(0xFF211E18)
-        val darkQuietBorder = Color(0xFF655638)
-        val darkQuietText = Color(0xFFD6B56D)
-        val lightQuietBackground = Color(0xFFF7F2E7)
-        val lightQuietBorder = Color(0xFFB99B5E)
-        val lightQuietText = Color(0xFF6C5420)
+        val darkQuietBackground = Color.Transparent
+        val darkQuietBorder = Color.Transparent
+        val darkQuietText = Color(0xFFF1F0EB)
+        val lightQuietBackground = Color.Transparent
+        val lightQuietBorder = Color.Transparent
+        val lightQuietText = Color(0xFF202020)
     }
     object Dialog {
         val darkBorder = Color(0xFF40372A)
