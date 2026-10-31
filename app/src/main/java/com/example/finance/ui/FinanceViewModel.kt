@@ -100,18 +100,18 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun addAsset(asset: AssetEntity) { viewModelScope.launch { repository.addAsset(asset) } }
     fun updateAsset(asset: AssetEntity) { viewModelScope.launch { repository.updateAsset(asset) } }
     fun deleteAsset(asset: AssetEntity) { viewModelScope.launch { repository.deleteAsset(asset) } }
-    fun addHouseholdMember(name: String, email: String, role: String, percent: Double) { viewModelScope.launch { repository.addHouseholdMember(name, email, role, percent) } }
-    fun updateHouseholdMember(member: HouseholdMemberEntity) { viewModelScope.launch { repository.updateHouseholdMember(member) } }
-    fun deleteHouseholdMember(member: HouseholdMemberEntity) { viewModelScope.launch { repository.deleteHouseholdMember(member) } }
-    fun addHouseholdExpense(title: String, amount: Double, payerId: Long, category: String, currency: String = primaryCurrency.value) { viewModelScope.launch { repository.addHouseholdExpense(title, amount, payerId, category, currency) } }
-    fun updateHouseholdExpense(expense: HouseholdExpenseEntity) { viewModelScope.launch { repository.updateHouseholdExpense(expense) } }
-    fun deleteHouseholdExpense(expense: HouseholdExpenseEntity) { viewModelScope.launch { repository.deleteHouseholdExpense(expense) } }
-    fun addDocument(doc: DocumentEntity) { viewModelScope.launch { repository.addDocument(doc) } }
-    fun deleteDocument(doc: DocumentEntity) { viewModelScope.launch { repository.deleteDocument(doc) } }
-    fun markNotificationRead(id: Long) { viewModelScope.launch { repository.markNotificationRead(id) } }
-    fun markAllNotificationsRead() { viewModelScope.launch { repository.markAllNotificationsRead() } }
-    fun deleteNotification(id: Long) { viewModelScope.launch { repository.deleteNotification(id) } }
-    fun clearNotifications() { viewModelScope.launch { repository.clearNotifications() } }
+    fun addHouseholdMember(name: String, email: String, role: String, percent: Double) { viewModelScope.launch { runCatching { repository.addHouseholdMember(name, email, role, percent) }.onFailure { Log.e("BYE_PRO_FINANCE", "Add household member failed", it) } } }
+    fun updateHouseholdMember(member: HouseholdMemberEntity) { viewModelScope.launch { runCatching { repository.updateHouseholdMember(member) }.onFailure { Log.e("BYE_PRO_FINANCE", "Update household member failed", it) } } }
+    fun deleteHouseholdMember(member: HouseholdMemberEntity) { viewModelScope.launch { runCatching { repository.deleteHouseholdMember(member) }.onFailure { Log.e("BYE_PRO_FINANCE", "Delete household member failed", it) } } }
+    fun addHouseholdExpense(title: String, amount: Double, payerId: Long, category: String, currency: String = primaryCurrency.value) { viewModelScope.launch { runCatching { repository.addHouseholdExpense(title, amount, payerId, category, currency) }.onFailure { Log.e("BYE_PRO_FINANCE", "Add household expense failed", it) } } }
+    fun updateHouseholdExpense(expense: HouseholdExpenseEntity) { viewModelScope.launch { runCatching { repository.updateHouseholdExpense(expense) }.onFailure { Log.e("BYE_PRO_FINANCE", "Update household expense failed", it) } } }
+    fun deleteHouseholdExpense(expense: HouseholdExpenseEntity) { viewModelScope.launch { runCatching { repository.deleteHouseholdExpense(expense) }.onFailure { Log.e("BYE_PRO_FINANCE", "Delete household expense failed", it) } } }
+    fun addDocument(doc: DocumentEntity) { viewModelScope.launch { runCatching { repository.addDocument(doc) }.onFailure { Log.e("BYE_PRO_FINANCE", "Save document failed", it) } } }
+    fun deleteDocument(doc: DocumentEntity) { viewModelScope.launch { runCatching { repository.deleteDocument(doc) }.onFailure { Log.e("BYE_PRO_FINANCE", "Delete document failed", it) } } }
+    fun markNotificationRead(id: Long) { viewModelScope.launch { runCatching { repository.markNotificationRead(id) }.onFailure { Log.e("BYE_PRO_FINANCE", "Mark notification read failed", it) } } }
+    fun markAllNotificationsRead() { viewModelScope.launch { runCatching { repository.markAllNotificationsRead() }.onFailure { Log.e("BYE_PRO_FINANCE", "Mark all notifications read failed", it) } } }
+    fun deleteNotification(id: Long) { viewModelScope.launch { runCatching { repository.deleteNotification(id) }.onFailure { Log.e("BYE_PRO_FINANCE", "Delete notification failed", it) } } }
+    fun clearNotifications() { viewModelScope.launch { runCatching { repository.clearNotifications() }.onFailure { Log.e("BYE_PRO_FINANCE", "Clear notifications failed", it) } } }
     fun toggleUserRole() { viewModelScope.launch { val user = currentUser.value ?: return@launch; repository.updateCurrentUser(user.copy(role = if (user.role == UserRole.ADMIN) UserRole.USER else UserRole.ADMIN)) } }
     fun clearAiChat() { if (_isAiLoading.value) return; resetWelcomeMessage() }
     fun askAiAssistant(query: String) { if (query.isBlank() || _isAiLoading.value) return; _chatMessages.value = _chatMessages.value + ChatMessage("USER", query.trim()); _isAiLoading.value = true; viewModelScope.launch { val response = runCatching { aiService.askAssistant(query.trim(), accounts.value, transactions.value, budgets.value, debts.value, _appLanguage.value, savingsGoals.value, assets.value, bills.value) }.getOrElse { WebI18n.tr("تعذر إكمال التحليل المالي حالياً.", "The financial analysis could not be completed right now.", _appLanguage.value) }; _isAiLoading.value = false; _chatMessages.value = _chatMessages.value + ChatMessage("AI", response) } }
