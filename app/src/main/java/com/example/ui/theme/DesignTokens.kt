@@ -43,6 +43,12 @@ object ByeProDesignTokens {
         val radius = 10.dp
     }
     object Buttons {
+        val darkPrimaryBackground = Color(0xFFD6B56D)
+        val darkPrimaryBorder = Color(0xFFE0C17E)
+        val darkPrimaryText = Color(0xFF19160F)
+        val lightPrimaryBackground = Color(0xFFD6B56D)
+        val lightPrimaryBorder = Color(0xFFB99B5E)
+        val lightPrimaryText = Color(0xFF17130B)
         val darkSecondaryBackground = Color(0xFF211E18)
         val darkSecondaryBorder = Color(0xFF655638)
         val darkSecondaryText = Color(0xFFD6B56D)

@@ -105,7 +105,7 @@ fun FinanceButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(12.dp),
+    shape: Shape = RoundedCornerShape(10.dp),
     colors: ButtonColors = ButtonDefaults.buttonColors(
         containerColor = ByeProTheme.colors.primaryButtonBg,
         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -117,13 +117,13 @@ fun FinanceButton(
         hoveredElevation = 0.dp,
         disabledElevation = 0.dp
     ),
-    border: BorderStroke? = null,
+    border: BorderStroke? = BorderStroke(1.dp, ByeProTheme.colors.primaryButtonBorder),
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit
 ) {
     Button(
-        onClick = onClick, modifier = modifier.heightIn(min = 44.dp), enabled = enabled, shape = shape,
+        onClick = onClick, modifier = modifier.heightIn(min = 46.dp), enabled = enabled, shape = shape,
         colors = colors, elevation = elevation, border = border,
         contentPadding = contentPadding, interactionSource = interactionSource, content = content
     )
