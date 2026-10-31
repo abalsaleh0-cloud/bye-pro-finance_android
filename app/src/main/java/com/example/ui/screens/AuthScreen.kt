@@ -1,7 +1,10 @@
 package com.example.ui.screens
 
-
 import com.example.ui.components.FinanceIcon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 
