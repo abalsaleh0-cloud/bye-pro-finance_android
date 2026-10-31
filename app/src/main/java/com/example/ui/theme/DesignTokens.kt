@@ -18,15 +18,15 @@ object ByeProDesignTokens {
         val danger = Color(0xFFFF8585)
     }
     object LightColors {
-        val background = Color(0xFFF4F4F6)
+        val background = Color(0xFFF4F5F7)
         val surface = Color(0xFFFFFFFF)
-        val surfaceRaised = Color(0xFFF3F3F5)
-        val border = Color(0xFFD7D8DD)
-        val text = Color(0xFF17181C)
-        val muted = Color(0xFF666A74)
-        val accent = Color(0xFFD6B56D)
-        val success = Color(0xFF67D6A1)
-        val danger = Color(0xFFA43E45)
+        val surfaceRaised = Color(0xFFF0F1F4)
+        val border = Color(0xFFD9DCE3)
+        val text = Color(0xFF20232A)
+        val muted = Color(0xFF626875)
+        val accent = Color(0xFF8A671D)
+        val success = Color(0xFF16794A)
+        val danger = Color(0xFFB42332)
     }
     object Fields {
         val darkBackground = Color(0xFF101115)
@@ -56,7 +56,7 @@ object ByeProDesignTokens {
     object Control {
         val height = 44.dp
         val contentMaxWidth = 1440.dp
-        val focusRingWidth = 3.dp
+        val focusRingWidth = 2.dp
     }
     object Breakpoints {
         val xs = 360.dp; val sm = 480.dp; val md = 640.dp; val lg = 768.dp
