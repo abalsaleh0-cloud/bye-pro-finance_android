@@ -1,6 +1,6 @@
 package com.example.ui.screens
 
-import com.composables.icons.lucide.Lucide
+import androidx.compose.material.icons.filled.*
 
 import android.content.Intent
 import android.net.Uri
@@ -131,11 +131,11 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                                     )
                                 }
                             }) {
-                                FinanceIcon(Lucide.Eye, contentDescription = WebI18n.tr("عرض المستند", "View document", lang))
+                                Icon(Icons.Default.Visibility, contentDescription = WebI18n.tr("عرض المستند", "View document", lang))
                             }
                         }
                         FinanceIconButton(onClick = { viewModel.deleteDocument(document) }) {
-                            FinanceIcon(Lucide.Trash, contentDescription = WebI18n.tr("حذف المستند", "Delete document", lang))
+                            Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف المستند", "Delete document", lang))
                         }
                     }
                 }
