@@ -63,7 +63,8 @@ fun DashboardScreen(
     val goals by viewModel.savingsGoals.collectAsState()
     val primaryCurrency by viewModel.primaryCurrency.collectAsState()
 
-    val currencyAccounts = accounts.filter { !it.isArchived && it.currency.equals(primaryCurrency, true) }
+    val activeAccounts = accounts.filter { !it.isArchived }
+    val currencyAccounts = activeAccounts.filter { it.currency.equals(primaryCurrency, true) }
     val currencyTransactions = transactions.filter {
         it.currency.equals(primaryCurrency, true) && it.status != TransactionStatus.CANCELLED
     }
@@ -141,7 +142,7 @@ fun DashboardScreen(
                 DashboardMetric(
                     title = WebI18n.tr("الرصيد المتاح", "Available balance", lang),
                     amount = TextContent.money(availableBalance, primaryCurrency, lang),
-                    note = "${accounts.size} " + WebI18n.tr("حساب نشط", "active accounts", lang),
+                    note = "${activeAccounts.size} " + WebI18n.tr("حساب نشط", "active accounts", lang),
                     currency = primaryCurrency,
                     modifier = Modifier.weight(1f)
                 )
@@ -307,7 +308,7 @@ fun DashboardScreen(
                 count = null
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    DashboardQuickStat(accounts.size, WebI18n.tr("حسابات", "Accounts", lang), Modifier.weight(1f))
+                    DashboardQuickStat(activeAccounts.size, WebI18n.tr("حسابات", "Accounts", lang), Modifier.weight(1f))
                     DashboardQuickStat(transactions.size, WebI18n.tr("معاملات", "Transactions", lang), Modifier.weight(1f))
                     DashboardQuickStat(bills.size, WebI18n.tr("الفواتير", "Bills", lang), Modifier.weight(1f))
                     DashboardQuickStat(debts.size, WebI18n.tr("الديون", "Debts", lang), Modifier.weight(1f))
