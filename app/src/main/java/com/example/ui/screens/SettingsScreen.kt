@@ -42,6 +42,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import com.example.finance.runtime.MobileRuntimeConfigRepository
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,6 +76,11 @@ fun SettingsScreen(
     val transactionAlerts by viewModel.transactionAlerts.collectAsState()
     val billReminders by viewModel.billReminders.collectAsState()
     val budgetAlerts by viewModel.budgetAlerts.collectAsState()
+    val context = LocalContext.current
+    val runtimeConfigRepository = remember(context) { MobileRuntimeConfigRepository(context) }
+    var runtimeConfig by remember(runtimeConfigRepository) { mutableStateOf(runtimeConfigRepository.cached()) }
+    var runtimeConfigRefreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     var currencyMenuExpanded by remember { mutableStateOf(false) }
     var profileName by remember(currentUser?.id, currentUser?.name) { mutableStateOf(currentUser?.name.orEmpty()) }
 
@@ -316,6 +325,52 @@ fun SettingsScreen(
                     SettingsSwitchRow(WebI18n.tr("تذكيرات الفواتير", "Bill reminders", lang), billReminders, viewModel::setBillReminders)
                     SettingsSwitchRow(WebI18n.tr("تنبيهات الميزانيات", "Budget alerts", lang), budgetAlerts, viewModel::setBudgetAlerts)
                     Text(WebI18n.tr("هذه التفضيلات تُحفظ على هذا الجهاز حالياً، ولا ترسل إشعارات بريدية أو تربط الحساب بالخادم.", "These preferences are stored on this device; they do not send email or connect to a server.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
+        // Live settings synchronized from the central API / Supabase control row.
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(WebI18n.tr("إعدادات تحديث التطبيق", "App runtime update settings", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        WebI18n.tr("إعدادات مركزية تُزامَن من الخادم دون إعادة تثبيت التطبيق. لا تتضمن تنزيل أو تشغيل ملفات تنفيذية.", "Central settings synced from the server without reinstalling the app. They never download or execute binaries.", lang),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(WebI18n.tr("إصدار الإعدادات: ", "Config version: ", lang) + runtimeConfig.configVersion, style = MaterialTheme.typography.bodyMedium)
+                    Text(WebI18n.tr("أقل إصدار مدعوم: ", "Minimum supported version: ", lang) + runtimeConfig.minimumSupportedVersionCode, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        WebI18n.tr(
+                            if (runtimeConfig.maintenanceMode) "حالة الخدمة: وضع الصيانة مفعّل" else "حالة الخدمة: تعمل بشكل طبيعي",
+                            if (runtimeConfig.maintenanceMode) "Service status: maintenance enabled" else "Service status: operational",
+                            lang
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (runtimeConfig.maintenanceMode) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    FinanceOutlinedButton(
+                        onClick = {
+                            if (!runtimeConfigRefreshing) {
+                                runtimeConfigRefreshing = true
+                                scope.launch {
+                                    runtimeConfig = runtimeConfigRepository.refresh()
+                                    runtimeConfigRefreshing = false
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            if (runtimeConfigRefreshing) WebI18n.tr("جارٍ تحديث الإعدادات…", "Refreshing settings…", lang)
+                            else WebI18n.tr("مزامنة الإعدادات الآن", "Sync settings now", lang)
+                        )
+                    }
                 }
             }
         }
