@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
 import androidx.compose.material.icons.filled.*
 
 import androidx.compose.material.icons.Icons
@@ -156,8 +159,8 @@ fun SmartScanScreen(
                             .padding(12.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.QrCodeScanner,
+                        FinanceIcon(
+                            imageVector = Lucide.ScanQrCode,
                             contentDescription = null,
                             tint = ByeProTheme.colors.financialGreen,
                             modifier = Modifier.size(32.dp)
@@ -179,7 +182,7 @@ fun SmartScanScreen(
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth().testTag("pick_receipt_image_btn")
                     ) {
-                        Icon(Icons.Default.Receipt, contentDescription = null)
+                        FinanceIcon(Lucide.ReceiptText, contentDescription = null)
                         Spacer(modifier = Modifier.size(8.dp))
                         Text(WebI18n.tr("اختيار صورة إيصال", "Choose receipt image", lang), fontWeight = FontWeight.Bold)
                     }
@@ -205,7 +208,7 @@ fun SmartScanScreen(
                         enabled = manualReceiptText.isNotBlank(),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                        FinanceIcon(Lucide.Sparkles, contentDescription = null)
                         Spacer(modifier = Modifier.size(8.dp))
                         Text(WebI18n.tr("تحليل النص", "Analyze text", lang), color = MaterialTheme.colorScheme.onSurface)
                     }
@@ -248,7 +251,7 @@ fun SmartScanScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
+                            FinanceIcon(Lucide.CircleCheck, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                             Spacer(modifier = Modifier.size(6.dp))
                             Text(
                                 text = WebI18n.tr("مراجعة وتأكيد البيانات المستخرجة من الإيصال", "Review and confirm extracted receipt data", lang),
@@ -428,7 +431,7 @@ fun SmartScanScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(TextContent.money(doc.totalAmount, doc.currency, lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
                             FinanceIconButton(onClick = { viewModel.deleteDocument(doc) }) {
-                                Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
+                                FinanceIcon(Lucide.Trash2, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
                             }
                         }
                     }
