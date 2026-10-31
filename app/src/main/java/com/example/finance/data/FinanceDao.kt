@@ -14,6 +14,7 @@ import com.example.finance.model.BudgetEntity
 import com.example.finance.model.DebtEntity
 import com.example.finance.model.DebtPaymentEntity
 import com.example.finance.model.DocumentEntity
+import com.example.finance.model.HouseholdBudgetEntity
 import com.example.finance.model.HouseholdExpenseEntity
 import com.example.finance.model.HouseholdMemberEntity
 import com.example.finance.model.NotificationEntity
@@ -173,6 +174,9 @@ interface FinanceDao {
     @Delete
     suspend fun deleteHouseholdMember(member: HouseholdMemberEntity)
 
+    @Query("UPDATE household_expenses SET payerMemberId = NULL WHERE payerMemberId = :memberId")
+    suspend fun clearHouseholdPayer(memberId: Long)
+
     @Query("SELECT * FROM household_expenses ORDER BY date DESC")
     fun getAllHouseholdExpenses(): Flow<List<HouseholdExpenseEntity>>
 
@@ -184,6 +188,18 @@ interface FinanceDao {
 
     @Delete
     suspend fun deleteHouseholdExpense(expense: HouseholdExpenseEntity)
+
+    @Query("SELECT * FROM household_budgets WHERE isActive = 1 ORDER BY startDate DESC")
+    fun getAllHouseholdBudgets(): Flow<List<HouseholdBudgetEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHouseholdBudget(budget: HouseholdBudgetEntity): Long
+
+    @Update
+    suspend fun updateHouseholdBudget(budget: HouseholdBudgetEntity)
+
+    @Delete
+    suspend fun deleteHouseholdBudget(budget: HouseholdBudgetEntity)
 
     // --- Documents ---
     @Query("SELECT * FROM documents ORDER BY date DESC")
