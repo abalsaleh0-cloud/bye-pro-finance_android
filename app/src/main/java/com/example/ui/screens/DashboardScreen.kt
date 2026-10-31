@@ -353,14 +353,8 @@ private fun DashboardMetric(
 ) {
     Card(
         modifier = modifier
-            .background(
-                brush = if (ByeProTheme.colors.isDark) Brush.linearGradient(
-                    listOf(Color(0xFF1B1C21), Color(0xFF141519))
-                ) else Brush.linearGradient(listOf(Color.White, Color.White)),
-                shape = RoundedCornerShape(16.dp)
-            )
             .border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
