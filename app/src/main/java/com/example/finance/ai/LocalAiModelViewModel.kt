@@ -14,6 +14,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkInfo
+import androidx.work.Constraints
+import androidx.work.NetworkType
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -231,37 +237,47 @@ class LocalAiModelViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun startDownload() {
-        if (downloadJob?.isActive == true) return
-        downloadJob = viewModelScope.launch(Dispatchers.IO) {
-            _state.value = _state.value.copy(downloading = true, error = null, status = "جارٍ تنزيل النموذج…")
-            try {
-                val file = LocalAiModelManager.download(getApplication()) { downloaded, total ->
-                    _state.value = _state.value.copy(downloadedBytes = downloaded, totalBytes = total)
+        if (downloadJob?.isActive == true || _state.value.downloading) return
+        val request = OneTimeWorkRequestBuilder<LocalAiModelDownloadWorker>()
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .build()
+        _state.value = _state.value.copy(downloading = true, error = null, status = "جارٍ بدء التنزيل في الخلفية")
+        WorkManager.getInstance(getApplication()).enqueueUniqueWork(
+            LocalAiModelDownloadWorker.UNIQUE_WORK_NAME, ExistingWorkPolicy.KEEP, request
+        )
+        observeBackgroundDownload()
+    }
+
+    private fun observeBackgroundDownload() {
+        viewModelScope.launch {
+            WorkManager.getInstance(getApplication())
+                .getWorkInfosForUniqueWorkFlow(LocalAiModelDownloadWorker.UNIQUE_WORK_NAME)
+                .collect { works ->
+                    val work = works.firstOrNull() ?: return@collect
+                    val downloaded = work.progress.getLong(LocalAiModelDownloadWorker.KEY_DOWNLOADED, 0L)
+                    val total = work.progress.getLong(LocalAiModelDownloadWorker.KEY_TOTAL, -1L)
+                    when (work.state) {
+                        WorkInfo.State.ENQUEUED, WorkInfo.State.RUNNING -> _state.value = _state.value.copy(
+                            downloading = true, downloadedBytes = downloaded, totalBytes = total,
+                            status = "جارٍ تنزيل النموذج في الخلفية", error = null
+                        )
+                        WorkInfo.State.SUCCEEDED -> refresh()
+                        WorkInfo.State.FAILED -> _state.value = _state.value.copy(
+                            downloading = false, error = work.outputData.getString(LocalAiModelDownloadWorker.KEY_ERROR),
+                            status = "تعذر إكمال التنزيل؛ يمكنك المحاولة مجدداً"
+                        )
+                        WorkInfo.State.CANCELLED -> _state.value = _state.value.copy(
+                            downloading = false, status = "أُوقف التنزيل مؤقتاً؛ يمكنك استكماله لاحقاً"
+                        )
+                        else -> Unit
+                    }
                 }
-                _state.value = _state.value.copy(
-                    installed = true,
-                    downloading = false,
-                    downloadedBytes = file.length(),
-                    totalBytes = file.length(),
-                    status = "اكتمل التنزيل والتحقق من سلامة النموذج"
-                )
-            } catch (cancelled: CancellationException) {
-                _state.value = _state.value.copy(
-                    downloading = false,
-                    status = "تم إيقاف التنزيل مؤقتاً؛ يمكنك استكماله لاحقاً"
-                )
-                throw cancelled
-            } catch (error: Exception) {
-                _state.value = _state.value.copy(
-                    downloading = false,
-                    error = error.message ?: "تعذر تنزيل النموذج",
-                    status = "تعذر إكمال التنزيل"
-                )
-            }
         }
     }
 
-    fun pauseDownload() { downloadJob?.cancel() }
+    fun pauseDownload() {
+        WorkManager.getInstance(getApplication()).cancelUniqueWork(LocalAiModelDownloadWorker.UNIQUE_WORK_NAME)
+    }
 
     fun loadModel() {
         if (_state.value.loading || !_state.value.installed) return
