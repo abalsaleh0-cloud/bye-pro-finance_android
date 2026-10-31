@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceChoiceButton
+
 import androidx.compose.material.icons.filled.*
 
 import androidx.compose.material.icons.Icons
@@ -495,20 +497,13 @@ private fun DebtDirectionSelector(
             "i_owe" to WebI18n.tr("مدين — عليّ له", "Debtor — I owe", lang)
         ).forEach { (value, label) ->
             val selected = selectedDirection == value
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(46.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (selected) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.surfaceVariant)
-                    .border(1.dp, if (selected) ByeProTheme.colors.goldPrimary else ByeProTheme.colors.fieldBorder, RoundedCornerShape(10.dp))
-                    .selectable(selected = selected, onClick = { onDirectionChange(value) }, role = Role.RadioButton)
-                    .testTag("${tagPrefix}_${value}"),
-                contentAlignment = Alignment.Center
+            FinanceChoiceButton(
+                selected = selected,
+                onClick = { onDirectionChange(value) },
+                modifier = Modifier.weight(1f).testTag("${tagPrefix}_${value}")
             ) {
                 Text(
                     text = label,
-                    color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                     style = MaterialTheme.typography.labelLarge
                 )
