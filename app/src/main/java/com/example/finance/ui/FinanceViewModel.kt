@@ -83,7 +83,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun updateBudget(budget: BudgetEntity) { viewModelScope.launch { repository.updateBudget(budget) } }
     fun deleteBudget(budget: BudgetEntity) { viewModelScope.launch { repository.deleteBudget(budget) } }
     fun addDebt(debt: DebtEntity) { viewModelScope.launch { repository.addDebt(debt) } }
-    fun payDebt(debtId: Long, amount: Double, notes: String) { viewModelScope.launch { repository.recordDebtPayment(debtId, amount, notes) } }
+    fun updateDebt(debt: DebtEntity) { viewModelScope.launch { repository.updateDebt(debt) } }
+    fun debtPayments(debtId: Long): Flow<List<DebtPaymentEntity>> = repository.debtPayments(debtId)
+    fun payDebt(debtId: Long, amount: Double, notes: String, paymentDate: Long = System.currentTimeMillis()) {
+        viewModelScope.launch { repository.recordDebtPayment(debtId, amount, notes, paymentDate) }
+    }
     fun deleteDebt(debt: DebtEntity) { viewModelScope.launch { repository.deleteDebt(debt) } }
     fun addBill(bill: BillEntity) { viewModelScope.launch { repository.addBill(bill) } }
     fun markBillPaid(billId: Long, accountId: Long) { viewModelScope.launch { repository.markBillPaid(billId, accountId) } }
