@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
 import com.composables.icons.lucide.*
 
 import androidx.compose.material.icons.filled.*
@@ -85,7 +88,7 @@ fun BudgetsScreen(viewModel: FinanceViewModel) {
                 onClick = { editing = null; showForm = true },
                 containerColor = ByeProTheme.colors.goldPrimary,
                 modifier = Modifier.testTag("add_budget_fab")
-            ) { Icon(Icons.Default.Add, contentDescription = WebI18n.tr("إضافة ميزانية", "Add budget", lang)) }
+            ) { FinanceIcon(Lucide.Plus, contentDescription = WebI18n.tr("إضافة ميزانية", "Add budget", lang)) }
         }
     ) { padding ->
         LazyColumn(
@@ -191,10 +194,10 @@ private fun BudgetItemCard(
                 }
                 Row {
                     FinanceIconButton(onClick = onEdit, modifier = Modifier.testTag("edit_budget_${budget.id}")) {
-                        Icon(Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل", "Edit", lang))
+                        FinanceIcon(Lucide.Pencil, contentDescription = WebI18n.tr("تعديل", "Edit", lang))
                     }
                     FinanceIconButton(onClick = onDelete, modifier = Modifier.testTag("delete_budget_${budget.id}")) {
-                        Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.error)
+                        FinanceIcon(Lucide.Trash2, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.error)
                     }
                 }
             }
