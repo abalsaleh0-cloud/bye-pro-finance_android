@@ -119,7 +119,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
         floatingActionButton = {
             FinanceFloatingActionButton(
                 onClick = { showForm = !showForm },
-                containerColor = ByeProTheme.colors.goldPrimary,
+                containerColor = ByeProTheme.colors.primaryButtonBg,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_transaction_fab")
             ) { FinanceIcon(Lucide.Info, contentDescription = WebI18n.tr("إضافة معاملة", "Add transaction", lang)) }
