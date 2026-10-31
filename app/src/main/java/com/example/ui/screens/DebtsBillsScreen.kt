@@ -79,6 +79,7 @@ fun DebtsBillsScreen(
 
     var selectedTabIndex by remember { mutableIntStateOf(initialTabIndex.coerceIn(0, 1)) }
     var showAddDebtDialog by remember { mutableStateOf(false) }
+    var newDebtDirection by remember { mutableStateOf("owed_to_me") }
     var showAddBillDialog by remember { mutableStateOf(false) }
     var editingBill by remember { mutableStateOf<BillEntity?>(null) }
     var debtToPay by remember { mutableStateOf<DebtEntity?>(null) }
@@ -90,7 +91,7 @@ fun DebtsBillsScreen(
         floatingActionButton = {
             FinanceFloatingActionButton(
                 onClick = {
-                    if (selectedTabIndex == 0) showAddDebtDialog = true else showAddBillDialog = true
+                    if (selectedTabIndex == 0) { newDebtDirection = "owed_to_me"; showAddDebtDialog = true } else showAddBillDialog = true
                 },
                 containerColor = ByeProTheme.colors.goldPrimary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -137,7 +138,7 @@ fun DebtsBillsScreen(
                         DebtManagementPanel(
                             debts = debts,
                             lang = lang,
-                            onAdd = { showAddDebtDialog = true },
+                            onAdd = { selectedDirection -> newDebtDirection = selectedDirection; showAddDebtDialog = true },
                             onPay = { debtToPay = it },
                             onEdit = { editingDebt = it },
                             onHistory = { historyDebt = it },
@@ -273,6 +274,7 @@ fun DebtsBillsScreen(
         AddDebtDialog(
             lang = lang,
             initialDebt = editingDebt,
+            initialDirection = newDebtDirection,
             onDismiss = { showAddDebtDialog = false; editingDebt = null },
             onConfirm = { newDebt ->
                 if (editingDebt == null) viewModel.addDebt(newDebt) else viewModel.updateDebt(newDebt)
@@ -475,7 +477,7 @@ fun BillItemCard(
 private fun DebtManagementPanel(
     debts: List<DebtEntity>,
     lang: com.example.finance.model.AppLanguage,
-    onAdd: () -> Unit,
+    onAdd: (String) -> Unit,
     onPay: (DebtEntity) -> Unit,
     onEdit: (DebtEntity) -> Unit,
     onHistory: (DebtEntity) -> Unit,
@@ -491,11 +493,29 @@ private fun DebtManagementPanel(
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            FinanceOutlinedButton(onClick = { direction = "owed_to_me" }) {
-                Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang))
+            if (direction == "owed_to_me") {
+                FinanceButton(
+                    onClick = { direction = "owed_to_me" },
+                    modifier = Modifier.weight(1f).testTag("debts_tab_owed_to_me"),
+                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = Color(0xFF17130B))
+                ) { Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang), fontWeight = FontWeight.Bold) }
+            } else {
+                FinanceOutlinedButton(
+                    onClick = { direction = "owed_to_me" },
+                    modifier = Modifier.weight(1f).testTag("debts_tab_owed_to_me")
+                ) { Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang)) }
             }
-            FinanceOutlinedButton(onClick = { direction = "i_owe" }) {
-                Text(WebI18n.tr("مدين — عليّ له", "I owe", lang))
+            if (direction == "i_owe") {
+                FinanceButton(
+                    onClick = { direction = "i_owe" },
+                    modifier = Modifier.weight(1f).testTag("debts_tab_i_owe"),
+                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = Color(0xFF17130B))
+                ) { Text(WebI18n.tr("مدين — عليّ له", "I owe", lang), fontWeight = FontWeight.Bold) }
+            } else {
+                FinanceOutlinedButton(
+                    onClick = { direction = "i_owe" },
+                    modifier = Modifier.weight(1f).testTag("debts_tab_i_owe")
+                ) { Text(WebI18n.tr("مدين — عليّ له", "I owe", lang)) }
             }
         }
         FinanceTextField(
@@ -524,7 +544,7 @@ private fun DebtManagementPanel(
                 )
             }
             if (debts.none { it.direction == direction }) {
-                FinanceButton(onClick = onAdd) { Text(WebI18n.tr("إضافة أول سجل", "Add first record", lang)) }
+                FinanceButton(onClick = { onAdd(direction) }) { Text(WebI18n.tr("إضافة أول سجل", "Add first record", lang)) }
             }
         } else {
             Text(WebI18n.tr("${filtered.size} سجل", "${filtered.size} records", lang), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -587,6 +607,7 @@ private fun DebtPaymentHistoryDialog(
 fun AddDebtDialog(
     lang: com.example.finance.model.AppLanguage,
     initialDebt: DebtEntity? = null,
+    initialDirection: String = "owed_to_me",
     onDismiss: () -> Unit,
     onConfirm: (DebtEntity) -> Unit
 ) {
@@ -595,7 +616,7 @@ fun AddDebtDialog(
     var principalStr by remember(initialDebt?.id) { mutableStateOf(initialDebt?.principal?.toString() ?: "") }
     var minPaymentStr by remember(initialDebt?.id) { mutableStateOf(initialDebt?.minimumPayment?.toString() ?: "") }
     var currency by remember(initialDebt?.id) { mutableStateOf(initialDebt?.currency ?: "LYD") }
-    var direction by remember(initialDebt?.id) { mutableStateOf(initialDebt?.direction ?: "i_owe") }
+    var direction by remember(initialDebt?.id, initialDirection) { mutableStateOf(initialDebt?.direction ?: initialDirection) }
     var dueDateText by remember(initialDebt?.id) {
         mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(initialDebt?.dueDate ?: (System.currentTimeMillis() + 90L * 24 * 60 * 60 * 1000))))
     }
