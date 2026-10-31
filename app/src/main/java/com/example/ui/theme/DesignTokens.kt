@@ -13,7 +13,7 @@ object ByeProDesignTokens {
         val border = Color(0xFF2B2D34)
         val text = Color(0xFFF1F0EB)
         val muted = Color(0xFFA5A7B0)
-        val accent = Color(0xFF8A671D)
+        val accent = Color(0xFFD6B56D)
         val success = Color(0xFF67D6A1)
         val danger = Color(0xFFFF8585)
     }
@@ -24,7 +24,7 @@ object ByeProDesignTokens {
         val border = Color(0xFFD9DCE3)
         val text = Color(0xFF20232A)
         val muted = Color(0xFF626875)
-        val accent = Color(0xFFD6B56D)
+        val accent = Color(0xFF8A671D)
         val success = Color(0xFF16794A)
         val danger = Color(0xFFB42332)
     }
