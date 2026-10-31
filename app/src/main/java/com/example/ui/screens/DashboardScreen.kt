@@ -68,11 +68,11 @@ fun DashboardScreen(
     val assets by viewModel.assets.collectAsState()
     val bills by viewModel.bills.collectAsState()
     val goals by viewModel.savingsGoals.collectAsState()
-    val activeAccounts = accounts.filter { !it.isArchived }
+    val activeAccounts = accounts.filter { !it.isArchived }.sortedByDescending { it.createdAt }
     val dashboardTransactions = transactions.sortedByDescending { it.date }.take(50)
     val dashboardBills = bills.filter { !it.isPaid }.sortedBy { it.dueDate }.take(20)
     val dashboardDebts = debts.filter { it.status.name != "PAID" }.sortedBy { it.dueDate }.take(20)
-    val dashboardGoals = goals.sortedBy { it.deadline }.take(20)
+    val dashboardGoals = goals.filter { it.currentAmount < it.targetAmount }.sortedBy { it.deadline }.take(20)
     val dashboardAssets = assets.sortedByDescending { it.purchaseDate }.take(20)
     val currencyOrder = buildList {
         activeAccounts.forEach { add(it.currency) }
@@ -218,7 +218,7 @@ fun DashboardScreen(
                         DashboardLine(
                             title = bill.name,
                             subtitle = "${dashboardDate(bill.dueDate, locale)} · " +
-                                WebI18n.tr("قادمة", "Upcoming", lang),
+                                WebI18n.tr(if (bill.dueDate < System.currentTimeMillis()) "متأخرة" else "قادمة", if (bill.dueDate < System.currentTimeMillis()) "Overdue" else "Upcoming", lang),
                             amount = TextContent.money(bill.amount, bill.currency, lang)
                         )
                     }
