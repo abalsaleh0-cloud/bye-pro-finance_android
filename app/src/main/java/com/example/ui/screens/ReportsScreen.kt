@@ -159,7 +159,7 @@ fun ReportsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.financialGreen, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    FinanceIcon(Icons.Default.FileDownload, contentDescription = null)
+                    FinanceIcon(Lucide.FileDown, contentDescription = null)
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(Strings.get("export_csv", lang), fontWeight = FontWeight.Bold)
                 }
