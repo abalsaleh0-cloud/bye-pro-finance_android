@@ -81,6 +81,7 @@ object LocalAiModelManager {
         application: Application,
         onProgress: (Long, Long) -> Unit
     ): File = withContext(Dispatchers.IO) {
+        val downloadContext = coroutineContext
         val modelDir = File(application.filesDir, "ai-models").apply { mkdirs() }
         val available = StatFs(application.filesDir.absolutePath).availableBytes
         require(available >= MIN_FREE_BYTES) {
@@ -115,7 +116,7 @@ object LocalAiModelManager {
                 FileOutputStream(partial, append).buffered(1024 * 1024).use { output ->
                     val buffer = ByteArray(1024 * 1024)
                     while (true) {
-                        coroutineContext.ensureActive()
+                        downloadContext.ensureActive()
                         val count = input.read(buffer)
                         if (count < 0) break
                         output.write(buffer, 0, count)
