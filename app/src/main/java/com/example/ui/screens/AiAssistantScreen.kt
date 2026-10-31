@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
@@ -148,7 +150,7 @@ fun AiAssistantScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         FinanceIcon(
-                            imageVector = Icons.Default.Info,
+                            imageVector = Lucide.Info,
                             contentDescription = null,
                             tint = ByeProTheme.colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -246,7 +248,7 @@ fun AiAssistantScreen(
                             .testTag("ai_assistant_send_btn")
                     ) {
                         FinanceIcon(
-                            imageVector = Icons.Default.Send,
+                            imageVector = Lucide.Send,
                             contentDescription = WebI18n.tr("إرسال", "Send", lang),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
@@ -309,9 +311,9 @@ fun AiAssistantScreen(
                                 )
                                 FinanceIcon(
                                     imageVector = when (insight.impactType) {
-                                        "POSITIVE" -> Icons.Default.TrendingUp
-                                        "WARNING" -> Icons.Default.Warning
-                                        else -> Icons.Default.AutoAwesome
+                                        "POSITIVE" -> Lucide.TrendingUp
+                                        "WARNING" -> Lucide.AlertTriangle
+                                        else -> Lucide.Sparkles
                                     },
                                     contentDescription = null,
                                     tint = when (insight.impactType) {
