@@ -25,8 +25,8 @@ object ByeProDesignTokens {
         val text = Color(0xFF20232A)
         val muted = Color(0xFF626875)
         val accent = Color(0xFF8A671D)
-        val success = Color(0xFF16794A)
-        val danger = Color(0xFFB42332)
+        val success = Color(0xFF67D6A1)
+        val danger = Color(0xFFFF8585)
     }
     object Fields {
         val darkBackground = Color(0xFF101115)
