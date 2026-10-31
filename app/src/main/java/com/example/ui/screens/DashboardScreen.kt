@@ -167,8 +167,7 @@ fun DashboardScreen(
                 title = WebI18n.tr("الدخل المسجل", "Recorded income", lang),
                 amount = TextContent.money(recordedIncome, dashboardCurrency, lang),
                 note = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang),
-                modifier = Modifier.fillMaxWidth(),
-                accent = ByeProTheme.colors.financialGreen
+                modifier = Modifier.fillMaxWidth()
             )
         }
         item {
@@ -176,8 +175,7 @@ fun DashboardScreen(
                 title = WebI18n.tr("المصروفات المسجلة", "Recorded expenses", lang),
                 amount = TextContent.money(recordedExpenses, dashboardCurrency, lang),
                 note = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang),
-                modifier = Modifier.fillMaxWidth(),
-                accent = ByeProTheme.colors.financialRed
+                modifier = Modifier.fillMaxWidth()
             )
         }
         item {
@@ -351,8 +349,7 @@ private fun DashboardMetric(
     amount: String,
     note: String,
     modifier: Modifier = Modifier,
-    currency: String? = null,
-    accent: Color = ByeProTheme.colors.goldPrimary
+    currency: String? = null
 ) {
     Card(
         modifier = modifier
@@ -369,7 +366,7 @@ private fun DashboardMetric(
         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Text(title + (currency?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(amount, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            Text(note, style = MaterialTheme.typography.labelSmall, color = accent)
+            Text(note, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
