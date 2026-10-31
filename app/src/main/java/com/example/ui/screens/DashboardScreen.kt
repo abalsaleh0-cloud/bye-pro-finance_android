@@ -351,9 +351,16 @@ private fun DashboardMetric(
     accent: Color = ByeProTheme.colors.goldPrimary
 ) {
     Card(
-        modifier = modifier.border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(14.dp)
+        modifier = modifier
+            .background(
+                brush = if (ByeProTheme.colors.isDark) Brush.linearGradient(
+                    listOf(Color(0xFF1B1C21), Color(0xFF141519))
+                ) else Brush.linearGradient(listOf(Color.White, Color.White)),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Text(title + (currency?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -373,12 +380,12 @@ private fun DashboardPanel(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth()
-            .border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(14.dp))
+            .border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(16.dp))
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(14.dp)
+        colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(17.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
