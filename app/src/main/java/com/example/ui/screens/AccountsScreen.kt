@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -35,6 +36,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,8 +76,26 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
     val lang by viewModel.appLanguage.collectAsState()
     val activeAccounts by viewModel.accounts.collectAsState()
     val archivedAccounts by viewModel.archivedAccounts.collectAsState()
+    val accountsLoading by viewModel.accountsLoading.collectAsState()
+    val actionFeedback by viewModel.accountActionFeedback.collectAsState()
     val accounts = (activeAccounts + archivedAccounts).sortedByDescending { it.createdAt }
     var showAddDialog by remember { mutableStateOf(false) }
+    var actionNotice by remember { mutableStateOf("") }
+
+    LaunchedEffect(actionFeedback) {
+        actionFeedback?.let { feedback ->
+            actionNotice = when (feedback.operation) {
+                "add" -> if (feedback.succeeded) WebI18n.tr("تمت إضافة الحساب.", "Account added.", lang)
+                    else WebI18n.tr("تعذرت إضافة الحساب. حاول مرة أخرى.", "Could not add the account. Please try again.", lang)
+                "activate" -> if (feedback.succeeded) WebI18n.tr("تم تفعيل الحساب.", "Account activated.", lang)
+                    else WebI18n.tr("تعذر تفعيل الحساب.", "Could not activate the account.", lang)
+                else -> if (feedback.succeeded) WebI18n.tr("تم إيقاف الحساب.", "Account deactivated.", lang)
+                    else WebI18n.tr("تعذر إيقاف الحساب.", "Could not deactivate the account.", lang)
+            }
+            if (feedback.operation == "add" && feedback.succeeded) showAddDialog = false
+            viewModel.clearAccountActionFeedback()
+        }
+    }
 
     Scaffold(
         floatingActionButton = {
@@ -95,6 +115,13 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
         ) {
             item {
                 Spacer(Modifier.height(4.dp))
+                if (actionNotice.isNotBlank()) {
+                    Text(
+                        actionNotice,
+                        color = if (actionNotice.contains(WebI18n.tr("تعذرت", "Could not", lang)) || actionNotice.contains(WebI18n.tr("تعذر", "Could not", lang))) MaterialTheme.colorScheme.error else ByeProTheme.colors.financialGreen,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
+                    )
+                }
                 Text(
                     WebI18n.tr("حساباتك", "Your accounts", lang),
                     style = MaterialTheme.typography.titleLarge,
@@ -112,7 +139,7 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                     AddAccountForm(
                         lang = lang,
                         onCancel = { showAddDialog = false },
-                        onSave = { account -> viewModel.addAccount(account); showAddDialog = false }
+                        onSave = { account -> viewModel.addAccount(account) }
                     )
                 }
             }
@@ -145,7 +172,18 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                 }
             }
 
-            if (accounts.isEmpty()) {
+            if (accountsLoading) {
+                item {
+                    Column(
+                        Modifier.fillMaxWidth().padding(vertical = 28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text(WebI18n.tr("جارٍ تحميل الحسابات…", "Loading accounts…", lang))
+                    }
+                }
+            } else if (accounts.isEmpty()) {
                 item {
                     Column(
                         Modifier.fillMaxWidth().padding(vertical = 28.dp),
