@@ -270,7 +270,7 @@ fun FinanceChoiceButton(
                 .heightIn(min = 44.dp)
                 .background(background, shape)
                 .border(1.dp, outline, shape)
-                .clickable(role = Role.RadioButton, onClick = onClick)
+                .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
                 .padding(horizontal = 10.dp, vertical = 10.dp),
             contentAlignment = Alignment.Center
         ) {
