@@ -121,7 +121,15 @@ jobs:
           fi
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > release.keystore
           chmod 600 release.keystore
+          # Validate the store password and discover the actual private-key alias.
+          KEY_ALIAS="$(LC_ALL=C keytool -list -v -keystore release.keystore -storepass "$STORE_PASSWORD" 2>/dev/null | awk -F': ' '/Alias name:/{alias=$2} /Entry type: PrivateKeyEntry/{print alias; exit}')"
+          if [[ -z "$KEY_ALIAS" ]]; then
+            echo "::error::The keystore has no readable PrivateKeyEntry. Check the uploaded keystore and STORE_PASSWORD."
+            exit 1
+          fi
+          echo "key_alias=$KEY_ALIAS" >> "$GITHUB_OUTPUT"
           echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "Production signing key detected and validated."
 
       - name: Build signed production Release APK
         if: ${{ steps.release_signing.outputs.enabled == 'true' }}
@@ -130,6 +138,7 @@ jobs:
           KEYSTORE_PATH: ${{ env.PROJECT_DIR }}/release.keystore
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ steps.release_signing.outputs.key_alias }}
         with:
           gradle-version: "9.3.1"
           build-root-directory: ${{ env.PROJECT_DIR }}
@@ -139,7 +148,7 @@ jobs:
         if: ${{ steps.release_signing.outputs.enabled == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: BYE-PRO-FINANCE-Android-Release-10.0.3
+          name: BYE-PRO-FINANCE-Android-Release-10.0.4
           path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
