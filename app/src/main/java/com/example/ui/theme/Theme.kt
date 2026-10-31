@@ -110,10 +110,10 @@ private val DarkColorScheme = darkColorScheme(
     primaryContainer = GoldDark,
     onPrimaryContainer = DarkTextPrimary,
     secondary = FinancialGreen,
-    onSecondary = Color(0xFF0B0A0C),
+    onSecondary = Color(0xFF101114),
     secondaryContainer = StatusSuccessDark,
     onSecondaryContainer = DarkTextSecondary,
-    tertiary = GoldFeatured,
+    tertiary = GoldPrimary,
     background = DarkBgMain,
     onBackground = DarkTextPrimary,
     surface = DarkSurfaceMain,
@@ -122,15 +122,15 @@ private val DarkColorScheme = darkColorScheme(
     onSurfaceVariant = DarkTextSecondary,
     outline = DarkBorderBase,
     outlineVariant = DarkBorderProminent,
-    error = StatusErrorDark,
+    error = FinancialRed,
     onError = Color(0xFF101115),
-    errorContainer = StatusErrorDark,
+    errorContainer = Color(0xFF7E3035),
     onErrorContainer = DarkTextPrimary
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = LightGoldPrimary,
-    onPrimary = Color.White,
+    onPrimary = Color(0xFF17130B),
     primaryContainer = LightCardSecondary,
     onPrimaryContainer = LightTextPrimary,
     secondary = LightStatusSuccess,
@@ -148,7 +148,7 @@ private val LightColorScheme = lightColorScheme(
     outlineVariant = LightBorderProminent,
     error = LightStatusError,
     onError = Color.White,
-    errorContainer = Color(0xFFFFECEC),
+    errorContainer = Color(0xFFF9E7E9),
     onErrorContainer = LightStatusError
 )
 
