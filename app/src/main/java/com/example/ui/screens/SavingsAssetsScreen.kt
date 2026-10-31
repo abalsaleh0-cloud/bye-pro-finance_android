@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -82,6 +83,8 @@ fun SavingsAssetsScreen(
     var selectedTabIndex by remember { mutableIntStateOf(initialTabIndex.coerceIn(0, 1)) }
     var showAddGoalDialog by remember { mutableStateOf(false) }
     var showAddAssetDialog by remember { mutableStateOf(false) }
+    var editingGoal by remember { mutableStateOf<SavingsGoalEntity?>(null) }
+    var editingAsset by remember { mutableStateOf<AssetEntity?>(null) }
     var goalToContribute by remember { mutableStateOf<SavingsGoalEntity?>(null) }
 
     val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, primaryCurrency)
@@ -189,6 +192,7 @@ fun SavingsAssetsScreen(
                                 progress = progress,
                                 lang = lang,
                                 onContribute = { goalToContribute = goal },
+                                onEdit = { editingGoal = goal },
                                 onDelete = { viewModel.deleteSavingsGoal(goal) }
                             )
                         }
@@ -213,6 +217,7 @@ fun SavingsAssetsScreen(
                             AssetCardItem(
                                 asset = asset,
                                 lang = lang,
+                                onEdit = { editingAsset = asset },
                                 onDelete = { viewModel.deleteAsset(asset) }
                             )
                         }
@@ -268,25 +273,29 @@ fun SavingsAssetsScreen(
     }
 
     // Add Goal Dialog
-    if (showAddGoalDialog) {
+    if (showAddGoalDialog || editingGoal != null) {
         AddSavingsGoalDialog(
             lang = lang,
-            onDismiss = { showAddGoalDialog = false },
+            initialGoal = editingGoal,
+            onDismiss = { showAddGoalDialog = false; editingGoal = null },
             onConfirm = { newGoal ->
-                viewModel.addSavingsGoal(newGoal)
+                if (editingGoal == null) viewModel.addSavingsGoal(newGoal) else viewModel.updateSavingsGoal(newGoal)
                 showAddGoalDialog = false
+                editingGoal = null
             }
         )
     }
 
     // Add Asset Dialog
-    if (showAddAssetDialog) {
+    if (showAddAssetDialog || editingAsset != null) {
         AddAssetDialog(
             lang = lang,
-            onDismiss = { showAddAssetDialog = false },
+            initialAsset = editingAsset,
+            onDismiss = { showAddAssetDialog = false; editingAsset = null },
             onConfirm = { newAsset ->
-                viewModel.addAsset(newAsset)
+                if (editingAsset == null) viewModel.addAsset(newAsset) else viewModel.updateAsset(newAsset)
                 showAddAssetDialog = false
+                editingAsset = null
             }
         )
     }
@@ -298,6 +307,7 @@ fun SavingsGoalCard(
     progress: FinanceEngine.SavingsProgress,
     lang: com.example.finance.model.AppLanguage,
     onContribute: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
@@ -380,13 +390,16 @@ fun SavingsGoalCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = ByeProTheme.colors.goldPrimary
                 )
-                FinanceButton(
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FinanceOutlinedButton(onClick = onEdit) { Text(WebI18n.tr("تعديل", "Edit", lang)) }
+                    FinanceButton(
                     onClick = onContribute,
                     colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Icon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(16.dp))
                     Text(Strings.get("contribute", lang), modifier = Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelMedium)
+                    }
                 }
             }
         }
@@ -397,6 +410,7 @@ fun SavingsGoalCard(
 fun AssetCardItem(
     asset: AssetEntity,
     lang: AppLanguage,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
@@ -435,6 +449,9 @@ fun AssetCardItem(
                     color = ByeProTheme.colors.goldPrimary
                 )
                 Spacer(modifier = Modifier.size(8.dp))
+                FinanceIconButton(onClick = onEdit) {
+                    Icon(imageVector = Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل", "Edit", lang), modifier = Modifier.size(18.dp))
+                }
                 FinanceIconButton(onClick = onDelete) {
                     Icon(
                         imageVector = Icons.Default.Delete,
