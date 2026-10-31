@@ -33,6 +33,7 @@ import com.example.ui.components.FinanceTextField
 import com.example.ui.components.FinanceTextButton
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceIconButton
+import com.example.ui.components.FinanceFloatingActionButton
 import com.example.ui.theme.ByeProTheme
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -76,7 +77,7 @@ fun BudgetsScreen(viewModel: FinanceViewModel) {
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
+            FinanceFloatingActionButton(
                 onClick = { editing = null; showForm = true },
                 containerColor = ByeProTheme.colors.goldPrimary,
                 modifier = Modifier.testTag("add_budget_fab")
