@@ -17,8 +17,8 @@ android {
     applicationId = "com.aistudio.byeprofinance.kxmpzq"
     minSdk = 24
     targetSdk = 36
-    versionCode = 10002
-    versionName = "10.0.2"
+    versionCode = 10003
+    versionName = "10.0.3"
     buildConfigField("String", "FINANCE_API_BASE_URL", "\"https://bye-pro-finance.vercel.app/\"")
     buildConfigField("String", "SUPABASE_URL", "\"https://ngfaukvfsesoslfiwaue.supabase.co\"")
     buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_5zPaJKKmtGZtYUv1GGytjA_tsk9LaSR\"")
