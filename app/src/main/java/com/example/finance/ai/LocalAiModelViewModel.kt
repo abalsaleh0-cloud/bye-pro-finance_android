@@ -10,10 +10,7 @@ import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -218,7 +215,6 @@ object LocalAiRuntime {
 class LocalAiModelViewModel(application: Application) : AndroidViewModel(application) {
     private val _state = MutableStateFlow(LocalAiModelState())
     val state: StateFlow<LocalAiModelState> = _state.asStateFlow()
-    private var downloadJob: Job? = null
 
     init { refresh(); observeBackgroundDownload() }
 
@@ -307,16 +303,10 @@ class LocalAiModelViewModel(application: Application) : AndroidViewModel(applica
     fun deleteModel() {
         viewModelScope.launch(Dispatchers.IO) {
             WorkManager.getInstance(getApplication()).cancelUniqueWork(LocalAiModelDownloadWorker.UNIQUE_WORK_NAME).result.get()
-            downloadJob?.cancelAndJoin()
             runCatching { LocalAiRuntime.close() }
             LocalAiModelManager.modelFile(getApplication()).delete()
             LocalAiModelManager.partialFile(getApplication()).delete()
             _state.value = LocalAiModelState(status = "تم حذف النموذج من مساحة التطبيق")
         }
-    }
-
-    override fun onCleared() {
-        pauseDownload()
-        super.onCleared()
     }
 }
