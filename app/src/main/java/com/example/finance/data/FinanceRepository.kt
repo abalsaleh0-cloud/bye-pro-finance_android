@@ -418,6 +418,9 @@ class FinanceRepository(
         require(bill.currency.matches(Regex("[A-Z]{3}"))) { "Bill currency must be a three-letter code" }
         require(bill.recurrenceIntervalDays > 0 && bill.reminderDaysBefore >= 0) { "Bill recurrence and reminder values are invalid" }
         val existing = dao.getBillById(bill.id) ?: return@withContext
+        require(!existing.isPaid || (bill.amount == existing.amount && bill.currency.equals(existing.currency, ignoreCase = true))) {
+            "Paid bill amount and currency cannot change because the expense is already posted"
+        }
         dao.updateBill(bill.copy(isPaid = existing.isPaid))
         logAudit("UPDATE", "Bill", "Updated bill ${bill.name}")
     }
