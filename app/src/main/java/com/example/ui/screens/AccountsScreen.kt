@@ -196,7 +196,7 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                             WebI18n.tr("أضف حسابك الأول لبدء تنظيم أموالك.", "Add your first account to start organizing your money.", lang),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        FinanceFinanceOutlinedButton(onClick = { showAddDialog = true }) {
+                        FinanceFinanceFinanceOutlinedButtononClick = { showAddDialog = true }) {
                             Text(WebI18n.tr("إضافة أول حساب", "Add your first account", lang))
                         }
                     }
@@ -266,7 +266,7 @@ fun AccountDetailedCard(
                     Text(WebI18n.tr("الرصيد الحالي", "Current balance", lang), style = MaterialTheme.typography.labelSmall)
                     Text(TextContent.money(account.balance, account.currency, lang), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
                 }
-                FinanceOutlinedButton(onClick = onToggleActive, modifier = Modifier.testTag("toggle_account_${account.id}")) {
+                FinanceFinanceOutlinedButtononClick = onToggleActive, modifier = Modifier.testTag("toggle_account_${account.id}")) {
                     Text(
                         if (account.isArchived) WebI18n.tr("تفعيل الحساب", "Activate account", lang)
                         else WebI18n.tr("إيقاف الحساب", "Deactivate account", lang)
@@ -310,7 +310,7 @@ fun AddAccountForm(
             )
             Text(WebI18n.tr("نوع الحساب", "Account type", lang), style = MaterialTheme.typography.labelMedium)
             Box {
-                OutlinedButton(onClick = { typeMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_type_selector")) {
+                FinanceOutlinedButtononClick = { typeMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_type_selector")) {
                     Text(accountTypeLabel(selectedType, lang))
                 }
                 DropdownMenu(typeMenuExpanded, { typeMenuExpanded = false }) {
@@ -321,7 +321,7 @@ fun AddAccountForm(
             }
             Text(WebI18n.tr("العملة", "Currency", lang), style = MaterialTheme.typography.labelMedium)
             Box {
-                OutlinedButton(onClick = { currencyMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_currency_selector")) {
+                FinanceOutlinedButtononClick = { currencyMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_currency_selector")) {
                     Text(currencyLabel(selectedCurrency, lang))
                 }
                 DropdownMenu(currencyMenuExpanded, { currencyMenuExpanded = false }) {
@@ -357,7 +357,7 @@ fun AddAccountForm(
             )
             if (validationMessage.isNotEmpty()) Text(validationMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FinanceOutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
+                FinanceFinanceOutlinedButtononClick = onCancel, modifier = Modifier.weight(1f)) {
                     Text(WebI18n.tr("إلغاء", "Cancel", lang))
                 }
                 FinanceButton(
