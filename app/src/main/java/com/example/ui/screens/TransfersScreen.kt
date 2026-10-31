@@ -1,15 +1,11 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
 import com.example.ui.components.FinanceIcon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 
-import androidx.compose.material.icons.filled.*
-
-import androidx.compose.material.icons.Icons
 
 
 import androidx.compose.foundation.border
@@ -254,7 +250,7 @@ fun TransfersScreen(viewModel: FinanceViewModel) {
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
-                        FinanceIcon(Icons.Default.SwapHoriz, contentDescription = null)
+                        FinanceIcon(Lucide.ArrowLeftRight, contentDescription = null)
                         Text(
                             text = if (saving) WebI18n.tr("جارٍ التنفيذ…", "Processing…", lang)
                             else Strings.get("execute_transfer", lang),
@@ -265,7 +261,7 @@ fun TransfersScreen(viewModel: FinanceViewModel) {
 
                     if (feedback != null) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (feedbackSuccess) FinanceIcon(Icons.Default.CheckCircle, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
+                            if (feedbackSuccess) FinanceIcon(Lucide.CheckCircle2, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                             Text(
                                 text = feedback.orEmpty(),
                                 style = MaterialTheme.typography.bodySmall,
