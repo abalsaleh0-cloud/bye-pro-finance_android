@@ -338,8 +338,8 @@ fun MainAppScaffold(
                     "household" -> HouseholdScreen(viewModel = viewModel)
                     "smart_scan" -> SmartScanScreen(viewModel = viewModel)
                     "ai_assistant" -> AiAssistantScreen(viewModel = viewModel)
-                    "notifications" -> NotificationsAdminScreen(viewModel = viewModel)
-                    "admin" -> NotificationsAdminScreen(viewModel = viewModel)
+                    "notifications" -> NotificationsAdminScreen(viewModel = viewModel, initialTabIndex = 0)
+                    "admin" -> NotificationsAdminScreen(viewModel = viewModel, initialTabIndex = 1)
                     "settings" -> SettingsScreen(viewModel = viewModel)
                     else -> DashboardScreen(
                         viewModel = viewModel,
