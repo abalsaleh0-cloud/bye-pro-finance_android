@@ -35,6 +35,9 @@ data class ByeProColorTokens(
     val fieldText: Color,
     val fieldBorder: Color,
     val fieldFocus: Color,
+    val quietButtonBg: Color,
+    val quietButtonBorder: Color,
+    val quietButtonText: Color,
     val isDark: Boolean
 )
 
@@ -63,6 +66,9 @@ val ByeProDarkTokens = ByeProColorTokens(
     fieldText = DarkFieldText,
     fieldBorder = DarkFieldBorder,
     fieldFocus = DarkFieldFocus,
+    quietButtonBg = GoldDark,
+    quietButtonBorder = GoldMuted,
+    quietButtonText = GoldPrimary,
     isDark = true
 )
 
@@ -91,6 +97,9 @@ val ByeProLightTokens = ByeProColorTokens(
     fieldText = LightFieldText,
     fieldBorder = LightFieldBorder,
     fieldFocus = LightFieldFocus,
+    quietButtonBg = Color(0xFFF7F2E7),
+    quietButtonBorder = Color(0xFFB99B5E),
+    quietButtonText = Color(0xFF6C5420),
     isDark = false
 )
 
