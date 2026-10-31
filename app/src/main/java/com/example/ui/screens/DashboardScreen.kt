@@ -32,8 +32,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -70,6 +68,7 @@ fun DashboardScreen(
     val goals by viewModel.savingsGoals.collectAsState()
     val activeAccounts = accounts.filter { !it.isArchived }.sortedByDescending { it.createdAt }
     val dashboardTransactions = transactions.sortedByDescending { it.date }.take(50)
+    val dashboardBudgets = budgets.sortedByDescending { it.startDate }
     val dashboardBills = bills.filter { !it.isPaid }.sortedBy { it.dueDate }.take(20)
     val dashboardDebts = debts.filter { it.status.name != "PAID" }.sortedBy { it.dueDate }.take(20)
     val dashboardGoals = goals.filter { it.currentAmount < it.targetAmount }.sortedBy { it.deadline }.take(20)
@@ -85,7 +84,7 @@ fun DashboardScreen(
     val currencyAccounts = activeAccounts.filter { it.currency.equals(dashboardCurrency, true) }
     val currencyTransactions = dashboardTransactions.filter { it.currency.equals(dashboardCurrency, true) && it.status != TransactionStatus.CANCELLED }
     val currencyAssets = dashboardAssets.filter { it.currency.equals(dashboardCurrency, true) }
-    val currencyBudgets = budgets.filter { it.currency.equals(dashboardCurrency, true) }
+    val currencyBudgets = dashboardBudgets.filter { it.currency.equals(dashboardCurrency, true) }
     val currencyDebts = dashboardDebts.filter { it.currency.equals(dashboardCurrency, true) }
     val currencyBills = dashboardBills.filter { it.currency.equals(dashboardCurrency, true) }
         .sortedBy { it.dueDate }
@@ -230,7 +229,7 @@ fun DashboardScreen(
             DashboardPanel(
                 title = WebI18n.tr("الميزانيات", "Budgets", lang),
                 eyebrow = WebI18n.tr("التخطيط", "Planning", lang),
-                count = budgets.size,
+                count = dashboardBudgets.size,
                 onClick = { onNavigate("budgets") }
             ) {
                 Text(
@@ -244,7 +243,7 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall
                 )
-                budgets.take(4).forEach { budget ->
+                dashboardBudgets.take(4).forEach { budget ->
                     DashboardLine(
                         title = budget.name,
                         subtitle = budgetPeriodLabel(budget, lang),
