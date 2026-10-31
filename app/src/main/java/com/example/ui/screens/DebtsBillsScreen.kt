@@ -491,22 +491,29 @@ private fun DebtDirectionSelector(
     tagPrefix: String,
     onDirectionChange: (String) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        listOf(
-            "owed_to_me" to WebI18n.tr("دائن — لي عنده", "Creditor — owed to me", lang),
-            "i_owe" to WebI18n.tr("مدين — عليّ له", "Debtor — I owe", lang)
-        ).forEach { (value, label) ->
+    val choices = listOf(
+        "owed_to_me" to WebI18n.tr("دائن — لي عنده", "Creditor — owed to me", lang),
+        "i_owe" to WebI18n.tr("مدين — عليّ له", "Debtor — I owe", lang)
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        choices.forEach { (value, label) ->
             val selected = selectedDirection == value
-            FinanceChoiceButton(
-                selected = selected,
-                onClick = { onDirectionChange(value) },
-                modifier = Modifier.weight(1f).testTag("${tagPrefix}_${value}")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (selected) ByeProTheme.colors.goldPrimary.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surfaceVariant)
+                    .border(1.dp, if (selected) ByeProTheme.colors.goldPrimary else ByeProTheme.colors.fieldBorder, RoundedCornerShape(10.dp))
+                    .selectable(selected = selected, onClick = { onDirectionChange(value) }, role = Role.RadioButton)
+                    .testTag("${tagPrefix}_${value}")
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                androidx.compose.material3.RadioButton(selected = selected, onClick = { onDirectionChange(value) })
                 Text(
                     text = label,
+                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                     style = MaterialTheme.typography.labelLarge
                 )
