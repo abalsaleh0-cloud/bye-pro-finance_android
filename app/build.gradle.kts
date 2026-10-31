@@ -19,6 +19,8 @@ android {
     versionCode = 10000
     versionName = "10.0.0"
     buildConfigField("String", "FINANCE_API_BASE_URL", "\"https://bye-pro-finance.vercel.app/\"")
+    buildConfigField("String", "SUPABASE_URL", "\"https://ngfaukvfsesoslfiwaue.supabase.co\"")
+    buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_5zPaJKKmtGZtYUv1GGytjA_tsk9LaSR\"")
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
@@ -101,6 +103,7 @@ dependencies {
   implementation(libs.logging.interceptor)
   implementation(libs.moshi.kotlin)
   implementation(libs.okhttp)
+  implementation(libs.retrofit)
   implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
