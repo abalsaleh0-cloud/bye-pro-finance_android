@@ -211,7 +211,7 @@ fun HouseholdScreen(viewModel: FinanceViewModel) {
             }
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    HouseholdSectionTitle("03", WebI18n.tr("ميزانيات المنزل", "Household budgets", lang))
+                    HouseholdSectionTitle("03", WebI18n.tr("ميزانيات المنزل", "Household budgets", lang), modifier = Modifier.weight(1f))
                     FinanceOutlinedButton(onClick = { showBudgetDialog = true }, shape = RoundedCornerShape(8.dp)) {
                         FinanceIcon(Lucide.Plus, contentDescription = null, modifier = Modifier.size(15.dp))
                         Text(WebI18n.tr("إضافة ميزانية", "Add budget", lang), style = MaterialTheme.typography.labelMedium)
@@ -302,8 +302,8 @@ private fun HouseholdStatCard(label: String, value: String, modifier: Modifier =
 }
 
 @Composable
-private fun HouseholdSectionTitle(number: String, title: String, trailing: String? = null) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+private fun HouseholdSectionTitle(number: String, title: String, trailing: String? = null, modifier: Modifier = Modifier.fillMaxWidth()) {
+    Row(modifier, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(number, style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
