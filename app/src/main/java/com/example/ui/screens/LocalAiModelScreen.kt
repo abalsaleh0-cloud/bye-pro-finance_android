@@ -15,6 +15,14 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,6 +36,21 @@ import java.util.Locale
 @Composable
 fun LocalAiModelScreen(modelViewModel: LocalAiModelViewModel = viewModel()) {
     val state by modelViewModel.state.collectAsState()
+    val context = LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) modelViewModel.startDownload()
+    }
+    val requestDownload = {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            modelViewModel.startDownload()
+        }
+    }
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -35,7 +58,7 @@ fun LocalAiModelScreen(modelViewModel: LocalAiModelViewModel = viewModel()) {
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Gemma 4 E2B", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("نموذج ذكاء اصطناعي محلي مستقل يعمل على الهاتف دون اتصال بعد اكتمال التنزيل.")
+                Text("نموذج ذكاء اصطناعي محلي مستقل يعمل على الهاتف دون اتصال بعد اكتمال التنزيل. يستمر تنزيله في الخلفية مع إشعار بالتقدم.")
                 Text("حجم التنزيل التقريبي: 2.59 GB")
                 Text("التشغيل: LiteRT-LM · المعالج CPU")
                 Text("الملف يُحفظ داخل مساحة التطبيق ولا يدخل ضمن APK.")
@@ -70,7 +93,7 @@ fun LocalAiModelScreen(modelViewModel: LocalAiModelViewModel = viewModel()) {
 
         if (!state.installed) {
             Button(
-                onClick = { modelViewModel.startDownload() },
+                onClick = requestDownload,
                 enabled = !state.downloading,
                 modifier = Modifier.fillMaxWidth()
             ) { Text(if (state.downloadedBytes > 0L) "استكمال تنزيل النموذج" else "تنزيل النموذج داخل التطبيق") }
@@ -99,7 +122,7 @@ fun LocalAiModelScreen(modelViewModel: LocalAiModelViewModel = viewModel()) {
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            "يتم التحقق من بصمة SHA-256 قبل اعتماد الملف. عند انقطاع الاتصال يُحتفظ بالجزء المكتمل لاستكمال التنزيل.",
+            "يستمر التنزيل عند مغادرة الشاشة أو إغلاق التطبيق، ويظهر إشعار دائم بنسبة التقدم. يتم التحقق من بصمة SHA-256 قبل اعتماد الملف، ويُحفظ الجزء المكتمل لاستكماله لاحقاً.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
