@@ -73,6 +73,7 @@ fun HouseholdScreen(
 
     var showAddMemberDialog by remember { mutableStateOf(false) }
     var editingMember by remember { mutableStateOf<HouseholdMemberEntity?>(null) }
+    var editingExpense by remember { mutableStateOf<HouseholdExpenseEntity?>(null) }
     var showAddExpenseDialog by remember { mutableStateOf(false) }
 
     val currencyExpenses = expenses.filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
@@ -81,7 +82,7 @@ fun HouseholdScreen(
     Scaffold(
         floatingActionButton = {
             FinanceFloatingActionButton(
-                onClick = { showAddExpenseDialog = true },
+                onClick = { editingExpense = null; showAddExpenseDialog = true },
                 containerColor = ByeProTheme.colors.goldPrimary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_household_expense_fab")
@@ -249,6 +250,9 @@ fun HouseholdScreen(
                                     color = ByeProTheme.colors.financialRed,
                                     fontWeight = FontWeight.Bold
                                 )
+                                FinanceIconButton(onClick = { editingExpense = exp; showAddExpenseDialog = true }) {
+                                    Icon(Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل المصروف", "Edit expense", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                                 FinanceIconButton(onClick = { viewModel.deleteHouseholdExpense(exp) }) {
                                     Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف المصروف", "Delete expense", lang), tint = MaterialTheme.colorScheme.error)
                                 }
@@ -321,14 +325,14 @@ fun HouseholdScreen(
 
     // Add Shared Expense Dialog
     if (showAddExpenseDialog) {
-        var title by remember { mutableStateOf("") }
-        var amountStr by remember { mutableStateOf("") }
-        var category by remember { mutableStateOf("Home Supplies") }
-        val payerId = members.firstOrNull()?.id
+        var title by remember(editingExpense?.id) { mutableStateOf(editingExpense?.title.orEmpty()) }
+        var amountStr by remember(editingExpense?.id) { mutableStateOf(editingExpense?.amount?.toString().orEmpty()) }
+        var category by remember(editingExpense?.id) { mutableStateOf(editingExpense?.category ?: "Home Supplies") }
+        val payerId = editingExpense?.payerMemberId ?: members.firstOrNull()?.id
 
         FinanceAlertDialog(
-            onDismissRequest = { showAddExpenseDialog = false },
-            title = { Text(Strings.get("add_shared_expense", lang), fontWeight = FontWeight.Bold) },
+            onDismissRequest = { showAddExpenseDialog = false; editingExpense = null },
+            title = { Text(if (editingExpense == null) Strings.get("add_shared_expense", lang) else WebI18n.tr("تعديل المصروف المشترك", "Edit shared expense", lang), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (payerId == null) Text(WebI18n.tr("أضف فرداً من الأسرة أولاً قبل تسجيل مصروف مشترك.", "Add a household member before recording a shared expense.", lang), color = MaterialTheme.colorScheme.error)
@@ -357,8 +361,11 @@ fun HouseholdScreen(
                     onClick = {
                         val amt = amountStr.toDoubleOrNull() ?: 0.0
                         if (title.isNotBlank() && category.isNotBlank() && amt.isFinite() && amt > 0.0 && payerId != null) {
-                            viewModel.addHouseholdExpense(title, amt, payerId, category)
+                            val existing = editingExpense
+                            if (existing == null) viewModel.addHouseholdExpense(title, amt, payerId, category)
+                            else viewModel.updateHouseholdExpense(existing.copy(title = title, amount = amt, category = category))
                             showAddExpenseDialog = false
+                            editingExpense = null
                         }
                     }
                 ) {
@@ -366,7 +373,7 @@ fun HouseholdScreen(
                 }
             },
             dismissButton = {
-                FinanceOutlinedButton(onClick = { showAddExpenseDialog = false }) {
+                FinanceOutlinedButton(onClick = { showAddExpenseDialog = false; editingExpense = null }) {
                     Text(Strings.get("cancel", lang))
                 }
             }
