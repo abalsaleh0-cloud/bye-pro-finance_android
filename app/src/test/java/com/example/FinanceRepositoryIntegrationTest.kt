@@ -399,4 +399,36 @@ class FinanceRepositoryIntegrationTest {
     }
 
 
+    @Test
+    fun successfulTransferUpdatesBothBalancesAndWritesLedgerAtomically() = runBlocking {
+        val sourceId = repository.addAccount(
+            AccountEntity(name = "Transfer source", type = AccountType.BANK, balance = 500.0, currency = "LYD")
+        )
+        val targetId = repository.addAccount(
+            AccountEntity(name = "Transfer target", type = AccountType.SAVINGS, balance = 50.0, currency = "LYD")
+        )
+
+        assertTrue(repository.executeTransfer(sourceId, targetId, 100.0, 2.0, "LYD", "Monthly move", ""))
+        assertEquals(398.0, db.financeDao().getAccountById(sourceId)?.balance ?: 0.0, 0.001)
+        assertEquals(150.0, db.financeDao().getAccountById(targetId)?.balance ?: 0.0, 0.001)
+        assertEquals(1, repository.transfers.first().size)
+        assertEquals(3, repository.transactions.first().size)
+    }
+
+    @Test
+    fun transferRejectsDifferentCurrenciesWithoutChangingBalances() = runBlocking {
+        val sourceId = repository.addAccount(
+            AccountEntity(name = "LYD source", type = AccountType.BANK, balance = 500.0, currency = "LYD")
+        )
+        val targetId = repository.addAccount(
+            AccountEntity(name = "USD target", type = AccountType.SAVINGS, balance = 50.0, currency = "USD")
+        )
+
+        assertFalse(repository.executeTransfer(sourceId, targetId, 100.0, 0.0, "LYD", "Currency mismatch", ""))
+        assertEquals(500.0, db.financeDao().getAccountById(sourceId)?.balance ?: 0.0, 0.001)
+        assertEquals(50.0, db.financeDao().getAccountById(targetId)?.balance ?: 0.0, 0.001)
+        assertTrue(repository.transfers.first().isEmpty())
+    }
+
+
 }
