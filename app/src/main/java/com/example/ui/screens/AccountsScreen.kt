@@ -335,7 +335,7 @@ fun AddAccountForm(
                         if (validationMessage.isEmpty()) onSave(
                             AccountEntity(
                                 name = name.trim(), type = selectedType, currency = selectedCurrency,
-                                balance = amount!!, institution = institution.trim(), accountNumberSafe = lastFour
+                                balance = amount!!, openingBalance = amount!!, institution = institution.trim(), accountNumberSafe = lastFour
                             )
                         )
                     },
