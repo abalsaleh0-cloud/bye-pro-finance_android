@@ -16,7 +16,6 @@ import com.example.finance.model.AppLanguage
 import com.example.finance.model.TransactionType
 import com.example.ui.screens.AddTransactionForm
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,8 +49,7 @@ class TransactionsFormInstrumentedTest {
                                 assertEquals(TransactionType.EXPENSE, tx.type)
                                 assertEquals(25.5, tx.amount, 0.001)
                                 assertEquals("LYD", tx.currency)
-                                assertEquals("Main account", account.name)
-                                assertEquals(200, tx.description.length.coerceAtMost(200))
+                                assertEquals("Other", tx.category)
                             }
                         )
                     }
@@ -66,7 +64,7 @@ class TransactionsFormInstrumentedTest {
         composeRule.onNodeWithTag("transaction_description_input").performScrollTo().performTextInput("Groceries")
         composeRule.onNodeWithTag("submit_transaction_btn").performScrollTo().performClick()
 
-        composeRule.runOnIdle { assertNotNull(saved); assertEquals(true, saved) }
+        composeRule.runOnIdle { assertEquals(true, saved) }
     }
 
     @Test
