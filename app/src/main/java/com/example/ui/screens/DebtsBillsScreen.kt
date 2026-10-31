@@ -662,61 +662,55 @@ fun AddDebtDialog(
 @Composable
 fun AddBillDialog(
     lang: com.example.finance.model.AppLanguage,
+    initialBill: BillEntity? = null,
     onDismiss: () -> Unit,
     onConfirm: (BillEntity) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Utilities") }
-    var amountStr by remember { mutableStateOf("") }
-
+    var name by remember(initialBill?.id) { mutableStateOf(initialBill?.name ?: "") }
+    var category by remember(initialBill?.id) { mutableStateOf(initialBill?.category ?: "Utilities") }
+    var amountStr by remember(initialBill?.id) { mutableStateOf(initialBill?.amount?.toString() ?: "") }
+    var currency by remember(initialBill?.id) { mutableStateOf(initialBill?.currency ?: "LYD") }
+    var dueDateText by remember(initialBill?.id) { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(initialBill?.dueDate ?: (System.currentTimeMillis() + 10L * 24 * 60 * 60 * 1000)))) }
+    var recurring by remember(initialBill?.id) { mutableStateOf(initialBill?.isRecurring ?: true) }
+    var intervalText by remember(initialBill?.id) { mutableStateOf((initialBill?.recurrenceIntervalDays ?: 30).toString()) }
+    var reminderText by remember(initialBill?.id) { mutableStateOf((initialBill?.reminderDaysBefore ?: 3).toString()) }
+    var error by remember { mutableStateOf("") }
     FinanceAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = Strings.get("add_bill", lang), fontWeight = FontWeight.Bold) },
+        title = { Text(if (initialBill == null) Strings.get("add_bill", lang) else WebI18n.tr("تعديل الفاتورة", "Edit bill", lang), fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                FinanceTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(WebI18n.tr("اسم الفاتورة", "Bill name", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                FinanceTextField(
-                    value = category,
-                    onValueChange = { category = it },
-                    label = { Text(Strings.get("category", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                FinanceTextField(
-                    value = amountStr,
-                    onValueChange = { amountStr = it },
-                    label = { Text(Strings.get("amount", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الفاتورة", "Bill name", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = category, onValueChange = { category = it }, label = { Text(Strings.get("category", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = amountStr, onValueChange = { amountStr = it }, label = { Text(Strings.get("amount", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(Locale.ROOT) }, label = { Text(WebI18n.tr("العملة", "Currency", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = dueDateText, onValueChange = { dueDateText = it }, label = { Text(WebI18n.tr("تاريخ الاستحقاق YYYY-MM-DD", "Due date YYYY-MM-DD", lang)) }, modifier = Modifier.fillMaxWidth())
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FinanceOutlinedButton(onClick = { recurring = true }) { Text(WebI18n.tr("متكررة", "Recurring", lang)) }
+                    FinanceOutlinedButton(onClick = { recurring = false }) { Text(WebI18n.tr("لمرة واحدة", "One-time", lang)) }
+                }
+                if (recurring) FinanceTextField(value = intervalText, onValueChange = { intervalText = it }, label = { Text(WebI18n.tr("التكرار كل (أيام)", "Repeat every (days)", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = reminderText, onValueChange = { reminderText = it }, label = { Text(WebI18n.tr("التذكير قبل الاستحقاق (أيام)", "Reminder before due date (days)", lang)) }, modifier = Modifier.fillMaxWidth())
+                if (error.isNotBlank()) Text(error, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = {
-            FinanceButton(
-                onClick = {
-                    val amt = amountStr.toDoubleOrNull() ?: 0.0
-                    if (name.isNotBlank() && amt > 0.0) {
-                        onConfirm(
-                            BillEntity(
-                                name = name,
-                                category = category,
-                                amount = amt,
-                                dueDate = System.currentTimeMillis() + (10L * 24 * 60 * 60 * 1000)
-                            )
-                        )
-                    }
+            FinanceButton(onClick = {
+                val amount = amountStr.toDoubleOrNull() ?: Double.NaN
+                val dueDate = try { SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(dueDateText)?.time } catch (_: Exception) { null }
+                val interval = intervalText.toIntOrNull() ?: 0
+                val reminder = reminderText.toIntOrNull() ?: -1
+                error = when {
+                    name.isBlank() || category.isBlank() -> WebI18n.tr("أدخل اسم الفاتورة وتصنيفها.", "Enter a bill name and category.", lang)
+                    !amount.isFinite() || amount <= 0.0 -> WebI18n.tr("أدخل مبلغاً صحيحاً أكبر من صفر.", "Enter a valid amount greater than zero.", lang)
+                    !currency.matches(Regex("[A-Z]{3}")) -> WebI18n.tr("رمز العملة يجب أن يتكون من ثلاثة أحرف.", "Currency must be a three-letter code.", lang)
+                    dueDate == null -> WebI18n.tr("أدخل تاريخ استحقاق صحيحاً.", "Enter a valid due date.", lang)
+                    (recurring && interval <= 0) || reminder < 0 -> WebI18n.tr("تحقق من فترة التكرار ومدة التذكير.", "Check recurrence and reminder values.", lang)
+                    else -> ""
                 }
-            ) {
-                Text(Strings.get("confirm", lang))
-            }
+                if (error.isBlank() && dueDate != null) onConfirm(BillEntity(id = initialBill?.id ?: 0, name = name.trim(), category = category.trim(), amount = amount, currency = currency, dueDate = dueDate, isRecurring = recurring, recurrenceIntervalDays = interval.coerceAtLeast(1), isPaid = initialBill?.isPaid ?: false, reminderDaysBefore = reminder))
+            }) { Text(Strings.get("confirm", lang)) }
         },
-        dismissButton = {
-            FinanceOutlinedButton(onClick = onDismiss) {
-                Text(Strings.get("cancel", lang))
-            }
-        }
+        dismissButton = { FinanceOutlinedButton(onClick = onDismiss) { Text(Strings.get("cancel", lang)) } }
     )
 }
