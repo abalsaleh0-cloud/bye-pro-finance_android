@@ -72,7 +72,7 @@ import java.util.Locale
 
 private val webTransactionTypes = listOf(TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.ADJUSTMENT)
 private val webCategories = mapOf(
-    TransactionType.EXPENSE to listOf("Groceries", "Dining", "Utilities", "Shopping", "Health", "Transport", "Other"),
+    TransactionType.EXPENSE to listOf("Groceries", "Dining", "Housing", "Utilities", "Shopping", "Health", "Transport", "Other"),
     TransactionType.INCOME to listOf("Salary", "Investments", "Other"),
     TransactionType.ADJUSTMENT to listOf("Adjustment", "Other")
 )
