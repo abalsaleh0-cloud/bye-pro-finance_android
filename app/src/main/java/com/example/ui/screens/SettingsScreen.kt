@@ -352,7 +352,7 @@ fun SettingsScreen(
     if (showAboutDialog) {
         AlertDialog(
             onDismissRequest = { showAboutDialog = false },
-            title = { Text(WebI18n.tr("بيانات التطبيق", "Application information"), fontWeight = FontWeight.Bold) },
+            title = { Text(WebI18n.tr("بيانات التطبيق", "Application information", lang), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("BYE PRO FINANCE")
