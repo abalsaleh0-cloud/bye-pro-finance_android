@@ -29,7 +29,8 @@ val ByeProDarkTokens = ByeProColorTokens(
 val ByeProLightTokens = ByeProColorTokens(
     LightBgMain, LightSurfaceMain, LightSurfaceMain, LightCardSecondary, LightCardSecondary, LightHoverInteractive,
     LightBorderBase, LightBorderProminent, LightTextPrimary, LightTextSecondary, LightTextMuted, LightTextMuted,
-    LightGoldPrimary, LightGoldFeatured, LightGoldFeatured, LightGoldPrimary, LightStatusSuccess, LightStatusError,
+    LightGoldPrimary, LightGoldFeatured, LightGoldFeatured, LightGoldPrimary,
+    LightStatusSuccess, LightStatusError, LightStatusSuccess, LightStatusError,
     LightFieldBg, LightFieldText, LightFieldBorder, LightFieldFocus, false
 )
 
