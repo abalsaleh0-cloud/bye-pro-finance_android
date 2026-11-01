@@ -12,6 +12,7 @@ import com.example.ui.components.FinanceFloatingActionButton
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -491,12 +492,20 @@ private fun DebtManagementPanel(
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            FinanceOutlinedButton(onClick = { direction = "owed_to_me" }) {
-                Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang))
-            }
-            FinanceOutlinedButton(onClick = { direction = "i_owe" }) {
-                Text(WebI18n.tr("مدين — عليّ له", "I owe", lang))
-            }
+            DebtDirectionOption(
+                direction = "owed_to_me",
+                selectedDirection = direction,
+                label = WebI18n.tr("دائن — لي عنده", "Owed to me", lang),
+                onSelect = { direction = it },
+                modifier = Modifier.weight(1f)
+            )
+            DebtDirectionOption(
+                direction = "i_owe",
+                selectedDirection = direction,
+                label = WebI18n.tr("مدين — عليّ له", "I owe", lang),
+                onSelect = { direction = it },
+                modifier = Modifier.weight(1f)
+            )
         }
         FinanceTextField(
             value = search,
@@ -609,9 +618,21 @@ fun AddDebtDialog(
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الشخص أو الجهة", "Person or organization", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = creditor, onValueChange = { creditor = it }, label = { Text(WebI18n.tr("تفاصيل الطرف / الدائن", "Counterparty details", lang)) }, modifier = Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FinanceOutlinedButton(onClick = { direction = "owed_to_me" }) { Text(WebI18n.tr("لي عنده", "Owed to me", lang)) }
-                    FinanceOutlinedButton(onClick = { direction = "i_owe" }) { Text(WebI18n.tr("عليّ له", "I owe", lang)) }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    DebtDirectionOption(
+                        direction = "owed_to_me",
+                        selectedDirection = direction,
+                        label = WebI18n.tr("لي عنده", "Owed to me", lang),
+                        onSelect = { direction = it },
+                        modifier = Modifier.weight(1f)
+                    )
+                    DebtDirectionOption(
+                        direction = "i_owe",
+                        selectedDirection = direction,
+                        label = WebI18n.tr("عليّ له", "I owe", lang),
+                        onSelect = { direction = it },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
                 FinanceTextField(value = principalStr, onValueChange = { principalStr = it }, label = { Text(WebI18n.tr("المبلغ الأصلي", "Original amount", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(Locale.ROOT) }, label = { Text(WebI18n.tr("العملة (LYD / USD / EUR ...)", "Currency (LYD / USD / EUR ...)", lang)) }, modifier = Modifier.fillMaxWidth())
@@ -657,6 +678,32 @@ fun AddDebtDialog(
         },
         dismissButton = { FinanceOutlinedButton(onClick = onDismiss) { Text(Strings.get("cancel", lang)) } }
     )
+}
+
+@Composable
+private fun DebtDirectionOption(
+    direction: String,
+    selectedDirection: String,
+    label: String,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val selected = direction == selectedDirection
+    FinanceOutlinedButton(
+        onClick = { onSelect(direction) },
+        modifier = modifier.testTag("debt_direction_$direction"),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = if (selected) ByeProTheme.colors.goldPrimary.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface,
+            contentColor = if (selected) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        border = BorderStroke(
+            1.dp,
+            if (selected) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.outline
+        )
+    ) {
+        if (selected) Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+        Text(label)
+    }
 }
 
 @Composable
