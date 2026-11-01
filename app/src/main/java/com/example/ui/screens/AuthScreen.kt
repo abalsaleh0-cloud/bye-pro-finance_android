@@ -63,7 +63,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
         ) {
             Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    FinanceTextFinanceButton(onClick = onToggleLanguage) {
+                    FinanceTextButton(onClick = onToggleLanguage) {
                         Text(if (language == AppLanguage.AR) "EN" else "عربي")
                     }
                 }
@@ -127,7 +127,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                             Text(tr(if (signup) "لديك حساب بالفعل؟" else "ليس لديك حساب؟", if (signup) "Already have an account?" else "Don't have an account?"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            TextFinanceButton(onClick = {
+                            FinanceTextButton(onClick = {
                                 signup = !signup
                                 message = null
                                 password = ""
@@ -158,14 +158,14 @@ private fun PasswordField(
     value: String, onValueChange: (String) -> Unit, label: String, visible: Boolean,
     onToggle: () -> Unit, showDescription: String, hideDescription: String, tag: String
 ) {
-    OutlinedTextField(
+    FinanceTextField(
         value = value, onValueChange = onValueChange, modifier = Modifier.fillMaxWidth().testTag(tag),
         label = { Text(label) }, singleLine = true,
         textStyle = MaterialTheme.typography.bodyLarge.copy(textDirection = TextDirection.Rtl),
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         trailingIcon = {
-            IconFinanceButton(onClick = onToggle, modifier = Modifier.testTag("${tag}_visibility")) {
+            FinanceIconButton(onClick = onToggle, modifier = Modifier.testTag("${tag}_visibility")) {
                 Icon(
                     imageVector = if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                     contentDescription = if (visible) hideDescription else showDescription,

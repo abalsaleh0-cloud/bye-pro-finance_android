@@ -199,7 +199,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
             title = { Text(WebI18n.tr("حذف المعاملة", "Delete transaction", lang)) },
             text = { Text(WebI18n.tr("هل تريد حذف هذه المعاملة وإعادة تعديل رصيد الحساب تلقائياً؟", "Delete this transaction and automatically adjust the account balance?", lang)) },
             confirmButton = { FinanceButton(onClick = { viewModel.deleteTransaction(target); deleteTarget = null }) { Text(WebI18n.tr("حذف", "Delete", lang)) } },
-            dismissButton = { FinanceFinanceOutlinedButton(onClick = { deleteTarget = null }) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) } }
+            dismissButton = { FinanceOutlinedButton(onClick = { deleteTarget = null }) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) } }
         )
     }
 }
@@ -236,13 +236,13 @@ fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCance
 
             Text(WebI18n.tr("الحساب", "Account", lang), style = MaterialTheme.typography.labelMedium)
             Box(Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = { accountMenu = true }, enabled = accounts.isNotEmpty(), modifier = Modifier.fillMaxWidth().testTag("transaction_account_input")) { Text(account?.let { "${it.name} · ${it.currency}" } ?: WebI18n.tr("اختر حساباً", "Select an account", lang)) }
+                FinanceOutlinedButton(onClick = { accountMenu = true }, enabled = accounts.isNotEmpty(), modifier = Modifier.fillMaxWidth().testTag("transaction_account_input")) { Text(account?.let { "${it.name} · ${it.currency}" } ?: WebI18n.tr("اختر حساباً", "Select an account", lang)) }
                 DropdownMenu(expanded = accountMenu, onDismissRequest = { accountMenu = false }) { accounts.forEach { item -> DropdownMenuItem(text = { Text("${item.name} · ${item.currency}") }, onClick = { accountId = item.id; accountMenu = false }) } }
             }
 
             Text(WebI18n.tr("التصنيف", "Category", lang), style = MaterialTheme.typography.labelMedium)
             Box(Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = { categoryMenu = true }, modifier = Modifier.fillMaxWidth().testTag("transaction_category_input")) { Text(category.ifBlank { WebI18n.tr("بدون تصنيف", "No category", lang) }) }
+                FinanceOutlinedButton(onClick = { categoryMenu = true }, modifier = Modifier.fillMaxWidth().testTag("transaction_category_input")) { Text(category.ifBlank { WebI18n.tr("بدون تصنيف", "No category", lang) }) }
                 DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) { categories.forEach { item -> DropdownMenuItem(text = { Text(item) }, onClick = { category = item; categoryMenu = false }) } }
             }
 
