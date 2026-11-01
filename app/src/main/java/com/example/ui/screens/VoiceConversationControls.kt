@@ -135,6 +135,7 @@ fun SpeakTextButton(
 
     LaunchedEffect(autoSpeak, ready, text) {
         if (autoSpeak && ready && text.isNotBlank()) {
+            tts?.language = if (languageCode == "ar") Locale("ar") else Locale.US
             tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "bye-pro-ai-auto-response")
         }
     }
