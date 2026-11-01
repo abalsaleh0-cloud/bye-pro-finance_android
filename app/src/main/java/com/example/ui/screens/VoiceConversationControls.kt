@@ -110,6 +110,7 @@ fun VoiceInputButton(
 fun SpeakTextButton(
     text: String,
     languageCode: String,
+    autoSpeak: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -129,6 +130,12 @@ fun SpeakTextButton(
             engine.shutdown()
             tts = null
             ready = false
+        }
+    }
+
+    LaunchedEffect(autoSpeak, ready, text) {
+        if (autoSpeak && ready && text.isNotBlank()) {
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "bye-pro-ai-auto-response")
         }
     }
 
