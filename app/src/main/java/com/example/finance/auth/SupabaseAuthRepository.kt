@@ -26,6 +26,12 @@ class SupabaseAuthRepository(context: Context) {
         return !token.isNullOrBlank() && expiry > System.currentTimeMillis() / 1000L + 60L
     }
 
+    fun currentAccessToken(): String? {
+        val token = preferences.getString(KEY_ACCESS_TOKEN, null)
+        val expiry = preferences.getLong(KEY_EXPIRES_AT, 0L)
+        return token?.takeIf { it.isNotBlank() && expiry > System.currentTimeMillis() / 1000L + 30L }
+    }
+
     /**
      * Restores an existing Supabase session after process death. Access tokens
      * are refreshed before expiry so a returning user is not sent to login

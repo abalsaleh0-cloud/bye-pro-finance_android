@@ -6,6 +6,9 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
+import android.media.MediaPlayer
+import java.io.File
+import java.util.UUID
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
@@ -21,6 +24,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -111,11 +116,17 @@ fun SpeakTextButton(
     text: String,
     languageCode: String,
     autoSpeak: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSynthesizeSpeech: (suspend (String) -> Result<ByteArray>)? = null
 ) {
     val context = LocalContext.current
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
     var ready by remember { mutableStateOf(false) }
+    var player by remember { mutableStateOf<MediaPlayer?>(null) }
+    var audioFile by remember { mutableStateOf<File?>(null) }
+    val scope = rememberCoroutineScope()
+    val latestText by rememberUpdatedState(text)
+    val latestSynthesis by rememberUpdatedState(onSynthesizeSpeech)
 
     DisposableEffect(languageCode) {
         val engine = TextToSpeech(context) { status ->
@@ -123,7 +134,9 @@ fun SpeakTextButton(
             if (ready) {
                 val targetLocale = if (languageCode == "ar") Locale("ar") else Locale.US
                 tts?.language = targetLocale
-                val preferredVoice = tts?.voices?.filter { it.locale.language == targetLocale.language }?.maxByOrNull { it.quality }
+                val preferredVoice = tts?.voices
+                    ?.filter { it.locale.language == targetLocale.language }
+                    ?.maxByOrNull { it.quality }
                 if (preferredVoice != null) tts?.voice = preferredVoice
                 tts?.setSpeechRate(0.94f)
                 tts?.setPitch(1.0f)
@@ -131,31 +144,72 @@ fun SpeakTextButton(
         }
         tts = engine
         onDispose {
+            player?.release()
+            audioFile?.delete()
             engine.stop()
             engine.shutdown()
             tts = null
+            player = null
+            audioFile = null
             ready = false
         }
     }
 
-    LaunchedEffect(autoSpeak, ready, text) {
-        if (autoSpeak && ready && text.isNotBlank()) {
-            tts?.language = if (languageCode == "ar") Locale("ar") else Locale.US
-            tts?.setSpeechRate(0.94f)
-            tts?.setPitch(1.0f)
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "bye-pro-ai-auto-response")
+    fun speakLocalFallback() {
+        if (!ready) return
+        val locale = if (languageCode == "ar") Locale("ar") else Locale.US
+        tts?.language = locale
+        tts?.setSpeechRate(0.94f)
+        tts?.setPitch(1.0f)
+        tts?.speak(latestText, TextToSpeech.QUEUE_FLUSH, null, "bye-pro-ai-response-fallback")
+    }
+
+    fun speak() {
+        scope.launch {
+            val audio = latestSynthesis?.invoke(latestText)?.getOrNull()
+            if (audio.isNullOrEmpty()) {
+                speakLocalFallback()
+                return@launch
+            }
+            val file = File(context.cacheDir, "bye-pro-speech-${UUID.randomUUID()}.mp3")
+            runCatching {
+                file.writeBytes(audio)
+                player?.release()
+                audioFile?.delete()
+                val nextPlayer = MediaPlayer()
+                nextPlayer.setDataSource(file.absolutePath)
+                nextPlayer.setOnPreparedListener { it.start() }
+                nextPlayer.setOnCompletionListener { completed ->
+                    completed.release()
+                    file.delete()
+                    if (player === completed) player = null
+                    if (audioFile == file) audioFile = null
+                }
+                nextPlayer.setOnErrorListener { failed, _, _ ->
+                    failed.release()
+                    file.delete()
+                    if (player === failed) player = null
+                    if (audioFile == file) audioFile = null
+                    speakLocalFallback()
+                    true
+                }
+                player = nextPlayer
+                audioFile = file
+                nextPlayer.prepareAsync()
+            }.onFailure {
+                file.delete()
+                speakLocalFallback()
+            }
         }
     }
 
+    LaunchedEffect(autoSpeak, text) {
+        if (autoSpeak && text.isNotBlank()) speak()
+    }
+
     IconButton(
-        enabled = ready && text.isNotBlank(),
-        onClick = {
-            val locale = if (languageCode == "ar") Locale("ar") else Locale.US
-            tts?.language = locale
-            tts?.setSpeechRate(0.94f)
-            tts?.setPitch(1.0f)
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "bye-pro-ai-response")
-        },
+        enabled = text.isNotBlank() && (ready || onSynthesizeSpeech != null),
+        onClick = { speak() },
         modifier = modifier
     ) {
         Icon(
@@ -165,4 +219,3 @@ fun SpeakTextButton(
         )
     }
 }
-

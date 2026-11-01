@@ -10,6 +10,12 @@ import com.example.finance.ai.ExtractedReceiptData
 import com.example.finance.ai.FinancialAssistantEngine
 import com.example.finance.ai.GemmaLocalAssistant
 import com.example.finance.ai.OfflineFinanceService
+import com.example.finance.auth.SupabaseAuthRepository
+import com.example.finance.network.FinanceApiProvider
+import com.example.finance.network.SpeechRequest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.IOException
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceExportService
 import com.example.finance.data.FinanceRepository
@@ -32,6 +38,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private val db = AppDatabase.getDatabase(application)
     val repository = FinanceRepository(db.financeDao(), db)
     val aiService = OfflineFinanceService()
+    private val authRepository = SupabaseAuthRepository(application)
     val accounts: StateFlow<List<AccountEntity>> = repository.accounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val archivedAccounts: StateFlow<List<AccountEntity>> = repository.archivedAccounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val _accountsLoading = MutableStateFlow(true)
@@ -137,6 +144,27 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun deleteNotification(id: Long) { viewModelScope.launch { runCatching { repository.deleteNotification(id) }.onFailure { Log.e("BYE_PRO_FINANCE", "Delete notification failed", it) } } }
     fun clearNotifications() { viewModelScope.launch { runCatching { repository.clearNotifications() }.onFailure { Log.e("BYE_PRO_FINANCE", "Clear notifications failed", it) } } }
     fun clearAiChat() { if (_isAiLoading.value) return; resetWelcomeMessage() }
+    suspend fun synthesizeSpeech(text: String): Result<ByteArray> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(text.isNotBlank() && text.length <= 5_000) { "SPEECH_TEXT_INVALID" }
+            check(authRepository.restoreSession()) { "AUTH_REQUIRED" }
+            val accessToken = authRepository.currentAccessToken() ?: error("AUTH_REQUIRED")
+            val response = FinanceApiProvider.api.synthesizeSpeech(
+                bearerToken = "Bearer $accessToken",
+                request = SpeechRequest(text = text)
+            )
+            if (!response.isSuccessful) {
+                val providerError = response.errorBody()?.use { it.string() }.orEmpty()
+                throw IOException("SPEECH_REQUEST_FAILED_${response.code()}: ${providerError.take(120)}")
+            }
+            val body = response.body() ?: throw IOException("SPEECH_AUDIO_MISSING")
+            body.use { audio ->
+                val bytes = audio.bytes()
+                require(bytes.isNotEmpty() && bytes.size <= 8 * 1024 * 1024) { "SPEECH_AUDIO_SIZE_INVALID" }
+                bytes
+            }
+        }
+    }
     fun askAiAssistant(query: String, imageUri: Uri? = null) {
         if ((query.isBlank() && imageUri == null) || _isAiLoading.value) return
         val trimmedQuery = query.trim().ifBlank {

@@ -200,7 +200,7 @@ fun AiAssistantScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(messages) { msg ->
-                        ChatBubbleItem(message = msg, lang = lang, autoSpeak = msg.timestamp == autoSpeakTimestamp)
+                        ChatBubbleItem(message = msg, lang = lang, autoSpeak = msg.timestamp == autoSpeakTimestamp, onSynthesizeSpeech = { text -> viewModel.synthesizeSpeech(text) })
                     }
                     if (isAiLoading) {
                         item {
@@ -402,7 +402,7 @@ fun AiAssistantScreen(
 }
 
 @Composable
-fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean = false) {
+fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean = false, onSynthesizeSpeech: suspend (String) -> Result<ByteArray>) {
     val isUser = message.sender == "USER"
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -443,7 +443,8 @@ fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean =
                     SpeakTextButton(
                         text = message.text,
                         languageCode = if (lang == AppLanguage.AR) "ar" else "en",
-                        autoSpeak = autoSpeak
+                        autoSpeak = autoSpeak,
+                        onSynthesizeSpeech = onSynthesizeSpeech
                     )
                 }
             }
