@@ -43,15 +43,19 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.finance.i18n.Strings
 import com.example.finance.model.AppLanguage
+import com.example.finance.auth.SupabaseAuthRepository
+import kotlinx.coroutines.launch
 import com.example.finance.ui.FinanceViewModel
 
 @Composable
@@ -71,6 +75,11 @@ fun SettingsScreen(
     val budgetAlerts by viewModel.budgetAlerts.collectAsState()
     var currencyMenuExpanded by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var passwordResetMessage by remember { mutableStateOf<String?>(null) }
+    var passwordResetBusy by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val authRepository = remember(context) { SupabaseAuthRepository(context) }
+    val scope = rememberCoroutineScope()
     var profileName by remember(currentUser?.id, currentUser?.name) { mutableStateOf(currentUser?.name.orEmpty()) }
 
     LazyColumn(
@@ -314,6 +323,54 @@ fun SettingsScreen(
                     SettingsSwitchRow(WebI18n.tr("تذكيرات الفواتير", "Bill reminders", lang), billReminders, viewModel::setBillReminders)
                     SettingsSwitchRow(WebI18n.tr("تنبيهات الميزانيات", "Budget alerts", lang), budgetAlerts, viewModel::setBudgetAlerts)
                     Text(WebI18n.tr("هذه التفضيلات تُحفظ على هذا الجهاز حالياً، ولا ترسل إشعارات بريدية أو تربط الحساب بالخادم.", "These preferences are stored on this device; they do not send email or connect to a server.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
+        // Account security mirrors the web settings section with a real Supabase recovery action.
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Security, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
+                        Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                        Text(WebI18n.tr("أمان الحساب", "Account security", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                    Text(
+                        WebI18n.tr("إرسال رابط آمن إلى بريد حسابك لتغيير كلمة المرور.", "Send a secure password reset link to your account email.", lang),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    FinanceOutlinedButton(
+                        onClick = {
+                            val email = currentUser?.email.orEmpty()
+                            if (email.isBlank()) {
+                                passwordResetMessage = WebI18n.tr("لا يوجد بريد إلكتروني مرتبط بالحساب.", "No email address is linked to this account.", lang)
+                            } else {
+                                passwordResetBusy = true
+                                passwordResetMessage = null
+                                scope.launch {
+                                    val result = authRepository.requestPasswordReset(email)
+                                    passwordResetMessage = result.fold(
+                                        onSuccess = { WebI18n.tr("تم إرسال رابط تغيير كلمة المرور إلى بريدك الإلكتروني.", "A password reset link has been sent to your email.", lang) },
+                                        onFailure = { WebI18n.tr("تعذر إرسال الرابط: ", "Could not send the link: ", lang) + (it.message ?: "Unknown error") }
+                                    )
+                                    passwordResetBusy = false
+                                }
+                            }
+                        },
+                        enabled = !passwordResetBusy && currentUser?.email?.isNotBlank() == true,
+                        modifier = Modifier.fillMaxWidth().testTag("settings_password_reset_button")
+                    ) {
+                        Text(if (passwordResetBusy) WebI18n.tr("جارٍ الإرسال…", "Sending…", lang) else WebI18n.tr("تغيير كلمة المرور", "Change password", lang))
+                    }
+                    passwordResetMessage?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }
