@@ -62,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -85,6 +86,13 @@ fun AiAssistantScreen(
     val budgets by viewModel.budgets.collectAsState()
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val context = LocalContext.current
+    var autoSpeakReplies by remember {
+        mutableStateOf(
+            context.getSharedPreferences("bye_pro_ai_settings", 0)
+                .getBoolean("auto_speak_replies", false)
+        )
+    }
     var inputText by remember { mutableStateOf("") }
     var speakNextAiResponse by remember { mutableStateOf(false) }
     var autoSpeakTimestamp by remember { mutableStateOf<Long?>(null) }
@@ -130,6 +138,11 @@ fun AiAssistantScreen(
                 selected = selectedTabIndex == 1,
                 onClick = { selectedTabIndex = 1 },
                 text = { Text(Strings.get("nav_ai_insights", lang), fontWeight = FontWeight.Bold) }
+            )
+            Tab(
+                selected = selectedTabIndex == 2,
+                onClick = { selectedTabIndex = 2 },
+                text = { Text(WebI18n.tr("النماذج والإعدادات", "Models & Settings", lang), fontWeight = FontWeight.Bold) }
             )
         }
 
@@ -236,7 +249,7 @@ fun AiAssistantScreen(
                         enabled = !isAiLoading,
                         onRecognized = {
                             inputText = ""
-                            speakNextAiResponse = true
+                            speakNextAiResponse = autoSpeakReplies
                             viewModel.askAiAssistant(it)
                         },
                         modifier = Modifier.testTag("ai_assistant_voice_input")
@@ -274,7 +287,7 @@ fun AiAssistantScreen(
                     }
                 }
             }
-        } else {
+        } else if (selectedTabIndex == 1) {
             // Insights Tab
             val insights = viewModel.aiService.generateInsights(transactions, budgets, lang)
             LazyColumn(
@@ -361,6 +374,17 @@ fun AiAssistantScreen(
                     }
                 }
             }
+        } else {
+            AiModelsSettingsScreen(
+                autoSpeakReplies = autoSpeakReplies,
+                onAutoSpeakRepliesChange = { enabled ->
+                    autoSpeakReplies = enabled
+                    context.getSharedPreferences("bye_pro_ai_settings", 0)
+                        .edit()
+                        .putBoolean("auto_speak_replies", enabled)
+                        .apply()
+                }
+            )
         }
     }
 }
