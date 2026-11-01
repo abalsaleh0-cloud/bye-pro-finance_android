@@ -34,14 +34,19 @@ object AiWriteCommandParser {
         val rawAmount = amountMatch.groupValues[1]
             .replace('٠', '0').replace('١', '1').replace('٢', '2').replace('٣', '3').replace('٤', '4')
             .replace('٥', '5').replace('٦', '6').replace('٧', '7').replace('٨', '8').replace('٩', '9')
-        val amount = if (rawAmount.contains('.') || rawAmount.count { it == ',' } > 1) {
-            rawAmount.replace('٬', ' ').replace(",", "").replace(' ', '.').toDoubleOrNull()
-        } else if (rawAmount.contains(',')) {
-            val parts = rawAmount.split(',')
-            if (parts.lastOrNull()?.length == 3) rawAmount.replace(",", "").toDoubleOrNull() else rawAmount.replace(',', '.').toDoubleOrNull()
-        } else {
-            rawAmount.replace('٬', ' ').replace(" ", "").toDoubleOrNull()
-        } ?: return null
+        val amount: Double = when {
+            rawAmount.contains('.') || rawAmount.count { it == ',' } > 1 ->
+                rawAmount.replace('٬', ' ').replace(",", "").replace(' ', '.').toDoubleOrNull() ?: return null
+            rawAmount.contains(',') -> {
+                val parts = rawAmount.split(',')
+                if (parts.lastOrNull()?.length == 3) {
+                    rawAmount.replace(",", "").toDoubleOrNull() ?: return null
+                } else {
+                    rawAmount.replace(',', '.').toDoubleOrNull() ?: return null
+                }
+            }
+            else -> rawAmount.replace('٬', ' ').replace(" ", "").toDoubleOrNull() ?: return null
+        }
         if (!amount.isFinite() || amount <= 0.0) return null
 
         val currency = detectCurrency(normalized) ?: defaultCurrency.uppercase(Locale.ROOT)
