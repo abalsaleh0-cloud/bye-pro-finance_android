@@ -21,6 +21,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +49,63 @@ private data class LocalModelFile(
     val locationLabel: String
 )
 
+private data class SelectedModelInfo(
+    val uri: Uri,
+    val name: String,
+    val sizeBytes: Long,
+    val detectedFormat: String,
+    val headerHex: String
+)
+
+private fun inspectSelectedModel(context: android.content.Context, uri: Uri): SelectedModelInfo {
+    var name = uri.lastPathSegment?.substringAfterLast('/') ?: "ملف بدون اسم"
+    var size = -1L
+    context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)
+        ?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                if (nameIndex >= 0) name = cursor.getString(nameIndex) ?: name
+                if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) size = cursor.getLong(sizeIndex)
+            }
+        }
+    val header = context.contentResolver.openInputStream(uri)?.use { input ->
+        ByteArray(16).also { buffer ->
+            var offset = 0
+            while (offset < buffer.size) {
+                val count = input.read(buffer, offset, buffer.size - offset)
+                if (count <= 0) break
+                offset += count
+            }
+        }.takeWhileIndexed { index, byte -> index < 16 && byte != 0.toByte() || index < 4 }
+            .toByteArray()
+    } ?: byteArrayOf()
+    val extension = name.substringAfterLast('.', "").lowercase(Locale.ROOT)
+    val format = when {
+        header.size >= 4 && header.copyOfRange(0, 4).decodeToString() == "GGUF" -> "GGUF"
+        header.size >= 8 && header.copyOfRange(4, 8).decodeToString() == "TFL3" -> "TensorFlow Lite"
+        extension == "litertlm" -> "LiteRT-LM (امتداد الملف؛ يحتاج تحققاً إضافياً)"
+        extension == "task" -> "ملف Task (الامتداد لا يثبت توافق المحرك)"
+        extension == "onnx" -> "ONNX"
+        extension == "safetensors" -> "SafeTensors"
+        extension == "bin" -> "BIN غير محدد"
+        else -> "صيغة غير معروفة"
+    }
+    return SelectedModelInfo(
+        uri = uri,
+        name = name,
+        sizeBytes = size,
+        detectedFormat = format,
+        headerHex = header.joinToString(" ") { "%02X".format(it) }.ifBlank { "غير متاح" }
+    )
+}
+
+private inline fun ByteArray.takeWhileIndexed(predicate: (Int, Byte) -> Boolean): List<Byte> {
+    val result = mutableListOf<Byte>()
+    forEachIndexed { index, byte -> if (predicate(index, byte)) result.add(byte) }
+    return result
+}
+
 @Composable
 fun AiModelsSettingsScreen(
     autoSpeakReplies: Boolean,
@@ -54,6 +116,30 @@ fun AiModelsSettingsScreen(
     var modelFiles by remember { mutableStateOf<List<LocalModelFile>>(emptyList()) }
     var isScanning by remember { mutableStateOf(false) }
     var scanCompleted by remember { mutableStateOf(false) }
+    var selectedModel by remember { mutableStateOf<SelectedModelInfo?>(null) }
+    var modelInspectionError by remember { mutableStateOf<String?>(null) }
+    val modelPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                modelInspectionError = null
+                runCatching {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                }
+                runCatching {
+                    withContext(Dispatchers.IO) { inspectSelectedModel(context, uri) }
+                }.onSuccess { info ->
+                    selectedModel = info
+                    context.getSharedPreferences("bye_pro_finance_ai_models", android.content.Context.MODE_PRIVATE)
+                        .edit().putString("selected_model_uri", uri.toString()).apply()
+                }.onFailure { error ->
+                    modelInspectionError = error.message ?: "تعذر قراءة بيانات الملف"
+                }
+            }
+        }
+    }
 
     suspend fun scanModels() {
         isScanning = true
@@ -87,7 +173,17 @@ fun AiModelsSettingsScreen(
         isScanning = false
     }
 
-    LaunchedEffect(Unit) { scanModels() }
+    LaunchedEffect(Unit) {
+        scanModels()
+        val savedUri = context.getSharedPreferences("bye_pro_finance_ai_models", android.content.Context.MODE_PRIVATE)
+            .getString("selected_model_uri", null)
+        if (!savedUri.isNullOrBlank()) {
+            runCatching {
+                withContext(Dispatchers.IO) { inspectSelectedModel(context, Uri.parse(savedUri)) }
+            }.onSuccess { selectedModel = it }
+                .onFailure { modelInspectionError = "تعذر الوصول إلى الملف المحفوظ؛ اختر الملف مجدداً." }
+        }
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -131,19 +227,55 @@ fun AiModelsSettingsScreen(
                 }
             }
         }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("استعادة النموذج الموجود على الهاتف", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "اختر ملف النموذج الذي سبق تنزيله. سيقرأ التطبيق الاسم والحجم وأول 16 بايت فقط، ولن يرفع الملف أو ينزّله أو يحذفه.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedButton(
+                        onClick = { modelPicker.launch(arrayOf("*/*")) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Storage, contentDescription = null)
+                        Spacer(Modifier.size(6.dp))
+                        Text("اختيار ملف النموذج من الهاتف")
+                    }
+                    selectedModel?.let { model ->
+                        Text(model.name, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (model.sizeBytes >= 0) String.format(Locale.US, "%.2f GB", model.sizeBytes / 1_073_741_824.0)
+                            else "الحجم غير متاح من مزود الملفات",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text("الصيغة المكتشفة: ${model.detectedFormat}", style = MaterialTheme.typography.bodySmall)
+                        Text("ترويسة الملف: ${model.headerHex}", style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            "تم حفظ إذن الوصول إلى الملف. هذه قراءة بيانات فقط؛ لم يتم بعد تأكيد أن الملف هو Gemma 4 E2B أو أنه متوافق مع LiteRT-LM.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
+                    modelInspectionError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
         items(modelFiles) { model ->
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(model.name, fontWeight = FontWeight.SemiBold)
                     Text(String.format(Locale.US, "%.2f GB", model.sizeBytes / 1_073_741_824.0))
                     Text(model.locationLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (model.name.contains("gemma", ignoreCase = true) || model.sizeBytes in 2_300_000_000L..2_900_000_000L) {
-                        Text(
-                            "قد يتوافق حجمه مع Gemma 3n E2B؛ يلزم التحقق من بيانات النموذج قبل الجزم.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
-                    }
+                    Text(
+                        "لا يمكن تحديد اسم النموذج من الحجم وحده؛ اختر الملف أعلاه لفحص ترويسته.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
