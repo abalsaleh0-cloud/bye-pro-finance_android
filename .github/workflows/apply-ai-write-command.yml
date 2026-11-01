@@ -1,0 +1,147 @@
+name: Apply AI write command implementation
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.head_commit.message == 'ci: apply AI write command implementation'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Apply implementation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          vm = Path('app/src/main/java/com/example/finance/ui/FinanceViewModel.kt')
+          text = vm.read_text()
+
+          imports = 'import com.example.finance.ai.AiWriteCommand\nimport com.example.finance.ai.AiWriteCommandParser\nimport com.example.finance.ai.TransactionWriteType\n'
+          anchor = 'import com.example.finance.ai.ExtractedReceiptData\n'
+          if imports.strip() not in text:
+              text = text.replace(anchor, anchor + imports)
+
+          start = text.index('    fun askAiAssistant(query: String) {')
+          end = text.index('    private val _ocrError', start)
+          replacement = '''    fun askAiAssistant(query: String) {
+          if (query.isBlank() || _isAiLoading.value) return
+          val trimmedQuery = query.trim()
+          _chatMessages.value = _chatMessages.value + ChatMessage("USER", trimmedQuery)
+          _isAiLoading.value = true
+          viewModelScope.launch {
+              val response = runCatching {
+                  val writeCommand = AiWriteCommandParser.parse(
+                      query = trimmedQuery,
+                      accounts = accounts.value,
+                      defaultCurrency = primaryCurrency.value
+                  )
+                  if (writeCommand is AiWriteCommand.RecordTransaction) {
+                      val account = writeCommand.account
+                      val matchingAccounts = accounts.value.filter {
+                          !it.isArchived && it.currency.equals(writeCommand.currency, ignoreCase = true)
+                      }
+                      when {
+                          account == null && matchingAccounts.size > 1 -> WebI18n.tr(
+                              "لدي أكثر من حساب بعملة ${writeCommand.currency}. حدّد الحساب، مثل: سجل مصروف 50 دينار مواصلات من حساب المحفظة الرئيسية.",
+                              "You have more than one ${writeCommand.currency} account. Specify the account, for example: record an expense of 50 ${writeCommand.currency} for transport from Main Wallet.",
+                              _appLanguage.value
+                          )
+                          account == null -> WebI18n.tr(
+                              "لم أجد حسابًا نشطًا بعملة ${writeCommand.currency}. أضف حسابًا بهذه العملة أولًا.",
+                              "I could not find an active account in ${writeCommand.currency}. Add an account in that currency first.",
+                              _appLanguage.value
+                          )
+                          !account.currency.equals(writeCommand.currency, ignoreCase = true) -> WebI18n.tr(
+                              "عملة العملية لا تطابق عملة الحساب المحدد.",
+                              "The transaction currency does not match the selected account currency.",
+                              _appLanguage.value
+                          )
+                          else -> {
+                              val transactionType = when (writeCommand.type) {
+                                  TransactionWriteType.EXPENSE -> TransactionType.EXPENSE
+                                  TransactionWriteType.INCOME -> TransactionType.INCOME
+                              }
+                              val transaction = TransactionEntity(
+                                  accountId = account.id,
+                                  type = transactionType,
+                                  amount = writeCommand.amount,
+                                  currency = writeCommand.currency,
+                                  category = writeCommand.category,
+                                  date = System.currentTimeMillis(),
+                                  description = writeCommand.description,
+                                  status = TransactionStatus.COMPLETED
+                              )
+                              repository.addTransaction(transaction)
+                              val verb = if (writeCommand.type == TransactionWriteType.EXPENSE) {
+                                  WebI18n.tr("تم تسجيل المصروف", "Expense recorded", _appLanguage.value)
+                              } else {
+                                  WebI18n.tr("تم تسجيل الدخل", "Income recorded", _appLanguage.value)
+                              }
+                              "$verb: ${writeCommand.amount} ${writeCommand.currency} — ${writeCommand.category} — ${account.name}."
+                          }
+                      }
+                  } else {
+                      FinancialAssistantEngine.answer(
+                          query = trimmedQuery,
+                          accounts = accounts.value,
+                          transactions = transactions.value,
+                          budgets = budgets.value,
+                          debts = debts.value,
+                          savingsGoals = savingsGoals.value,
+                          assets = assets.value,
+                          bills = bills.value,
+                          language = _appLanguage.value
+                      )
+                  }
+              }.getOrElse { error ->
+                  Log.e("BYE_PRO_FINANCE", "AI operation failed", error)
+                  WebI18n.tr(
+                      "تعذر تنفيذ العملية المالية: ${error.message ?: "خطأ غير معروف"}",
+                      "The financial operation could not be completed: ${error.message ?: "unknown error"}",
+                      _appLanguage.value
+                  )
+              }
+              _isAiLoading.value = false
+              _chatMessages.value = _chatMessages.value + ChatMessage("AI", response)
+          }
+      }
+'''
+          text = text[:start] + replacement + text[end:]
+          vm.write_text(text)
+
+          props = Path('gradle.properties')
+          p = props.read_text()
+          p = p.replace('APP_VERSION_NAME=10.0.44', 'APP_VERSION_NAME=10.0.45')
+          p = p.replace('APP_VERSION_CODE=10044', 'APP_VERSION_CODE=10045')
+          props.write_text(p)
+          PY
+
+      - name: Verify unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Commit implementation
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/com/example/finance/ui/FinanceViewModel.kt gradle.properties
+          git diff --cached --quiet && exit 0
+          git commit -m 'feat(ai): enable natural-language transaction recording v10.0.45'
+          git push origin HEAD:main
