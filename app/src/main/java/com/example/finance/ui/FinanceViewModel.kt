@@ -6,7 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.finance.ai.ExtractedReceiptData
 import com.example.finance.ai.FinancialAssistantEngine
-import com.example.finance.ai.GeminiFinanceService
+import com.example.finance.ai.OfflineFinanceService
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceExportService
 import com.example.finance.data.FinanceRepository
@@ -28,7 +28,7 @@ data class ChatMessage(val sender: String, val text: String, val timestamp: Long
 class FinanceViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getDatabase(application)
     val repository = FinanceRepository(db.financeDao(), db)
-    val aiService = GeminiFinanceService()
+    val aiService = OfflineFinanceService()
     val accounts: StateFlow<List<AccountEntity>> = repository.accounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val archivedAccounts: StateFlow<List<AccountEntity>> = repository.archivedAccounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val _accountsLoading = MutableStateFlow(true)
@@ -140,228 +140,23 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         _chatMessages.value = _chatMessages.value + ChatMessage("USER", trimmedQuery)
         _isAiLoading.value = true
         viewModelScope.launch {
-            val history = _chatMessages.value.dropLast(1).takeLast(12)
-                .joinToString("\n") { "${it.sender}: ${it.text}" }
             val response = runCatching {
-                val intent = aiService.understandTransactionIntent(
-                    userQuery = trimmedQuery,
-                    recentConversation = history,
+                FinancialAssistantEngine.answer(
+                    query = trimmedQuery,
                     accounts = accounts.value,
-                    defaultCurrency = primaryCurrency.value,
+                    transactions = transactions.value,
+                    budgets = budgets.value,
+                    debts = debts.value,
+                    savingsGoals = savingsGoals.value,
+                    assets = assets.value,
+                    bills = bills.value,
                     language = _appLanguage.value
                 )
-                when (intent?.intent) {
-                    "CREATE_EXPENSE", "CREATE_INCOME" -> {
-                        val action = intent ?: return@runCatching WebI18n.tr("لم أتمكن من فهم العملية.", "I could not understand the transaction.", _appLanguage.value)
-                        if (action.confidence < 0.72 || action.amount == null || action.category.isNullOrBlank()) {
-                            action.clarification ?: WebI18n.tr(
-                                "فهمت أنك تريد تسجيل عملية مالية، لكن أحتاج توضيح المبلغ أو نوع العملية أو تصنيفها.",
-                                "I understood that you want to record a financial transaction, but I need the amount, transaction type, or category clarified.",
-                                _appLanguage.value
-                            )
-                        } else {
-                            val currency = action.currency ?: primaryCurrency.value
-                            val matchingAccounts = accounts.value.filter {
-                                !it.isArchived && it.currency.equals(currency, ignoreCase = true)
-                            }
-                            val account = action.accountName?.let { requested ->
-                                matchingAccounts.firstOrNull { it.name.equals(requested, ignoreCase = true) }
-                            } ?: matchingAccounts.singleOrNull()
-                            when {
-                                account == null && matchingAccounts.isEmpty() -> WebI18n.tr(
-                                    "لا يوجد حساب نشط بعملة $currency. أضف حساباً بهذه العملة أولاً.",
-                                    "There is no active account in $currency. Add an account in this currency first.",
-                                    _appLanguage.value
-                                )
-                                account == null -> action.clarification ?: WebI18n.tr(
-                                    "لديك أكثر من حساب بعملة $currency. أي حساب تريد استخدامه؟",
-                                    "You have more than one account in $currency. Which account should I use?",
-                                    _appLanguage.value
-                                )
-                                else -> {
-                                    val transactionType = if (action.intent == "CREATE_EXPENSE") TransactionType.EXPENSE else TransactionType.INCOME
-                                    val transactionDate = action.dateIso?.let { date ->
-                                        runCatching {
-                                            java.time.LocalDate.parse(date).atStartOfDay(
-                                                java.time.ZoneId.of(timeZone.value)
-                                            ).toInstant().toEpochMilli()
-                                        }.getOrNull()
-                                    } ?: System.currentTimeMillis()
-                                    val transaction = TransactionEntity(
-                                        accountId = account.id,
-                                        type = transactionType,
-                                        amount = action.amount,
-                                        currency = currency,
-                                        category = action.category,
-                                        date = transactionDate,
-                                        description = action.description ?: action.category,
-                                        status = TransactionStatus.COMPLETED
-                                    )
-                                    repository.addTransaction(transaction)
-                                    WebI18n.tr(
-                                        "تم تسجيل العملية بنجاح: ${action.amount} $currency — ${action.category} — ${account.name}.",
-                                        "Transaction recorded: ${action.amount} $currency — ${action.category} — ${account.name}.",
-                                        _appLanguage.value
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    "CREATE_TRANSFER" -> {
-                        val action = intent ?: return@runCatching "لم أتمكن من فهم التحويل."
-                        val amount = action.amount
-                        val currency = action.currency ?: primaryCurrency.value
-                        if (action.confidence < 0.72 || amount == null || action.fromAccountName.isNullOrBlank() || action.toAccountName.isNullOrBlank()) {
-                            action.clarification ?: WebI18n.tr(
-                                "أحتاج معرفة المبلغ والحساب الذي سيُخصم منه والحساب الذي سيستقبل التحويل.",
-                                "I need the amount, source account, and destination account for the transfer.",
-                                _appLanguage.value
-                            )
-                        } else {
-                            val source = accounts.value.firstOrNull { it.name.equals(action.fromAccountName, true) && !it.isArchived }
-                            val destination = accounts.value.firstOrNull { it.name.equals(action.toAccountName, true) && !it.isArchived }
-                            when {
-                                source == null || destination == null -> WebI18n.tr("لم أتمكن من مطابقة أحد الحسابين. اذكر اسمي الحسابين كما يظهران في التطبيق.", "I could not match one of the accounts. Please use their exact names from the app.", _appLanguage.value)
-                                source.id == destination.id -> WebI18n.tr("حساب التحويل المصدر والوجهة لا يمكن أن يكونا الحساب نفسه.", "The source and destination accounts must be different.", _appLanguage.value)
-                                !source.currency.equals(destination.currency, true) || !source.currency.equals(currency, true) -> WebI18n.tr("يجب أن تكون عملة الحسابين وعملة التحويل متطابقة.", "Both accounts and the transfer must use the same currency.", _appLanguage.value)
-                                else -> {
-                                    val transferred = repository.executeTransfer(source.id, destination.id, amount, 0.0, currency, action.description ?: "تحويل عبر المساعد الذكي", "")
-                                    if (transferred) WebI18n.tr("تم تنفيذ التحويل: $amount $currency من ${source.name} إلى ${destination.name}.", "Transfer completed: $amount $currency from ${source.name} to ${destination.name}.", _appLanguage.value)
-                                    else WebI18n.tr("لم يكتمل التحويل. تحقق من الحسابين والرصيد المتاح.", "The transfer could not be completed. Check both accounts and the available balance.", _appLanguage.value)
-                                }
-                            }
-                        }
-                    }
-                    "CREATE_DEBT" -> {
-                        val action = intent ?: return@runCatching "لم أتمكن من فهم الدين."
-                        val amount = action.amount
-                        val party = action.partyName ?: action.name
-                        val direction = action.direction
-                        if (action.confidence < 0.72 || amount == null || party.isNullOrBlank() || direction == null) {
-                            action.clarification ?: WebI18n.tr("أحتاج معرفة اسم الشخص، المبلغ، وهل الدين عليك أم لك.", "I need the person's name, amount, and whether you owe them or they owe you.", _appLanguage.value)
-                        } else {
-                            repository.addDebt(DebtEntity(
-                                name = party,
-                                creditor = party,
-                                principal = amount,
-                                remaining = amount,
-                                currency = action.currency ?: primaryCurrency.value,
-                                dueDate = action.dueDateIso?.let { date -> runCatching { java.time.LocalDate.parse(date).atStartOfDay(java.time.ZoneId.of(timeZone.value)).toInstant().toEpochMilli() }.getOrNull() } ?: System.currentTimeMillis() + 90L * 24 * 60 * 60 * 1000,
-                                notes = action.description ?: "",
-                                direction = direction
-                            ))
-                            WebI18n.tr("تم تسجيل دين $party بقيمة $amount.", "Debt for $party recorded at $amount.", _appLanguage.value)
-                        }
-                    }
-                    "PAY_DEBT" -> {
-                        val action = intent ?: return@runCatching "لم أتمكن من تحديد الدين."
-                        val party = action.partyName ?: action.name
-                        val amount = action.amount
-                        if (action.confidence < 0.72 || party.isNullOrBlank() || amount == null) {
-                            action.clarification ?: WebI18n.tr("لمن دفعت؟ وما قيمة الدفعة؟", "Who did you pay, and how much was the payment?", _appLanguage.value)
-                        } else {
-                            val matchingDebts = debts.value.filter { it.status == DebtStatus.ACTIVE && (it.name.equals(party, true) || it.creditor.equals(party, true)) && (action.currency == null || it.currency.equals(action.currency, true)) }
-                            when {
-                                matchingDebts.isEmpty() -> WebI18n.tr("لم أجد ديناً نشطاً باسم $party.", "I could not find an active debt for $party.", _appLanguage.value)
-                                matchingDebts.size > 1 -> WebI18n.tr("لديك أكثر من دين مرتبط بـ $party. حدّد الدين المقصود.", "There is more than one debt for $party. Please identify which one.", _appLanguage.value)
-                                repository.recordDebtPayment(matchingDebts.first().id, amount, action.description ?: "دفعة مسجلة عبر المساعد الذكي") -> WebI18n.tr("تم تسجيل دفعة $amount للدين المرتبط بـ $party.", "Payment of $amount recorded for the debt linked to $party.", _appLanguage.value)
-                                else -> WebI18n.tr("لم تُسجّل الدفعة. تحقق من المبلغ والرصيد المتبقي للدين.", "The payment was not recorded. Check the amount and remaining debt balance.", _appLanguage.value)
-                            }
-                        }
-                    }
-                    "CREATE_BILL" -> {
-                        val action = intent ?: return@runCatching "لم أتمكن من فهم الفاتورة."
-                        val name = action.name ?: action.description
-                        val amount = action.amount
-                        val dueDate = action.dueDateIso?.let { date -> runCatching { java.time.LocalDate.parse(date).atStartOfDay(java.time.ZoneId.of(timeZone.value)).toInstant().toEpochMilli() }.getOrNull() }
-                        if (action.confidence < 0.72 || name.isNullOrBlank() || action.category.isNullOrBlank() || amount == null || dueDate == null) {
-                            action.clarification ?: WebI18n.tr("أحتاج اسم الفاتورة وتصنيفها ومبلغها وتاريخ استحقاقها.", "I need the bill name, category, amount, and due date.", _appLanguage.value)
-                        } else {
-                            repository.addBill(BillEntity(name = name, category = action.category, amount = amount, currency = action.currency ?: primaryCurrency.value, dueDate = dueDate, isRecurring = action.isRecurring))
-                            WebI18n.tr("تمت إضافة فاتورة $name بقيمة $amount.", "Bill $name added for $amount.", _appLanguage.value)
-                        }
-                    }
-                    "CREATE_BUDGET" -> {
-                        val action = intent ?: return@runCatching "لم أتمكن من فهم الميزانية."
-                        val amount = action.amount
-                        if (action.confidence < 0.72 || action.category.isNullOrBlank() || amount == null) {
-                            action.clarification ?: WebI18n.tr("أحتاج تصنيف الميزانية والحد المالي المطلوب.", "I need the budget category and spending limit.", _appLanguage.value)
-                        } else {
-                            val period = runCatching { BudgetPeriod.valueOf(action.period ?: "MONTHLY") }.getOrDefault(BudgetPeriod.MONTHLY)
-                            val today = java.time.LocalDate.now(java.time.ZoneId.of(timeZone.value))
-                            val end = when (period) {
-                                BudgetPeriod.WEEKLY -> today.plusWeeks(1)
-                                BudgetPeriod.MONTHLY -> today.plusMonths(1)
-                                BudgetPeriod.QUARTERLY -> today.plusMonths(3)
-                                BudgetPeriod.YEARLY -> today.plusYears(1)
-                                BudgetPeriod.CUSTOM -> today.plusMonths(1)
-                            }
-                            repository.addBudget(BudgetEntity(name = action.name ?: action.category, category = action.category, period = period, limitAmount = amount, currency = action.currency ?: primaryCurrency.value, startDate = today.atStartOfDay(java.time.ZoneId.of(timeZone.value)).toInstant().toEpochMilli(), endDate = end.atStartOfDay(java.time.ZoneId.of(timeZone.value)).toInstant().toEpochMilli()))
-                            WebI18n.tr("تم إنشاء ميزانية ${action.category} بحد $amount.", "Budget for ${action.category} created with a limit of $amount.", _appLanguage.value)
-                        }
-                    }
-                    "CREATE_SAVINGS_GOAL" -> {
-                        val action = intent ?: return@runCatching "لم أتمكن من فهم هدف الادخار."
-                        val name = action.name ?: action.description
-                        val target = action.targetAmount ?: action.amount
-                        val deadline = action.dueDateIso?.let { date -> runCatching { java.time.LocalDate.parse(date).atStartOfDay(java.time.ZoneId.of(timeZone.value)).toInstant().toEpochMilli() }.getOrNull() }
-                        if (action.confidence < 0.72 || name.isNullOrBlank() || target == null || deadline == null) {
-                            action.clarification ?: WebI18n.tr("أحتاج اسم هدف الادخار والمبلغ المستهدف والموعد النهائي.", "I need the savings goal name, target amount, and deadline.", _appLanguage.value)
-                        } else {
-                            repository.addSavingsGoal(SavingsGoalEntity(name = name, targetAmount = target, currency = action.currency ?: primaryCurrency.value, deadline = deadline))
-                            WebI18n.tr("تم إنشاء هدف الادخار $name بقيمة مستهدفة $target.", "Savings goal $name created with a target of $target.", _appLanguage.value)
-                        }
-                    }
-                    "CREATE_ASSET" -> {
-                        val action = intent ?: return@runCatching "لم أتمكن من فهم الأصل."
-                        val name = action.name ?: action.description
-                        val value = action.amount
-                        if (action.confidence < 0.72 || name.isNullOrBlank() || value == null) {
-                            action.clarification ?: WebI18n.tr("أحتاج اسم الأصل وقيمته.", "I need the asset name and value.", _appLanguage.value)
-                        } else {
-                            val type = runCatching { AssetType.valueOf(action.assetType ?: "OTHER") }.getOrDefault(AssetType.OTHER)
-                            repository.addAsset(AssetEntity(name = name, type = type, value = value, currency = action.currency ?: primaryCurrency.value, notes = action.description ?: ""))
-                            WebI18n.tr("تمت إضافة الأصل $name بقيمة $value.", "Asset $name added with a value of $value.", _appLanguage.value)
-                        }
-                    }
-                    "UPDATE", "DELETE" -> WebI18n.tr(
-                        "فهمت أنك تريد تعديل أو حذف سجل، لكنني لن أغيّر أي بيانات قبل تحديد السجل بدقة وتأكيد العملية.",
-                        "I understand you want to update or delete a record, but I will not change data until the exact record is identified and you confirm.",
-                        _appLanguage.value
-                    )
-                    "CLARIFY" -> intent?.clarification ?: WebI18n.tr(
-                        "لم أفهم قصدك بالكامل. ممكن توضح لي أكثر؟",
-                        "I did not fully understand. Could you clarify?",
-                        _appLanguage.value
-                    )
-                    else -> {
-                        val aiResponse = aiService.askAssistant(
-                            userQuery = trimmedQuery,
-                            accounts = accounts.value,
-                            transactions = transactions.value,
-                            budgets = budgets.value,
-                            debts = debts.value,
-                            language = _appLanguage.value,
-                            savingsGoals = savingsGoals.value,
-                            assets = assets.value,
-                            bills = bills.value,
-                            conversationHistory = history
-                        )
-                        if (aiResponse.startsWith("تعذر الوصول إلى خدمة الذكاء الاصطناعي") ||
-                            aiResponse.startsWith("The AI service is currently unavailable")) {
-                            WebI18n.tr(
-                                "خدمة الذكاء الاصطناعي غير متاحة حالياً. لم أسجل أو أعدّل أي بيانات. حاول مجدداً بعد عودة الاتصال بالخدمة.",
-                                "The AI service is currently unavailable. I did not record or change any data. Please try again when the service is available.",
-                                _appLanguage.value
-                            )
-                        } else aiResponse
-                    }
-                }
             }.getOrElse { error ->
-                Log.e("BYE_PRO_FINANCE", "AI conversation failed", error)
+                Log.e("BYE_PRO_FINANCE", "Offline financial analysis failed", error)
                 WebI18n.tr(
-                    "تعذر إكمال الطلب: ${error.message ?: "خطأ غير معروف"}",
-                    "Could not complete the request: ${error.message ?: "unknown error"}",
+                    "تعذر تحليل السجلات المحلية: ${error.message ?: "خطأ غير معروف"}",
+                    "Could not analyze local records: ${error.message ?: "unknown error"}",
                     _appLanguage.value
                 )
             }
