@@ -29,6 +29,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Read Android release version
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_VERSION_NAME="$(sed -n 's/^APP_VERSION_NAME=//p' gradle.properties | head -n 1)"
+          APP_VERSION_CODE="$(sed -n 's/^APP_VERSION_CODE=//p' gradle.properties | head -n 1)"
+          [[ "$APP_VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$APP_VERSION_CODE" =~ ^[0-9]+$ ]]
+          echo "APP_VERSION_NAME=$APP_VERSION_NAME" >> "$GITHUB_ENV"
+
       - name: Verify Android project and language behavior
         shell: bash
         run: |
@@ -109,7 +119,7 @@ jobs:
       - name: Upload signed release APK
         uses: actions/upload-artifact@v4
         with:
-          name: BYE-PRO-FINANCE-Android-Release-10.0.67
+          name: BYE-PRO-FINANCE-Android-Release-${{ env.APP_VERSION_NAME }}
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
