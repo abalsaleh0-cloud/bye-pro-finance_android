@@ -17,7 +17,7 @@ sealed interface AiWriteCommand {
 enum class TransactionWriteType { EXPENSE, INCOME }
 
 object AiWriteCommandParser {
-    private val amountRegex = Regex("(?<![\\d٠-٩])([0-9٠-٩]+(?:[.,][0-9٠-٩]+)?)(?![\\d٠-٩])")
+    private val amountRegex = Regex("(?<![\\d٠-٩])([0-9٠-٩]+(?:[٬,][0-9٠-٩]{3})*(?:[.,][0-9٠-٩]+)?)(?![\\d٠-٩])")
 
     fun parse(query: String, accounts: List<AccountEntity>, defaultCurrency: String): AiWriteCommand? {
         val normalized = query.trim().lowercase(Locale.ROOT)
@@ -31,11 +31,17 @@ object AiWriteCommandParser {
         }
 
         val amountMatch = amountRegex.find(normalized) ?: return null
-        val amount = amountMatch.groupValues[1]
+        val rawAmount = amountMatch.groupValues[1]
             .replace('٠', '0').replace('١', '1').replace('٢', '2').replace('٣', '3').replace('٤', '4')
             .replace('٥', '5').replace('٦', '6').replace('٧', '7').replace('٨', '8').replace('٩', '9')
-            .replace(',', '.')
-            .toDoubleOrNull() ?: return null
+        val amount = if (rawAmount.contains('.') || rawAmount.count { it == ',' } > 1) {
+            rawAmount.replace('٬', ' ').replace(",", "").replace(' ', '.').toDoubleOrNull()
+        } else if (rawAmount.contains(',')) {
+            val parts = rawAmount.split(',')
+            if (parts.lastOrNull()?.length == 3) rawAmount.replace(",", "").toDoubleOrNull() else rawAmount.replace(',', '.').toDoubleOrNull()
+        } else {
+            rawAmount.replace('٬', ' ').replace(" ", "").toDoubleOrNull()
+        } ?: return null
         if (!amount.isFinite() || amount <= 0.0) return null
 
         val currency = detectCurrency(normalized) ?: defaultCurrency.uppercase(Locale.ROOT)
@@ -53,10 +59,7 @@ object AiWriteCommandParser {
             .trim(' ', '-', ':', '،', ',')
 
         val category = remainder.ifBlank { if (type == TransactionWriteType.EXPENSE) "عام" else "دخل" }
-        val description = when {
-            type == TransactionWriteType.EXPENSE -> "مصروف: $category"
-            else -> "دخل: $category"
-        }
+        val description = if (type == TransactionWriteType.EXPENSE) "مصروف: $category" else "دخل: $category"
 
         return AiWriteCommand.RecordTransaction(type, amount, currency, category, description, account)
     }
