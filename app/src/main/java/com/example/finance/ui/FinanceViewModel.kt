@@ -225,8 +225,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                                 source.id == destination.id -> WebI18n.tr("حساب التحويل المصدر والوجهة لا يمكن أن يكونا الحساب نفسه.", "The source and destination accounts must be different.", _appLanguage.value)
                                 !source.currency.equals(destination.currency, true) || !source.currency.equals(currency, true) -> WebI18n.tr("يجب أن تكون عملة الحسابين وعملة التحويل متطابقة.", "Both accounts and the transfer must use the same currency.", _appLanguage.value)
                                 else -> {
-                                    repository.executeTransfer(source.id, destination.id, amount, 0.0, currency, action.description ?: "تحويل عبر المساعد الذكي", "")
-                                    WebI18n.tr("تم تنفيذ التحويل: $amount $currency من ${source.name} إلى ${destination.name}.", "Transfer completed: $amount $currency from ${source.name} to ${destination.name}.", _appLanguage.value)
+                                    val transferred = repository.executeTransfer(source.id, destination.id, amount, 0.0, currency, action.description ?: "تحويل عبر المساعد الذكي", "")
+                                    if (transferred) WebI18n.tr("تم تنفيذ التحويل: $amount $currency من ${source.name} إلى ${destination.name}.", "Transfer completed: $amount $currency from ${source.name} to ${destination.name}.", _appLanguage.value)
+                                    else WebI18n.tr("لم يكتمل التحويل. تحقق من الحسابين والرصيد المتاح.", "The transfer could not be completed. Check both accounts and the available balance.", _appLanguage.value)
                                 }
                             }
                         }
