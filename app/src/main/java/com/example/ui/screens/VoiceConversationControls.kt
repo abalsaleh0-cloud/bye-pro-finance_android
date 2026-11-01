@@ -122,11 +122,8 @@ private fun configureAssistantVoice(engine: TextToSpeech, languageCode: String) 
             .thenByDescending { voice -> femaleMarkers.any { marker -> voice.name.contains(marker, ignoreCase = true) } }
             .thenByDescending { it.quality }
     ).firstOrNull()
-    val selectedLocale = when {
-        languageVoices.isNotEmpty() -> languageVoices.first().locale
-        isArabic -> Locale("ar")
-        else -> Locale.US
-    }
+    val selectedLocale = preferred?.locale ?: languageVoices.firstOrNull()?.locale
+        ?: if (isArabic) Locale("ar") else Locale.US
     engine.language = selectedLocale
     if (preferred != null) engine.voice = preferred
     engine.setSpeechRate(0.94f)
@@ -146,10 +143,10 @@ fun SpeakTextButton(
 
     DisposableEffect(languageCode) {
         val engine = TextToSpeech(context) { status ->
-            ready = status == TextToSpeech.SUCCESS
+            val initializedEngine = tts
+            ready = status == TextToSpeech.SUCCESS && initializedEngine != null
             if (ready) {
-                configureAssistantVoice(tts ?: engine, languageCode)
-
+                initializedEngine?.let { configureAssistantVoice(it, languageCode) }
             }
         }
         tts = engine
