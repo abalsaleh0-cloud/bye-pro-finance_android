@@ -165,7 +165,7 @@ fun SmartScanScreen(
                     }
 
                     Text(
-                        text = WebI18n.tr("محرك المسح الضوئي الذكي (Gemini OCR Vision)", "Smart scanning engine (Gemini OCR Vision)", lang),
+                        text = WebI18n.tr("محرك المسح الضوئي الذكي (Offline receipt text extraction)", "Smart scanning engine (Offline receipt text extraction)", lang),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
