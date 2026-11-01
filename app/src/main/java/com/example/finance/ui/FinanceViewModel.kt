@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.finance.ai.ExtractedReceiptData
+import com.example.finance.ai.FinancialAssistantEngine
 import com.example.finance.ai.GeminiFinanceService
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceExportService
@@ -107,9 +108,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun addDebt(debt: DebtEntity) { viewModelScope.launch { repository.addDebt(debt) } }
     fun updateDebt(debt: DebtEntity) { viewModelScope.launch { repository.updateDebt(debt) } }
     fun debtPayments(debtId: Long): Flow<List<DebtPaymentEntity>> = repository.debtPayments(debtId)
-    fun payDebt(debtId: Long, amount: Double, notes: String, paymentDate: Long = System.currentTimeMillis()) {
-        viewModelScope.launch { repository.recordDebtPayment(debtId, amount, notes, paymentDate) }
-    }
+    fun payDebt(debtId: Long, amount: Double, notes: String, paymentDate: Long = System.currentTimeMillis()) { viewModelScope.launch { repository.recordDebtPayment(debtId, amount, notes, paymentDate) } }
     fun deleteDebt(debt: DebtEntity) { viewModelScope.launch { repository.deleteDebt(debt) } }
     fun addBill(bill: BillEntity) { viewModelScope.launch { repository.addBill(bill) } }
     fun updateBill(bill: BillEntity) { viewModelScope.launch { repository.updateBill(bill) } }
@@ -135,7 +134,22 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun deleteNotification(id: Long) { viewModelScope.launch { runCatching { repository.deleteNotification(id) }.onFailure { Log.e("BYE_PRO_FINANCE", "Delete notification failed", it) } } }
     fun clearNotifications() { viewModelScope.launch { runCatching { repository.clearNotifications() }.onFailure { Log.e("BYE_PRO_FINANCE", "Clear notifications failed", it) } } }
     fun clearAiChat() { if (_isAiLoading.value) return; resetWelcomeMessage() }
-    fun askAiAssistant(query: String) { if (query.isBlank() || _isAiLoading.value) return; _chatMessages.value = _chatMessages.value + ChatMessage("USER", query.trim()); _isAiLoading.value = true; viewModelScope.launch { val response = runCatching { aiService.askAssistant(query.trim(), accounts.value, transactions.value, budgets.value, debts.value, _appLanguage.value, savingsGoals.value, assets.value, bills.value) }.getOrElse { WebI18n.tr("تعذر إكمال التحليل المالي حالياً.", "The financial analysis could not be completed right now.", _appLanguage.value) }; _isAiLoading.value = false; _chatMessages.value = _chatMessages.value + ChatMessage("AI", response) } }
+    fun askAiAssistant(query: String) {
+        if (query.isBlank() || _isAiLoading.value) return
+        _chatMessages.value = _chatMessages.value + ChatMessage("USER", query.trim())
+        _isAiLoading.value = true
+        viewModelScope.launch {
+            val response = runCatching {
+                FinancialAssistantEngine.answer(
+                    query = query.trim(), accounts = accounts.value, transactions = transactions.value,
+                    budgets = budgets.value, debts = debts.value, savingsGoals = savingsGoals.value,
+                    assets = assets.value, bills = bills.value, language = _appLanguage.value
+                )
+            }.getOrElse { WebI18n.tr("تعذر إكمال التحليل المالي حالياً.", "The financial analysis could not be completed right now.", _appLanguage.value) }
+            _isAiLoading.value = false
+            _chatMessages.value = _chatMessages.value + ChatMessage("AI", response)
+        }
+    }
     private val _ocrError = MutableStateFlow<String?>(null)
     val ocrError: StateFlow<String?> = _ocrError.asStateFlow()
     fun scanReceipt(sampleText: String? = null, imageBase64: String? = null) { viewModelScope.launch { _ocrError.value = null; aiService.parseReceiptImage(sampleText, imageBase64, _appLanguage.value).onSuccess { _scannedReceipt.value = it; _ocrError.value = null }.onFailure { _scannedReceipt.value = null; _ocrError.value = it.message ?: WebI18n.tr("تعذر استخراج بيانات الفاتورة آلياً", "Could not extract receipt data automatically", _appLanguage.value) } } }
