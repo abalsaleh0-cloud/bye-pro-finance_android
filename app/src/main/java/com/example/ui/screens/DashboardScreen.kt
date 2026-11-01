@@ -116,7 +116,7 @@ fun DashboardScreen(
 
     val availableBalance = currencyAccounts.sumOf { it.balance }
     val recordedIncome = completedTransactions
-        .filter { it.type == TransactionType.INCOME || it.type == TransactionType.REFUND }
+        .filter { it.type == TransactionType.INCOME }
         .sumOf { it.amount }
     val recordedExpenses = completedTransactions
         .filter { it.type == TransactionType.EXPENSE }
