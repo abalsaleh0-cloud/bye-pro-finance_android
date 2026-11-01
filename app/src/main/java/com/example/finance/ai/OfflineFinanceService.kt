@@ -55,11 +55,11 @@ class OfflineFinanceService {
         }
 
         if (!sampleText.isNullOrBlank()) {
-            val merchantMatch = Regex("""(?:مؤسسة|شركة|متجر|اسواق|مطعم|سوبرماركت|Store|Market|Cafe|Shop)[:\\s]+([^\\n,]+)""", RegexOption.IGNORE_CASE)
+            val merchantMatch = Regex("""(?:مؤسسة|شركة|متجر|اسواق|مطعم|سوبرماركت|Store|Market|Cafe|Shop)[:\s]+([^\n,]+)""", RegexOption.IGNORE_CASE)
                 .find(sampleText)?.groupValues?.get(1)
-            val totalMatch = Regex("""(?:الإجمالي|المجموع|Total|Amount)[:\\s]*([0-9]+(?:\\.[0-9]+)?)""", RegexOption.IGNORE_CASE)
+            val totalMatch = Regex("""(?:الإجمالي|المجموع|Total|Amount)[:\s]*([0-9]+(?:\.[0-9]+)?)""", RegexOption.IGNORE_CASE)
                 .find(sampleText)?.groupValues?.get(1)?.toDoubleOrNull()
-            val taxMatch = Regex("""(?:الضريبة|VAT|Tax)[:\\s]*([0-9]+(?:\\.[0-9]+)?)""", RegexOption.IGNORE_CASE)
+            val taxMatch = Regex("""(?:الضريبة|VAT|Tax)[:\s]*([0-9]+(?:\.[0-9]+)?)""", RegexOption.IGNORE_CASE)
                 .find(sampleText)?.groupValues?.get(1)?.toDoubleOrNull()
 
             if (totalMatch != null && totalMatch > 0.0) {
@@ -76,7 +76,7 @@ class OfflineFinanceService {
                             else -> ""
                         },
                         category = "Other",
-                        dateStr = Regex("""\\b\\d{4}-\\d{2}-\\d{2}\\b""").find(sampleText)?.value.orEmpty(),
+                        dateStr = Regex("""\b\d{4}-\d{2}-\d{2}\b""").find(sampleText)?.value.orEmpty(),
                         itemsSummary = ""
                     )
                 )
