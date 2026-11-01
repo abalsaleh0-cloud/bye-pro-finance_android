@@ -5,11 +5,10 @@ import com.example.finance.ai.AiWriteCommandParser
 import com.example.finance.ai.TransactionWriteType
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
+import org.junit.Test
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 
 class AiWriteCommandParserTest {
     private val wallet = AccountEntity(
@@ -28,7 +27,7 @@ class AiWriteCommandParserTest {
             "LYD"
         )
 
-        val transaction = assertIs<AiWriteCommand.RecordTransaction>(command)
+        val transaction = command as AiWriteCommand.RecordTransaction
         assertEquals(TransactionWriteType.EXPENSE, transaction.type)
         assertEquals(50.0, transaction.amount)
         assertEquals("LYD", transaction.currency)
