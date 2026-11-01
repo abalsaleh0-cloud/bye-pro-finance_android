@@ -79,6 +79,36 @@ class SupabaseAuthRepository(context: Context) {
         }.getOrDefault(false)
     }
 
+    suspend fun requestPasswordReset(email: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val normalizedEmail = email.trim()
+            require(normalizedEmail.isNotBlank()) { "Email address is missing" }
+            require(SupabaseConnection.url.isNotBlank()) { "Supabase URL is missing" }
+            require(SupabaseConnection.publishableKey.isNotBlank()) { "Supabase publishable key is missing" }
+
+            val payload = JSONObject().put("email", normalizedEmail)
+            val request = Request.Builder()
+                .url(SupabaseConnection.url.trimEnd('/') + "/auth/v1/recover")
+                .header("apikey", SupabaseConnection.publishableKey)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                val raw = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    val body = runCatching { JSONObject(raw) }.getOrNull()
+                    throw IOException(
+                        body?.optString("msg")?.takeIf(String::isNotBlank)
+                            ?: body?.optString("message")?.takeIf(String::isNotBlank)
+                            ?: "Password reset request failed (HTTP ${response.code})"
+                    )
+                }
+            }
+        }
+    }
+
     suspend fun signIn(email: String, password: String): Result<AuthOutcome> =
         authenticate("/auth/v1/token?grant_type=password",
             JSONObject().put("email", email.trim()).put("password", password), false)
