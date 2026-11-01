@@ -5,6 +5,9 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.finance.ai.ExtractedReceiptData
+import com.example.finance.ai.AiWriteCommand
+import com.example.finance.ai.AiWriteCommandParser
+import com.example.finance.ai.TransactionWriteType
 import com.example.finance.ai.FinancialAssistantEngine
 import com.example.finance.ai.GeminiFinanceService
 import com.example.finance.data.AppDatabase
@@ -136,16 +139,82 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun clearAiChat() { if (_isAiLoading.value) return; resetWelcomeMessage() }
     fun askAiAssistant(query: String) {
         if (query.isBlank() || _isAiLoading.value) return
-        _chatMessages.value = _chatMessages.value + ChatMessage("USER", query.trim())
+        val trimmedQuery = query.trim()
+        _chatMessages.value = _chatMessages.value + ChatMessage("USER", trimmedQuery)
         _isAiLoading.value = true
         viewModelScope.launch {
             val response = runCatching {
-                FinancialAssistantEngine.answer(
-                    query = query.trim(), accounts = accounts.value, transactions = transactions.value,
-                    budgets = budgets.value, debts = debts.value, savingsGoals = savingsGoals.value,
-                    assets = assets.value, bills = bills.value, language = _appLanguage.value
+                val writeCommand = AiWriteCommandParser.parse(
+                    query = trimmedQuery,
+                    accounts = accounts.value,
+                    defaultCurrency = primaryCurrency.value
                 )
-            }.getOrElse { WebI18n.tr("تعذر إكمال التحليل المالي حالياً.", "The financial analysis could not be completed right now.", _appLanguage.value) }
+                if (writeCommand is AiWriteCommand.RecordTransaction) {
+                    val account = writeCommand.account
+                    val matchingAccounts = accounts.value.filter {
+                        !it.isArchived && it.currency.equals(writeCommand.currency, ignoreCase = true)
+                    }
+                    when {
+                        account == null && matchingAccounts.size > 1 -> WebI18n.tr(
+                            "لدي أكثر من حساب بعملة ${writeCommand.currency}. حدّد الحساب، مثل: سجل مصروف 50 دينار مواصلات من حساب المحفظة الرئيسية.",
+                            "You have more than one ${writeCommand.currency} account. Specify the account, for example: record an expense of 50 ${writeCommand.currency} for transport from Main Wallet.",
+                            _appLanguage.value
+                        )
+                        account == null -> WebI18n.tr(
+                            "لم أجد حسابًا نشطًا بعملة ${writeCommand.currency}. أضف حسابًا بهذه العملة أولًا.",
+                            "I could not find an active account in ${writeCommand.currency}. Add an account in that currency first.",
+                            _appLanguage.value
+                        )
+                        !account.currency.equals(writeCommand.currency, ignoreCase = true) -> WebI18n.tr(
+                            "عملة العملية لا تطابق عملة الحساب المحدد.",
+                            "The transaction currency does not match the selected account currency.",
+                            _appLanguage.value
+                        )
+                        else -> {
+                            val transactionType = when (writeCommand.type) {
+                                TransactionWriteType.EXPENSE -> TransactionType.EXPENSE
+                                TransactionWriteType.INCOME -> TransactionType.INCOME
+                            }
+                            val transaction = TransactionEntity(
+                                accountId = account.id,
+                                type = transactionType,
+                                amount = writeCommand.amount,
+                                currency = writeCommand.currency,
+                                category = writeCommand.category,
+                                date = System.currentTimeMillis(),
+                                description = writeCommand.description,
+                                status = TransactionStatus.COMPLETED
+                            )
+                            repository.addTransaction(transaction)
+                            val verb = if (writeCommand.type == TransactionWriteType.EXPENSE) {
+                                WebI18n.tr("تم تسجيل المصروف", "Expense recorded", _appLanguage.value)
+                            } else {
+                                WebI18n.tr("تم تسجيل الدخل", "Income recorded", _appLanguage.value)
+                            }
+                            "$verb: ${writeCommand.amount} ${writeCommand.currency} — ${writeCommand.category} — ${account.name}."
+                        }
+                    }
+                } else {
+                    FinancialAssistantEngine.answer(
+                        query = trimmedQuery,
+                        accounts = accounts.value,
+                        transactions = transactions.value,
+                        budgets = budgets.value,
+                        debts = debts.value,
+                        savingsGoals = savingsGoals.value,
+                        assets = assets.value,
+                        bills = bills.value,
+                        language = _appLanguage.value
+                    )
+                }
+            }.getOrElse { error ->
+                Log.e("BYE_PRO_FINANCE", "AI operation failed", error)
+                WebI18n.tr(
+                    "تعذر تنفيذ العملية المالية: ${error.message ?: "خطأ غير معروف"}",
+                    "The financial operation could not be completed: ${error.message ?: "unknown error"}",
+                    _appLanguage.value
+                )
+            }
             _isAiLoading.value = false
             _chatMessages.value = _chatMessages.value + ChatMessage("AI", response)
         }
