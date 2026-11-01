@@ -15,7 +15,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkInfo
-import androidx.work.getWorkInfosForUniqueWorkFlow
+import androidx.lifecycle.Observer
 import androidx.work.Constraints
 import androidx.work.NetworkType
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -234,7 +234,7 @@ class LocalAiModelViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun startDownload() {
-        if (downloadJob?.isActive == true || _state.value.downloading) return
+        if (_state.value.downloading) return
         val request = OneTimeWorkRequestBuilder<LocalAiModelDownloadWorker>()
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .build()
@@ -244,11 +244,7 @@ class LocalAiModelViewModel(application: Application) : AndroidViewModel(applica
         )
     }
 
-    private fun observeBackgroundDownload() {
-        viewModelScope.launch {
-            WorkManager.getInstance(getApplication())
-                .getWorkInfosForUniqueWorkFlow(LocalAiModelDownloadWorker.UNIQUE_WORK_NAME)
-                .collect { works ->
+    private val workInfoObserver = Observer<List<WorkInfo>> { works ->
                     val work = works.firstOrNull() ?: return@collect
                     val downloaded = work.progress.getLong(LocalAiModelDownloadWorker.KEY_DOWNLOADED, 0L)
                     val total = work.progress.getLong(LocalAiModelDownloadWorker.KEY_TOTAL, -1L)
@@ -268,7 +264,19 @@ class LocalAiModelViewModel(application: Application) : AndroidViewModel(applica
                         else -> Unit
                     }
                 }
-        }
+    }
+
+    private fun observeBackgroundDownload() {
+        WorkManager.getInstance(getApplication())
+            .getWorkInfosForUniqueWorkLiveData(LocalAiModelDownloadWorker.UNIQUE_WORK_NAME)
+            .observeForever(workInfoObserver)
+    }
+
+    override fun onCleared() {
+        WorkManager.getInstance(getApplication())
+            .getWorkInfosForUniqueWorkLiveData(LocalAiModelDownloadWorker.UNIQUE_WORK_NAME)
+            .removeObserver(workInfoObserver)
+        super.onCleared()
     }
 
     fun pauseDownload() {
