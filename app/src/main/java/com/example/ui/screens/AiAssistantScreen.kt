@@ -71,6 +71,8 @@ import com.example.finance.i18n.Strings
 import com.example.finance.ui.ChatMessage
 import com.example.finance.model.AppLanguage
 import com.example.finance.ui.FinanceViewModel
+import com.example.ui.screens.VoiceInputButton
+import com.example.ui.screens.SpeakTextButton
 
 @Composable
 fun AiAssistantScreen(
@@ -220,6 +222,12 @@ fun AiAssistantScreen(
                         .padding(top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    VoiceInputButton(
+                        languageCode = if (lang == AppLanguage.AR) "ar" else "en",
+                        enabled = !isAiLoading,
+                        onRecognized = { inputText = it },
+                        modifier = Modifier.testTag("ai_assistant_voice_input")
+                    )
                     FinanceTextField(
                         value = inputText,
                         onValueChange = { inputText = it },
@@ -382,6 +390,12 @@ fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                 )
+                if (!isUser) {
+                    SpeakTextButton(
+                        text = message.text,
+                        languageCode = if (lang == AppLanguage.AR) "ar" else "en"
+                    )
+                }
             }
         }
     }
