@@ -51,7 +51,7 @@ class FinancialAssistantEngineTest {
             bills = emptyList(),
             language = AppLanguage.EN
         )
-        assertTrue(answer.contains("I can analyze"))
+        assertTrue(answer.contains("I can summarize"))
         assertTrue(!answer.contains("أستطيع"))
     }
 }
