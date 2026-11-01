@@ -200,7 +200,7 @@ fun SpeakTextButton(
                 }
             }.getOrNull()
 
-            if (audio.isNullOrEmpty()) {
+            if (audio == null || audio.isEmpty()) {
                 speakLocally(phrase, utteranceId)
                 return@launch
             }
