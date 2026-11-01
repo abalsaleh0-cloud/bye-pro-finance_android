@@ -58,14 +58,15 @@ class SupabaseAuthRepository(context: Context) {
                         ?: body?.optString("error_description")?.takeIf(String::isNotBlank)
                         ?: "Session refresh failed (HTTP ${response.code})"
                 )
+                val session = body ?: throw IOException("Session refresh returned an invalid response")
 
-                val accessToken = body?.optString("access_token").orEmpty()
+                val accessToken = session.optString("access_token")
                 if (accessToken.isBlank()) throw IOException("Session refresh returned no access token")
 
                 val now = System.currentTimeMillis() / 1000L
-                val expiry = body.optLong("expires_at", 0L).takeIf { it > 0L }
-                    ?: now + body.optLong("expires_in", 3600L)
-                val rotatedRefreshToken = body.optString("refresh_token")
+                val expiry = session.optLong("expires_at", 0L).takeIf { it > 0L }
+                    ?: now + session.optLong("expires_in", 3600L)
+                val rotatedRefreshToken = session.optString("refresh_token")
                     .takeIf(String::isNotBlank) ?: refreshToken
 
                 preferences.edit()
