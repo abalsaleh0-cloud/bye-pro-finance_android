@@ -106,6 +106,33 @@ fun VoiceInputButton(
     }
 }
 
+/**
+ * Prefer a Syrian Arabic voice when the device has one, then a voice explicitly
+ * named as feminine. Android exposes no reliable gender metadata, so fall back
+ * to the highest-quality Arabic voice available on the device.
+ */
+private fun configureAssistantVoice(engine: TextToSpeech, languageCode: String) {
+    val isArabic = languageCode == "ar"
+    val targetLocale = if (isArabic) Locale("ar", "SY") else Locale.US
+    val available = engine.voices.orEmpty()
+    val languageVoices = available.filter { it.locale.language == targetLocale.language }
+    val femaleMarkers = listOf("female", "woman", "zira", "samantha", "susan", "laila", "layla", "hoda", "noura", "noora")
+    val preferred = languageVoices.sortedWith(
+        compareByDescending<android.speech.tts.Voice> { isArabic && it.locale.country.equals("SY", ignoreCase = true) }
+            .thenByDescending { voice -> femaleMarkers.any { marker -> voice.name.contains(marker, ignoreCase = true) } }
+            .thenByDescending { it.quality }
+    ).firstOrNull()
+    val selectedLocale = when {
+        languageVoices.isNotEmpty() -> languageVoices.first().locale
+        isArabic -> Locale("ar")
+        else -> Locale.US
+    }
+    engine.language = selectedLocale
+    if (preferred != null) engine.voice = preferred
+    engine.setSpeechRate(0.94f)
+    engine.setPitch(1.02f)
+}
+
 @Composable
 fun SpeakTextButton(
     text: String,
@@ -121,12 +148,8 @@ fun SpeakTextButton(
         val engine = TextToSpeech(context) { status ->
             ready = status == TextToSpeech.SUCCESS
             if (ready) {
-                val targetLocale = if (languageCode == "ar") Locale("ar") else Locale.US
-                tts?.language = targetLocale
-                val preferredVoice = tts?.voices?.filter { it.locale.language == targetLocale.language }?.maxByOrNull { it.quality }
-                if (preferredVoice != null) tts?.voice = preferredVoice
-                tts?.setSpeechRate(0.94f)
-                tts?.setPitch(1.0f)
+                configureAssistantVoice(tts ?: engine, languageCode)
+
             }
         }
         tts = engine
@@ -140,9 +163,8 @@ fun SpeakTextButton(
 
     LaunchedEffect(autoSpeak, ready, text) {
         if (autoSpeak && ready && text.isNotBlank()) {
-            tts?.language = if (languageCode == "ar") Locale("ar") else Locale.US
-            tts?.setSpeechRate(0.94f)
-            tts?.setPitch(1.0f)
+            configureAssistantVoice(tts ?: return@LaunchedEffect, languageCode)
+
             tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "bye-pro-ai-auto-response")
         }
     }
@@ -150,10 +172,8 @@ fun SpeakTextButton(
     IconButton(
         enabled = ready && text.isNotBlank(),
         onClick = {
-            val locale = if (languageCode == "ar") Locale("ar") else Locale.US
-            tts?.language = locale
-            tts?.setSpeechRate(0.94f)
-            tts?.setPitch(1.0f)
+            tts?.let { configureAssistantVoice(it, languageCode) }
+
             tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "bye-pro-ai-response")
         },
         modifier = modifier
