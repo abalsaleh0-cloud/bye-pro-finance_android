@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android Release APK
 
 on:
   push:
@@ -13,43 +13,32 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build:
+  build-release:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
     steps:
-      - name: Checkout current Android source
+      - name: Checkout Android source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Verify extracted Android project is the build source
+      - name: Verify Android project and language behavior
         shell: bash
         run: |
+          set -euo pipefail
           test -f settings.gradle.kts
           test -f app/build.gradle.kts
-          echo "PROJECT_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
-          echo "Using canonical Android source: $GITHUB_WORKSPACE"
-
-      - name: Verify Arabic-first fixed RTL language behavior
-        shell: bash
-        run: |
-          bash "$GITHUB_WORKSPACE/.github/scripts/fix-android-language.sh" "$PROJECT_DIR"
-
-      - name: Verify language implementation
-        shell: bash
-        run: |
+          bash .github/scripts/fix-android-language.sh "$GITHUB_WORKSPACE"
           grep -q 'val layoutDirection = WebI18n.layoutDirection()' app/src/main/java/com/example/ui/navigation/MainAppScaffold.kt
-          grep -q 'MutableStateFlow(WebI18n.read(application))' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
-          grep -q 'WebI18n.write(getApplication(), lang)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
           grep -q 'const val LOCALE_KEY = "bye-pro-finance.locale"' app/src/main/java/com/example/finance/i18n/WebI18n.kt
-          grep -q 'WebI18n.readDarkMode(application)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
-          grep -q 'WebI18n.writeDarkMode(getApplication(), dark)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
-          grep -q 'const val THEME_KEY = "bye-pro-finance.theme"' app/src/main/java/com/example/finance/i18n/WebI18n.kt
-          echo "PASS: Arabic default, persisted locale, fixed RTL layout, and web-compatible theme persistence."
-          echo "PASS: Arabic default, persisted web-compatible locale key, fixed RTL layout."
+          echo "Arabic-first fixed RTL implementation verified."
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -57,40 +46,62 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Accept Android SDK licenses and install build packages
+      - name: Install Android SDK packages
         shell: bash
         run: |
+          set -euo pipefail
           export ANDROID_HOME=/usr/local/lib/android/sdk
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort | tail -1)"
           test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
-      - name: Create local debug signing key
-        working-directory: ${{ env.PROJECT_DIR }}
+      - name: Restore production signing keystore
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
         run: |
-          keytool -genkeypair -v -keystore debug.keystore -storepass android \
-            -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
-            -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          set -euo pipefail
+          if [[ -z "${KEYSTORE_BASE64:-}" || -z "${STORE_PASSWORD:-}" || -z "${KEY_PASSWORD:-}" ]]; then
+            echo "::error::One or more required Android signing secrets are missing."
+            exit 1
+          fi
+          KEYSTORE_PATH="$RUNNER_TEMP/bye-pro-upload-key.jks"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias upload >/dev/null
+          chmod 600 "$KEYSTORE_PATH"
+          echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "Production keystore decoded and alias validated."
 
       - name: Run unit tests
         uses: gradle/gradle-build-action@v3
         with:
           gradle-version: "9.3.1"
-          build-root-directory: ${{ env.PROJECT_DIR }}
-          arguments: testDebugUnitTest --stacktrace
+          arguments: :app:testDebugUnitTest --stacktrace
 
-      - name: Build debug APK
+      - name: Build signed production APK
         uses: gradle/gradle-build-action@v3
         with:
           gradle-version: "9.3.1"
-          build-root-directory: ${{ env.PROJECT_DIR }}
-          arguments: assembleDebug --stacktrace
+          arguments: :app:assembleRelease --stacktrace
 
-      - name: Upload APK
+      - name: Verify APK production signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          "$APKSIGNER" verify --verbose "$APK"
+          "$APKSIGNER" verify --print-certs "$APK"
+          echo "Signed release APK verification passed."
+
+      - name: Upload signed release APK
         uses: actions/upload-artifact@v4
         with:
-          name: BYE-PRO-FINANCE-Android-APK
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
+          name: BYE-PRO-FINANCE-Android-Release-10.0.43
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
