@@ -1,5 +1,15 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceSwitch
+
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
+import com.example.ui.components.FinanceIcon
+
+
+
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -19,10 +29,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -36,6 +42,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import com.example.finance.runtime.MobileRuntimeConfigRepository
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,6 +76,11 @@ fun SettingsScreen(
     val transactionAlerts by viewModel.transactionAlerts.collectAsState()
     val billReminders by viewModel.billReminders.collectAsState()
     val budgetAlerts by viewModel.budgetAlerts.collectAsState()
+    val context = LocalContext.current
+    val runtimeConfigRepository = remember(context) { MobileRuntimeConfigRepository(context) }
+    var runtimeConfig by remember(runtimeConfigRepository) { mutableStateOf(runtimeConfigRepository.cached()) }
+    var runtimeConfigRefreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     var currencyMenuExpanded by remember { mutableStateOf(false) }
     var profileName by remember(currentUser?.id, currentUser?.name) { mutableStateOf(currentUser?.name.orEmpty()) }
 
@@ -101,7 +116,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Person, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
+                        FinanceIcon(Lucide.User, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                         Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                         Text(
                             text = WebI18n.tr("الملف الشخصي والحساب", "Profile and account", lang),
@@ -121,7 +136,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(10.dp))
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = profileName,
                         onValueChange = { profileName = it.take(100) },
                         modifier = Modifier.fillMaxWidth().testTag("profile_name_input"),
@@ -149,7 +164,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Language, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
+                        FinanceIcon(Lucide.Info, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                         Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                         Text(
                             text = Strings.get("language", lang),
@@ -165,7 +180,7 @@ fun SettingsScreen(
                         FinanceButton(
                             onClick = { viewModel.setLanguage(AppLanguage.AR) },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (lang == AppLanguage.AR) ByeProTheme.colors.financialGreen else MaterialTheme.colorScheme.background,
+                                containerColor = if (lang == AppLanguage.AR) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.surfaceVariant,
                                 contentColor = if (lang == AppLanguage.AR) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                             ),
                             shape = RoundedCornerShape(10.dp),
@@ -179,7 +194,7 @@ fun SettingsScreen(
                         FinanceButton(
                             onClick = { viewModel.setLanguage(AppLanguage.EN) },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (lang == AppLanguage.EN) ByeProTheme.colors.financialGreen else MaterialTheme.colorScheme.background,
+                                containerColor = if (lang == AppLanguage.EN) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.surfaceVariant,
                                 contentColor = if (lang == AppLanguage.EN) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                             ),
                             shape = RoundedCornerShape(10.dp),
@@ -212,7 +227,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Box {
-                        OutlinedButton(
+                        FinanceOutlinedButton(
                             onClick = { currencyMenuExpanded = true },
                             modifier = Modifier.fillMaxWidth().testTag("primary_currency_selector")
                         ) {
@@ -271,7 +286,7 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Switch(
+                        FinanceSwitch(
                             checked = isDark,
                             onCheckedChange = viewModel::setDarkMode,
                             modifier = Modifier.testTag("theme_mode_switch")
@@ -314,6 +329,52 @@ fun SettingsScreen(
             }
         }
 
+        // Live settings synchronized from the central API / Supabase control row.
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(WebI18n.tr("إعدادات تحديث التطبيق", "App runtime update settings", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        WebI18n.tr("إعدادات مركزية تُزامَن من الخادم دون إعادة تثبيت التطبيق. لا تتضمن تنزيل أو تشغيل ملفات تنفيذية.", "Central settings synced from the server without reinstalling the app. They never download or execute binaries.", lang),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(WebI18n.tr("إصدار الإعدادات: ", "Config version: ", lang) + runtimeConfig.configVersion, style = MaterialTheme.typography.bodyMedium)
+                    Text(WebI18n.tr("أقل إصدار مدعوم: ", "Minimum supported version: ", lang) + runtimeConfig.minimumSupportedVersionCode, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        WebI18n.tr(
+                            if (runtimeConfig.maintenanceMode) "حالة الخدمة: وضع الصيانة مفعّل" else "حالة الخدمة: تعمل بشكل طبيعي",
+                            if (runtimeConfig.maintenanceMode) "Service status: maintenance enabled" else "Service status: operational",
+                            lang
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (runtimeConfig.maintenanceMode) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    FinanceOutlinedButton(
+                        onClick = {
+                            if (!runtimeConfigRefreshing) {
+                                runtimeConfigRefreshing = true
+                                scope.launch {
+                                    runtimeConfig = runtimeConfigRepository.refresh()
+                                    runtimeConfigRefreshing = false
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            if (runtimeConfigRefreshing) WebI18n.tr("جارٍ تحديث الإعدادات…", "Refreshing settings…", lang)
+                            else WebI18n.tr("مزامنة الإعدادات الآن", "Sync settings now", lang)
+                        )
+                    }
+                }
+            }
+        }
+
         // App System Info
         item {
             Card(
@@ -351,7 +412,7 @@ private fun SettingsChoiceRow(label: String, selected: String, options: List<Str
     Column {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Box {
-            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected) }
+            FinanceOutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected) }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
                     DropdownMenuItem(text = { Text(option) }, onClick = { onSelected(option); expanded = false })
@@ -365,6 +426,6 @@ private fun SettingsChoiceRow(label: String, selected: String, options: List<Str
 private fun SettingsSwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodyMedium)
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        FinanceSwitch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }

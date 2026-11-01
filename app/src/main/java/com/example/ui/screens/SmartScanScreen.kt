@@ -1,5 +1,13 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
+import com.example.ui.components.FinanceIcon
+
+
+
+
 import android.content.Intent
 import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -31,12 +39,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DocumentScanner
-import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -156,8 +158,8 @@ fun SmartScanScreen(
                             .padding(12.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.DocumentScanner,
+                        FinanceIcon(
+                            imageVector = Lucide.FileText,
                             contentDescription = null,
                             tint = ByeProTheme.colors.financialGreen,
                             modifier = Modifier.size(32.dp)
@@ -175,11 +177,11 @@ fun SmartScanScreen(
                             statusMessage = null
                             receiptPicker.launch(arrayOf("image/jpeg", "image/png", "image/webp"))
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                        colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.primaryButtonBg, contentColor = MaterialTheme.colorScheme.onPrimary),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth().testTag("pick_receipt_image_btn")
                     ) {
-                        Icon(Icons.Default.Receipt, contentDescription = null)
+                        FinanceIcon(Lucide.FileText, contentDescription = null)
                         Spacer(modifier = Modifier.size(8.dp))
                         Text(WebI18n.tr("اختيار صورة إيصال", "Choose receipt image", lang), fontWeight = FontWeight.Bold)
                     }
@@ -189,10 +191,11 @@ fun SmartScanScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = manualReceiptText,
                         onValueChange = { manualReceiptText = it },
                         modifier = Modifier.fillMaxWidth().testTag("manual_receipt_text_input"),
+                        singleLine = false,
                         minLines = 3,
                         maxLines = 6,
                         label = { Text(WebI18n.tr("نص الإيصال", "Receipt text", lang)) }
@@ -205,7 +208,7 @@ fun SmartScanScreen(
                         enabled = manualReceiptText.isNotBlank(),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                        FinanceIcon(Lucide.Sparkles, contentDescription = null)
                         Spacer(modifier = Modifier.size(8.dp))
                         Text(WebI18n.tr("تحليل النص", "Analyze text", lang), color = MaterialTheme.colorScheme.onSurface)
                     }
@@ -248,7 +251,7 @@ fun SmartScanScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
+                            FinanceIcon(Lucide.CircleCheck, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                             Spacer(modifier = Modifier.size(6.dp))
                             Text(
                                 text = WebI18n.tr("مراجعة وتأكيد البيانات المستخرجة من الإيصال", "Review and confirm extracted receipt data", lang),
@@ -428,7 +431,7 @@ fun SmartScanScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(TextContent.money(doc.totalAmount, doc.currency, lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
                             FinanceIconButton(onClick = { viewModel.deleteDocument(doc) }) {
-                                Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
+                                FinanceIcon(Lucide.Trash2, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
                             }
                         }
                     }

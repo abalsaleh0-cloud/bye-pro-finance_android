@@ -1,5 +1,13 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
+import com.example.ui.components.FinanceIcon
+
+
+
+
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,9 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -241,11 +246,11 @@ fun TransfersScreen(viewModel: FinanceViewModel) {
                         },
                         modifier = Modifier.fillMaxWidth().height(50.dp).testTag("execute_transfer_btn"),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = ByeProTheme.colors.goldPrimary,
+                            containerColor = ByeProTheme.colors.primaryButtonBg,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
-                        Icon(Icons.Default.SwapHoriz, contentDescription = null)
+                        FinanceIcon(Lucide.ArrowLeftRight, contentDescription = null)
                         Text(
                             text = if (saving) WebI18n.tr("جارٍ التنفيذ…", "Processing…", lang)
                             else Strings.get("execute_transfer", lang),
@@ -256,7 +261,7 @@ fun TransfersScreen(viewModel: FinanceViewModel) {
 
                     if (feedback != null) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (feedbackSuccess) Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
+                            if (feedbackSuccess) FinanceIcon(Lucide.CircleCheck, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                             Text(
                                 text = feedback.orEmpty(),
                                 style = MaterialTheme.typography.bodySmall,

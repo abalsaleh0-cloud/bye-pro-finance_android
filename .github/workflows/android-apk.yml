@@ -12,6 +12,10 @@ on:
       - ".github/scripts/fix-android-language.sh"
   workflow_dispatch:
 
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -43,9 +47,9 @@ jobs:
         run: |
           grep -q 'val layoutDirection = WebI18n.layoutDirection()' app/src/main/java/com/example/ui/navigation/MainAppScaffold.kt
           grep -q 'MutableStateFlow(WebI18n.read(application))' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
-          grep -q 'WebI18n.write(getApplication(), lang)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          grep -q 'WebI18n.write(getApplication(),v)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
           grep -q 'const val LOCALE_KEY = "bye-pro-finance.locale"' app/src/main/java/com/example/finance/i18n/WebI18n.kt
-          grep -q 'preferences.getBoolean("dark_mode", true)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          grep -q 'preferences.getBoolean("dark_mode",true)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
           echo "PASS: Arabic default, persisted locale, fixed RTL layout, and persistent theme."
           echo "PASS: Arabic default, persisted web-compatible locale key, fixed RTL layout."
 
@@ -78,12 +82,75 @@ jobs:
           build-root-directory: ${{ env.PROJECT_DIR }}
           arguments: testDebugUnitTest --stacktrace
 
+      - name: Stop Gradle daemons before emulator
+        working-directory: ${{ env.PROJECT_DIR }}
+        shell: bash
+        run: gradle --stop || true
+
+      - name: Run Android emulator UI tests
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          working-directory: ${{ env.PROJECT_DIR }}
+          script: gradle connectedDebugAndroidTest --stacktrace
+
       - name: Build debug APK
         uses: gradle/gradle-build-action@v3
         with:
           gradle-version: "9.3.1"
           build-root-directory: ${{ env.PROJECT_DIR }}
           arguments: assembleDebug --stacktrace
+
+      - name: Prepare production signing key
+        id: release_signing
+        working-directory: ${{ env.PROJECT_DIR }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        shell: bash
+        run: |
+          if [[ -z "$KEYSTORE_BASE64" || -z "$STORE_PASSWORD" || -z "$KEY_PASSWORD" ]]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Release APK skipped: configure KEYSTORE_BASE64, STORE_PASSWORD, and KEY_PASSWORD repository secrets."
+            exit 0
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > release.keystore
+          chmod 600 release.keystore
+          KEY_ALIAS="$(LC_ALL=C keytool -list -v -keystore release.keystore -storepass "$STORE_PASSWORD" 2>/dev/null | awk -F': ' '/Alias name:/{alias=$2} /Entry type: PrivateKeyEntry/{print alias; exit}')"
+          if [[ -z "$KEY_ALIAS" ]]; then
+            echo "::error::The keystore has no readable PrivateKeyEntry. Check the uploaded keystore and STORE_PASSWORD."
+            exit 1
+          fi
+          echo "key_alias=$KEY_ALIAS" >> "$GITHUB_OUTPUT"
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "Production signing key detected and validated."
+
+      - name: Build signed production Release APK
+        if: ${{ steps.release_signing.outputs.enabled == 'true' }}
+        uses: gradle/gradle-build-action@v3
+        env:
+          KEYSTORE_PATH: ${{ env.PROJECT_DIR }}/release.keystore
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ steps.release_signing.outputs.key_alias }}
+        with:
+          gradle-version: "9.3.1"
+          build-root-directory: ${{ env.PROJECT_DIR }}
+          arguments: assembleRelease --stacktrace
+
+      - name: Upload signed Release APK
+        if: ${{ steps.release_signing.outputs.enabled == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: BYE-PRO-FINANCE-Android-Release-10.0.23
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

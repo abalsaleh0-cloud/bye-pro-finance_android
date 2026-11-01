@@ -25,6 +25,9 @@ data class ByeProColorTokens(
     val textNeutral: Color,
     val goldPrimary: Color,
     val goldFeatured: Color,
+    val primaryButtonBg: Color,
+    val primaryButtonBorder: Color,
+    val statusLive: Color,
     val goldMuted: Color,
     val goldDark: Color,
     val financialGreen: Color,
@@ -35,6 +38,10 @@ data class ByeProColorTokens(
     val fieldText: Color,
     val fieldBorder: Color,
     val fieldFocus: Color,
+    val quietButtonBg: Color,
+    val quietButtonBorder: Color,
+    val quietButtonText: Color,
+    val dialogBorder: Color,
     val isDark: Boolean
 )
 
@@ -53,6 +60,9 @@ val ByeProDarkTokens = ByeProColorTokens(
     textNeutral = DarkTextNeutral,
     goldPrimary = GoldPrimary,
     goldFeatured = GoldFeatured,
+    primaryButtonBg = GoldPrimary,
+    primaryButtonBorder = DarkPrimaryButtonBorder,
+    statusLive = LiveStatusAccent,
     goldMuted = GoldMuted,
     goldDark = GoldDark,
     financialGreen = FinancialGreen,
@@ -63,6 +73,10 @@ val ByeProDarkTokens = ByeProColorTokens(
     fieldText = DarkFieldText,
     fieldBorder = DarkFieldBorder,
     fieldFocus = DarkFieldFocus,
+    quietButtonBg = GoldDark,
+    quietButtonBorder = GoldMuted,
+    quietButtonText = GoldPrimary,
+    dialogBorder = DarkDialogBorder,
     isDark = true
 )
 
@@ -81,6 +95,9 @@ val ByeProLightTokens = ByeProColorTokens(
     textNeutral = LightTextMuted,
     goldPrimary = LightGoldPrimary,
     goldFeatured = LightGoldFeatured,
+    primaryButtonBg = LightPrimaryButtonBg,
+    primaryButtonBorder = LightPrimaryButtonBorder,
+    statusLive = LiveStatusAccent,
     goldMuted = LightGoldFeatured,
     goldDark = LightGoldPrimary,
     financialGreen = LightStatusSuccess,
@@ -91,6 +108,10 @@ val ByeProLightTokens = ByeProColorTokens(
     fieldText = LightFieldText,
     fieldBorder = LightFieldBorder,
     fieldFocus = LightFieldFocus,
+    quietButtonBg = Color(0xFFF7F2E7),
+    quietButtonBorder = Color(0xFFB99B5E),
+    quietButtonText = Color(0xFF6C5420),
+    dialogBorder = LightBorderBase,
     isDark = false
 )
 
@@ -106,14 +127,14 @@ object ByeProTheme {
 
 private val DarkColorScheme = darkColorScheme(
     primary = GoldPrimary,
-    onPrimary = Color(0xFF101115),
+    onPrimary = Color(0xFF19160F),
     primaryContainer = GoldDark,
     onPrimaryContainer = DarkTextPrimary,
     secondary = FinancialGreen,
-    onSecondary = Color(0xFF0B0A0C),
+    onSecondary = Color(0xFF101114),
     secondaryContainer = StatusSuccessDark,
     onSecondaryContainer = DarkTextSecondary,
-    tertiary = GoldFeatured,
+    tertiary = GoldPrimary,
     background = DarkBgMain,
     onBackground = DarkTextPrimary,
     surface = DarkSurfaceMain,
@@ -122,15 +143,15 @@ private val DarkColorScheme = darkColorScheme(
     onSurfaceVariant = DarkTextSecondary,
     outline = DarkBorderBase,
     outlineVariant = DarkBorderProminent,
-    error = StatusErrorDark,
+    error = FinancialRed,
     onError = Color(0xFF101115),
-    errorContainer = StatusErrorDark,
+    errorContainer = Color(0xFF7E3035),
     onErrorContainer = DarkTextPrimary
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = LightGoldPrimary,
-    onPrimary = Color.White,
+    onPrimary = Color(0xFF17130B),
     primaryContainer = LightCardSecondary,
     onPrimaryContainer = LightTextPrimary,
     secondary = LightStatusSuccess,
@@ -143,12 +164,12 @@ private val LightColorScheme = lightColorScheme(
     surface = LightSurfaceMain,
     onSurface = LightTextPrimary,
     surfaceVariant = LightSurfaceSecondary,
-    onSurfaceVariant = LightTextSecondary,
+    onSurfaceVariant = LightTextMuted,
     outline = LightBorderBase,
     outlineVariant = LightBorderProminent,
     error = LightStatusError,
     onError = Color.White,
-    errorContainer = Color(0xFFFFECEC),
+    errorContainer = Color(0xFFF9E7E9),
     onErrorContainer = LightStatusError
 )
 

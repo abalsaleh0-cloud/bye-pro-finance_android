@@ -1,5 +1,17 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
+import com.example.ui.components.FinanceIcon
+
+
+
+
+import com.example.ui.components.FinanceChoiceButton
+
+
+
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
@@ -11,7 +23,11 @@ import com.example.ui.components.FinanceFloatingActionButton
 
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,16 +35,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -79,6 +91,7 @@ fun DebtsBillsScreen(
 
     var selectedTabIndex by remember { mutableIntStateOf(initialTabIndex.coerceIn(0, 1)) }
     var showAddDebtDialog by remember { mutableStateOf(false) }
+    var newDebtDirection by remember { mutableStateOf("owed_to_me") }
     var showAddBillDialog by remember { mutableStateOf(false) }
     var editingBill by remember { mutableStateOf<BillEntity?>(null) }
     var debtToPay by remember { mutableStateOf<DebtEntity?>(null) }
@@ -92,11 +105,11 @@ fun DebtsBillsScreen(
                 onClick = {
                     if (selectedTabIndex == 0) showAddDebtDialog = true else showAddBillDialog = true
                 },
-                containerColor = ByeProTheme.colors.goldPrimary,
+                containerColor = ByeProTheme.colors.primaryButtonBg,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_debt_bill_fab")
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = null)
+                FinanceIcon(imageVector = Lucide.HandCoins, contentDescription = null)
             }
         }
     ) { padding ->
@@ -137,7 +150,9 @@ fun DebtsBillsScreen(
                         DebtManagementPanel(
                             debts = debts,
                             lang = lang,
-                            onAdd = { showAddDebtDialog = true },
+                            selectedDirection = newDebtDirection,
+                            onDirectionChange = { newDebtDirection = it },
+                            onAdd = { selectedDirection -> newDebtDirection = selectedDirection; showAddDebtDialog = true },
                             onPay = { debtToPay = it },
                             onEdit = { editingDebt = it },
                             onHistory = { historyDebt = it },
@@ -189,7 +204,7 @@ fun DebtsBillsScreen(
 
     if (deleteDebtTarget != null) {
         val target = deleteDebtTarget!!
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { deleteDebtTarget = null },
             title = { Text(WebI18n.tr("تأكيد حذف الدين", "Confirm debt deletion", lang)) },
             text = { Text(WebI18n.tr("هل تريد حذف هذا السجل نهائياً؟", "Do you want to permanently delete this record?", lang)) },
@@ -236,7 +251,8 @@ fun DebtsBillsScreen(
                         value = payNotes,
                         onValueChange = { payNotes = it },
                         label = { Text(WebI18n.tr("ملاحظات", "Notes", lang)) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false
                     )
                     if (paymentError.isNotBlank()) Text(paymentError, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
                 }
@@ -273,6 +289,7 @@ fun DebtsBillsScreen(
         AddDebtDialog(
             lang = lang,
             initialDebt = editingDebt,
+            initialDirection = newDebtDirection,
             onDismiss = { showAddDebtDialog = false; editingDebt = null },
             onConfirm = { newDebt ->
                 if (editingDebt == null) viewModel.addDebt(newDebt) else viewModel.updateDebt(newDebt)
@@ -332,8 +349,8 @@ fun DebtItemCard(
                     )
                 }
                 FinanceIconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
+                    FinanceIcon(
+                        imageVector = Lucide.Trash2,
                         contentDescription = WebI18n.tr("حذف", "Delete", lang),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp)
@@ -380,10 +397,10 @@ fun DebtItemCard(
                 )
                 FinanceButton(
                     onClick = onPay,
-                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.primaryButtonBg, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Icon(Icons.Default.Payment, contentDescription = null, modifier = Modifier.size(16.dp))
+                    FinanceIcon(Lucide.HandCoins, contentDescription = null, modifier = Modifier.size(16.dp))
                     Text(Strings.get("pay_debt", lang), modifier = Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelMedium)
                 }
             }
@@ -444,10 +461,10 @@ fun BillItemCard(
                 if (!bill.isPaid) {
                     FinanceButton(
                         onClick = onMarkPaid,
-                        colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                        colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.primaryButtonBg, contentColor = MaterialTheme.colorScheme.onPrimary),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                        FinanceIcon(Lucide.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                         Text(Strings.get("mark_paid", lang), modifier = Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelMedium)
                     }
                 } else {
@@ -459,8 +476,8 @@ fun BillItemCard(
                     )
                 }
                 FinanceIconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
+                    FinanceIcon(
+                        imageVector = Lucide.Trash2,
                         contentDescription = WebI18n.tr("حذف", "Delete", lang),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp)
@@ -472,32 +489,64 @@ fun BillItemCard(
 }
 
 @Composable
+private fun DebtDirectionSelector(
+    selectedDirection: String,
+    lang: com.example.finance.model.AppLanguage,
+    tagPrefix: String,
+    onDirectionChange: (String) -> Unit
+) {
+    val choices = listOf(
+        "owed_to_me" to WebI18n.tr("دائن — لي عنده", "Creditor — owed to me", lang),
+        "i_owe" to WebI18n.tr("مدين — عليّ له", "Debtor — I owe", lang)
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        choices.forEach { (value, label) ->
+            FinanceChoiceButton(
+                selected = selectedDirection == value,
+                onClick = { onDirectionChange(value) },
+                modifier = Modifier.weight(1f).testTag("${tagPrefix}_${value}")
+            ) {
+                Text(
+                    text = label,
+                    fontWeight = if (selectedDirection == value) FontWeight.Bold else FontWeight.Medium,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 2
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun DebtManagementPanel(
     debts: List<DebtEntity>,
     lang: com.example.finance.model.AppLanguage,
-    onAdd: () -> Unit,
+    selectedDirection: String,
+    onDirectionChange: (String) -> Unit,
+    onAdd: (String) -> Unit,
     onPay: (DebtEntity) -> Unit,
     onEdit: (DebtEntity) -> Unit,
     onHistory: (DebtEntity) -> Unit,
     onDelete: (DebtEntity) -> Unit
 ) {
-    var direction by remember { mutableStateOf("owed_to_me") }
     var search by remember { mutableStateOf("") }
     val filtered = debts.filter { debt ->
-        debt.direction == direction &&
+        debt.direction == selectedDirection &&
             (search.isBlank() || debt.name.contains(search, true) || debt.creditor.contains(search, true) || debt.notes.contains(search, true))
     }
     val currencyTotals = filtered.groupBy { it.currency }.mapValues { (_, rows) -> rows.sumOf { it.remaining } }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            FinanceOutlinedButton(onClick = { direction = "owed_to_me" }) {
-                Text(WebI18n.tr("دائن — لي عنده", "Owed to me", lang))
-            }
-            FinanceOutlinedButton(onClick = { direction = "i_owe" }) {
-                Text(WebI18n.tr("مدين — عليّ له", "I owe", lang))
-            }
-        }
+        DebtDirectionSelector(
+            selectedDirection = selectedDirection,
+            lang = lang,
+            tagPrefix = "debts_tab",
+            onDirectionChange = onDirectionChange
+        )
         FinanceTextField(
             value = search,
             onValueChange = { search = it },
@@ -523,8 +572,8 @@ private fun DebtManagementPanel(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            if (debts.none { it.direction == direction }) {
-                FinanceButton(onClick = onAdd) { Text(WebI18n.tr("إضافة أول سجل", "Add first record", lang)) }
+            if (debts.none { it.direction == selectedDirection }) {
+                FinanceButton(onClick = { onAdd(selectedDirection) }) { Text(WebI18n.tr("إضافة أول سجل", "Add first record", lang)) }
             }
         } else {
             Text(WebI18n.tr("${filtered.size} سجل", "${filtered.size} records", lang), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -587,6 +636,7 @@ private fun DebtPaymentHistoryDialog(
 fun AddDebtDialog(
     lang: com.example.finance.model.AppLanguage,
     initialDebt: DebtEntity? = null,
+    initialDirection: String = "owed_to_me",
     onDismiss: () -> Unit,
     onConfirm: (DebtEntity) -> Unit
 ) {
@@ -595,7 +645,7 @@ fun AddDebtDialog(
     var principalStr by remember(initialDebt?.id) { mutableStateOf(initialDebt?.principal?.toString() ?: "") }
     var minPaymentStr by remember(initialDebt?.id) { mutableStateOf(initialDebt?.minimumPayment?.toString() ?: "") }
     var currency by remember(initialDebt?.id) { mutableStateOf(initialDebt?.currency ?: "LYD") }
-    var direction by remember(initialDebt?.id) { mutableStateOf(initialDebt?.direction ?: "i_owe") }
+    var direction by remember(initialDebt?.id, initialDirection) { mutableStateOf(initialDebt?.direction ?: initialDirection) }
     var dueDateText by remember(initialDebt?.id) {
         mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(initialDebt?.dueDate ?: (System.currentTimeMillis() + 90L * 24 * 60 * 60 * 1000))))
     }
@@ -607,22 +657,29 @@ fun AddDebtDialog(
         title = { Text(text = if (initialDebt == null) Strings.get("add_debt", lang) else WebI18n.tr("تعديل الدين", "Edit debt", lang), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الشخص أو الجهة", "Person or organization", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الشخص أو الجهة", "Person or organization", lang)) }, modifier = Modifier.fillMaxWidth().testTag("debt_name_input"))
                 FinanceTextField(value = creditor, onValueChange = { creditor = it }, label = { Text(WebI18n.tr("تفاصيل الطرف / الدائن", "Counterparty details", lang)) }, modifier = Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FinanceOutlinedButton(onClick = { direction = "owed_to_me" }) { Text(WebI18n.tr("لي عنده", "Owed to me", lang)) }
-                    FinanceOutlinedButton(onClick = { direction = "i_owe" }) { Text(WebI18n.tr("عليّ له", "I owe", lang)) }
-                }
-                FinanceTextField(value = principalStr, onValueChange = { principalStr = it }, label = { Text(WebI18n.tr("المبلغ الأصلي", "Original amount", lang)) }, modifier = Modifier.fillMaxWidth())
+                Text(
+                    WebI18n.tr("نوع الدين", "Debt direction", lang),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                DebtDirectionSelector(
+                    selectedDirection = direction,
+                    lang = lang,
+                    tagPrefix = "debt_direction",
+                    onDirectionChange = { direction = it }
+                )
+                FinanceTextField(value = principalStr, onValueChange = { principalStr = it }, label = { Text(WebI18n.tr("المبلغ الأصلي", "Original amount", lang)) }, modifier = Modifier.fillMaxWidth().testTag("debt_principal_input"))
                 FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(Locale.ROOT) }, label = { Text(WebI18n.tr("العملة (LYD / USD / EUR ...)", "Currency (LYD / USD / EUR ...)", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = minPaymentStr, onValueChange = { minPaymentStr = it }, label = { Text(WebI18n.tr("القسط / الدفعة المتوقعة", "Expected installment", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = dueDateText, onValueChange = { dueDateText = it }, label = { Text(WebI18n.tr("تاريخ الاستحقاق (YYYY-MM-DD)", "Due date (YYYY-MM-DD)", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = notes, onValueChange = { notes = it }, label = { Text(Strings.get("notes", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = notes, onValueChange = { notes = it }, label = { Text(Strings.get("notes", lang)) }, modifier = Modifier.fillMaxWidth(), singleLine = false)
                 if (error.isNotBlank()) Text(error, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = {
-            FinanceButton(onClick = {
+            FinanceButton(modifier = Modifier.testTag("debt_confirm_button"), onClick = {
                 val principal = principalStr.toDoubleOrNull() ?: Double.NaN
                 val installment = if (minPaymentStr.isBlank()) 0.0 else minPaymentStr.toDoubleOrNull() ?: Double.NaN
                 val dueDate = try { SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(dueDateText)?.time } catch (_: Exception) { null }

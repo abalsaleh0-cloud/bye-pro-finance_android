@@ -1,10 +1,20 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -15,6 +25,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.LocalContentColor
@@ -25,6 +39,9 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -51,14 +68,14 @@ fun FinanceTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    singleLine: Boolean = false,
+    singleLine: Boolean = true,
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     interactionSource: MutableInteractionSource? = null,
-    shape: Shape = RoundedCornerShape(12.dp)
+    shape: Shape = RoundedCornerShape(9.dp)
 ) {
     OutlinedTextField(
-        value = value, onValueChange = onValueChange, modifier = modifier,
+        value = value, onValueChange = onValueChange, modifier = if (singleLine) modifier.heightIn(min = 56.dp) else modifier.heightIn(min = 120.dp),
         enabled = enabled, readOnly = readOnly, textStyle = textStyle,
         label = label, placeholder = placeholder, leadingIcon = leadingIcon,
         trailingIcon = trailingIcon, prefix = prefix, suffix = suffix,
@@ -88,19 +105,25 @@ fun FinanceButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(12.dp),
+    shape: Shape = RoundedCornerShape(10.dp),
     colors: ButtonColors = ButtonDefaults.buttonColors(
-        containerColor = ByeProTheme.colors.goldPrimary,
+        containerColor = ByeProTheme.colors.primaryButtonBg,
         contentColor = MaterialTheme.colorScheme.onPrimary
     ),
-    elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
-    border: BorderStroke? = null,
+    elevation: ButtonElevation? = ButtonDefaults.buttonElevation(
+        defaultElevation = 0.dp,
+        pressedElevation = 0.dp,
+        focusedElevation = 0.dp,
+        hoveredElevation = 0.dp,
+        disabledElevation = 0.dp
+    ),
+    border: BorderStroke? = BorderStroke(1.dp, ByeProTheme.colors.primaryButtonBorder),
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit
 ) {
     Button(
-        onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
+        onClick = onClick, modifier = modifier.heightIn(min = 46.dp), enabled = enabled, shape = shape,
         colors = colors, elevation = elevation, border = border,
         contentPadding = contentPadding, interactionSource = interactionSource, content = content
     )
@@ -112,8 +135,11 @@ fun FinanceOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(12.dp),
-    colors: ButtonColors = ButtonDefaults.outlinedButtonColors(contentColor = ByeProTheme.colors.goldPrimary),
+    shape: Shape = RoundedCornerShape(9.dp),
+    colors: ButtonColors = ButtonDefaults.outlinedButtonColors(
+        containerColor = ByeProTheme.colors.cardSecondary,
+        contentColor = MaterialTheme.colorScheme.onSurface
+    ),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = null,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
@@ -122,17 +148,89 @@ fun FinanceOutlinedButton(
 ) {
     if (border == null) {
         OutlinedButton(
-            onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
+            onClick = onClick, modifier = modifier.heightIn(min = 40.dp), enabled = enabled, shape = shape,
             colors = colors, elevation = elevation, contentPadding = contentPadding,
             interactionSource = interactionSource, content = content
         )
     } else {
         OutlinedButton(
-            onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
+            onClick = onClick, modifier = modifier.heightIn(min = 40.dp), enabled = enabled, shape = shape,
             colors = colors, elevation = elevation, border = border,
             contentPadding = contentPadding, interactionSource = interactionSource, content = content
         )
     }
+}
+
+/** Shared bordered quiet action matching the Web .text-button contract. */
+@Composable
+fun FinanceTextButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: ButtonColors = ButtonDefaults.textButtonColors(
+        containerColor = ByeProTheme.colors.quietButtonBg,
+        contentColor = ByeProTheme.colors.quietButtonText
+    ),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+    content: @Composable RowScope.() -> Unit
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 38.dp),
+        enabled = enabled,
+        shape = RoundedCornerShape(9.dp),
+        colors = colors,
+        border = BorderStroke(1.dp, ByeProTheme.colors.quietButtonBorder),
+        contentPadding = contentPadding,
+        content = content
+    )
+}
+
+/** Inline text action used for links such as auth mode switching. */
+@Composable
+fun FinanceLinkButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 32.dp),
+        enabled = enabled,
+        shape = RoundedCornerShape(9.dp),
+        colors = ButtonDefaults.textButtonColors(
+            containerColor = Color.Transparent,
+            contentColor = ByeProTheme.colors.goldPrimary
+        ),
+        border = null,
+        contentPadding = PaddingValues(0.dp),
+        content = content
+    )
+}
+
+/** Shared Web-token switch styling for every settings toggle. */
+@Composable
+fun FinanceSwitch(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)?,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+        enabled = enabled,
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+            checkedTrackColor = ByeProTheme.colors.goldPrimary,
+            checkedBorderColor = ByeProTheme.colors.goldPrimary,
+            uncheckedThumbColor = ByeProTheme.colors.textMuted,
+            uncheckedTrackColor = ByeProTheme.colors.cardSecondary,
+            uncheckedBorderColor = ByeProTheme.colors.borderBase
+        )
+    )
 }
 
 /** Shared dialog surface and corner treatment. */
@@ -150,21 +248,66 @@ fun FinanceAlertDialog(
     AlertDialog(
         onDismissRequest = onDismissRequest,
         confirmButton = confirmButton,
-        modifier = modifier,
         dismissButton = dismissButton,
         icon = icon,
         title = title,
         text = text,
-        shape = RoundedCornerShape(20.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(16.dp),
+        containerColor = ByeProTheme.colors.surfaceMain,
+        modifier = modifier.border(1.dp, ByeProTheme.colors.dialogBorder, RoundedCornerShape(16.dp)),
         iconContentColor = MaterialTheme.colorScheme.secondary,
         titleContentColor = MaterialTheme.colorScheme.onSurface,
         textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        tonalElevation = AlertDialogDefaults.TonalElevation,
+        tonalElevation = 0.dp,
         properties = properties
     )
 }
 
+
+/** Lucide-sized semantic icon wrapper for consistent 20dp glyphs across screens. */
+@Composable
+fun FinanceIcon(
+    imageVector: ImageVector,
+    contentDescription: String?,
+    modifier: Modifier = Modifier.size(20.dp),
+    tint: Color = LocalContentColor.current
+) {
+    Icon(
+        imageVector = imageVector,
+        contentDescription = contentDescription,
+        modifier = modifier,
+        tint = tint
+    )
+}
+
+/** Accessible two-state choice styled with the Web control geometry. */
+@Composable
+fun FinanceChoiceButton(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    // Match the Web control contract: 44dp minimum height, 10dp radius,
+    // solid gold primary state and a raised neutral secondary state.
+    val shape = RoundedCornerShape(10.dp)
+    val background = if (selected) ByeProTheme.colors.primaryButtonBg else ByeProTheme.colors.cardSecondary
+    val foreground = if (selected) MaterialTheme.colorScheme.onPrimary else ByeProTheme.colors.textPrimary
+    val outline = if (selected) ByeProTheme.colors.primaryButtonBg else ByeProTheme.colors.borderBase
+    CompositionLocalProvider(LocalContentColor provides foreground) {
+        Box(
+            modifier = modifier
+                .heightIn(min = 44.dp)
+                .background(background, shape)
+                .border(1.dp, outline, shape)
+                .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            content()
+        }
+    }
+}
 
 /** Shared icon action control with consistent default accent color. */
 @Composable
@@ -174,8 +317,16 @@ fun FinanceIconButton(
     enabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    CompositionLocalProvider(LocalContentColor provides ByeProTheme.colors.goldPrimary) {
-        IconButton(onClick = onClick, modifier = modifier, enabled = enabled, content = content)
+    CompositionLocalProvider(LocalContentColor provides ByeProTheme.colors.textPrimary) {
+        IconButton(
+            onClick = onClick,
+            modifier = modifier
+                .then(Modifier.sizeIn(minWidth = 44.dp, minHeight = 44.dp))
+                .border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(12.dp))
+                .background(ByeProTheme.colors.surfaceMain, RoundedCornerShape(12.dp)),
+            enabled = enabled,
+            content = content
+        )
     }
 }
 
@@ -184,7 +335,7 @@ fun FinanceIconButton(
 fun FinanceFloatingActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    containerColor: Color = ByeProTheme.colors.goldPrimary,
+    containerColor: Color = ByeProTheme.colors.primaryButtonBg,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
     content: @Composable () -> Unit
 ) {

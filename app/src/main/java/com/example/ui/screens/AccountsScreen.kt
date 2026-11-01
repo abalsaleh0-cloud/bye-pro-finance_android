@@ -1,5 +1,14 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
+import com.example.ui.components.FinanceIcon
+
+
+
+
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +27,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
+
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreditCard
@@ -101,11 +110,11 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
         floatingActionButton = {
             FinanceFloatingActionButton(
                 onClick = { showAddDialog = true },
-                containerColor = ByeProTheme.colors.goldPrimary,
+                containerColor = ByeProTheme.colors.primaryButtonBg,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_account_fab")
             ) {
-                Icon(Icons.Default.Add, contentDescription = WebI18n.tr("إضافة حساب", "Add account", lang))
+                FinanceIcon(Lucide.Plus, contentDescription = WebI18n.tr("إضافة حساب", "Add account", lang))
             }
         }
     ) { padding ->
@@ -190,7 +199,7 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.Wallet, null, modifier = Modifier.size(42.dp), tint = ByeProTheme.colors.goldPrimary)
+                        FinanceIcon(Lucide.Wallet, null, modifier = Modifier.size(42.dp), tint = ByeProTheme.colors.goldPrimary)
                         Text(WebI18n.tr("لا توجد حسابات بعد", "No accounts yet", lang), fontWeight = FontWeight.Bold)
                         Text(
                             WebI18n.tr("أضف حسابك الأول لبدء تنظيم أموالك.", "Add your first account to start organizing your money.", lang),
@@ -223,12 +232,12 @@ fun AccountDetailedCard(
     onToggleActive: () -> Unit
 ) {
     val icon = when (account.type) {
-        AccountType.CASH -> Icons.Default.Payments
-        AccountType.BANK -> Icons.Default.AccountBalance
-        AccountType.WALLET -> Icons.Default.Wallet
-        AccountType.CREDIT_CARD -> Icons.Default.CreditCard
-        AccountType.INVESTMENT -> Icons.Default.TrendingUp
-        else -> Icons.Default.AccountBalance
+        AccountType.CASH -> Lucide.HandCoins
+        AccountType.BANK -> Lucide.CreditCard
+        AccountType.WALLET -> Lucide.Wallet
+        AccountType.CREDIT_CARD -> Lucide.CreditCard
+        AccountType.INVESTMENT -> Lucide.TrendingUp
+        else -> Lucide.CreditCard
     }
     Card(
         modifier = Modifier.fillMaxWidth().border(
@@ -243,7 +252,7 @@ fun AccountDetailedCard(
                     Modifier.size(42.dp).clip(CircleShape)
                         .background(ByeProTheme.colors.goldPrimary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
-                ) { Icon(icon, null, tint = ByeProTheme.colors.goldPrimary) }
+                ) { FinanceIcon(icon, null, tint = ByeProTheme.colors.goldPrimary) }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(account.name, fontWeight = FontWeight.Bold)
@@ -310,7 +319,7 @@ fun AddAccountForm(
             )
             Text(WebI18n.tr("نوع الحساب", "Account type", lang), style = MaterialTheme.typography.labelMedium)
             Box {
-                OutlinedButton(onClick = { typeMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_type_selector")) {
+                FinanceOutlinedButton(onClick = { typeMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_type_selector")) {
                     Text(accountTypeLabel(selectedType, lang))
                 }
                 DropdownMenu(typeMenuExpanded, { typeMenuExpanded = false }) {
@@ -321,7 +330,7 @@ fun AddAccountForm(
             }
             Text(WebI18n.tr("العملة", "Currency", lang), style = MaterialTheme.typography.labelMedium)
             Box {
-                OutlinedButton(onClick = { currencyMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_currency_selector")) {
+                FinanceOutlinedButton(onClick = { currencyMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_currency_selector")) {
                     Text(currencyLabel(selectedCurrency, lang))
                 }
                 DropdownMenu(currencyMenuExpanded, { currencyMenuExpanded = false }) {

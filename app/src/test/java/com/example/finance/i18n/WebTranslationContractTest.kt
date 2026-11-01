@@ -4,6 +4,7 @@ import com.example.finance.model.AppLanguage
 import com.example.ui.theme.ByeProDesignTokens
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -43,7 +44,7 @@ class WebTranslationContractTest {
         assertEquals(Color(0xFFFF8585), ByeProDesignTokens.Colors.danger)
         assertEquals(ByeProDesignTokens.Colors.background, com.example.ui.theme.DarkBgMain)
         assertEquals(ByeProDesignTokens.Colors.surface, com.example.ui.theme.DarkSurfaceMain)
-        assertEquals(ByeProDesignTokens.Colors.surfaceRaised, com.example.ui.theme.DarkCardMain)
+        assertEquals(ByeProDesignTokens.Colors.surfaceRaised, com.example.ui.theme.DarkCardSecondary)
         assertEquals(ByeProDesignTokens.Colors.border, com.example.ui.theme.DarkBorderBase)
         assertEquals(ByeProDesignTokens.Colors.text, com.example.ui.theme.DarkTextPrimary)
         assertEquals(ByeProDesignTokens.Colors.muted, com.example.ui.theme.DarkTextMuted)
@@ -59,8 +60,32 @@ class WebTranslationContractTest {
         assertEquals(Color(0xFF20232A), ByeProDesignTokens.LightColors.text)
         assertEquals(Color(0xFF626875), ByeProDesignTokens.LightColors.muted)
         assertEquals(Color(0xFF8A671D), ByeProDesignTokens.LightColors.accent)
+        assertEquals(Color(0xFF20232A), ByeProDesignTokens.Fields.lightText)
+        assertEquals(Color(0xFFCBD0D9), ByeProDesignTokens.Fields.lightBorder)
+        assertEquals(ByeProDesignTokens.Fields.lightText, com.example.ui.theme.LightFieldText)
+        assertEquals(ByeProDesignTokens.Fields.lightBorder, com.example.ui.theme.LightFieldBorder)
+        assertEquals(ByeProDesignTokens.LightColors.success, com.example.ui.theme.ByeProLightTokens.financialGreen)
+        assertEquals(ByeProDesignTokens.LightColors.danger, com.example.ui.theme.ByeProLightTokens.financialRed)
+        assertEquals(Color(0xFF16794A), com.example.ui.theme.ByeProLightTokens.statusSuccess)
+        assertEquals(Color(0xFFB42332), com.example.ui.theme.ByeProLightTokens.statusError)
+        assertEquals(Color(0xFFA9E9C6), com.example.ui.theme.ByeProDarkTokens.statusSuccess)
+        assertEquals(Color(0xFFFFB4B4), com.example.ui.theme.ByeProDarkTokens.statusError)
         assertEquals(Color(0xFF16794A), ByeProDesignTokens.LightColors.success)
         assertEquals(Color(0xFFB42332), ByeProDesignTokens.LightColors.danger)
+        assertEquals(Color(0xFFD6B56D), ByeProDesignTokens.Buttons.darkPrimaryBackground)
+        assertEquals(Color(0xFFE0C17E), ByeProDesignTokens.Buttons.darkPrimaryBorder)
+        assertEquals(Color(0xFF19160F), ByeProDesignTokens.Buttons.darkPrimaryText)
+        assertEquals(Color(0xFFD6B56D), ByeProDesignTokens.Buttons.lightPrimaryBackground)
+        assertEquals(Color(0xFFB99B5E), ByeProDesignTokens.Buttons.lightPrimaryBorder)
+        assertEquals(Color(0xFF17130B), ByeProDesignTokens.Buttons.lightPrimaryText)
+        assertEquals(ByeProDesignTokens.Buttons.darkPrimaryBorder, com.example.ui.theme.ByeProDarkTokens.primaryButtonBorder)
+        assertEquals(ByeProDesignTokens.Buttons.lightPrimaryBorder, com.example.ui.theme.ByeProLightTokens.primaryButtonBorder)
+        assertEquals(43.dp, ByeProDesignTokens.Fields.height)
+        assertEquals(9.dp, ByeProDesignTokens.Fields.radius)
+        assertEquals(ByeProDesignTokens.Dialog.darkBorder, com.example.ui.theme.ByeProDarkTokens.dialogBorder)
+        assertEquals(ByeProDesignTokens.Dialog.lightBorder, com.example.ui.theme.ByeProLightTokens.dialogBorder)
+        assertEquals(ByeProDesignTokens.Status.live, com.example.ui.theme.ByeProDarkTokens.statusLive)
+        assertEquals(ByeProDesignTokens.Status.live, com.example.ui.theme.ByeProLightTokens.statusLive)
     }
 
     @Test

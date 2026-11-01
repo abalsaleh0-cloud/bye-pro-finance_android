@@ -1,5 +1,13 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
+import com.example.ui.components.FinanceIcon
+
+
+
+
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
@@ -25,7 +33,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
+
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -95,11 +103,11 @@ fun SavingsAssetsScreen(
                 onClick = {
                     if (selectedTabIndex == 0) showAddGoalDialog = true else showAddAssetDialog = true
                 },
-                containerColor = ByeProTheme.colors.goldPrimary,
+                containerColor = ByeProTheme.colors.primaryButtonBg,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_savings_asset_fab")
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = null)
+                FinanceIcon(imageVector = Lucide.Plus, contentDescription = null)
             }
         }
     ) { padding ->
@@ -338,8 +346,8 @@ fun SavingsGoalCard(
                     )
                 }
                 FinanceIconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
+                    FinanceIcon(
+                        imageVector = Lucide.Trash2,
                         contentDescription = WebI18n.tr("حذف", "Delete", lang),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp)
@@ -394,10 +402,10 @@ fun SavingsGoalCard(
                     FinanceOutlinedButton(onClick = onEdit) { Text(WebI18n.tr("تعديل", "Edit", lang)) }
                     FinanceButton(
                     onClick = onContribute,
-                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.primaryButtonBg, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Icon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(16.dp))
+                    FinanceIcon(Lucide.Wallet, contentDescription = null, modifier = Modifier.size(16.dp))
                     Text(Strings.get("contribute", lang), modifier = Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelMedium)
                     }
                 }
@@ -450,11 +458,11 @@ fun AssetCardItem(
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 FinanceIconButton(onClick = onEdit) {
-                    Icon(imageVector = Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل", "Edit", lang), modifier = Modifier.size(18.dp))
+                    FinanceIcon(imageVector = Lucide.Plus, contentDescription = WebI18n.tr("تعديل", "Edit", lang), modifier = Modifier.size(18.dp))
                 }
                 FinanceIconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
+                    FinanceIcon(
+                        imageVector = Lucide.Trash2,
                         contentDescription = WebI18n.tr("حذف", "Delete", lang),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp)
@@ -508,7 +516,7 @@ fun AddSavingsGoalDialog(
                     deadline == null -> WebI18n.tr("أدخل تاريخاً صحيحاً.", "Enter a valid date.", lang)
                     else -> ""
                 }
-                if (error.isBlank() && deadline != null) onConfirm(SavingsGoalEntity(id = initialGoal?.id ?: 0, name = name.trim(), targetAmount = target, currentAmount = current, currency = currency, deadline = deadline, targetMonthlyDeposit = monthly, colorHex = initialGoal?.colorHex ?: "#F1B942"))
+                if (error.isBlank() && deadline != null) onConfirm(SavingsGoalEntity(id = initialGoal?.id ?: 0, name = name.trim(), targetAmount = target, currentAmount = current, currency = currency, deadline = deadline, targetMonthlyDeposit = monthly, colorHex = initialGoal?.colorHex ?: "#D6B56D"))
             }) { Text(Strings.get("confirm", lang)) }
         },
         dismissButton = { FinanceOutlinedButton(onClick = onDismiss) { Text(Strings.get("cancel", lang)) } }
@@ -539,7 +547,7 @@ fun AddAssetDialog(
                 FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(java.util.Locale.ROOT) }, label = { Text(WebI18n.tr("العملة", "Currency", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = typeText, onValueChange = { typeText = it.uppercase(java.util.Locale.ROOT) }, label = { Text(WebI18n.tr("النوع: PROPERTY / GOLD / VEHICLE / CASH / INVESTMENTS / OTHER", "Type: PROPERTY / GOLD / VEHICLE / CASH / INVESTMENTS / OTHER", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = purchaseDateText, onValueChange = { purchaseDateText = it }, label = { Text(WebI18n.tr("تاريخ الشراء YYYY-MM-DD", "Purchase date YYYY-MM-DD", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = notes, onValueChange = { notes = it }, label = { Text(Strings.get("notes", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = notes, onValueChange = { notes = it }, label = { Text(Strings.get("notes", lang)) }, modifier = Modifier.fillMaxWidth(), singleLine = false)
                 if (error.isNotBlank()) Text(error, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
             }
         },

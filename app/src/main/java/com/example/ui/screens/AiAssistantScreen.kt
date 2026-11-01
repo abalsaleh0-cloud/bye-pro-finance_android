@@ -1,5 +1,14 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
+import com.example.ui.components.FinanceIcon
+
+
+
+
+
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
@@ -30,7 +39,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
+
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Send
@@ -66,7 +75,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.finance.engine.FinanceEngine
+import com.example.finance.engine.FinanceInsightsEngine
 import com.example.finance.i18n.Strings
 import com.example.finance.ui.ChatMessage
 import com.example.finance.model.AppLanguage
@@ -120,6 +129,11 @@ fun AiAssistantScreen(
                 onClick = { selectedTabIndex = 1 },
                 text = { Text(Strings.get("nav_ai_insights", lang), fontWeight = FontWeight.Bold) }
             )
+            Tab(
+                selected = selectedTabIndex == 2,
+                onClick = { selectedTabIndex = 2 },
+                text = { Text(WebI18n.tr("النموذج المحلي", "Local Model", lang), fontWeight = FontWeight.Bold) }
+            )
         }
 
         if (selectedTabIndex == 0) {
@@ -147,8 +161,8 @@ fun AiAssistantScreen(
                         modifier = Modifier.padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
+                        FinanceIcon(
+                            imageVector = Lucide.Info,
                             contentDescription = null,
                             tint = ByeProTheme.colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -245,17 +259,17 @@ fun AiAssistantScreen(
                             .background(ByeProTheme.colors.financialGreen)
                             .testTag("ai_assistant_send_btn")
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Send,
+                        FinanceIcon(
+                            imageVector = Lucide.ArrowRight,
                             contentDescription = WebI18n.tr("إرسال", "Send", lang),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 }
             }
-        } else {
+        } else if (selectedTabIndex == 1) {
             // Insights Tab
-            val insights = viewModel.aiService.generateInsights(transactions, budgets, lang)
+            val insights = FinanceInsightsEngine.generateInsights(transactions, budgets, lang)
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -307,11 +321,11 @@ fun AiAssistantScreen(
                                         else -> ByeProTheme.colors.goldPrimary
                                     }
                                 )
-                                Icon(
+                                FinanceIcon(
                                     imageVector = when (insight.impactType) {
-                                        "POSITIVE" -> Icons.Default.TrendingUp
-                                        "WARNING" -> Icons.Default.Warning
-                                        else -> Icons.Default.AutoAwesome
+                                        "POSITIVE" -> Lucide.TrendingUp
+                                        "WARNING" -> Lucide.Info
+                                        else -> Lucide.Sparkles
                                     },
                                     contentDescription = null,
                                     tint = when (insight.impactType) {
@@ -340,6 +354,8 @@ fun AiAssistantScreen(
                     }
                 }
             }
+        } else {
+            LocalAiModelScreen()
         }
     }
 }

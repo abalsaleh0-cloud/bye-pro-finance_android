@@ -22,11 +22,11 @@ require("app/src/main/java/com/example/ui/navigation/MainAppScaffold.kt",
 require("app/src/main/java/com/example/finance/ui/FinanceViewModel.kt",
         "MutableStateFlow(WebI18n.read(application))")
 require("app/src/main/java/com/example/finance/ui/FinanceViewModel.kt",
-        "WebI18n.write(getApplication(), lang)")
+        "WebI18n.write(getApplication(),v)")
 require("app/src/main/java/com/example/finance/ui/FinanceViewModel.kt",
-        'preferences.getBoolean("dark_mode", true)')
+        'preferences.getBoolean("dark_mode",true)')
 require("app/src/main/java/com/example/finance/ui/FinanceViewModel.kt",
-        'preferences.edit().putBoolean("dark_mode", dark).apply()')
+        'preferences.edit().putBoolean("dark_mode",v).apply()')
 require("app/src/main/java/com/example/finance/i18n/WebI18n.kt",
         'const val LOCALE_KEY = "bye-pro-finance.locale"')
 require("app/src/main/java/com/example/finance/i18n/WebI18n.kt",

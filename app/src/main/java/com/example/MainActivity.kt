@@ -24,6 +24,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.finance.auth.SupabaseAuthRepository
+import com.example.finance.runtime.MobileRuntimeConfigRepository
 import com.example.finance.supabase.SupabaseConnection
 import com.example.finance.ui.FinanceViewModel
 import com.example.finance.worker.BillReminderWorker
@@ -41,6 +42,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         scheduleFinanceBackgroundWork()
         verifySupabaseConnection()
+        refreshMobileRuntimeConfig()
         setContent {
             val isDark by financeViewModel.isDarkMode.collectAsState()
             val language by financeViewModel.appLanguage.collectAsState()
@@ -71,6 +73,17 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private fun refreshMobileRuntimeConfig() {
+        lifecycleScope.launch {
+            val config = MobileRuntimeConfigRepository(applicationContext).refresh()
+            Log.i(
+                "BYE_PRO_RUNTIME",
+                "Runtime configuration loaded: version=${config.configVersion}, " +
+                    "maintenance=${config.maintenanceMode}"
+            )
         }
     }
 

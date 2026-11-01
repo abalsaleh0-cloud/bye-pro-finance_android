@@ -1,5 +1,13 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
+import com.example.ui.components.FinanceIcon
+
+
+
+
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
@@ -24,9 +32,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -152,7 +157,7 @@ fun ReportsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.financialGreen, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.FileDownload, contentDescription = null)
+                    FinanceIcon(Lucide.Download, contentDescription = null)
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(Strings.get("export_csv", lang), fontWeight = FontWeight.Bold)
                 }
@@ -165,10 +170,10 @@ fun ReportsScreen(
                     modifier = Modifier
                         .weight(1f)
                         .testTag("export_json_btn"),
-                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.primaryButtonBg, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.TableChart, contentDescription = null)
+                    FinanceIcon(Lucide.FileText, contentDescription = null)
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(Strings.get("export_json", lang), fontWeight = FontWeight.Bold)
                 }

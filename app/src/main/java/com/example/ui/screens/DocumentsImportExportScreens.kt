@@ -1,5 +1,14 @@
 package com.example.ui.screens
 
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
+
+import com.example.ui.components.FinanceIcon
+
+
+
+
+
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -16,7 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
+
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Card
@@ -41,6 +50,7 @@ import com.example.finance.model.DocumentType
 import com.example.finance.model.DocumentEntity
 import com.example.finance.ui.FinanceViewModel
 import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceIconButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
 
@@ -116,7 +126,7 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                             )
                         }
                         if (document.fileUri.isNotBlank()) {
-                            IconButton(onClick = {
+                            FinanceIconButton(onClick = {
                                 runCatching {
                                     val uri = Uri.parse(document.fileUri)
                                     val mimeType = context.contentResolver.getType(uri) ?: "*/*"
@@ -128,11 +138,11 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                                     )
                                 }
                             }) {
-                                Icon(Icons.Default.Visibility, contentDescription = WebI18n.tr("عرض المستند", "View document", lang))
+                                FinanceIcon(Lucide.Eye, contentDescription = WebI18n.tr("عرض المستند", "View document", lang))
                             }
                         }
-                        IconButton(onClick = { viewModel.deleteDocument(document) }) {
-                            Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف المستند", "Delete document", lang))
+                        FinanceIconButton(onClick = { viewModel.deleteDocument(document) }) {
+                            FinanceIcon(Lucide.Trash2, contentDescription = WebI18n.tr("حذف المستند", "Delete document", lang))
                         }
                     }
                 }

@@ -267,7 +267,7 @@ fun SectionHeader(
             color = MaterialTheme.colorScheme.onSurface
         )
         if (actionLabel != null && onAction != null) {
-            TextButton(onClick = onAction) {
+            FinanceLinkButton(onClick = onAction) {
                 Text(
                     text = actionLabel,
                     style = MaterialTheme.typography.labelMedium,
