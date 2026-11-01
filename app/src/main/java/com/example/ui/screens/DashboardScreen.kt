@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -123,11 +124,12 @@ fun DashboardScreen(
     val assetValue = currencyAssets.sumOf { it.value }
     val budgetTotal = currencyBudgets.sumOf { it.limitAmount }
     val debtRemaining = currencyDebts.sumOf { it.remaining }
-    val billsDue = currencyBills.filter { !it.isPaid }.sumOf { it.amount }
+    val billsDue = currencyBills.sumOf { it.amount }
     val goalProgress = currencyGoals.sumOf { it.currentAmount }
     val goalTarget = currencyGoals.sumOf { it.targetAmount }
     val goalPercent = if (goalTarget > 0.0) (goalProgress / goalTarget * 100.0).toInt().coerceIn(0, 100) else 0
-    val outstandingDebtCount = debts.count { it.remaining > 0.0 }
+    val activeDebts = debts.filter { it.remaining > 0.0 }
+    val outstandingDebtCount = activeDebts.size
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -258,12 +260,12 @@ fun DashboardScreen(
                     valueColor = ByeProTheme.colors.goldPrimary,
                     showDivider = currencyBudgets.isNotEmpty()
                 )
-                currencyBudgets.take(4).forEachIndexed { index, budget ->
+                budgets.take(4).forEachIndexed { index, budget ->
                     DashboardLine(
                         label = budget.name,
                         detail = budgetPeriodLabel(budget.period, lang),
                         value = TextContent.money(budget.limitAmount, budget.currency, lang),
-                        showDivider = index != currencyBudgets.take(4).lastIndex
+                        showDivider = index != budgets.take(4).lastIndex
                     )
                 }
                 if (currencyBudgets.isEmpty()) DashboardEmpty(WebI18n.tr("لا توجد ميزانيات بهذه العملة.", "No budgets in this currency.", lang))
@@ -300,7 +302,7 @@ fun DashboardScreen(
             DashboardPanel(
                 eyebrow = WebI18n.tr("الالتزامات", "Liabilities", lang),
                 title = WebI18n.tr("الديون", "Debts", lang),
-                count = TextContent.number(currencyDebts.size, lang, 0)
+                count = TextContent.number(outstandingDebtCount, lang, 0)
             ) {
                 DashboardLine(
                     label = WebI18n.tr("إجمالي المتبقي", "Total remaining", lang) + " · $currency",
@@ -309,13 +311,13 @@ fun DashboardScreen(
                     valueColor = ByeProTheme.colors.financialRed,
                     showDivider = currencyDebts.isNotEmpty()
                 )
-                currencyDebts.take(3).forEachIndexed { index, debt ->
+                activeDebts.take(3).forEachIndexed { index, debt ->
                     DashboardLine(
                         label = debt.name,
                         detail = if (debt.direction == "owed_to_me") WebI18n.tr("لي عنده", "Owed to me", lang)
                             else WebI18n.tr("عليّ له", "I owe", lang),
                         value = TextContent.money(debt.remaining, debt.currency, lang),
-                        showDivider = index != currencyDebts.take(3).lastIndex
+                        showDivider = index != activeDebts.take(3).lastIndex
                     )
                 }
                 if (currencyDebts.isEmpty()) DashboardEmpty(WebI18n.tr("لا توجد ديون قائمة بهذه العملة.", "No outstanding debts in this currency.", lang))
@@ -351,12 +353,12 @@ fun DashboardScreen(
 @Composable
 private fun DashboardMetric(label: String, value: String, detail: String) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 132.dp),
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
             Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -377,7 +379,7 @@ private fun DashboardPanel(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(eyebrow, style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary)
@@ -401,7 +403,7 @@ private fun DashboardLine(
     valueColor: Color = MaterialTheme.colorScheme.onSurface,
     showDivider: Boolean = true
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+    Column(modifier = Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
