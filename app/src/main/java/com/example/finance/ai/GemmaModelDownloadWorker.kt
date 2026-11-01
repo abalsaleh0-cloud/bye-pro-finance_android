@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.os.StatFs
+import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
@@ -32,6 +33,12 @@ class GemmaModelDownloadWorker(appContext: Context, params: WorkerParameters) : 
             return Result.failure(workDataOf(KEY_ERROR to "المساحة الحرة غير كافية؛ يلزم توفير 3.1 GB على الأقل"))
         setForeground(foreground(0, "جارٍ تجهيز تنزيل Gemma 4 E2B"))
         return try {
+            if (part.isFile && part.length() > MIN_MODEL_BYTES && sha256(part) == EXPECTED_SHA256) {
+                if (target.exists() && !target.delete()) return Result.failure(workDataOf(KEY_ERROR to "تعذر استبدال ملف النموذج القديم"))
+                if (!part.renameTo(target)) return Result.failure(workDataOf(KEY_ERROR to "تعذر تثبيت ملف النموذج بعد التحقق"))
+                return Result.success(workDataOf(KEY_MODEL_PATH to target.absolutePath))
+            }
+            if (part.exists() && part.length() > MIN_MODEL_BYTES) part.delete()
             download(part)
             coroutineContext.ensureActive()
             if (!part.isFile || part.length() < MIN_MODEL_BYTES)
@@ -41,10 +48,16 @@ class GemmaModelDownloadWorker(appContext: Context, params: WorkerParameters) : 
                 part.delete()
                 return Result.failure(workDataOf(KEY_ERROR to "فشل التحقق من بصمة SHA-256؛ حُذف الملف غير السليم"))
             }
-            if (target.exists() && !target.delete())
-                return Result.failure(workDataOf(KEY_ERROR to "تعذر استبدال ملف النموذج القديم"))
-            if (!part.renameTo(target))
+            val backup = File(dir, MODEL_FILE + ".previous")
+            if (backup.exists()) backup.delete()
+            val hadTarget = target.exists()
+            if (hadTarget && !target.renameTo(backup))
+                return Result.failure(workDataOf(KEY_ERROR to "تعذر حفظ نسخة النموذج السابقة"))
+            if (!part.renameTo(target)) {
+                if (hadTarget) backup.renameTo(target)
                 return Result.failure(workDataOf(KEY_ERROR to "تعذر تثبيت ملف النموذج بعد التنزيل"))
+            }
+            if (backup.exists()) backup.delete()
             setProgress(workDataOf(KEY_PROGRESS to 100, KEY_STATUS to "اكتمل التنزيل والتحقق"))
             Result.success(workDataOf(KEY_MODEL_PATH to target.absolutePath))
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -126,7 +139,11 @@ class GemmaModelDownloadWorker(appContext: Context, params: WorkerParameters) : 
             .setContentText(message)
             .setProgress(100, progress.coerceAtLeast(0), progress < 0)
             .setOngoing(true).setOnlyAlertOnce(true).build()
-        return ForegroundInfo(NOTIFICATION_ID, notification)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ForegroundInfo(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            ForegroundInfo(NOTIFICATION_ID, notification)
+        }
     }
 
     companion object {

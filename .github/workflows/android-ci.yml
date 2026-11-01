@@ -2,7 +2,7 @@ name: Android CI and APK
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'recovery/**']
   workflow_dispatch:
 
 permissions:
