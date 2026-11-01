@@ -19,9 +19,8 @@ object FinanceVoiceCommandParser {
         ).any(lower::contains)
         if (!explicitExpense) return null
 
-        val amountMatch = Regex("""(?<!\\d)(\\d+(?:[.,]\\d{1,2})?)(?!\\d)""").find(normalized) ?: return null
-        val amountText = amountMatch.value
-        val amount = amountText.replace(',', '.').toDoubleOrNull()
+        val amountMatch = Regex("""(?<!\d)(\d+(?:[.,]\d{1,2})?)(?!\d)""").find(normalized) ?: return null
+        val amount = amountMatch.value.replace(',', '.').toDoubleOrNull()
             ?.takeIf { it.isFinite() && it > 0.0 } ?: return null
 
         val category = when {
@@ -30,12 +29,12 @@ object FinanceVoiceCommandParser {
         }
         val description = normalized
             .removeRange(amountMatch.range)
-            .replace(Regex("""(?i)\\b(paid|spent|payed)\\b"""), " ")
-            .replace(Regex("""دفعت(\\s+مبلغ)?|سددت|صرف(ت)?|مصروف|اشتريت"""), " ")
+            .replace(Regex("""(?i)\b(paid|spent|payed)\b"""), " ")
+            .replace(Regex("""دفعت(\s+مبلغ)?|سددت|صرف(ت)?|مصروف|اشتريت"""), " ")
             .replace(Regex("""[،,:؛]"""), " ")
-            .replace(Regex("""\\s+"""), " ")
+            .replace(Regex("""\s+"""), " ")
             .trim()
-            .ifBlank { if (category == "Housing") "إيجار المنزل" else category }
+            .ifBlank { "إيجار المنزل" }
 
         return ExpenseVoiceCommand(amount, description, category)
     }
