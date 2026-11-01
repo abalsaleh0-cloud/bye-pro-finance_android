@@ -120,8 +120,7 @@ fun SpeakTextButton(
         val engine = TextToSpeech(context) { status ->
             ready = status == TextToSpeech.SUCCESS
             if (ready) {
-                val locale = if (languageCode == "ar") Locale("ar") else Locale.US
-                engineLanguagePlaceholder()
+                tts?.language = if (languageCode == "ar") Locale("ar") else Locale.US
             }
         }
         tts = engine
@@ -150,4 +149,3 @@ fun SpeakTextButton(
     }
 }
 
-private fun engineLanguagePlaceholder() = Unit
