@@ -29,7 +29,7 @@ val ByeProDarkTokens = ByeProColorTokens(
 val ByeProLightTokens = ByeProColorTokens(
     LightBgMain, LightSurfaceMain, LightSurfaceMain, LightCardSecondary, LightCardSecondary, LightHoverInteractive,
     LightBorderBase, LightBorderProminent, LightTextPrimary, LightTextSecondary, LightTextMuted, LightTextMuted,
-    LightGoldPrimary, LightGoldFeatured, LightGoldFeatured, LightGoldPrimary,
+    LightGoldPrimary, LightGoldFeatured, LightGoldPrimary, LightGoldPrimary,
     LightStatusSuccess, LightStatusError, LightStatusSuccess, LightStatusError,
     LightFieldBg, LightFieldText, LightFieldBorder, LightFieldFocus, false
 )
@@ -66,7 +66,7 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = LightGoldPrimary,
+    primary = LightGoldFeatured,
     onPrimary = Color(0xFF17130B),
     primaryContainer = LightCardSecondary,
     onPrimaryContainer = LightTextPrimary,

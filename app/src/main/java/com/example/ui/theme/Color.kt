@@ -39,7 +39,7 @@ val LightTextPrimary = ByeProDesignTokens.LightColors.text
 val LightTextSecondary = ByeProDesignTokens.LightColors.muted
 val LightTextMuted = ByeProDesignTokens.LightColors.muted
 val LightGoldPrimary = ByeProDesignTokens.LightColors.accent
-val LightGoldFeatured = ByeProDesignTokens.LightColors.accent
+val LightGoldFeatured = ByeProDesignTokens.LightColors.primaryAction
 val LightStatusSuccess = ByeProDesignTokens.LightColors.success
 val LightStatusError = ByeProDesignTokens.LightColors.danger
 

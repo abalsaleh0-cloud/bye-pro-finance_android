@@ -90,7 +90,7 @@ fun FinanceButton(
     enabled: Boolean = true,
     shape: Shape = RoundedCornerShape(12.dp),
     colors: ButtonColors = ButtonDefaults.buttonColors(
-        containerColor = ByeProTheme.colors.goldPrimary,
+        containerColor = ByeProTheme.colors.goldFeatured,
         contentColor = MaterialTheme.colorScheme.onPrimary
     ),
     elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
@@ -183,7 +183,7 @@ fun FinanceIconButton(
 fun FinanceFloatingActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    containerColor: Color = ByeProTheme.colors.goldPrimary,
+    containerColor: Color = ByeProTheme.colors.goldFeatured,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
     content: @Composable () -> Unit
 ) {

@@ -34,9 +34,9 @@ object ByeProDesignTokens {
         val border = Color(0xFFD9DCE3)
         val text = Color(0xFF20232A)
         val muted = Color(0xFF626875)
-        // The web primary action remains the same brand gold in both themes.
-        val accent = Color(0xFFD6B56D)
-        val success = Color(0xFF67D6A1)
+        val accent = Color(0xFF8A671D)
+        val primaryAction = Color(0xFFD6B56D)
+        val success = Color(0xFF16794A)
         val danger = Color(0xFFB42332)
     }
 
