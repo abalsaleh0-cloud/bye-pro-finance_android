@@ -70,10 +70,18 @@ jobs:
           KEYSTORE_PATH="$RUNNER_TEMP/bye-pro-upload-key.jks"
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
           test -s "$KEYSTORE_PATH"
-          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias upload >/dev/null
+          KEY_ALIAS="$(keytool -list -v -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" 2>/dev/null | awk -F': ' '/^Alias name: / {print $2; exit}')"
+          if [[ -z "$KEY_ALIAS" ]]; then
+            echo "::error::Could not detect a signing alias in the supplied keystore."
+            exit 1
+          fi
+          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
           chmod 600 "$KEYSTORE_PATH"
-          echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
-          echo "Production keystore decoded and alias validated."
+          {
+            echo "KEYSTORE_PATH=$KEYSTORE_PATH"
+            echo "KEY_ALIAS=$KEY_ALIAS"
+          } >> "$GITHUB_ENV"
+          echo "Production keystore decoded; signing alias detected and validated."
 
       - name: Run unit tests
         uses: gradle/gradle-build-action@v3
@@ -101,7 +109,7 @@ jobs:
       - name: Upload signed release APK
         uses: actions/upload-artifact@v4
         with:
-          name: BYE-PRO-FINANCE-Android-Release-10.0.43
+          name: BYE-PRO-FINANCE-Android-Release-10.0.44
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
