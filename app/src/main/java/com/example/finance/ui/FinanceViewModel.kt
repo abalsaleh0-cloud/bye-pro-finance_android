@@ -141,7 +141,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         _isAiLoading.value = true
         viewModelScope.launch {
             val history = _chatMessages.value.dropLast(1).takeLast(12)
-                .joinToString("\\n") { "${it.sender}: ${it.text}" }
+                .joinToString("\n") { "${it.sender}: ${it.text}" }
             val response = runCatching {
                 val intent = aiService.understandTransactionIntent(
                     userQuery = trimmedQuery,
@@ -207,7 +207,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                             }
                         }
                     }
-                    "CLARIFY" -> intent.clarification ?: WebI18n.tr(
+                    "CLARIFY" -> intent?.clarification ?: WebI18n.tr(
                         "لم أفهم قصدك بالكامل. ممكن توضح لي أكثر؟",
                         "I did not fully understand. Could you clarify?",
                         _appLanguage.value
