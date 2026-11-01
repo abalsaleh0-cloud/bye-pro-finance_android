@@ -227,16 +227,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                         )
                         if (aiResponse.startsWith("تعذر الوصول إلى خدمة الذكاء الاصطناعي") ||
                             aiResponse.startsWith("The AI service is currently unavailable")) {
-                            FinancialAssistantEngine.answer(
-                                query = trimmedQuery,
-                                accounts = accounts.value,
-                                transactions = transactions.value,
-                                budgets = budgets.value,
-                                debts = debts.value,
-                                savingsGoals = savingsGoals.value,
-                                assets = assets.value,
-                                bills = bills.value,
-                                language = _appLanguage.value
+                            WebI18n.tr(
+                                "خدمة الذكاء الاصطناعي غير متاحة حالياً. لم أسجل أو أعدّل أي بيانات. حاول مجدداً بعد عودة الاتصال بالخدمة.",
+                                "The AI service is currently unavailable. I did not record or change any data. Please try again when the service is available.",
+                                _appLanguage.value
                             )
                         } else aiResponse
                     }
