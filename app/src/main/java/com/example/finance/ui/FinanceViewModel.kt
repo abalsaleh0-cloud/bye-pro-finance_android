@@ -5,9 +5,6 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.finance.ai.ExtractedReceiptData
-import com.example.finance.ai.AiWriteCommand
-import com.example.finance.ai.AiWriteCommandParser
-import com.example.finance.ai.TransactionWriteType
 import com.example.finance.ai.FinancialAssistantEngine
 import com.example.finance.ai.GeminiFinanceService
 import com.example.finance.data.AppDatabase
@@ -143,75 +140,111 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         _chatMessages.value = _chatMessages.value + ChatMessage("USER", trimmedQuery)
         _isAiLoading.value = true
         viewModelScope.launch {
+            val history = _chatMessages.value.dropLast(1).takeLast(12)
+                .joinToString("\\n") { "${it.sender}: ${it.text}" }
             val response = runCatching {
-                val writeCommand = AiWriteCommandParser.parse(
-                    query = trimmedQuery,
+                val intent = aiService.understandTransactionIntent(
+                    userQuery = trimmedQuery,
+                    recentConversation = history,
                     accounts = accounts.value,
-                    defaultCurrency = primaryCurrency.value
+                    defaultCurrency = primaryCurrency.value,
+                    language = _appLanguage.value
                 )
-                if (writeCommand is AiWriteCommand.RecordTransaction) {
-                    val account = writeCommand.account
-                    val matchingAccounts = accounts.value.filter {
-                        !it.isArchived && it.currency.equals(writeCommand.currency, ignoreCase = true)
-                    }
-                    when {
-                        account == null && matchingAccounts.size > 1 -> WebI18n.tr(
-                            "لدي أكثر من حساب بعملة ${writeCommand.currency}. حدّد الحساب، مثل: سجل مصروف 50 دينار مواصلات من حساب المحفظة الرئيسية.",
-                            "You have more than one ${writeCommand.currency} account. Specify the account, for example: record an expense of 50 ${writeCommand.currency} for transport from Main Wallet.",
-                            _appLanguage.value
-                        )
-                        account == null -> WebI18n.tr(
-                            "لم أجد حسابًا نشطًا بعملة ${writeCommand.currency}. أضف حسابًا بهذه العملة أولًا.",
-                            "I could not find an active account in ${writeCommand.currency}. Add an account in that currency first.",
-                            _appLanguage.value
-                        )
-                        !account.currency.equals(writeCommand.currency, ignoreCase = true) -> WebI18n.tr(
-                            "عملة العملية لا تطابق عملة الحساب المحدد.",
-                            "The transaction currency does not match the selected account currency.",
-                            _appLanguage.value
-                        )
-                        else -> {
-                            val transactionType = when (writeCommand.type) {
-                                TransactionWriteType.EXPENSE -> TransactionType.EXPENSE
-                                TransactionWriteType.INCOME -> TransactionType.INCOME
-                            }
-                            val transaction = TransactionEntity(
-                                accountId = account.id,
-                                type = transactionType,
-                                amount = writeCommand.amount,
-                                currency = writeCommand.currency,
-                                category = writeCommand.category,
-                                date = System.currentTimeMillis(),
-                                description = writeCommand.description,
-                                status = TransactionStatus.COMPLETED
+                when (intent?.intent) {
+                    "CREATE_EXPENSE", "CREATE_INCOME" -> {
+                        if (intent.confidence < 0.72 || intent.amount == null || intent.category.isNullOrBlank()) {
+                            intent.clarification ?: WebI18n.tr(
+                                "فهمت أنك تريد تسجيل عملية مالية، لكن أحتاج توضيح المبلغ أو نوع العملية أو تصنيفها.",
+                                "I understood that you want to record a financial transaction, but I need the amount, transaction type, or category clarified.",
+                                _appLanguage.value
                             )
-                            repository.addTransaction(transaction)
-                            val verb = if (writeCommand.type == TransactionWriteType.EXPENSE) {
-                                WebI18n.tr("تم تسجيل المصروف", "Expense recorded", _appLanguage.value)
-                            } else {
-                                WebI18n.tr("تم تسجيل الدخل", "Income recorded", _appLanguage.value)
+                        } else {
+                            val currency = intent.currency ?: primaryCurrency.value
+                            val matchingAccounts = accounts.value.filter {
+                                !it.isArchived && it.currency.equals(currency, ignoreCase = true)
                             }
-                            "$verb: ${writeCommand.amount} ${writeCommand.currency} — ${writeCommand.category} — ${account.name}."
+                            val account = intent.accountName?.let { requested ->
+                                matchingAccounts.firstOrNull { it.name.equals(requested, ignoreCase = true) }
+                            } ?: matchingAccounts.singleOrNull()
+                            when {
+                                account == null && matchingAccounts.isEmpty() -> WebI18n.tr(
+                                    "لا يوجد حساب نشط بعملة $currency. أضف حساباً بهذه العملة أولاً.",
+                                    "There is no active account in $currency. Add an account in this currency first.",
+                                    _appLanguage.value
+                                )
+                                account == null -> intent.clarification ?: WebI18n.tr(
+                                    "لديك أكثر من حساب بعملة $currency. أي حساب تريد استخدامه؟",
+                                    "You have more than one account in $currency. Which account should I use?",
+                                    _appLanguage.value
+                                )
+                                else -> {
+                                    val transactionType = if (intent.intent == "CREATE_EXPENSE") TransactionType.EXPENSE else TransactionType.INCOME
+                                    val transactionDate = intent.dateIso?.let { date ->
+                                        runCatching {
+                                            java.time.LocalDate.parse(date).atStartOfDay(
+                                                java.time.ZoneId.of(timeZone.value)
+                                            ).toInstant().toEpochMilli()
+                                        }.getOrNull()
+                                    } ?: System.currentTimeMillis()
+                                    val transaction = TransactionEntity(
+                                        accountId = account.id,
+                                        type = transactionType,
+                                        amount = intent.amount,
+                                        currency = currency,
+                                        category = intent.category,
+                                        date = transactionDate,
+                                        description = intent.description ?: intent.category,
+                                        status = TransactionStatus.COMPLETED
+                                    )
+                                    repository.addTransaction(transaction)
+                                    WebI18n.tr(
+                                        "تم تسجيل العملية بنجاح: ${intent.amount} $currency — ${intent.category} — ${account.name}.",
+                                        "Transaction recorded: ${intent.amount} $currency — ${intent.category} — ${account.name}.",
+                                        _appLanguage.value
+                                    )
+                                }
+                            }
                         }
                     }
-                } else {
-                    FinancialAssistantEngine.answer(
-                        query = trimmedQuery,
-                        accounts = accounts.value,
-                        transactions = transactions.value,
-                        budgets = budgets.value,
-                        debts = debts.value,
-                        savingsGoals = savingsGoals.value,
-                        assets = assets.value,
-                        bills = bills.value,
-                        language = _appLanguage.value
+                    "CLARIFY" -> intent.clarification ?: WebI18n.tr(
+                        "لم أفهم قصدك بالكامل. ممكن توضح لي أكثر؟",
+                        "I did not fully understand. Could you clarify?",
+                        _appLanguage.value
                     )
+                    else -> {
+                        val aiResponse = aiService.askAssistant(
+                            userQuery = trimmedQuery,
+                            accounts = accounts.value,
+                            transactions = transactions.value,
+                            budgets = budgets.value,
+                            debts = debts.value,
+                            language = _appLanguage.value,
+                            savingsGoals = savingsGoals.value,
+                            assets = assets.value,
+                            bills = bills.value,
+                            conversationHistory = history
+                        )
+                        if (aiResponse.startsWith("تعذر الوصول إلى خدمة الذكاء الاصطناعي") ||
+                            aiResponse.startsWith("The AI service is currently unavailable")) {
+                            FinancialAssistantEngine.answer(
+                                query = trimmedQuery,
+                                accounts = accounts.value,
+                                transactions = transactions.value,
+                                budgets = budgets.value,
+                                debts = debts.value,
+                                savingsGoals = savingsGoals.value,
+                                assets = assets.value,
+                                bills = bills.value,
+                                language = _appLanguage.value
+                            )
+                        } else aiResponse
+                    }
                 }
             }.getOrElse { error ->
-                Log.e("BYE_PRO_FINANCE", "AI operation failed", error)
+                Log.e("BYE_PRO_FINANCE", "AI conversation failed", error)
                 WebI18n.tr(
-                    "تعذر تنفيذ العملية المالية: ${error.message ?: "خطأ غير معروف"}",
-                    "The financial operation could not be completed: ${error.message ?: "unknown error"}",
+                    "تعذر إكمال الطلب: ${error.message ?: "خطأ غير معروف"}",
+                    "Could not complete the request: ${error.message ?: "unknown error"}",
                     _appLanguage.value
                 )
             }
