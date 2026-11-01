@@ -26,6 +26,58 @@ class SupabaseAuthRepository(context: Context) {
         return !token.isNullOrBlank() && expiry > System.currentTimeMillis() / 1000L + 60L
     }
 
+    /**
+     * Restores an existing Supabase session after process death. Access tokens
+     * are refreshed before expiry so a returning user is not sent to login
+     * merely because the short-lived access token expired.
+     */
+    suspend fun restoreSession(): Boolean = withContext(Dispatchers.IO) {
+        if (hasValidSession()) return@withContext true
+
+        val refreshToken = preferences.getString(KEY_REFRESH_TOKEN, null)
+            ?.takeIf(String::isNotBlank) ?: return@withContext false
+
+        runCatching {
+            require(SupabaseConnection.url.isNotBlank()) { "Supabase URL is missing" }
+            require(SupabaseConnection.publishableKey.isNotBlank()) { "Supabase publishable key is missing" }
+
+            val payload = JSONObject().put("refresh_token", refreshToken)
+            val request = Request.Builder()
+                .url(SupabaseConnection.url.trimEnd('/') + "/auth/v1/token?grant_type=refresh_token")
+                .header("apikey", SupabaseConnection.publishableKey)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                val raw = response.body?.string().orEmpty()
+                val body = runCatching { JSONObject(raw) }.getOrNull()
+                if (!response.isSuccessful) throw IOException(
+                    body?.optString("message")?.takeIf(String::isNotBlank)
+                        ?: body?.optString("error_description")?.takeIf(String::isNotBlank)
+                        ?: "Session refresh failed (HTTP ${response.code})"
+                )
+
+                val accessToken = body?.optString("access_token").orEmpty()
+                if (accessToken.isBlank()) throw IOException("Session refresh returned no access token")
+
+                val now = System.currentTimeMillis() / 1000L
+                val expiry = body.optLong("expires_at", 0L).takeIf { it > 0L }
+                    ?: now + body.optLong("expires_in", 3600L)
+                val rotatedRefreshToken = body.optString("refresh_token")
+                    .takeIf(String::isNotBlank) ?: refreshToken
+
+                preferences.edit()
+                    .putString(KEY_ACCESS_TOKEN, accessToken)
+                    .putString(KEY_REFRESH_TOKEN, rotatedRefreshToken)
+                    .putLong(KEY_EXPIRES_AT, expiry)
+                    .apply()
+                true
+            }
+        }.getOrDefault(false)
+    }
+
     suspend fun signIn(email: String, password: String): Result<AuthOutcome> =
         authenticate("/auth/v1/token?grant_type=password",
             JSONObject().put("email", email.trim()).put("password", password), false)
