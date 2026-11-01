@@ -160,13 +160,21 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 }
                 try {
                     if (GemmaLocalAssistant.isAvailable(modelFile)) {
-                        val contextSummary = buildString {
-                            append("Current app language: ${_appLanguage.value}. ")
-                            append("Registered records: accounts=${accounts.value.size}, transactions=${transactions.value.size}, ")
-                            append("budgets=${budgets.value.size}, debts=${debts.value.size}, assets=${assets.value.size}, bills=${bills.value.size}. ")
-                            append("Do not infer missing amounts. If exact financial figures are requested, use only records explicitly supplied in the conversation.")
-                        }
-                        GemmaLocalAssistant.reply(modelFile, "$contextSummary\n\n$trimmedQuery", imageFile)
+                        val verifiedFinancialContext = FinancialAssistantEngine.answer(
+                            query = trimmedQuery,
+                            accounts = accounts.value,
+                            transactions = transactions.value,
+                            budgets = budgets.value,
+                            debts = debts.value,
+                            savingsGoals = savingsGoals.value,
+                            assets = assets.value,
+                            bills = bills.value,
+                            language = _appLanguage.value
+                        )
+                        val contextSummary = "App language: " + _appLanguage.value +
+                            ". Verified local finance context (use only when relevant; never invent missing facts):\n" +
+                            verifiedFinancialContext
+                        GemmaLocalAssistant.reply(modelFile, contextSummary + "\n\n" + trimmedQuery, imageFile)
                     } else {
                         FinancialAssistantEngine.answer(
                             query = trimmedQuery,
