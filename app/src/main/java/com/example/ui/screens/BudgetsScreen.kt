@@ -74,7 +74,7 @@ fun BudgetsScreen(viewModel: FinanceViewModel) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { editing = null; showForm = true },
-                containerColor = ByeProTheme.colors.goldPrimary,
+                containerColor = ByeProTheme.colors.goldFeatured,
                 modifier = Modifier.testTag("add_budget_fab")
             ) { Icon(Icons.Default.Add, contentDescription = WebI18n.tr("إضافة ميزانية", "Add budget", lang)) }
         }

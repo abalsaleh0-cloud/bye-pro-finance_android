@@ -165,7 +165,7 @@ fun ReportsScreen(
                     modifier = Modifier
                         .weight(1f)
                         .testTag("export_json_btn"),
-                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldFeatured, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Default.TableChart, contentDescription = null)

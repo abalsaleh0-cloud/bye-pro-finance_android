@@ -83,7 +83,7 @@ fun HouseholdScreen(
         floatingActionButton = {
             FinanceFloatingActionButton(
                 onClick = { editingExpense = null; showAddExpenseDialog = true },
-                containerColor = ByeProTheme.colors.goldPrimary,
+                containerColor = ByeProTheme.colors.goldFeatured,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_household_expense_fab")
             ) {

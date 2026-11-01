@@ -117,7 +117,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
         floatingActionButton = {
             FinanceFloatingActionButton(
                 onClick = { showForm = !showForm },
-                containerColor = ByeProTheme.colors.goldPrimary,
+                containerColor = ByeProTheme.colors.goldFeatured,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_transaction_fab")
             ) { Icon(Icons.Default.Add, contentDescription = WebI18n.tr("إضافة معاملة", "Add transaction", lang)) }

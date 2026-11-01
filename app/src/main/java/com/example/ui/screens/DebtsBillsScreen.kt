@@ -93,7 +93,7 @@ fun DebtsBillsScreen(
                 onClick = {
                     if (selectedTabIndex == 0) showAddDebtDialog = true else showAddBillDialog = true
                 },
-                containerColor = ByeProTheme.colors.goldPrimary,
+                containerColor = ByeProTheme.colors.goldFeatured,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_debt_bill_fab")
             ) {
@@ -381,7 +381,7 @@ fun DebtItemCard(
                 )
                 FinanceButton(
                     onClick = onPay,
-                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldFeatured, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Icon(Icons.Default.Payment, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -445,7 +445,7 @@ fun BillItemCard(
                 if (!bill.isPaid) {
                     FinanceButton(
                         onClick = onMarkPaid,
-                        colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                        colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldFeatured, contentColor = MaterialTheme.colorScheme.onPrimary),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
