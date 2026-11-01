@@ -50,7 +50,7 @@ class HouseholdSyncRepository(
         }
     }
 
-    private fun syncMembers(token: String) {
+    private suspend fun syncMembers(token: String) {
         val body = execute(requestBuilder("household_members?select=id,name,role,monthly_contribution,is_active&order=name.asc", token).get().build())
         val remote = JSONArray(body)
         for (i in 0 until remote.length()) {
@@ -80,7 +80,7 @@ class HouseholdSyncRepository(
         }
     }
 
-    private fun syncBudgets(token: String) {
+    private suspend fun syncBudgets(token: String) {
         val body = execute(requestBuilder("household_budgets?select=id,name,amount,currency_code,period,start_date,end_date,is_active&order=start_date.desc", token).get().build())
         val remote = JSONArray(body)
         for (i in 0 until remote.length()) {
@@ -107,7 +107,7 @@ class HouseholdSyncRepository(
         }
     }
 
-    private fun syncExpenses(token: String) {
+    private suspend fun syncExpenses(token: String) {
         val body = execute(requestBuilder("household_expenses?select=id,member_id,category,description,amount,currency_code,expense_date,is_recurring,notes&order=expense_date.desc", token).get().build())
         val remote = JSONArray(body)
         for (i in 0 until remote.length()) {
@@ -140,6 +140,7 @@ class HouseholdSyncRepository(
             if (remoteId.isBlank()) return@runCatching Unit
             val token = auth.accessToken()?.takeIf { it.isNotBlank() } ?: throw IOException("No active Supabase session")
             execute(requestBuilder("$table?id=eq.$remoteId", token).delete().build())
+            Unit
         }
     }
 
