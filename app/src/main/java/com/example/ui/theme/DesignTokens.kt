@@ -5,9 +5,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Android source-of-truth for the design values defined in
- * packages/ui/src/tokens.css in the BYE PRO FINANCE web repository.
- * Keep these values in sync with the web tokens.
+ * Android mirror of the canonical BYE PRO FINANCE web design tokens.
+ *
+ * Source of truth:
+ * - packages/ui/src/tokens.css
+ * - apps/web/src/unified-ui.css (theme and form-control overrides)
+ *
+ * Keep this file aligned with those web tokens. Android-only rendering values
+ * (dp/sp) are converted from the web rem/px values at the 1:1 CSS pixel scale.
  */
 object ByeProDesignTokens {
     object Colors {
@@ -29,9 +34,20 @@ object ByeProDesignTokens {
         val border = Color(0xFFD9DCE3)
         val text = Color(0xFF20232A)
         val muted = Color(0xFF626875)
-        val accent = Color(0xFF8A671D)
-        val success = Color(0xFF16794A)
+        // The web primary action remains the same brand gold in both themes.
+        val accent = Color(0xFFD6B56D)
+        val success = Color(0xFF67D6A1)
         val danger = Color(0xFFB42332)
+    }
+
+    object Fields {
+        val darkBackground = Color(0xFF101115)
+        val darkText = Color(0xFFF7F4EC)
+        val darkBorder = Color(0xFF363740)
+        val lightBackground = Color(0xFFFFFFFF)
+        val lightText = Color(0xFF20232A)
+        val lightBorder = Color(0xFFCBD0D9)
+        val focus = Colors.accent
     }
 
     object Spacing {

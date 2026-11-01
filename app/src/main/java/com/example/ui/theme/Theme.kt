@@ -30,7 +30,7 @@ val ByeProLightTokens = ByeProColorTokens(
     LightBgMain, LightSurfaceMain, LightSurfaceMain, LightCardSecondary, LightCardSecondary, LightHoverInteractive,
     LightBorderBase, LightBorderProminent, LightTextPrimary, LightTextSecondary, LightTextMuted, LightTextMuted,
     LightGoldPrimary, LightGoldFeatured, LightGoldFeatured, LightGoldPrimary, LightStatusSuccess, LightStatusError,
-    LightStatusSuccess, LightStatusError, LightFieldBg, LightFieldText, LightFieldBorder, LightFieldFocus, false
+    LightFieldBg, LightFieldText, LightFieldBorder, LightFieldFocus, false
 )
 
 val LocalByeProColors = staticCompositionLocalOf { ByeProDarkTokens }
@@ -42,7 +42,7 @@ object ByeProTheme {
 
 private val DarkColorScheme = darkColorScheme(
     primary = GoldPrimary,
-    onPrimary = DarkBgMain,
+    onPrimary = Color(0xFF17130B),
     primaryContainer = GoldDark,
     onPrimaryContainer = DarkTextPrimary,
     secondary = FinancialGreen,
@@ -66,7 +66,7 @@ private val DarkColorScheme = darkColorScheme(
 
 private val LightColorScheme = lightColorScheme(
     primary = LightGoldPrimary,
-    onPrimary = LightSurfaceMain,
+    onPrimary = Color(0xFF17130B),
     primaryContainer = LightCardSecondary,
     onPrimaryContainer = LightTextPrimary,
     secondary = LightStatusSuccess,

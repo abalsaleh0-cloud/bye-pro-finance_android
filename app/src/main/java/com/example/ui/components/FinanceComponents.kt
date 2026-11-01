@@ -15,15 +15,15 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.IconButton
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.example.ui.theme.ByeProTheme
 
-/** Shared BYE PRO FINANCE field style for every screen and form. */
+/** Shared BYE PRO FINANCE field style aligned with the web 10px form radius. */
 @Composable
 fun FinanceTextField(
     value: String,
@@ -55,7 +55,7 @@ fun FinanceTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     interactionSource: MutableInteractionSource? = null,
-    shape: Shape = RoundedCornerShape(12.dp)
+    shape: Shape = RoundedCornerShape(10.dp)
 ) {
     OutlinedTextField(
         value = value, onValueChange = onValueChange, modifier = modifier,
@@ -82,7 +82,7 @@ fun FinanceTextField(
     )
 }
 
-/** Shared primary action button; custom semantic colors can be passed when required. */
+/** Shared primary action button aligned with the web accent and contrast pair. */
 @Composable
 fun FinanceButton(
     onClick: () -> Unit,
@@ -135,7 +135,7 @@ fun FinanceOutlinedButton(
     }
 }
 
-/** Shared dialog surface and corner treatment. */
+/** Shared dialog surface with the web modal's 16px corner radius. */
 @Composable
 fun FinanceAlertDialog(
     onDismissRequest: () -> Unit,
@@ -155,7 +155,7 @@ fun FinanceAlertDialog(
         icon = icon,
         title = title,
         text = text,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         containerColor = MaterialTheme.colorScheme.surfaceVariant,
         iconContentColor = MaterialTheme.colorScheme.secondary,
         titleContentColor = MaterialTheme.colorScheme.onSurface,
@@ -164,7 +164,6 @@ fun FinanceAlertDialog(
         properties = properties
     )
 }
-
 
 /** Shared icon action control with consistent default accent color. */
 @Composable
