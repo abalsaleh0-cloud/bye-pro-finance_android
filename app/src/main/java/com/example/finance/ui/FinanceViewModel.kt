@@ -2,10 +2,13 @@ package com.example.finance.ui
 
 import android.app.Application
 import android.util.Log
+import android.net.Uri
+import java.io.File
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.finance.ai.ExtractedReceiptData
 import com.example.finance.ai.FinancialAssistantEngine
+import com.example.finance.ai.GemmaLocalAssistant
 import com.example.finance.ai.OfflineFinanceService
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceExportService
@@ -134,29 +137,57 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun deleteNotification(id: Long) { viewModelScope.launch { runCatching { repository.deleteNotification(id) }.onFailure { Log.e("BYE_PRO_FINANCE", "Delete notification failed", it) } } }
     fun clearNotifications() { viewModelScope.launch { runCatching { repository.clearNotifications() }.onFailure { Log.e("BYE_PRO_FINANCE", "Clear notifications failed", it) } } }
     fun clearAiChat() { if (_isAiLoading.value) return; resetWelcomeMessage() }
-    fun askAiAssistant(query: String) {
-        if (query.isBlank() || _isAiLoading.value) return
-        val trimmedQuery = query.trim()
-        _chatMessages.value = _chatMessages.value + ChatMessage("USER", trimmedQuery)
+    fun askAiAssistant(query: String, imageUri: Uri? = null) {
+        if ((query.isBlank() && imageUri == null) || _isAiLoading.value) return
+        val trimmedQuery = query.trim().ifBlank {
+            WebI18n.tr("حلّل الصورة المرفقة واشرح ما يظهر فيها.", "Analyze the attached image and explain what is visible.", _appLanguage.value)
+        }
+        _chatMessages.value = _chatMessages.value + ChatMessage("USER", if (imageUri == null) trimmedQuery else "📷 $trimmedQuery")
         _isAiLoading.value = true
         viewModelScope.launch {
             val response = runCatching {
-                FinancialAssistantEngine.answer(
-                    query = trimmedQuery,
-                    accounts = accounts.value,
-                    transactions = transactions.value,
-                    budgets = budgets.value,
-                    debts = debts.value,
-                    savingsGoals = savingsGoals.value,
-                    assets = assets.value,
-                    bills = bills.value,
-                    language = _appLanguage.value
-                )
+                val app = getApplication<Application>()
+                val modelFile = File(app.filesDir, "ai-models/gemma-4-E2B-it.litertlm")
+                val imageFile = imageUri?.let { uri ->
+                    val mime = app.contentResolver.getType(uri).orEmpty()
+                    val ext = if (mime.contains("png")) "png" else if (mime.contains("webp")) "webp" else "jpg"
+                    val target = File(app.cacheDir, "bye-pro-ai-image-${System.currentTimeMillis()}.$ext")
+                    app.contentResolver.openInputStream(uri)?.use { input ->
+                        target.outputStream().use { output -> input.copyTo(output) }
+                    } ?: error("تعذر فتح الصورة المرفقة.")
+                    require(target.length() in 1..20_000_000L) { "حجم الصورة كبير جداً؛ اختر صورة أصغر من 20 MB." }
+                    target
+                }
+                try {
+                    if (GemmaLocalAssistant.isAvailable(modelFile)) {
+                        val contextSummary = buildString {
+                            append("Current app language: ${_appLanguage.value}. ")
+                            append("Registered records: accounts=${accounts.value.size}, transactions=${transactions.value.size}, ")
+                            append("budgets=${budgets.value.size}, debts=${debts.value.size}, assets=${assets.value.size}, bills=${bills.value.size}. ")
+                            append("Do not infer missing amounts. If exact financial figures are requested, use only records explicitly supplied in the conversation.")
+                        }
+                        GemmaLocalAssistant.reply(modelFile, "$contextSummary\n\n$trimmedQuery", imageFile)
+                    } else {
+                        FinancialAssistantEngine.answer(
+                            query = trimmedQuery,
+                            accounts = accounts.value,
+                            transactions = transactions.value,
+                            budgets = budgets.value,
+                            debts = debts.value,
+                            savingsGoals = savingsGoals.value,
+                            assets = assets.value,
+                            bills = bills.value,
+                            language = _appLanguage.value
+                        )
+                    }
+                } finally {
+                    imageFile?.delete()
+                }
             }.getOrElse { error ->
-                Log.e("BYE_PRO_FINANCE", "Offline financial analysis failed", error)
+                Log.e("BYE_PRO_FINANCE", "On-device AI request failed", error)
                 WebI18n.tr(
-                    "تعذر تحليل السجلات المحلية: ${error.message ?: "خطأ غير معروف"}",
-                    "Could not analyze local records: ${error.message ?: "unknown error"}",
+                    "تعذر تشغيل النموذج المحلي: ${error.message ?: "خطأ غير معروف"}",
+                    "Could not run the local model: ${error.message ?: "unknown error"}",
                     _appLanguage.value
                 )
             }

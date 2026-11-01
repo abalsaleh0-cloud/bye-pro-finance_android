@@ -11,6 +11,8 @@ import com.example.ui.components.FinanceFloatingActionButton
 
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -94,6 +96,8 @@ fun AiAssistantScreen(
         )
     }
     var inputText by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> selectedImageUri = uri }
     var speakNextAiResponse by remember { mutableStateOf(false) }
     var autoSpeakTimestamp by remember { mutableStateOf<Long?>(null) }
     val listState = rememberLazyListState()
@@ -244,6 +248,12 @@ fun AiAssistantScreen(
                         .padding(top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    IconButton(
+                        enabled = !isAiLoading,
+                        onClick = { imagePicker.launch("image/*") }
+                    ) {
+                        Icon(Icons.Default.Image, contentDescription = WebI18n.tr("إرفاق صورة", "Attach image", lang))
+                    }
                     VoiceInputButton(
                         languageCode = if (lang == AppLanguage.AR) "ar" else "en",
                         enabled = !isAiLoading,
