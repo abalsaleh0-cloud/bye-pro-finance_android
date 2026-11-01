@@ -8,6 +8,15 @@ import com.example.finance.network.FinanceApiProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+data class ExtractedReceiptData(
+    val merchant: String = "",
+    val amount: Double = 0.0,
+    val tax: Double = 0.0,
+    val category: String = "",
+    val itemsSummary: String = "",
+    val currency: String = "LYD"
+)
+
 /** Exact BYE PRO FINANCE Web AI engine; Android does not use Gemini or another AI provider. */
 class WebAiService(context: Context) {
     private val auth = SupabaseAuthRepository(context.applicationContext)
