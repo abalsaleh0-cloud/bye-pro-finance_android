@@ -152,18 +152,19 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 )
                 when (intent?.intent) {
                     "CREATE_EXPENSE", "CREATE_INCOME" -> {
-                        if (intent.confidence < 0.72 || intent.amount == null || intent.category.isNullOrBlank()) {
-                            intent.clarification ?: WebI18n.tr(
+                        val action = intent ?: return@runCatching WebI18n.tr("لم أتمكن من فهم العملية.", "I could not understand the transaction.", _appLanguage.value)
+                        if (action.confidence < 0.72 || action.amount == null || action.category.isNullOrBlank()) {
+                            action.clarification ?: WebI18n.tr(
                                 "فهمت أنك تريد تسجيل عملية مالية، لكن أحتاج توضيح المبلغ أو نوع العملية أو تصنيفها.",
                                 "I understood that you want to record a financial transaction, but I need the amount, transaction type, or category clarified.",
                                 _appLanguage.value
                             )
                         } else {
-                            val currency = intent.currency ?: primaryCurrency.value
+                            val currency = action.currency ?: primaryCurrency.value
                             val matchingAccounts = accounts.value.filter {
                                 !it.isArchived && it.currency.equals(currency, ignoreCase = true)
                             }
-                            val account = intent.accountName?.let { requested ->
+                            val account = action.accountName?.let { requested ->
                                 matchingAccounts.firstOrNull { it.name.equals(requested, ignoreCase = true) }
                             } ?: matchingAccounts.singleOrNull()
                             when {
@@ -172,14 +173,14 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                                     "There is no active account in $currency. Add an account in this currency first.",
                                     _appLanguage.value
                                 )
-                                account == null -> intent.clarification ?: WebI18n.tr(
+                                account == null -> action.clarification ?: WebI18n.tr(
                                     "لديك أكثر من حساب بعملة $currency. أي حساب تريد استخدامه؟",
                                     "You have more than one account in $currency. Which account should I use?",
                                     _appLanguage.value
                                 )
                                 else -> {
-                                    val transactionType = if (intent.intent == "CREATE_EXPENSE") TransactionType.EXPENSE else TransactionType.INCOME
-                                    val transactionDate = intent.dateIso?.let { date ->
+                                    val transactionType = if (action.intent == "CREATE_EXPENSE") TransactionType.EXPENSE else TransactionType.INCOME
+                                    val transactionDate = action.dateIso?.let { date ->
                                         runCatching {
                                             java.time.LocalDate.parse(date).atStartOfDay(
                                                 java.time.ZoneId.of(timeZone.value)
@@ -189,17 +190,17 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                                     val transaction = TransactionEntity(
                                         accountId = account.id,
                                         type = transactionType,
-                                        amount = intent.amount,
+                                        amount = action.amount,
                                         currency = currency,
-                                        category = intent.category,
+                                        category = action.category,
                                         date = transactionDate,
-                                        description = intent.description ?: intent.category,
+                                        description = action.description ?: action.category,
                                         status = TransactionStatus.COMPLETED
                                     )
                                     repository.addTransaction(transaction)
                                     WebI18n.tr(
-                                        "تم تسجيل العملية بنجاح: ${intent.amount} $currency — ${intent.category} — ${account.name}.",
-                                        "Transaction recorded: ${intent.amount} $currency — ${intent.category} — ${account.name}.",
+                                        "تم تسجيل العملية بنجاح: ${action.amount} $currency — ${action.category} — ${account.name}.",
+                                        "Transaction recorded: ${action.amount} $currency — ${action.category} — ${account.name}.",
                                         _appLanguage.value
                                     )
                                 }
