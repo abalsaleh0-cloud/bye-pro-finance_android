@@ -35,7 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -n "${GEMINI_API_KEY:-}" ]]; then
-            printf 'GEMINI_API_KEY=%s\\n' "$GEMINI_API_KEY" > .env
+            printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" > .env
             chmod 600 .env
             echo "Gemini key injected from the repository secret."
           else
