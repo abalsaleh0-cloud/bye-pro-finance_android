@@ -193,7 +193,7 @@ fun SpeakTextButton(
                 val token = authRepository.currentAccessToken()
                     ?: throw IllegalStateException("No active session for cloud speech")
                 val response = FinanceApiProvider.api.speech("Bearer $token", SpeechRequest(phrase))
-                if (response.isSuccessful) response.body()?.use { it.bytes() }
+                if (response.isSuccessful && response.headers()["Content-Type"]?.startsWith("audio/", ignoreCase = true) == true) response.body()?.use { it.bytes() }
                 else {
                     response.errorBody()?.close()
                     null
