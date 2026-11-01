@@ -199,7 +199,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
             title = { Text(WebI18n.tr("حذف المعاملة", "Delete transaction", lang)) },
             text = { Text(WebI18n.tr("هل تريد حذف هذه المعاملة وإعادة تعديل رصيد الحساب تلقائياً؟", "Delete this transaction and automatically adjust the account balance?", lang)) },
             confirmButton = { FinanceButton(onClick = { viewModel.deleteTransaction(target); deleteTarget = null }) { Text(WebI18n.tr("حذف", "Delete", lang)) } },
-            dismissButton = { FinanceOutlinedButton(onClick = { deleteTarget = null }) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) } }
+            dismissButton = { FinanceFinanceOutlinedButton(onClick = { deleteTarget = null }) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) } }
         )
     }
 }

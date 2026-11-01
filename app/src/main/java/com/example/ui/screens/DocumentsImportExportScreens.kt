@@ -1,4 +1,5 @@
 package com.example.ui.screens
+import com.example.ui.components.FinanceIconButton
 
 import android.content.Intent
 import android.net.Uri
@@ -116,7 +117,7 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
                             )
                         }
                         if (document.fileUri.isNotBlank()) {
-                            IconButton(onClick = {
+                            FinanceIconButton(onClick = {
                                 runCatching {
                                     val uri = Uri.parse(document.fileUri)
                                     val mimeType = context.contentResolver.getType(uri) ?: "*/*"

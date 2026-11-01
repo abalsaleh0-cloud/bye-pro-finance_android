@@ -196,7 +196,7 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                             WebI18n.tr("أضف حسابك الأول لبدء تنظيم أموالك.", "Add your first account to start organizing your money.", lang),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        FinanceOutlinedButton(onClick = { showAddDialog = true }) {
+                        FinanceFinanceOutlinedButton(onClick = { showAddDialog = true }) {
                             Text(WebI18n.tr("إضافة أول حساب", "Add your first account", lang))
                         }
                     }

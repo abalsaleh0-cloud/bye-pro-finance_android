@@ -1,4 +1,11 @@
 package com.example.ui.screens
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextButton
+import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceFloatingActionButton
+import com.example.ui.components.FinanceIconButton
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,7 +79,7 @@ fun BudgetsScreen(viewModel: FinanceViewModel) {
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
+            FinanceFloatingActionButton(
                 onClick = { editing = null; showForm = true },
                 containerColor = ByeProTheme.colors.goldFeatured,
                 modifier = Modifier.testTag("add_budget_fab")
@@ -89,7 +96,7 @@ fun BudgetsScreen(viewModel: FinanceViewModel) {
                 Text(WebI18n.tr("خطط الإنفاق مع متابعة المبلغ المخصص لكل فترة.", "Plan spending and track allocations for each period.", lang),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
+                FinanceTextField(
                     value = search, onValueChange = { search = it },
                     modifier = Modifier.fillMaxWidth().testTag("budget_search_input"),
                     label = { Text(WebI18n.tr("بحث في الميزانيات…", "Search budgets…", lang)) },
@@ -140,12 +147,12 @@ fun BudgetsScreen(viewModel: FinanceViewModel) {
     }
 
     deleting?.let { target ->
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { deleting = null },
             title = { Text(WebI18n.tr("تأكيد الحذف", "Confirm deletion", lang)) },
             text = { Text(WebI18n.tr("هل تريد حذف الميزانية", "Delete budget", lang) + " «${target.name}»؟") },
             confirmButton = {
-                TextButton(onClick = { viewModel.deleteBudget(target); deleting = null }) {
+                FinanceTextButton(onClick = { viewModel.deleteBudget(target); deleting = null }) {
                     Text(Strings.get("delete", lang), color = MaterialTheme.colorScheme.error)
                 }
             },
@@ -181,7 +188,7 @@ private fun BudgetItemCard(
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row {
-                    IconButton(onClick = onEdit, modifier = Modifier.testTag("edit_budget_${budget.id}")) {
+                    FinanceIconButton(onClick = onEdit, modifier = Modifier.testTag("edit_budget_${budget.id}")) {
                         Icon(Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل", "Edit", lang))
                     }
                     IconButton(onClick = onDelete, modifier = Modifier.testTag("delete_budget_${budget.id}")) {

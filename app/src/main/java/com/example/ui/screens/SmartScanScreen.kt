@@ -189,7 +189,7 @@ fun SmartScanScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    OutlinedTextField(
+                    FinanceTextField(
                         value = manualReceiptText,
                         onValueChange = { manualReceiptText = it },
                         modifier = Modifier.fillMaxWidth().testTag("manual_receipt_text_input"),

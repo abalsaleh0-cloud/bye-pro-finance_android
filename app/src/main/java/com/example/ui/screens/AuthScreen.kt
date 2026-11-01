@@ -1,4 +1,8 @@
 package com.example.ui.screens
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceTextButton
+import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceIconButton
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -59,7 +63,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
         ) {
             Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onToggleLanguage) {
+                    FinanceTextFinanceButton(onClick = onToggleLanguage) {
                         Text(if (language == AppLanguage.AR) "EN" else "عربي")
                     }
                 }
@@ -82,7 +86,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
                         PasswordField(password, { password = it }, tr("كلمة المرور", "Password"), passwordVisible, { passwordVisible = !passwordVisible }, tr("إظهار كلمة المرور", "Show password"), tr("إخفاء كلمة المرور", "Hide password"), "auth_password")
                         if (signup) PasswordField(confirm, { confirm = it }, tr("تأكيد كلمة المرور", "Confirm password"), confirmVisible, { confirmVisible = !confirmVisible }, tr("إظهار تأكيد كلمة المرور", "Show confirm password"), tr("إخفاء تأكيد كلمة المرور", "Hide confirm password"), "auth_confirm_password")
                         message?.let { Text(it, color = if (error) MaterialTheme.colorScheme.error else ByeProTheme.colors.statusSuccess, style = MaterialTheme.typography.bodySmall) }
-                        Button(
+                        FinanceButton(
                             onClick = {
                                 message = null
                                 when {
@@ -123,7 +127,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                             Text(tr(if (signup) "لديك حساب بالفعل؟" else "ليس لديك حساب؟", if (signup) "Already have an account?" else "Don't have an account?"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            TextButton(onClick = {
+                            TextFinanceButton(onClick = {
                                 signup = !signup
                                 message = null
                                 password = ""
@@ -143,13 +147,9 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
 
 @Composable
 private fun AuthTextField(value: String, onValueChange: (String) -> Unit, label: String, tag: String, type: KeyboardType = KeyboardType.Text) {
-    OutlinedTextField(
+    FinanceTextField(
         value = value, onValueChange = onValueChange, modifier = Modifier.fillMaxWidth().testTag(tag),
         label = { Text(label) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = type),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = ByeProTheme.colors.fieldFocus, unfocusedBorderColor = ByeProTheme.colors.fieldBorder,
-            focusedContainerColor = ByeProTheme.colors.fieldBg, unfocusedContainerColor = ByeProTheme.colors.fieldBg
-        )
     )
 }
 
@@ -165,7 +165,7 @@ private fun PasswordField(
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         trailingIcon = {
-            IconButton(onClick = onToggle, modifier = Modifier.testTag("${tag}_visibility")) {
+            IconFinanceButton(onClick = onToggle, modifier = Modifier.testTag("${tag}_visibility")) {
                 Icon(
                     imageVector = if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                     contentDescription = if (visible) hideDescription else showDescription,
@@ -173,9 +173,5 @@ private fun PasswordField(
                 )
             }
         },
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = ByeProTheme.colors.fieldFocus, unfocusedBorderColor = ByeProTheme.colors.fieldBorder,
-            focusedContainerColor = ByeProTheme.colors.fieldBg, unfocusedContainerColor = ByeProTheme.colors.fieldBg
-        )
     )
 }

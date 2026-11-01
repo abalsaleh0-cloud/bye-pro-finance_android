@@ -190,7 +190,7 @@ fun DebtsBillsScreen(
 
     if (deleteDebtTarget != null) {
         val target = deleteDebtTarget!!
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { deleteDebtTarget = null },
             title = { Text(WebI18n.tr("تأكيد حذف الدين", "Confirm debt deletion", lang)) },
             text = { Text(WebI18n.tr("هل تريد حذف هذا السجل نهائياً؟", "Do you want to permanently delete this record?", lang)) },

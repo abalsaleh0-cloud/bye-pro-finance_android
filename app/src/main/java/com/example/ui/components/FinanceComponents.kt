@@ -1,4 +1,6 @@
 package com.example.ui.components
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextButtonDefaults
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -133,6 +135,23 @@ fun FinanceOutlinedButton(
             contentPadding = contentPadding, interactionSource = interactionSource, content = content
         )
     }
+}
+
+/** Shared low-emphasis text action used across forms and dialogs. */
+@Composable
+fun FinanceTextButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        colors = TextButtonDefaults.textButtonColors(contentColor = ByeProTheme.colors.goldPrimary),
+        content = content
+    )
 }
 
 /** Shared dialog surface with the web modal's 16px corner radius. */
