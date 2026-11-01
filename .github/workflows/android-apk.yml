@@ -23,11 +23,24 @@ jobs:
       STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
       KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
       - name: Checkout Android source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Configure Gemini API key for the Android build
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${GEMINI_API_KEY:-}" ]]; then
+            printf 'GEMINI_API_KEY=%s\\n' "$GEMINI_API_KEY" > .env
+            chmod 600 .env
+            echo "Gemini key injected from the repository secret."
+          else
+            echo "::warning::GEMINI_API_KEY is not configured; AI chat and intent understanding will be unavailable in this APK."
+          fi
 
       - name: Verify Android project and language behavior
         shell: bash
