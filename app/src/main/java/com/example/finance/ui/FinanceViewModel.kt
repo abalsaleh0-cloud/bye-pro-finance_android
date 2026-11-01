@@ -7,6 +7,7 @@ import java.io.File
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.finance.ai.ExtractedReceiptData
+import com.example.finance.ai.FinanceVoiceCommandParser
 import com.example.finance.ai.FinancialAssistantEngine
 import com.example.finance.ai.GemmaLocalAssistant
 import com.example.finance.ai.OfflineFinanceService
