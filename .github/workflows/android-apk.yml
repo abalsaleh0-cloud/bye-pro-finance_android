@@ -109,7 +109,7 @@ jobs:
       - name: Upload signed release APK
         uses: actions/upload-artifact@v4
         with:
-          name: BYE-PRO-FINANCE-Android-Release-10.0.49
+          name: BYE-PRO-FINANCE-Android-Release-10.0.50
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
