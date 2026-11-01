@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
@@ -277,10 +278,11 @@ fun AiAssistantScreen(
                     Spacer(modifier = Modifier.size(8.dp))
                     FinanceIconButton(
                         onClick = {
-                            if (inputText.isNotBlank()) {
+                            if (inputText.isNotBlank() || selectedImageUri != null) {
                                 val q = inputText
                                 inputText = ""
-                                viewModel.askAiAssistant(q)
+                                viewModel.askAiAssistant(q, selectedImageUri)
+                                selectedImageUri = null
                             }
                         },
                         modifier = Modifier
