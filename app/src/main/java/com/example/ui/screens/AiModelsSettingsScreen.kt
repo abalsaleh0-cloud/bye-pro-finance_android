@@ -167,7 +167,7 @@ fun AiModelsSettingsScreen(
                         Column(Modifier.weight(1f)) {
                             Text("قراءة رد المساعد صوتياً بعد التحدث")
                             Text(
-                                "يستخدم محرك تحويل النص إلى كلام المتاح على الهاتف.",
+                                "يحاول اختيار صوت عربي نسائي، ويفضّل اللهجة السورية إذا كان الصوت متاحاً على الهاتف. تختلف الأصوات حسب الجهاز.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
