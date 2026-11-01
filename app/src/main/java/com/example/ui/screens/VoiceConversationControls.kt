@@ -201,7 +201,11 @@ fun SpeakTextButton(
                     file.delete()
                     if (player === failed) player = null
                     if (audioFile == file) audioFile = null
-                    speakLocalFallback()
+                    Toast.makeText(
+                        context,
+                        if (languageCode == "ar") "تعذّر تشغيل الصوت المولّد." else "Could not play the generated audio.",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     true
                 }
                 player = nextPlayer
