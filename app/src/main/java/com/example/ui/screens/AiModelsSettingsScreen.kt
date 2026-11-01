@@ -1,6 +1,5 @@
 package com.example.ui.screens
 
-import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,7 +51,6 @@ fun AiModelsSettingsScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val isArabic = true
     var modelFiles by remember { mutableStateOf<List<LocalModelFile>>(emptyList()) }
     var isScanning by remember { mutableStateOf(false) }
     var scanCompleted by remember { mutableStateOf(false) }
@@ -98,7 +96,7 @@ fun AiModelsSettingsScreen(
         item {
             Text("النماذج المحلية", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(
-                "إدارة النماذج المحفوظة على هاتفك دون اشتراك أو مفتاح API مدفوع.",
+                "إدارة ملفات النماذج المحلية المحفوظة على هاتفك والتحقق من وجودها.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
