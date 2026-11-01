@@ -21,12 +21,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -67,6 +70,7 @@ fun SettingsScreen(
     val billReminders by viewModel.billReminders.collectAsState()
     val budgetAlerts by viewModel.budgetAlerts.collectAsState()
     var currencyMenuExpanded by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
     var profileName by remember(currentUser?.id, currentUser?.name) { mutableStateOf(currentUser?.name.orEmpty()) }
 
     LazyColumn(
@@ -314,27 +318,28 @@ fun SettingsScreen(
             }
         }
 
-        // App System Info
+        // Application information is intentionally opened on demand, matching the web "About" area.
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
+                        Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                        Text(WebI18n.tr("حول التطبيق", "About the app", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
                     Text(
-                        text = "BYE PRO FINANCE Enterprise",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = ByeProTheme.colors.financialGreen
+                        WebI18n.tr("عرض بيانات التطبيق وإصدار Android والتقنيات المستخدمة.", "View application details, Android version, and technologies.", lang),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text(WebI18n.tr("الإصدار: ", "Version: ", lang) + com.example.BuildConfig.VERSION_NAME, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(WebI18n.tr("محرك الحسابات: BigDecimal Exact Precision Engine", "Finance engine: BigDecimal Exact Precision Engine", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(WebI18n.tr("الذكاء الاصطناعي: Google Gemini Flash Multimodal", "AI: Google Gemini Flash Multimodal", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(WebI18n.tr("قاعدة البيانات: Room SQLite + ACID Transactions", "Database: Room SQLite + ACID Transactions", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    FinanceOutlinedButton(
+                        onClick = { showAboutDialog = true },
+                        modifier = Modifier.fillMaxWidth().testTag("about_application_button")
+                    ) { Text(WebI18n.tr("حول التطبيق", "About application", lang)) }
                 }
             }
         }
@@ -342,6 +347,28 @@ fun SettingsScreen(
         item {
             Spacer(modifier = Modifier.height(72.dp))
         }
+    }
+
+    if (showAboutDialog) {
+        AlertDialog(
+            onDismissRequest = { showAboutDialog = false },
+            title = { Text(WebI18n.tr("بيانات التطبيق", "Application information"), fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("BYE PRO FINANCE")
+                    Text(WebI18n.tr("الإصدار: ", "Version: ", lang) + com.example.BuildConfig.VERSION_NAME)
+                    Text(WebI18n.tr("المنصة: Android", "Platform: Android", lang))
+                    Text(WebI18n.tr("محرك الحسابات: BigDecimal", "Finance engine: BigDecimal", lang))
+                    Text(WebI18n.tr("قاعدة البيانات: Room SQLite", "Database: Room SQLite", lang))
+                    Text(WebI18n.tr("الواجهة: Kotlin + Jetpack Compose", "UI: Kotlin + Jetpack Compose", lang))
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAboutDialog = false }) {
+                    Text(WebI18n.tr("إغلاق", "Close", lang))
+                }
+            }
+        )
     }
 }
 
