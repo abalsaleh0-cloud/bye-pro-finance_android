@@ -16,8 +16,8 @@ android {
     applicationId = "com.aistudio.byeprofinance.kxmpzq"
     minSdk = 24
     targetSdk = 36
-    versionCode = 10000
-    versionName = "10.0.0"
+    versionCode = 10001
+    versionName = "10.0.1"
     buildConfigField("String", "FINANCE_API_BASE_URL", "\"https://bye-pro-finance.vercel.app/\"")
     buildConfigField("String", "SUPABASE_URL", "\"https://ngfaukvfsesoslfiwaue.supabase.co\"")
     buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_5zPaJKKmtGZtYUv1GGytjA_tsk9LaSR\"")
@@ -84,6 +84,7 @@ dependencies {
   implementation(libs.androidx.compose.ui)
   implementation(libs.androidx.compose.ui.graphics)
   implementation(libs.androidx.compose.ui.tooling.preview)
+  implementation(libs.androidx.compose.material3)
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.datastore.preferences)
   implementation(libs.androidx.lifecycle.runtime.compose)
