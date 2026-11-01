@@ -394,7 +394,7 @@ class GeminiFinanceService {
     }
 
     private fun callGeminiVisionApi(imageBase64: String, mimeType: String = "image/jpeg"): String {
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=$apiKey"
         val prompt = "You are an expert financial receipt OCR engine. Extract data in JSON: {\"merchant\": string, \"amount\": number, \"tax\": number, \"currency\": string, \"category\": string, \"dateStr\": string, \"itemsSummary\": string}. Return ONLY raw valid JSON, no markdown."
         val jsonPayload = JSONObject().apply {
             put("contents", JSONArray().apply {
@@ -433,7 +433,7 @@ class GeminiFinanceService {
     }
 
     private fun callGeminiApi(prompt: String): String {
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=$apiKey"
         val jsonPayload = JSONObject().apply {
             put("contents", JSONArray().apply {
                 put(JSONObject().apply {
