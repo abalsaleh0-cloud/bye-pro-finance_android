@@ -245,25 +245,26 @@ class LocalAiModelViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private val workInfoObserver = Observer<List<WorkInfo>> { works ->
-                    val work = works.firstOrNull() ?: return@collect
-                    val downloaded = work.progress.getLong(LocalAiModelDownloadWorker.KEY_DOWNLOADED, 0L)
-                    val total = work.progress.getLong(LocalAiModelDownloadWorker.KEY_TOTAL, -1L)
-                    when (work.state) {
-                        WorkInfo.State.ENQUEUED, WorkInfo.State.RUNNING -> _state.value = _state.value.copy(
-                            downloading = true, downloadedBytes = downloaded, totalBytes = total,
-                            status = "جارٍ تنزيل النموذج في الخلفية", error = null
-                        )
-                        WorkInfo.State.SUCCEEDED -> refresh()
-                        WorkInfo.State.FAILED -> _state.value = _state.value.copy(
-                            downloading = false, error = work.outputData.getString(LocalAiModelDownloadWorker.KEY_ERROR),
-                            status = "تعذر إكمال التنزيل؛ يمكنك المحاولة مجدداً"
-                        )
-                        WorkInfo.State.CANCELLED -> _state.value = _state.value.copy(
-                            downloading = false, status = "أُوقف التنزيل مؤقتاً؛ يمكنك استكماله لاحقاً"
-                        )
-                        else -> Unit
-                    }
-                }
+        val work = works.firstOrNull()
+        if (work != null) {
+            val downloaded = work.progress.getLong(LocalAiModelDownloadWorker.KEY_DOWNLOADED, 0L)
+            val total = work.progress.getLong(LocalAiModelDownloadWorker.KEY_TOTAL, -1L)
+            when (work.state) {
+                WorkInfo.State.ENQUEUED, WorkInfo.State.RUNNING -> _state.value = _state.value.copy(
+                    downloading = true, downloadedBytes = downloaded, totalBytes = total,
+                    status = "جارٍ تنزيل النموذج في الخلفية", error = null
+                )
+                WorkInfo.State.SUCCEEDED -> refresh()
+                WorkInfo.State.FAILED -> _state.value = _state.value.copy(
+                    downloading = false, error = work.outputData.getString(LocalAiModelDownloadWorker.KEY_ERROR),
+                    status = "تعذر إكمال التنزيل؛ يمكنك المحاولة مجدداً"
+                )
+                WorkInfo.State.CANCELLED -> _state.value = _state.value.copy(
+                    downloading = false, status = "أُوقف التنزيل مؤقتاً؛ يمكنك استكماله لاحقاً"
+                )
+                else -> Unit
+            }
+        }
     }
 
     private fun observeBackgroundDownload() {
