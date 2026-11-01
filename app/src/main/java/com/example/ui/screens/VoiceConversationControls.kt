@@ -167,7 +167,7 @@ fun SpeakTextButton(
     fun speak() {
         scope.launch {
             val audio = latestSynthesis?.invoke(latestText)?.getOrNull()
-            if (audio.isNullOrEmpty()) {
+            if (audio == null || audio.isEmpty()) {
                 speakLocalFallback()
                 return@launch
             }
