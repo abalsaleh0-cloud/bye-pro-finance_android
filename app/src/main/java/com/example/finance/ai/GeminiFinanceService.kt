@@ -43,7 +43,17 @@ data class AiTransactionIntent(
     val accountName: String?,
     val dateIso: String?,
     val confidence: Double,
-    val clarification: String?
+    val clarification: String?,
+    val partyName: String?,
+    val direction: String?,
+    val fromAccountName: String?,
+    val toAccountName: String?,
+    val name: String?,
+    val dueDateIso: String?,
+    val targetAmount: Double?,
+    val period: String?,
+    val assetType: String?,
+    val isRecurring: Boolean
 )
 
 data class AiInsightItem(
@@ -92,15 +102,26 @@ class GeminiFinanceService {
             Available active accounts: $accountContext
             Default currency: $defaultCurrency
             Return exactly one JSON object and no markdown:
-            {"intent":"CREATE_EXPENSE|CREATE_INCOME|OTHER|CLARIFY","amount":number|null,
-             "currency":"ISO-4217"|null,"category":"short natural category"|null,
+            {"intent":"CREATE_EXPENSE|CREATE_INCOME|CREATE_TRANSFER|CREATE_DEBT|PAY_DEBT|CREATE_BILL|CREATE_BUDGET|CREATE_SAVINGS_GOAL|CREATE_ASSET|UPDATE|DELETE|OTHER|CLARIFY",
+             "amount":number|null,"currency":"ISO-4217"|null,"category":"short natural category"|null,
              "description":"short description"|null,"accountName":"exact available account name"|null,
-             "dateIso":"YYYY-MM-DD"|null,"confidence":number,
-             "clarification":"one concise question in the user's language"|null}
+             "fromAccountName":"exact source account"|null,"toAccountName":"exact destination account"|null,
+             "partyName":"person or counterparty"|null,"direction":"i_owe|owed_to_me"|null,
+             "name":"record name"|null,"dateIso":"YYYY-MM-DD"|null,"dueDateIso":"YYYY-MM-DD"|null,
+             "targetAmount":number|null,"period":"WEEKLY|MONTHLY|QUARTERLY|YEARLY"|null,
+             "assetType":"PROPERTY|VEHICLE|CASH|INVESTMENTS|GOLD|OTHER"|null,
+             "isRecurring":boolean,"confidence":number,"clarification":"one concise question in the user's language"|null}
             Rules:
-            - Select CREATE_EXPENSE or CREATE_INCOME only when the user's meaning clearly requests recording a transaction.
-            - Understand semantic equivalents such as paying for a taxi, buying fuel, receiving salary,
-              getting paid, refund, and similar natural descriptions; do not rely on fixed keywords.
+            - Classify the actual financial destination, not merely the words used:
+              CREATE_EXPENSE, CREATE_INCOME, CREATE_TRANSFER, CREATE_DEBT, PAY_DEBT,
+              CREATE_BILL, CREATE_BUDGET, CREATE_SAVINGS_GOAL, CREATE_ASSET, UPDATE, DELETE, OTHER, or CLARIFY.
+            - Understand semantic equivalents in natural speech and colloquial Arabic; do not rely on fixed command words.
+            - Transfers require distinct exact source and destination account names.
+            - Debts require partyName and direction: i_owe means I owe the party; owed_to_me means the party owes me.
+            - Debt payments require the partyName and payment amount; never confuse them with ordinary expenses.
+            - Bills require a name, category, amount and due date. Budgets require category and limit amount.
+            - Savings goals require a name, targetAmount and due date. Assets require name, value and assetType.
+            - For UPDATE or DELETE, never perform the change directly; return CLARIFY requesting the target and explicit confirmation.
             - Never invent amount, currency, account, category, or date. A currency may use the default only
               when no currency is stated and the user's context clearly uses the default currency.
             - If amount or transaction direction is unclear, return CLARIFY and ask one short question.
@@ -123,7 +144,17 @@ class GeminiFinanceService {
                 accountName = json.optString("accountName").takeIf { it.isNotBlank() && it != "null" },
                 dateIso = json.optString("dateIso").takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) },
                 confidence = json.optDouble("confidence", 0.0).coerceIn(0.0, 1.0),
-                clarification = json.optString("clarification").takeIf { it.isNotBlank() && it != "null" }
+                clarification = json.optString("clarification").takeIf { it.isNotBlank() && it != "null" },
+                partyName = json.optString("partyName").takeIf { it.isNotBlank() && it != "null" },
+                direction = json.optString("direction").takeIf { it == "i_owe" || it == "owed_to_me" },
+                fromAccountName = json.optString("fromAccountName").takeIf { it.isNotBlank() && it != "null" },
+                toAccountName = json.optString("toAccountName").takeIf { it.isNotBlank() && it != "null" },
+                name = json.optString("name").takeIf { it.isNotBlank() && it != "null" },
+                dueDateIso = json.optString("dueDateIso").takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) },
+                targetAmount = if (json.isNull("targetAmount")) null else json.optDouble("targetAmount", Double.NaN).takeIf { it.isFinite() && it > 0.0 },
+                period = json.optString("period").takeIf { it in setOf("WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY") },
+                assetType = json.optString("assetType").takeIf { it in setOf("PROPERTY", "VEHICLE", "CASH", "INVESTMENTS", "GOLD", "OTHER") },
+                isRecurring = json.optBoolean("isRecurring", false)
             )
         } catch (_: Exception) {
             null
