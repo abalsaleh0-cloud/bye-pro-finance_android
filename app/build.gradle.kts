@@ -13,8 +13,8 @@ android {
     applicationId = "com.aistudio.byeprofinance.kxmpzq"
     minSdk = 24
     targetSdk = 36
-    versionCode = 10022
-    versionName = "10.0.22"
+    versionCode = 10023
+    versionName = "10.0.23"
     buildConfigField("String", "FINANCE_API_BASE_URL", "\"https://bye-pro-finance.vercel.app/\"")
     buildConfigField("String", "SUPABASE_URL", "\"https://ngfaukvfsesoslfiwaue.supabase.co\"")
     buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_5zPaJKKmtGZtYUv1GGytjA_tsk9LaSR\"")
@@ -58,7 +58,7 @@ dependencies {
   implementation(libs.logging.interceptor); implementation(libs.moshi.kotlin); implementation(libs.okhttp); implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4); testImplementation(libs.androidx.core); testImplementation(libs.androidx.junit); testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test); testImplementation(libs.robolectric); androidTestImplementation(platform(libs.androidx.compose.bom))
-  androidTestImplementation(libs.androidx.compose.ui.test.junit4); androidTestImplementation(libs.androidx.espresso.core); androidTestImplementation(libs.androidx.junit)
+  androidTestImplementation(libs.androidx.compose.ui.test.junit4); androidTestImplementation(libs.espresso.core); androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.runner); debugImplementation(libs.androidx.compose.ui.test.manifest); debugImplementation(libs.androidx.compose.ui.tooling)
   "ksp"(libs.moshi.kotlin.codegen)
 }
