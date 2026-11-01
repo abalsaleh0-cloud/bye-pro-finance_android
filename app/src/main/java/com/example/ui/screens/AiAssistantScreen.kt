@@ -86,11 +86,20 @@ fun AiAssistantScreen(
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var inputText by remember { mutableStateOf("") }
+    var speakNextAiResponse by remember { mutableStateOf(false) }
+    var autoSpeakTimestamp by remember { mutableStateOf<Long?>(null) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+    LaunchedEffect(messages.lastOrNull()?.timestamp, isAiLoading) {
+        val lastMessage = messages.lastOrNull()
+        if (speakNextAiResponse && !isAiLoading && lastMessage?.sender == "AI") {
+            autoSpeakTimestamp = lastMessage.timestamp
+            speakNextAiResponse = false
         }
     }
 
@@ -173,7 +182,7 @@ fun AiAssistantScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(messages) { msg ->
-                        ChatBubbleItem(message = msg, lang = lang)
+                        ChatBubbleItem(message = msg, lang = lang, autoSpeak = msg.timestamp == autoSpeakTimestamp)
                     }
                     if (isAiLoading) {
                         item {
@@ -225,7 +234,11 @@ fun AiAssistantScreen(
                     VoiceInputButton(
                         languageCode = if (lang == AppLanguage.AR) "ar" else "en",
                         enabled = !isAiLoading,
-                        onRecognized = { inputText = it },
+                        onRecognized = {
+                            inputText = ""
+                            speakNextAiResponse = true
+                            viewModel.askAiAssistant(it)
+                        },
                         modifier = Modifier.testTag("ai_assistant_voice_input")
                     )
                     FinanceTextField(
@@ -353,7 +366,7 @@ fun AiAssistantScreen(
 }
 
 @Composable
-fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage) {
+fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean = false) {
     val isUser = message.sender == "USER"
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -393,7 +406,8 @@ fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage) {
                 if (!isUser) {
                     SpeakTextButton(
                         text = message.text,
-                        languageCode = if (lang == AppLanguage.AR) "ar" else "en"
+                        languageCode = if (lang == AppLanguage.AR) "ar" else "en",
+                        autoSpeak = autoSpeak
                     )
                 }
             }
