@@ -82,7 +82,7 @@ object GemmaLocalAssistant {
                         )
                     )
                 }
-                message.text.trim().ifBlank { "لم يُرجع النموذج إجابة نصية. أعد صياغة السؤال." }
+                message.toString().trim().ifBlank { "لم يُرجع النموذج إجابة نصية. أعد صياغة السؤال." }
             }
         }
 
