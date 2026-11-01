@@ -29,18 +29,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure Gemini API key for the Android build
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -n "${GEMINI_API_KEY:-}" ]]; then
-            printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" > .env
-            chmod 600 .env
-            echo "Gemini key injected from the repository secret."
-          else
-            echo "::warning::GEMINI_API_KEY is not configured; AI chat and intent understanding will be unavailable in this APK."
-          fi
-
       - name: Verify Android project and language behavior
         shell: bash
         run: |
