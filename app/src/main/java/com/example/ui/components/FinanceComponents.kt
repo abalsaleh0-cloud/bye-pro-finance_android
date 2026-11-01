@@ -1,6 +1,5 @@
 package com.example.ui.components
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextButtonDefaults
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -149,7 +148,7 @@ fun FinanceTextButton(
         onClick = onClick,
         modifier = modifier,
         enabled = enabled,
-        colors = TextButtonDefaults.textButtonColors(contentColor = ByeProTheme.colors.goldPrimary),
+        colors = ButtonDefaults.textButtonColors(contentColor = ByeProTheme.colors.goldPrimary),
         content = content
     )
 }
