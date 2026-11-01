@@ -1,6 +1,16 @@
 package com.example.ui.screens
 
 import android.content.Intent
+import android.media.MediaPlayer
+import com.example.finance.auth.SupabaseAuthRepository
+import com.example.finance.network.FinanceApiProvider
+import com.example.finance.network.SpeechRequest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.compose.runtime.rememberCoroutineScope
+import java.io.File
+import java.util.UUID
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -138,16 +148,18 @@ fun SpeakTextButton(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val authRepository = remember(context) { SupabaseAuthRepository(context) }
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
     var ready by remember { mutableStateOf(false) }
+    var activePlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+    var activeFile by remember { mutableStateOf<File?>(null) }
 
     DisposableEffect(languageCode) {
         val engine = TextToSpeech(context) { status ->
             val initializedEngine = tts
             ready = status == TextToSpeech.SUCCESS && initializedEngine != null
-            if (ready) {
-                initializedEngine?.let { configureAssistantVoice(it, languageCode) }
-            }
+            if (ready) initializedEngine?.let { configureAssistantVoice(it, languageCode) }
         }
         tts = engine
         onDispose {
@@ -158,21 +170,96 @@ fun SpeakTextButton(
         }
     }
 
-    LaunchedEffect(autoSpeak, ready, text) {
-        if (autoSpeak && ready && text.isNotBlank()) {
-            configureAssistantVoice(tts ?: return@LaunchedEffect, languageCode)
-
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "bye-pro-ai-auto-response")
+    DisposableEffect(context) {
+        onDispose {
+            runCatching { activePlayer?.stop() }
+            runCatching { activePlayer?.release() }
+            activePlayer = null
+            activeFile?.delete()
+            activeFile = null
         }
     }
 
-    IconButton(
-        enabled = ready && text.isNotBlank(),
-        onClick = {
-            tts?.let { configureAssistantVoice(it, languageCode) }
+    fun speakLocally(phrase: String, utteranceId: String) {
+        if (!ready || phrase.isBlank()) return
+        tts?.let { configureAssistantVoice(it, languageCode) }
+        tts?.speak(phrase, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+    }
 
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "bye-pro-ai-response")
-        },
+    fun speak(phrase: String, utteranceId: String) {
+        if (phrase.isBlank()) return
+        scope.launch {
+            val audio = runCatching {
+                val token = authRepository.currentAccessToken()
+                    ?: throw IllegalStateException("No active session for cloud speech")
+                val response = FinanceApiProvider.api.speech("Bearer $token", SpeechRequest(phrase))
+                if (response.isSuccessful) response.body()?.use { it.bytes() }
+                else {
+                    response.errorBody()?.close()
+                    null
+                }
+            }.getOrNull()
+
+            if (audio.isNullOrEmpty()) {
+                speakLocally(phrase, utteranceId)
+                return@launch
+            }
+
+            val file = runCatching {
+                withContext(Dispatchers.IO) {
+                    File(context.cacheDir, "bye-pro-tts-${UUID.randomUUID()}.mp3").apply {
+                        writeBytes(audio)
+                    }
+                }
+            }.getOrNull()
+            if (file == null) {
+                speakLocally(phrase, utteranceId)
+                return@launch
+            }
+
+            withContext(Dispatchers.Main) {
+                runCatching { activePlayer?.stop() }
+                runCatching { activePlayer?.release() }
+                activeFile?.delete()
+                val player = MediaPlayer()
+                try {
+                    player.setDataSource(file.absolutePath)
+                    player.setOnPreparedListener { mediaPlayer -> mediaPlayer.start() }
+                    player.setOnCompletionListener { mediaPlayer ->
+                        mediaPlayer.release()
+                        if (activePlayer === mediaPlayer) activePlayer = null
+                        if (activeFile == file) activeFile = null
+                        file.delete()
+                    }
+                    player.setOnErrorListener { mediaPlayer, _, _ ->
+                        mediaPlayer.release()
+                        if (activePlayer === mediaPlayer) activePlayer = null
+                        if (activeFile == file) activeFile = null
+                        file.delete()
+                        speakLocally(phrase, utteranceId)
+                        true
+                    }
+                    activePlayer = player
+                    activeFile = file
+                    player.prepareAsync()
+                } catch (_: Exception) {
+                    runCatching { player.release() }
+                    file.delete()
+                    activePlayer = null
+                    activeFile = null
+                    speakLocally(phrase, utteranceId)
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(autoSpeak, text, languageCode) {
+        if (autoSpeak && text.isNotBlank()) speak(text, "bye-pro-ai-auto-response")
+    }
+
+    IconButton(
+        enabled = text.isNotBlank(),
+        onClick = { speak(text, "bye-pro-ai-response") },
         modifier = modifier
     ) {
         Icon(
@@ -182,4 +269,3 @@ fun SpeakTextButton(
         )
     }
 }
-
