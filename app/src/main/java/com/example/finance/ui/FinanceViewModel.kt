@@ -1,17 +1,25 @@
 package com.example.finance.ui
 
 import android.app.Application
+import android.net.Uri
+import android.os.StatFs
+import android.provider.OpenableColumns
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.finance.ai.ExtractedReceiptData
 import com.example.finance.ai.FinancialAssistantEngine
 import com.example.finance.ai.OfflineFinanceService
+import com.example.finance.ai.LiteRtLocalAssistant
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceExportService
 import com.example.finance.data.FinanceRepository
 import com.example.finance.i18n.WebI18n
 import com.example.finance.model.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,6 +29,8 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 
 data class AccountActionFeedback(val operation: String, val succeeded: Boolean)
 data class ChatMessage(val sender: String, val text: String, val timestamp: Long = System.currentTimeMillis())
@@ -29,6 +39,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private val db = AppDatabase.getDatabase(application)
     val repository = FinanceRepository(db.financeDao(), db)
     val aiService = OfflineFinanceService()
+    private val aiModelPreferences = application.getSharedPreferences("bye_pro_finance_ai_models", Application.MODE_PRIVATE)
+    private val localLlm = LiteRtLocalAssistant(application.cacheDir)
     val accounts: StateFlow<List<AccountEntity>> = repository.accounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val archivedAccounts: StateFlow<List<AccountEntity>> = repository.archivedAccounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val _accountsLoading = MutableStateFlow(true)
@@ -86,6 +98,14 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val chatMessages: StateFlow<List<ChatMessage>> = _chatMessages.asStateFlow()
     private val _isAiLoading = MutableStateFlow(false)
     val isAiLoading: StateFlow<Boolean> = _isAiLoading.asStateFlow()
+    private val _localModelReady = MutableStateFlow(false)
+    val localModelReady: StateFlow<Boolean> = _localModelReady.asStateFlow()
+    private val _localModelLoading = MutableStateFlow(false)
+    val localModelLoading: StateFlow<Boolean> = _localModelLoading.asStateFlow()
+    private val _localModelProgress = MutableStateFlow(0f)
+    val localModelProgress: StateFlow<Float> = _localModelProgress.asStateFlow()
+    private val _localModelStatus = MutableStateFlow("لم يتم تحميل نموذج محلي بعد.")
+    val localModelStatus: StateFlow<String> = _localModelStatus.asStateFlow()
     init { resetWelcomeMessage(); viewModelScope.launch { runCatching { repository.accounts.first(); repository.archivedAccounts.first() }; _accountsLoading.value = false } }
     private fun resetWelcomeMessage() { _chatMessages.value = listOf(ChatMessage("AI", WebI18n.tr("مرحباً بك في BYE PRO FINANCE! أنا مساعدك المالي الذكي. يمكنك سؤالي عن مصروفاتك، ميزانيتك، أو تحليل وضعك المالي بدقة.", "Welcome to BYE PRO FINANCE! I am your AI Financial Assistant. Ask me anything about your cash flow, budgets, or savings goals.", _appLanguage.value))) }
     fun setScreen(screen: String) { _currentScreen.value = screen }
@@ -134,6 +154,126 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun deleteNotification(id: Long) { viewModelScope.launch { runCatching { repository.deleteNotification(id) }.onFailure { Log.e("BYE_PRO_FINANCE", "Delete notification failed", it) } } }
     fun clearNotifications() { viewModelScope.launch { runCatching { repository.clearNotifications() }.onFailure { Log.e("BYE_PRO_FINANCE", "Clear notifications failed", it) } } }
     fun clearAiChat() { if (_isAiLoading.value) return; resetWelcomeMessage() }
+    fun loadLocalModelFile(file: File) {
+        if (_localModelLoading.value) return
+        viewModelScope.launch {
+            _localModelLoading.value = true
+            _localModelProgress.value = 0f
+            _localModelStatus.value = "جارٍ تهيئة النموذج المحلي على المعالج..."
+            try {
+                require(file.extension.equals("litertlm", ignoreCase = true)) {
+                    "صيغة النموذج غير مدعومة هنا. اختر ملف .litertlm."
+                }
+                localLlm.load(file)
+                aiModelPreferences.edit().putString("active_model_path", file.absolutePath).apply()
+                _localModelReady.value = true
+                _localModelStatus.value = "النموذج المحلي جاهز. المحادثة تعمل على الهاتف دون اتصال."
+            } catch (error: Throwable) {
+                _localModelReady.value = false
+                _localModelStatus.value = "تعذر تحميل النموذج: " + (error.message ?: "خطأ غير معروف")
+                Log.e("BYE_PRO_LOCAL_AI", "Local LiteRT-LM model load failed", error)
+            } finally {
+                _localModelLoading.value = false
+            }
+        }
+    }
+
+    fun importAndLoadLocalModel(uri: Uri) {
+        if (_localModelLoading.value) return
+        viewModelScope.launch {
+            _localModelLoading.value = true
+            _localModelProgress.value = 0f
+            _localModelStatus.value = "جارٍ نسخ ملف النموذج إلى مساحة التطبيق الخاصة..."
+            try {
+                val modelFile = copyLocalModelIntoApp(uri)
+                _localModelStatus.value = "تم تجهيز الملف. جارٍ تحميل Gemma على المعالج..."
+                localLlm.load(modelFile)
+                aiModelPreferences.edit().putString("active_model_path", modelFile.absolutePath).apply()
+                _localModelReady.value = true
+                _localModelStatus.value = "النموذج المحلي جاهز. المحادثة تعمل على الهاتف دون اتصال."
+            } catch (error: Throwable) {
+                _localModelReady.value = false
+                _localModelStatus.value = "تعذر تجهيز أو تشغيل النموذج: " + (error.message ?: "خطأ غير معروف")
+                Log.e("BYE_PRO_LOCAL_AI", "Local model import/load failed", error)
+            } finally {
+                _localModelLoading.value = false
+            }
+        }
+    }
+
+    private suspend fun copyLocalModelIntoApp(uri: Uri): File = withContext(Dispatchers.IO) {
+        var displayName = "selected-model.litertlm"
+        var expectedSize = -1L
+        getApplication<Application>().contentResolver.query(
+            uri,
+            arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE),
+            null,
+            null,
+            null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                if (nameIndex >= 0) displayName = cursor.getString(nameIndex) ?: displayName
+                if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) expectedSize = cursor.getLong(sizeIndex)
+            }
+        }
+        require(displayName.endsWith(".litertlm", ignoreCase = true)) {
+            "الملف المختار ليس حزمة LiteRT-LM بامتداد .litertlm."
+        }
+
+        val directory = File(getApplication<Application>().filesDir, "ai-models")
+        check(directory.exists() || directory.mkdirs()) { "تعذر إنشاء مجلد النموذج." }
+        val requiredBytes = if (expectedSize > 0) expectedSize + 128L * 1024L * 1024L else 128L * 1024L * 1024L
+        check(StatFs(directory.absolutePath).availableBytes >= requiredBytes) {
+            "المساحة الحرة غير كافية لنسخ النموذج؛ يلزم توفير مساحة إضافية على الهاتف."
+        }
+
+        val temporary = File(directory, "selected-model.litertlm.part")
+        val destination = File(directory, "selected-model.litertlm")
+        var copied = 0L
+        try {
+            val input = getApplication<Application>().contentResolver.openInputStream(uri)
+                ?: error("تعذر فتح ملف النموذج المحدد.")
+            input.use { source ->
+                FileOutputStream(temporary).buffered(1024 * 1024).use { output ->
+                    val buffer = ByteArray(1024 * 1024)
+                    while (true) {
+                        currentCoroutineContext().ensureActive()
+                        val count = source.read(buffer)
+                        if (count < 0) break
+                        output.write(buffer, 0, count)
+                        copied += count
+                        if (expectedSize > 0) {
+                            _localModelProgress.value = (copied.toFloat() / expectedSize.toFloat()).coerceIn(0f, 1f)
+                        }
+                    }
+                    output.flush()
+                }
+            }
+            check(copied > 0L) { "ملف النموذج فارغ." }
+            if (expectedSize > 0) check(copied == expectedSize) {
+                "اكتمل نسخ حجم مختلف عن حجم الملف الأصلي؛ لم يتم اعتماد النسخة."
+            }
+
+            val backup = File(directory, "selected-model.previous")
+            if (backup.exists()) check(backup.delete()) { "تعذر تنظيف نسخة النموذج المؤقتة السابقة." }
+            if (destination.exists()) check(destination.renameTo(backup)) {
+                "تعذر تجهيز ملف النموذج الحالي للاستبدال."
+            }
+            if (!temporary.renameTo(destination)) {
+                if (backup.exists()) backup.renameTo(destination)
+                error("تعذر تثبيت ملف النموذج بعد النسخ.")
+            }
+            backup.delete()
+            _localModelProgress.value = 1f
+            destination
+        } catch (error: Throwable) {
+            temporary.delete()
+            throw error
+        }
+    }
+
     fun askAiAssistant(query: String) {
         if (query.isBlank() || _isAiLoading.value) return
         val trimmedQuery = query.trim()
@@ -141,7 +281,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         _isAiLoading.value = true
         viewModelScope.launch {
             val response = runCatching {
-                FinancialAssistantEngine.answer(
+                val financialContext = FinancialAssistantEngine.answer(
                     query = trimmedQuery,
                     accounts = accounts.value,
                     transactions = transactions.value,
@@ -152,17 +292,41 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                     bills = bills.value,
                     language = _appLanguage.value
                 )
+                val savedPath = aiModelPreferences.getString("active_model_path", null)
+                val savedModel = savedPath?.let(::File)
+                if (savedModel != null && savedModel.isFile) {
+                    if (!_localModelReady.value) {
+                        _localModelLoading.value = true
+                        _localModelStatus.value = "جارٍ استعادة النموذج المحلي..."
+                        try {
+                            localLlm.load(savedModel)
+                            _localModelReady.value = true
+                            _localModelStatus.value = "النموذج المحلي جاهز."
+                        } finally {
+                            _localModelLoading.value = false
+                        }
+                    }
+                    localLlm.sendMessage(trimmedQuery, financialContext)
+                } else {
+                    financialContext
+                }
             }.getOrElse { error ->
-                Log.e("BYE_PRO_FINANCE", "Offline financial analysis failed", error)
+                Log.e("BYE_PRO_FINANCE", "Local AI assistant failed", error)
+                _localModelStatus.value = "تعذر تشغيل المساعد المحلي: " + (error.message ?: "خطأ غير معروف")
                 WebI18n.tr(
-                    "تعذر تحليل السجلات المحلية: ${error.message ?: "خطأ غير معروف"}",
-                    "Could not analyze local records: ${error.message ?: "unknown error"}",
+                    "تعذر تشغيل النموذج المحلي: " + (error.message ?: "خطأ غير معروف"),
+                    "Could not run the local model: " + (error.message ?: "unknown error"),
                     _appLanguage.value
                 )
             }
             _isAiLoading.value = false
             _chatMessages.value = _chatMessages.value + ChatMessage("AI", response)
         }
+    }
+
+    override fun onCleared() {
+        localLlm.shutdown()
+        super.onCleared()
     }
     private val _ocrError = MutableStateFlow<String?>(null)
     val ocrError: StateFlow<String?> = _ocrError.asStateFlow()

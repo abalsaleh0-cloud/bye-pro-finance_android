@@ -82,6 +82,10 @@ fun AiAssistantScreen(
     val lang by viewModel.appLanguage.collectAsState()
     val messages by viewModel.chatMessages.collectAsState()
     val isAiLoading by viewModel.isAiLoading.collectAsState()
+    val localModelReady by viewModel.localModelReady.collectAsState()
+    val localModelLoading by viewModel.localModelLoading.collectAsState()
+    val localModelProgress by viewModel.localModelProgress.collectAsState()
+    val localModelStatus by viewModel.localModelStatus.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
 
@@ -377,6 +381,12 @@ fun AiAssistantScreen(
         } else {
             AiModelsSettingsScreen(
                 autoSpeakReplies = autoSpeakReplies,
+                localModelReady = localModelReady,
+                localModelLoading = localModelLoading,
+                localModelProgress = localModelProgress,
+                localModelStatus = localModelStatus,
+                onLoadModelFile = viewModel::loadLocalModelFile,
+                onImportAndLoadModel = viewModel::importAndLoadLocalModel,
                 onAutoSpeakRepliesChange = { enabled ->
                     autoSpeakReplies = enabled
                     context.getSharedPreferences("bye_pro_ai_settings", 0)

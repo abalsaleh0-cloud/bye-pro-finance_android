@@ -42,11 +42,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import java.io.File
 
 private data class LocalModelFile(
     val name: String,
     val sizeBytes: Long,
-    val locationLabel: String
+    val locationLabel: String,
+    val file: File
 )
 
 private data class SelectedModelInfo(
@@ -109,7 +111,13 @@ private inline fun ByteArray.takeWhileIndexed(predicate: (Int, Byte) -> Boolean)
 @Composable
 fun AiModelsSettingsScreen(
     autoSpeakReplies: Boolean,
-    onAutoSpeakRepliesChange: (Boolean) -> Unit
+    onAutoSpeakRepliesChange: (Boolean) -> Unit,
+    localModelReady: Boolean,
+    localModelLoading: Boolean,
+    localModelProgress: Float,
+    localModelStatus: String,
+    onLoadModelFile: (File) -> Unit,
+    onImportAndLoadModel: (Uri) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -160,7 +168,7 @@ fun AiModelsSettingsScreen(
                             .filter { it.isFile && it.length() >= 100L * 1024L * 1024L }
                             .take(30)
                             .forEach { file ->
-                                candidates.add(LocalModelFile(file.name, file.length(), label))
+                                candidates.add(LocalModelFile(file.name, file.length(), label, file))
                             }
                     }
                 }
@@ -254,11 +262,29 @@ fun AiModelsSettingsScreen(
                         Text("الصيغة المكتشفة: ${model.detectedFormat}", style = MaterialTheme.typography.bodySmall)
                         Text("ترويسة الملف: ${model.headerHex}", style = MaterialTheme.typography.labelSmall)
                         Text(
-                            "تم حفظ إذن الوصول إلى الملف. هذه قراءة بيانات فقط؛ لم يتم بعد تأكيد أن الملف هو Gemma 4 E2B أو أنه متوافق مع LiteRT-LM.",
+                            "الحزمة ستُنسخ إلى مساحة التطبيق الخاصة ثم يجري تحميلها على المعالج. لا يتم إرسال الملف إلى الإنترنت.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.tertiary
                         )
+                        OutlinedButton(
+                            onClick = { onImportAndLoadModel(model.uri) },
+                            enabled = !localModelLoading && model.name.endsWith(".litertlm", ignoreCase = true),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(if (localModelLoading) "جارٍ تجهيز النموذج..." else "نسخ النموذج وتشغيله محلياً")
+                        }
                     }
+                    if (localModelLoading) {
+                        androidx.compose.material3.LinearProgressIndicator(
+                            progress = { localModelProgress },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    Text(
+                        localModelStatus,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (localModelReady) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     modelInspectionError?.let {
                         Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     }
@@ -272,10 +298,19 @@ fun AiModelsSettingsScreen(
                     Text(String.format(Locale.US, "%.2f GB", model.sizeBytes / 1_073_741_824.0))
                     Text(model.locationLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        "لا يمكن تحديد اسم النموذج من الحجم وحده؛ اختر الملف أعلاه لفحص ترويسته.",
+                        "لا يمكن تحديد اسم النموذج من الحجم وحده. يمكن تشغيل حزم LiteRT-LM من هذا المجلد مباشرة.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (model.file.extension.equals("litertlm", ignoreCase = true)) {
+                        OutlinedButton(
+                            onClick = { onLoadModelFile(model.file) },
+                            enabled = !localModelLoading,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("تشغيل هذا النموذج دون نسخه")
+                        }
+                    }
                 }
             }
         }
@@ -323,7 +358,7 @@ fun AiModelsSettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "هذه الصفحة تفحص الملفات وتعرض الإعدادات فقط؛ لا تحذف النماذج ولا تنزّل نموذجاً جديداً ولا تدّعي تشغيله ما لم يتم ربط محرك محلي فعلي.",
+                        "يعمل محرك LiteRT-LM على المعالج CPU. لا تُحذف الملفات الأصلية؛ عند اختيار ملف من مجلد التنزيلات تُنشأ نسخة خاصة داخل التطبيق لتشغيلها. دعم الصور والصوت داخل النموذج يحتاج تكاملاً منفصلاً.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
