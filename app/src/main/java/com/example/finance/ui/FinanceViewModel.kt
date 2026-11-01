@@ -187,7 +187,66 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                     target
                 }
                 try {
-                    if (GemmaLocalAssistant.isAvailable(modelFile)) {
+                    val expenseCommand = if (imageFile == null) FinanceVoiceCommandParser.parseExpense(trimmedQuery) else null
+                    if (expenseCommand != null) {
+                        val activeAccounts = accounts.value.filterNot { it.isArchived }
+                        val account = activeAccounts.firstOrNull { it.currency.equals(primaryCurrency.value, ignoreCase = true) }
+                            ?: activeAccounts.firstOrNull()
+                        if (account == null) {
+                            WebI18n.tr(
+                                "لا يوجد حساب نشط لتسجيل المصروف. أضف حساباً أولاً من قسم الحسابات.",
+                                "There is no active account for this expense. Add an account first.",
+                                _appLanguage.value
+                            )
+                        } else {
+                            val now = System.currentTimeMillis()
+                            val duplicate = transactions.value.any { existing ->
+                                existing.type == TransactionType.EXPENSE &&
+                                    existing.accountId == account.id &&
+                                    existing.amount == expenseCommand.amount &&
+                                    existing.category.equals(expenseCommand.category, ignoreCase = true) &&
+                                    existing.description.equals(expenseCommand.description, ignoreCase = true) &&
+                                    kotlin.math.abs(existing.date - now) <= 120_000L
+                            }
+                            if (duplicate) {
+                                WebI18n.tr(
+                                    "هذه المعاملة مسجلة بالفعل قبل قليل؛ لم أكرر الخصم.",
+                                    "This transaction was already recorded moments ago; I did not deduct it twice.",
+                                    _appLanguage.value
+                                )
+                            } else {
+                                repository.addTransaction(
+                                    TransactionEntity(
+                                        accountId = account.id,
+                                        type = TransactionType.EXPENSE,
+                                        amount = expenseCommand.amount,
+                                        currency = account.currency,
+                                        category = expenseCommand.category,
+                                        date = now,
+                                        description = expenseCommand.description,
+                                        status = TransactionStatus.COMPLETED
+                                    )
+                                )
+                                WebI18n.tr(
+                                    "تم تسجيل مصروف " + expenseCommand.amount + " " + account.currency + " ضمن تصنيف السكن، من حساب «" + account.name + "»، وتم تحديث رصيده.",
+                                    "Recorded an expense of " + expenseCommand.amount + " " + account.currency + " under Housing from account “" + account.name + "”; its balance was updated.",
+                                    _appLanguage.value
+                                )
+                            }
+                        }
+                    } else if (imageFile == null && isFastFinancialQuestion(trimmedQuery)) {
+                        FinancialAssistantEngine.answer(
+                            query = trimmedQuery,
+                            accounts = accounts.value,
+                            transactions = transactions.value,
+                            budgets = budgets.value,
+                            debts = debts.value,
+                            savingsGoals = savingsGoals.value,
+                            assets = assets.value,
+                            bills = bills.value,
+                            language = _appLanguage.value
+                        )
+                    } else if (GemmaLocalAssistant.isAvailable(modelFile)) {
                         val verifiedFinancialContext = FinancialAssistantEngine.answer(
                             query = trimmedQuery,
                             accounts = accounts.value,
@@ -231,6 +290,17 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             _chatMessages.value = _chatMessages.value + ChatMessage("AI", response)
         }
     }
+    private fun isFastFinancialQuestion(query: String): Boolean {
+        val q = query.lowercase(java.util.Locale.ROOT)
+        return listOf(
+            "مصروف", "مصروفات", "انفقت", "أنفقت", "إنفاق", "صرف", "دخل", "راتب",
+            "ميزاني", "دين", "ديون", "فاتورة", "فواتير", "ادخار", "توفير",
+            "صافي الثروة", "ملخص مالي", "تحليل مالي", "حلل", "ماذا تستطيع",
+            "spending", "expenses", "expense", "income", "salary", "budget",
+            "debt", "bills", "savings", "net worth", "cash flow", "financial summary"
+        ).any(q::contains)
+    }
+
     private val _ocrError = MutableStateFlow<String?>(null)
     val ocrError: StateFlow<String?> = _ocrError.asStateFlow()
     fun scanReceipt(sampleText: String? = null, imageBase64: String? = null) { viewModelScope.launch { _ocrError.value = null; aiService.parseReceiptImage(sampleText, imageBase64, _appLanguage.value).onSuccess { _scannedReceipt.value = it; _ocrError.value = null }.onFailure { _scannedReceipt.value = null; _ocrError.value = it.message ?: WebI18n.tr("تعذر استخراج بيانات الفاتورة آلياً", "Could not extract receipt data automatically", _appLanguage.value) } } }
