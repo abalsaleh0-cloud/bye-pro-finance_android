@@ -7,6 +7,7 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.media.MediaPlayer
+import android.widget.Toast
 import java.io.File
 import java.util.UUID
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -166,9 +167,19 @@ fun SpeakTextButton(
 
     fun speak() {
         scope.launch {
-            val audio = latestSynthesis?.invoke(latestText)?.getOrNull()
-            if (audio == null || audio.isEmpty()) {
+            val synthesis = latestSynthesis
+            if (synthesis == null) {
                 speakLocalFallback()
+                return@launch
+            }
+            val audioResult = runCatching { synthesis(latestText) }.getOrNull()
+            val audio = audioResult?.getOrNull()
+            if (audio == null || audio.isEmpty()) {
+                Toast.makeText(
+                    context,
+                    if (languageCode == "ar") "تعذّر توليد الصوت الجديد. تحقق من الاتصال وحاول مجدداً." else "Could not generate the selected voice. Check the connection and try again.",
+                    Toast.LENGTH_SHORT
+                ).show()
                 return@launch
             }
             val file = File(context.cacheDir, "bye-pro-speech-${UUID.randomUUID()}.mp3")
