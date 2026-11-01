@@ -51,7 +51,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private val _appLanguage = MutableStateFlow(WebI18n.read(application))
     val appLanguage: StateFlow<AppLanguage> = _appLanguage.asStateFlow()
     private val preferences = application.getSharedPreferences("bye_pro_finance_preferences", Application.MODE_PRIVATE)
-    private val _isDarkMode = MutableStateFlow(preferences.getBoolean("dark_mode", true))
+    private val _isDarkMode = MutableStateFlow(WebI18n.readDarkMode(application))
     val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
     private val _primaryCurrency = MutableStateFlow(preferences.getString("currency_code", "LYD") ?: "LYD")
     val primaryCurrency: StateFlow<String> = _primaryCurrency.asStateFlow()
@@ -91,7 +91,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun setScreen(screen: String) { _currentScreen.value = screen }
     fun toggleLanguage() { setLanguage(if (_appLanguage.value == AppLanguage.AR) AppLanguage.EN else AppLanguage.AR) }
     fun setLanguage(lang: AppLanguage) { if (_appLanguage.value == lang) return; _appLanguage.value = lang; WebI18n.write(getApplication(), lang); if (_chatMessages.value.size <= 1) resetWelcomeMessage() }
-    fun setDarkMode(dark: Boolean) { _isDarkMode.value = dark; preferences.edit().putBoolean("dark_mode", dark).apply() }
+    fun setDarkMode(dark: Boolean) { _isDarkMode.value = dark; WebI18n.writeDarkMode(getApplication(), dark) }
     fun toggleTheme() { setDarkMode(!_isDarkMode.value) }
     fun addAccount(account: AccountEntity) { viewModelScope.launch { _accountActionFeedback.value = AccountActionFeedback("add", runCatching { repository.addAccount(account) }.isSuccess) } }
     fun clearAccountActionFeedback() { _accountActionFeedback.value = null }

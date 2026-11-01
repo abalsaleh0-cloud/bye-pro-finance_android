@@ -20,8 +20,11 @@ import java.util.Locale
  */
 object WebI18n {
     const val LOCALE_KEY = "bye-pro-finance.locale"
+    const val THEME_KEY = "bye-pro-finance.theme"
     const val AR = "ar"
     const val EN = "en"
+    const val DARK = "dark"
+    const val LIGHT = "light"
 
     fun locale(language: AppLanguage): String = if (language == AppLanguage.EN) EN else AR
 
@@ -37,6 +40,35 @@ object WebI18n {
         context.getSharedPreferences("bye_pro_finance_preferences", Context.MODE_PRIVATE)
             .edit()
             .putString(LOCALE_KEY, locale(language))
+            .apply()
+    }
+
+    fun theme(isDark: Boolean): String = if (isDark) DARK else LIGHT
+
+    fun isDarkTheme(value: String?): Boolean = value != LIGHT
+
+    /**
+     * Uses the exact web localStorage key/value contract. Migrates the former
+     * Android-only boolean once, preserving the user's existing theme choice.
+     */
+    fun readDarkMode(context: Context): Boolean {
+        val preferences = context.getSharedPreferences("bye_pro_finance_preferences", Context.MODE_PRIVATE)
+        val storedTheme = preferences.getString(THEME_KEY, null)
+        if (storedTheme == DARK || storedTheme == LIGHT) return isDarkTheme(storedTheme)
+
+        val legacyDarkMode = preferences.getBoolean("dark_mode", true)
+        preferences.edit()
+            .putString(THEME_KEY, theme(legacyDarkMode))
+            .remove("dark_mode")
+            .apply()
+        return legacyDarkMode
+    }
+
+    fun writeDarkMode(context: Context, dark: Boolean) {
+        context.getSharedPreferences("bye_pro_finance_preferences", Context.MODE_PRIVATE)
+            .edit()
+            .putString(THEME_KEY, theme(dark))
+            .remove("dark_mode")
             .apply()
     }
 

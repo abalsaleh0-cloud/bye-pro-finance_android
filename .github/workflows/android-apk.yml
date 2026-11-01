@@ -45,8 +45,10 @@ jobs:
           grep -q 'MutableStateFlow(WebI18n.read(application))' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
           grep -q 'WebI18n.write(getApplication(), lang)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
           grep -q 'const val LOCALE_KEY = "bye-pro-finance.locale"' app/src/main/java/com/example/finance/i18n/WebI18n.kt
-          grep -q 'preferences.getBoolean("dark_mode", true)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
-          echo "PASS: Arabic default, persisted locale, fixed RTL layout, and persistent theme."
+          grep -q 'WebI18n.readDarkMode(application)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          grep -q 'WebI18n.writeDarkMode(getApplication(), dark)' app/src/main/java/com/example/finance/ui/FinanceViewModel.kt
+          grep -q 'const val THEME_KEY = "bye-pro-finance.theme"' app/src/main/java/com/example/finance/i18n/WebI18n.kt
+          echo "PASS: Arabic default, persisted locale, fixed RTL layout, and web-compatible theme persistence."
           echo "PASS: Arabic default, persisted web-compatible locale key, fixed RTL layout."
 
       - name: Set up Java

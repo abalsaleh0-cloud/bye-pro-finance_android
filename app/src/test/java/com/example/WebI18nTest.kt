@@ -14,6 +14,12 @@ class WebI18nTest {
         assertEquals(AppLanguage.AR, WebI18n.language("ar"))
         assertEquals(AppLanguage.EN, WebI18n.language("en"))
         assertEquals("bye-pro-finance.locale", WebI18n.LOCALE_KEY)
+        assertEquals("bye-pro-finance.theme", WebI18n.THEME_KEY)
+        assertEquals("dark", WebI18n.theme(true))
+        assertEquals("light", WebI18n.theme(false))
+        assertEquals(true, WebI18n.isDarkTheme(null))
+        assertEquals(true, WebI18n.isDarkTheme("dark"))
+        assertEquals(false, WebI18n.isDarkTheme("light"))
     }
 
     @Test

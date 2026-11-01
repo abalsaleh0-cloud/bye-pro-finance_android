@@ -24,11 +24,17 @@ require("app/src/main/java/com/example/finance/ui/FinanceViewModel.kt",
 require("app/src/main/java/com/example/finance/ui/FinanceViewModel.kt",
         "WebI18n.write(getApplication(), lang)")
 require("app/src/main/java/com/example/finance/ui/FinanceViewModel.kt",
-        'preferences.getBoolean("dark_mode", true)')
+        "MutableStateFlow(WebI18n.readDarkMode(application))")
 require("app/src/main/java/com/example/finance/ui/FinanceViewModel.kt",
-        'preferences.edit().putBoolean("dark_mode", dark).apply()')
+        "WebI18n.writeDarkMode(getApplication(), dark)")
 require("app/src/main/java/com/example/finance/i18n/WebI18n.kt",
         'const val LOCALE_KEY = "bye-pro-finance.locale"')
+require("app/src/main/java/com/example/finance/i18n/WebI18n.kt",
+        'const val THEME_KEY = "bye-pro-finance.theme"')
+require("app/src/main/java/com/example/finance/i18n/WebI18n.kt",
+        '.getString(THEME_KEY, null)')
+require("app/src/main/java/com/example/finance/i18n/WebI18n.kt",
+        '.putString(THEME_KEY, theme(dark))')
 require("app/src/main/java/com/example/finance/i18n/WebI18n.kt",
         '.getString(LOCALE_KEY, AR)')
 require("app/src/main/java/com/example/finance/i18n/WebI18n.kt",
@@ -42,7 +48,7 @@ require("app/src/main/java/com/example/finance/i18n/Localization.kt",
 require("app/src/main/java/com/example/ui/theme/DesignTokens.kt",
         "val background = Color(0xFF101114)")
 require("app/src/main/java/com/example/ui/theme/Color.kt",
-        "val DarkBgMain = Color(0xFF101114)")
+        "val DarkBgMain = ByeProDesignTokens.Colors.background")
 
 print("PASS: Arabic-first locale persistence, fixed RTL, persistent theme, and web-matched design tokens.")
 PY
