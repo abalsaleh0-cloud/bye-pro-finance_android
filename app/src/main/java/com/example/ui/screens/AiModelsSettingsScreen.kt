@@ -192,7 +192,7 @@ fun AiModelsSettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "هذه الصفحة تفحص الملفات وتعرض الإعدادات فقط؛ لا تحذف النماذج ولا تنزّل نموذجاً جديداً ولا تدّعي تشغيله ما لم يتم ربط محرك محلي فعلي.",
+                        "يمكنك تنزيل Gemma 4 E2B من البطاقة أعلاه. يُحفظ الملف في مساحة التطبيق الدائمة ويُتحقق من بصمته قبل اعتباره مكتملاً.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

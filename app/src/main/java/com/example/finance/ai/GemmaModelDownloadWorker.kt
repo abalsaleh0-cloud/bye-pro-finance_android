@@ -34,8 +34,16 @@ class GemmaModelDownloadWorker(appContext: Context, params: WorkerParameters) : 
         setForeground(foreground(0, "جارٍ تجهيز تنزيل Gemma 4 E2B"))
         return try {
             if (part.isFile && part.length() > MIN_MODEL_BYTES && sha256(part) == EXPECTED_SHA256) {
-                if (target.exists() && !target.delete()) return Result.failure(workDataOf(KEY_ERROR to "تعذر استبدال ملف النموذج القديم"))
-                if (!part.renameTo(target)) return Result.failure(workDataOf(KEY_ERROR to "تعذر تثبيت ملف النموذج بعد التحقق"))
+                val backup = File(dir, MODEL_FILE + ".previous")
+                if (backup.exists()) backup.delete()
+                val hadTarget = target.exists()
+                if (hadTarget && !target.renameTo(backup))
+                    return Result.failure(workDataOf(KEY_ERROR to "تعذر حفظ نسخة النموذج السابقة"))
+                if (!part.renameTo(target)) {
+                    if (hadTarget) backup.renameTo(target)
+                    return Result.failure(workDataOf(KEY_ERROR to "تعذر تثبيت ملف النموذج بعد التحقق"))
+                }
+                if (backup.exists()) backup.delete()
                 return Result.success(workDataOf(KEY_MODEL_PATH to target.absolutePath))
             }
             if (part.exists() && part.length() > MIN_MODEL_BYTES) part.delete()
