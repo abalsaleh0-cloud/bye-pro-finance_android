@@ -34,6 +34,18 @@ data class ExtractedReceiptData(
     val itemsSummary: String
 )
 
+data class AiTransactionIntent(
+    val intent: String,
+    val amount: Double?,
+    val currency: String?,
+    val category: String?,
+    val description: String?,
+    val accountName: String?,
+    val dateIso: String?,
+    val confidence: Double,
+    val clarification: String?
+)
+
 data class AiInsightItem(
     val title: String,
     val description: String,
@@ -57,6 +69,68 @@ class GeminiFinanceService {
         }
 
     /**
+     * Interprets natural conversation into a strictly validated transaction intent.
+     * The model classifies meaning; it is not driven by a fixed command vocabulary.
+     */
+    suspend fun understandTransactionIntent(
+        userQuery: String,
+        recentConversation: String,
+        accounts: List<AccountEntity>,
+        defaultCurrency: String,
+        language: AppLanguage
+    ): AiTransactionIntent? = withContext(Dispatchers.IO) {
+        if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") return@withContext null
+        val accountContext = accounts.filterNot { it.isArchived }
+            .joinToString("; ") { "${it.name} [${it.currency}, id=${it.id}] balance=${it.balance}" }
+        val prompt = """
+            You are the natural-language understanding layer for BYE PRO FINANCE.
+            Understand colloquial Arabic (including Levantine/Syrian phrasing), Modern Standard Arabic,
+            and English as a human conversational assistant would. Do not require command words.
+            Use the conversation history to resolve references such as "سجلها", "من نفس الحساب",
+            "غيرها", "دفعت له", and pronouns. Current user message: $userQuery
+            Recent conversation: $recentConversation
+            Available active accounts: $accountContext
+            Default currency: $defaultCurrency
+            Return exactly one JSON object and no markdown:
+            {"intent":"CREATE_EXPENSE|CREATE_INCOME|OTHER|CLARIFY","amount":number|null,
+             "currency":"ISO-4217"|null,"category":"short natural category"|null,
+             "description":"short description"|null,"accountName":"exact available account name"|null,
+             "dateIso":"YYYY-MM-DD"|null,"confidence":number,
+             "clarification":"one concise question in the user's language"|null}
+            Rules:
+            - Select CREATE_EXPENSE or CREATE_INCOME only when the user's meaning clearly requests recording a transaction.
+            - Understand semantic equivalents such as paying for a taxi, buying fuel, receiving salary,
+              getting paid, refund, and similar natural descriptions; do not rely on fixed keywords.
+            - Never invent amount, currency, account, category, or date. A currency may use the default only
+              when no currency is stated and the user's context clearly uses the default currency.
+            - If amount or transaction direction is unclear, return CLARIFY and ask one short question.
+            - If multiple accounts could fit, leave accountName null and ask which account in clarification.
+            - If the message is a question, greeting, general discussion, report request, or another action,
+              return OTHER; do not misclassify it as a transaction.
+            - Preserve the user's language in clarification. Set confidence from 0 to 1.
+        """.trimIndent()
+        try {
+            val raw = callGeminiApi(prompt).trim()
+                .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+            val json = JSONObject(raw)
+            val amount = if (json.isNull("amount")) null else json.optDouble("amount", Double.NaN)
+            AiTransactionIntent(
+                intent = json.optString("intent", "CLARIFY").uppercase(),
+                amount = amount?.takeIf { it.isFinite() && it > 0.0 },
+                currency = json.optString("currency").takeIf { it.isNotBlank() && it != "null" }?.uppercase(),
+                category = json.optString("category").takeIf { it.isNotBlank() && it != "null" },
+                description = json.optString("description").takeIf { it.isNotBlank() && it != "null" },
+                accountName = json.optString("accountName").takeIf { it.isNotBlank() && it != "null" },
+                dateIso = json.optString("dateIso").takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) },
+                confidence = json.optDouble("confidence", 0.0).coerceIn(0.0, 1.0),
+                clarification = json.optString("clarification").takeIf { it.isNotBlank() && it != "null" }
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
      * AI Financial Assistant conversation with user financial context
      */
     suspend fun askAssistant(
@@ -68,7 +142,8 @@ class GeminiFinanceService {
         language: AppLanguage,
         savingsGoals: List<SavingsGoalEntity> = emptyList(),
         assets: List<AssetEntity> = emptyList(),
-        bills: List<BillEntity> = emptyList()
+        bills: List<BillEntity> = emptyList(),
+        conversationHistory: String = ""
     ): String = withContext(Dispatchers.IO) {
         val accountsByCurrency = accounts.groupBy { it.currency.trim().ifBlank { "UNKNOWN" }.uppercase() }
         val accountSummary = if (accountsByCurrency.isEmpty()) {
