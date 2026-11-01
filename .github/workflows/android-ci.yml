@@ -24,8 +24,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q '^APP_VERSION_NAME=10.0.55$' gradle.properties
-          grep -q '^APP_VERSION_CODE=10055$' gradle.properties
+          grep -q '^APP_VERSION_NAME=10.0.56$' gradle.properties
+          grep -q '^APP_VERSION_CODE=10056$' gradle.properties
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
