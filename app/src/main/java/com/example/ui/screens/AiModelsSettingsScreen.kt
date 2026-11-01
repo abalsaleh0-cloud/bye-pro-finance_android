@@ -147,6 +147,7 @@ fun AiModelsSettingsScreen(
                 }
             }
         }
+        item { GemmaModelDownloadCard() }
         item {
             Text("إعدادات المساعد", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         }
