@@ -10,12 +10,14 @@ import com.example.ui.components.FinanceTextField
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,6 +64,8 @@ import androidx.compose.ui.unit.sp
 import com.example.finance.engine.FinanceEngine
 import com.example.finance.i18n.Strings
 import com.example.finance.model.AccountEntity
+import com.example.finance.model.BudgetPeriod
+import com.example.finance.model.TransactionStatus
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
 import com.example.finance.ui.FinanceViewModel
@@ -88,246 +92,350 @@ fun DashboardScreen(
     val debts by viewModel.debts.collectAsState()
     val assets by viewModel.assets.collectAsState()
     val bills by viewModel.bills.collectAsState()
-    val notifications by viewModel.notifications.collectAsState()
-    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
+    val savingsGoals by viewModel.savingsGoals.collectAsState()
 
-    // Match the web dashboard: aggregate one currency at a time and never mix currencies.
-    val currencyTransactions = transactions.filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
-    val currencyAccounts = accounts.filter { !it.isArchived && it.currency.equals(primaryCurrency, ignoreCase = true) }
-    val currencyAssets = assets.filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
-    val currencyDebts = debts.filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
-    val totalIncome = FinanceEngine.calculateTotalIncome(currencyTransactions)
-    val totalExpenses = FinanceEngine.calculateTotalExpenses(currencyTransactions)
-    val netCashFlow = FinanceEngine.calculateNetCashFlow(currencyTransactions)
-    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, primaryCurrency)
+    // Mirror the web dashboard currency rule: prefer LYD, otherwise the first
+    // currency present in account, transaction, or asset records.
+    val availableCurrencies = (accounts.map { it.currency } +
+        transactions.map { it.currency } + assets.map { it.currency })
+        .map { it.trim().uppercase(Locale.ROOT) }
+        .filter { it.isNotBlank() }
+        .distinct()
+    val currency = if ("LYD" in availableCurrencies) "LYD" else availableCurrencies.firstOrNull() ?: "LYD"
 
-    val totalLiquid = currencyAccounts.sumOf { it.balance }
-    val budgetStatuses = budgets
-        .filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
-        .map { FinanceEngine.calculateBudgetStatus(it, currencyTransactions) }
-    val totalDebtAmount = currencyDebts.fold(BigDecimal.ZERO) { total, debt ->
-        total.add(BigDecimal.valueOf(debt.remaining))
+    val currencyAccounts = accounts.filter { it.currency.equals(currency, ignoreCase = true) }
+    val completedTransactions = transactions.filter {
+        it.currency.equals(currency, ignoreCase = true) && it.status == TransactionStatus.COMPLETED
     }
+    val currencyAssets = assets.filter { it.currency.equals(currency, ignoreCase = true) }
+    val currencyBudgets = budgets.filter { it.currency.equals(currency, ignoreCase = true) }
+    val currencyDebts = debts.filter { it.currency.equals(currency, ignoreCase = true) && it.remaining > 0.0 }
+    val currencyBills = bills.filter { it.currency.equals(currency, ignoreCase = true) }
+    val currencyGoals = savingsGoals.filter { it.currency.equals(currency, ignoreCase = true) }
 
-    val healthScore = FinanceEngine.calculateFinancialHealthScore(
-        totalIncome = totalIncome,
-        totalExpenses = totalExpenses,
-        netWorth = netWorth,
-        totalDebts = totalDebtAmount,
-        budgetStatuses = budgetStatuses
-    )
-
-    val healthLabel = when {
-        healthScore >= 80 -> Strings.get("excellent_health", lang)
-        healthScore >= 60 -> Strings.get("good_health", lang)
-        else -> Strings.get("warning_health", lang)
-    }
-
-    val unreadNotifications = notifications.count { !it.isRead }
+    val availableBalance = currencyAccounts.sumOf { it.balance }
+    val recordedIncome = completedTransactions
+        .filter { it.type == TransactionType.INCOME || it.type == TransactionType.REFUND }
+        .sumOf { it.amount }
+    val recordedExpenses = completedTransactions
+        .filter { it.type == TransactionType.EXPENSE }
+        .sumOf { it.amount }
+    val assetValue = currencyAssets.sumOf { it.value }
+    val budgetTotal = currencyBudgets.sumOf { it.limitAmount }
+    val debtRemaining = currencyDebts.sumOf { it.remaining }
+    val billsDue = currencyBills.filter { !it.isPaid }.sumOf { it.amount }
+    val goalProgress = currencyGoals.sumOf { it.currentAmount }
+    val goalTarget = currencyGoals.sumOf { it.targetAmount }
+    val goalPercent = if (goalTarget > 0.0) (goalProgress / goalTarget * 100.0).toInt().coerceIn(0, 100) else 0
+    val outstandingDebtCount = debts.count { it.remaining > 0.0 }
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            Spacer(modifier = Modifier.height(4.dp))
-            // Unread Alert Banner if any
-            if (unreadNotifications > 0) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onNavigate("notifications") }
-                        .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
-                    colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.12f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = ByeProTheme.colors.goldPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (lang == com.example.finance.model.AppLanguage.AR)
-                                WebI18n.tr("لديك", "You have", lang) + " ${TextContent.number(unreadNotifications, lang, 0)} " + WebI18n.tr("تنبيهات مالية مهمة (فواتير/ميزانيات)", "important financial alerts (bills/budgets)", lang)
-                            else "You have ${TextContent.number(unreadNotifications, lang, 0)} important financial alerts",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.SemiBold
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    WebI18n.tr("الرؤية المالية", "Financial overview", lang),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = ByeProTheme.colors.goldPrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    Strings.get("dashboard", lang),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    WebI18n.tr(
+                        "ملخص حي من بيانات BYE PRO FINANCE الفعلية. الأرقام المجمعة تعرض عملة أساسية واحدة ولا تخلط العملات.",
+                        "Live summary from your BYE PRO FINANCE data. Aggregates use one primary currency and never mix currencies.",
+                        lang
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        item {
+            DashboardMetric(
+                label = WebI18n.tr("الرصيد المتاح", "Available balance", lang) + " · $currency",
+                value = TextContent.money(availableBalance, currency, lang),
+                detail = "${TextContent.number(accounts.size, lang, 0)} " + WebI18n.tr("حساب نشط", "active accounts", lang)
+            )
+        }
+        item {
+            DashboardMetric(
+                label = WebI18n.tr("الدخل المسجل", "Recorded income", lang) + " · $currency",
+                value = TextContent.money(recordedIncome, currency, lang),
+                detail = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang)
+            )
+        }
+        item {
+            DashboardMetric(
+                label = WebI18n.tr("المصروفات المسجلة", "Recorded expenses", lang) + " · $currency",
+                value = TextContent.money(recordedExpenses, currency, lang),
+                detail = WebI18n.tr("من المعاملات المكتملة", "From completed transactions", lang)
+            )
+        }
+        item {
+            DashboardMetric(
+                label = WebI18n.tr("قيمة الأصول", "Asset value", lang) + " · $currency",
+                value = TextContent.money(assetValue, currency, lang),
+                detail = "${TextContent.number(assets.size, lang, 0)} " + WebI18n.tr("أصل", "assets", lang)
+            )
+        }
+
+        item {
+            DashboardPanel(
+                eyebrow = WebI18n.tr("آخر النشاط", "Recent activity", lang),
+                title = WebI18n.tr("المعاملات الأخيرة", "Recent transactions", lang),
+                count = TextContent.number(transactions.size, lang, 0)
+            ) {
+                val recent = transactions.take(6)
+                if (recent.isEmpty()) {
+                    DashboardEmpty(WebI18n.tr("لا توجد معاملات بعد.", "No transactions yet.", lang))
+                } else {
+                    recent.forEachIndexed { index, tx ->
+                        val fallback = when (tx.type) {
+                            TransactionType.INCOME, TransactionType.REFUND -> WebI18n.tr("دخل", "Income", lang)
+                            TransactionType.EXPENSE -> WebI18n.tr("مصروف", "Expense", lang)
+                            TransactionType.TRANSFER -> WebI18n.tr("تحويل", "Transfer", lang)
+                            TransactionType.ADJUSTMENT -> WebI18n.tr("تسوية", "Adjustment", lang)
+                        }
+                        DashboardLine(
+                            label = tx.description.ifBlank { fallback },
+                            detail = WebI18n.date(Date(tx.date), lang),
+                            value = (if (tx.type == TransactionType.EXPENSE) "−" else "+") +
+                                TextContent.money(tx.amount, tx.currency, lang),
+                            valueColor = if (tx.type == TransactionType.EXPENSE) ByeProTheme.colors.financialRed else ByeProTheme.colors.financialGreen,
+                            showDivider = index != recent.lastIndex
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            // Health Score Card
-            HealthScoreCard(
-                score = healthScore,
-                label = healthLabel,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Primary Financial Summary Grid
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                FinancialMetricCard(
-                    title = Strings.get("total_balance", lang),
-                    amount = TextContent.money(totalLiquid, primaryCurrency, lang),
-                    subtitle = "${TextContent.number(accounts.size, lang, 0)} ${Strings.get("active_accounts", lang)}",
-                    icon = Icons.Default.AccountBalance,
-                    accentColor = ByeProTheme.colors.financialGreen,
-                    modifier = Modifier.weight(1f)
-                )
-                FinancialMetricCard(
-                    title = Strings.get("net_worth", lang),
-                    amount = TextContent.money(netWorth, primaryCurrency, lang),
-                    subtitle = WebI18n.tr("الأصول - الالتزامات", "Assets - Liabilities", lang),
-                    icon = Icons.Default.AttachMoney,
-                    accentColor = ByeProTheme.colors.goldPrimary,
-                    modifier = Modifier.weight(1f)
-                )
             }
         }
 
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            DashboardPanel(
+                eyebrow = WebI18n.tr("التزامات قريبة", "Upcoming obligations", lang),
+                title = WebI18n.tr("الفواتير", "Bills", lang),
+                count = TextContent.number(bills.size, lang, 0)
             ) {
-                FinancialMetricCard(
-                    title = Strings.get("monthly_income", lang),
-                    amount = TextContent.money(totalIncome, primaryCurrency, lang),
-                    icon = Icons.Default.ArrowDownward,
-                    accentColor = ByeProTheme.colors.financialGreen,
-                    modifier = Modifier.weight(1f)
-                )
-                FinancialMetricCard(
-                    title = Strings.get("monthly_expense", lang),
-                    amount = TextContent.money(totalExpenses, primaryCurrency, lang),
-                    icon = Icons.Default.ArrowUpward,
-                    accentColor = ByeProTheme.colors.financialRed,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
-        // Quick Actions Row
-        item {
-            SectionHeader(title = Strings.get("quick_actions", lang))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                QuickActionButton(
-                    icon = Icons.Default.Add,
-                    label = Strings.get("action_add_expense", lang),
-                    tag = "action_add_expense_btn",
-                    accentColor = ByeProTheme.colors.financialRed,
-                    onClick = onOpenAddTransaction
-                )
-                QuickActionButton(
-                    icon = Icons.Default.SwapHoriz,
-                    label = Strings.get("action_transfer", lang),
-                    tag = "action_transfer_btn",
-                    accentColor = ByeProTheme.colors.goldPrimary,
-                    onClick = { onNavigate("transfers") }
-                )
-                QuickActionButton(
-                    icon = Icons.Default.ReceiptLong,
-                    label = Strings.get("action_scan_receipt", lang),
-                    tag = "action_scan_btn",
-                    accentColor = ByeProTheme.colors.goldPrimary,
-                    onClick = { onNavigate("smart_scan") }
-                )
-                QuickActionButton(
-                    icon = Icons.Default.AutoAwesome,
-                    label = Strings.get("nav_ai_assistant", lang),
-                    tag = "action_ai_assistant_btn",
-                    accentColor = ByeProTheme.colors.financialGreen,
-                    onClick = { onNavigate("ai_assistant") }
-                )
-            }
-        }
-
-        // Cash Flow Comparison Chart
-        item {
-            InteractiveCashFlowChart(
-                income = totalIncome.toDouble(),
-                expense = totalExpenses.toDouble(),
-                currency = primaryCurrency
-            )
-        }
-
-        // Accounts Carousel
-        item {
-            SectionHeader(
-                title = Strings.get("nav_accounts", lang),
-                actionLabel = Strings.get("view_all", lang),
-                onAction = { onNavigate("accounts") }
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                accounts.forEach { acc ->
-                    AccountCardMini(account = acc, lang = lang, onClick = { onNavigate("accounts") })
+                val upcoming = bills.take(5)
+                if (upcoming.isEmpty()) {
+                    DashboardEmpty(WebI18n.tr("لا توجد فواتير مستحقة.", "No bills due.", lang))
+                } else {
+                    upcoming.forEachIndexed { index, bill ->
+                        val status = when {
+                            bill.isPaid -> WebI18n.tr("مدفوعة", "Paid", lang)
+                            bill.dueDate < System.currentTimeMillis() -> WebI18n.tr("متأخرة", "Overdue", lang)
+                            else -> WebI18n.tr("قادمة", "Upcoming", lang)
+                        }
+                        DashboardLine(
+                            label = bill.name,
+                            detail = WebI18n.date(Date(bill.dueDate), lang) + " · " + status,
+                            value = TextContent.money(bill.amount, bill.currency, lang),
+                            showDivider = index != upcoming.lastIndex
+                        )
+                    }
                 }
             }
         }
 
-        // Recent Transactions Section
         item {
-            SectionHeader(
-                title = Strings.get("recent_transactions", lang),
-                actionLabel = Strings.get("view_all", lang),
-                onAction = { onNavigate("transactions") }
-            )
-        }
-
-        val recentTxs = transactions.take(6)
-        if (recentTxs.isEmpty()) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Text(
-                        text = WebI18n.tr("لا توجد معاملات مسجلة بعد", "No transactions recorded yet", lang),
-                        modifier = Modifier.padding(24.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            DashboardPanel(
+                eyebrow = WebI18n.tr("التخطيط", "Planning", lang),
+                title = WebI18n.tr("الميزانيات", "Budgets", lang),
+                count = TextContent.number(budgets.size, lang, 0)
+            ) {
+                DashboardLine(
+                    label = WebI18n.tr("إجمالي المخصص النشط", "Total active allocation", lang) + " · $currency",
+                    detail = "",
+                    value = TextContent.money(budgetTotal, currency, lang),
+                    valueColor = ByeProTheme.colors.goldPrimary,
+                    showDivider = currencyBudgets.isNotEmpty()
+                )
+                currencyBudgets.take(4).forEachIndexed { index, budget ->
+                    DashboardLine(
+                        label = budget.name,
+                        detail = budgetPeriodLabel(budget.period, lang),
+                        value = TextContent.money(budget.limitAmount, budget.currency, lang),
+                        showDivider = index != currencyBudgets.take(4).lastIndex
                     )
                 }
-            }
-        } else {
-            items(recentTxs, key = { it.id }) { tx ->
-                TransactionRowItem(
-                    transaction = tx,
-                    lang = lang,
-                    onClick = { onNavigate("transactions") }
-                )
+                if (currencyBudgets.isEmpty()) DashboardEmpty(WebI18n.tr("لا توجد ميزانيات بهذه العملة.", "No budgets in this currency.", lang))
             }
         }
 
         item {
-            Spacer(modifier = Modifier.height(24.dp))
+            DashboardPanel(
+                eyebrow = WebI18n.tr("الأهداف", "Goals", lang),
+                title = WebI18n.tr("الادخار", "Savings", lang),
+                count = TextContent.number(savingsGoals.size, lang, 0)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(goalPercent / 100f).height(8.dp)
+                            .clip(CircleShape).background(ByeProTheme.colors.goldPrimary)
+                    )
+                }
+                Text("$goalPercent%", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(
+                    TextContent.money(goalProgress, currency, lang) + " " +
+                        WebI18n.tr("من", "of", lang) + " " + TextContent.money(goalTarget, currency, lang),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (currencyGoals.isEmpty()) DashboardEmpty(WebI18n.tr("لا توجد أهداف ادخار بهذه العملة.", "No savings goals in this currency.", lang))
+            }
+        }
+
+        item {
+            DashboardPanel(
+                eyebrow = WebI18n.tr("الالتزامات", "Liabilities", lang),
+                title = WebI18n.tr("الديون", "Debts", lang),
+                count = TextContent.number(currencyDebts.size, lang, 0)
+            ) {
+                DashboardLine(
+                    label = WebI18n.tr("إجمالي المتبقي", "Total remaining", lang) + " · $currency",
+                    detail = "",
+                    value = TextContent.money(debtRemaining, currency, lang),
+                    valueColor = ByeProTheme.colors.financialRed,
+                    showDivider = currencyDebts.isNotEmpty()
+                )
+                currencyDebts.take(3).forEachIndexed { index, debt ->
+                    DashboardLine(
+                        label = debt.name,
+                        detail = if (debt.direction == "owed_to_me") WebI18n.tr("لي عنده", "Owed to me", lang)
+                            else WebI18n.tr("عليّ له", "I owe", lang),
+                        value = TextContent.money(debt.remaining, debt.currency, lang),
+                        showDivider = index != currencyDebts.take(3).lastIndex
+                    )
+                }
+                if (currencyDebts.isEmpty()) DashboardEmpty(WebI18n.tr("لا توجد ديون قائمة بهذه العملة.", "No outstanding debts in this currency.", lang))
+            }
+        }
+
+        item {
+            DashboardPanel(
+                eyebrow = WebI18n.tr("الاستحقاقات", "Due items", lang),
+                title = WebI18n.tr("ملخص اليوم", "Today at a glance", lang),
+                count = "LIVE"
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    DashboardQuickStat(TextContent.number(accounts.size, lang, 0), WebI18n.tr("حسابات", "Accounts", lang), Modifier.weight(1f))
+                    DashboardQuickStat(TextContent.number(transactions.size, lang, 0), WebI18n.tr("معاملات", "Transactions", lang), Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    DashboardQuickStat(TextContent.number(bills.size, lang, 0), WebI18n.tr("الفواتير", "Bills", lang), Modifier.weight(1f))
+                    DashboardQuickStat(TextContent.number(outstandingDebtCount, lang, 0), WebI18n.tr("الديون", "Debts", lang), Modifier.weight(1f))
+                }
+                Text(
+                    WebI18n.tr("الفواتير القادمة:", "Upcoming bills:", lang) + " " + TextContent.money(billsDue, currency, lang),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(24.dp)) }
+    }
+}
+
+@Composable
+private fun DashboardMetric(label: String, value: String, detail: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
+
+@Composable
+private fun DashboardPanel(
+    eyebrow: String,
+    title: String,
+    count: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(eyebrow, style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary)
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                }
+                Surface(shape = RoundedCornerShape(9.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                    Text(count, modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp), color = ByeProTheme.colors.goldPrimary, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.65f)))
+            content()
+        }
+    }
+}
+
+@Composable
+private fun DashboardLine(
+    label: String,
+    detail: String,
+    value: String,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
+    showDivider: Boolean = true
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                if (detail.isNotBlank()) Text(detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = valueColor)
+        }
+        if (showDivider) Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)))
+    }
+}
+
+@Composable
+private fun DashboardEmpty(message: String) {
+    Text(message, modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun DashboardQuickStat(value: String, label: String, modifier: Modifier = Modifier) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+private fun budgetPeriodLabel(period: BudgetPeriod, lang: com.example.finance.model.AppLanguage): String =
+    when (period) {
+        BudgetPeriod.WEEKLY -> WebI18n.tr("أسبوعية", "Weekly", lang)
+        BudgetPeriod.MONTHLY -> WebI18n.tr("شهرية", "Monthly", lang)
+        BudgetPeriod.QUARTERLY -> WebI18n.tr("ربع سنوية", "Quarterly", lang)
+        BudgetPeriod.YEARLY -> WebI18n.tr("سنوية", "Yearly", lang)
+        BudgetPeriod.CUSTOM -> WebI18n.tr("مخصصة", "Custom", lang)
+    }
 
 @Composable
 fun AccountCardMini(account: AccountEntity, lang: com.example.finance.model.AppLanguage, onClick: () -> Unit) {
