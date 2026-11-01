@@ -99,6 +99,52 @@ jobs:
           gradle-version: "9.3.1"
           arguments: :app:testDebugUnitTest --stacktrace
 
+      - name: Create local debug signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          keytool -genkeypair -v -keystore debug.keystore -storepass android \
+            -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Build debug APK for device smoke test
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: "9.3.1"
+          arguments: :app:assembleDebug --stacktrace
+
+      - name: Run Android emulator startup smoke test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: false
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -wipe-data
+          emulator-boot-timeout: 600
+          script: |
+            set -e
+            adb wait-for-device
+            for attempt in $(seq 1 120); do
+              state=$(adb get-state 2>/dev/null || true)
+              boot_completed=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\\r' || true)
+              if [ "$state" = "device" ] && [ "$boot_completed" = "1" ]; then
+                break
+              fi
+              if [ "$state" = "offline" ]; then
+                adb reconnect offline >/dev/null 2>&1 || true
+              fi
+              sleep 5
+            done
+            test "$(adb get-state)" = "device"
+            test "$(adb shell getprop sys.boot_completed | tr -d '\\r')" = "1"
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb shell am force-stop com.aistudio.byeprofinance.kxmpzq
+            adb shell monkey -p com.aistudio.byeprofinance.kxmpzq 1 >/dev/null
+            sleep 8
+            adb shell pidof com.aistudio.byeprofinance.kxmpzq >/dev/null
+            adb shell dumpsys package com.aistudio.byeprofinance.kxmpzq | grep -q "versionName=$APP_VERSION_NAME"
+
       - name: Build signed production APK
         uses: gradle/gradle-build-action@v3
         with:
