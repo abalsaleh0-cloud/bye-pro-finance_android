@@ -17,7 +17,7 @@ android {
     targetSdk = 36
     versionCode = providers.gradleProperty("APP_VERSION_CODE").get().toInt()
     versionName = providers.gradleProperty("APP_VERSION_NAME").get()
-    buildConfigField("String", "FINANCE_API_BASE_URL", "\"https://bye-pro-finance.vercel.app/\"")
+    buildConfigField("String", "FINANCE_API_BASE_URL", "\"https://bye-pro-finance-psi.vercel.app/\"")
     buildConfigField("String", "SUPABASE_URL", "\"https://ngfaukvfsesoslfiwaue.supabase.co\"")
     buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_5zPaJKKmtGZtYUv1GGytjA_tsk9LaSR\"")
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
