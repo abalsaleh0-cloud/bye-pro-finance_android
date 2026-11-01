@@ -43,7 +43,7 @@ class AiWriteCommandParserTest {
             "LYD"
         )
 
-        val transaction = assertIs<AiWriteCommand.RecordTransaction>(command)
+        val transaction = command as AiWriteCommand.RecordTransaction
         assertEquals(TransactionWriteType.INCOME, transaction.type)
         assertEquals(1200.0, transaction.amount)
         assertEquals("راتب", transaction.category)
@@ -58,7 +58,7 @@ class AiWriteCommandParserTest {
             "LYD"
         )
 
-        val transaction = assertIs<AiWriteCommand.RecordTransaction>(command)
+        val transaction = command as AiWriteCommand.RecordTransaction
         assertNull(transaction.account)
         assertEquals(25.0, transaction.amount)
     }
@@ -72,7 +72,7 @@ class AiWriteCommandParserTest {
             "LYD"
         )
 
-        val transaction = assertIs<AiWriteCommand.RecordTransaction>(command)
+        val transaction = command as AiWriteCommand.RecordTransaction
         assertNotNull(transaction.account)
         assertEquals(8L, transaction.account.id)
     }
