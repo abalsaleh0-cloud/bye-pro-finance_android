@@ -63,7 +63,7 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -wipe-data
           emulator-boot-timeout: 600
           script: |
-            set -euo pipefail
+            set -e
             adb wait-for-device
             for attempt in $(seq 1 120); do
               state=$(adb get-state 2>/dev/null || true)
