@@ -21,6 +21,8 @@ import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransferEntity
 import com.example.finance.model.UserEntity
+import com.example.finance.model.SyncEntityMapEntity
+import com.example.finance.model.SyncOutboxEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -228,3 +230,32 @@ interface FinanceDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateUser(user: UserEntity): Long
 }
+
+    
+    // --- Durable synchronization foundation ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSyncEntityMap(mapping: SyncEntityMapEntity)
+
+    @Query("SELECT * FROM sync_entity_map WHERE entityType = :entityType AND localId = :localId LIMIT 1")
+    suspend fun getSyncEntityMap(entityType: String, localId: Long): SyncEntityMapEntity?
+
+    @Query("SELECT * FROM sync_entity_map WHERE entityType = :entityType AND remoteId = :remoteId LIMIT 1")
+    suspend fun getSyncEntityMapByRemoteId(entityType: String, remoteId: String): SyncEntityMapEntity?
+
+    @Query("DELETE FROM sync_entity_map WHERE entityType = :entityType AND localId = :localId")
+    suspend fun deleteSyncEntityMap(entityType: String, localId: Long)
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun enqueueSyncMutation(item: SyncOutboxEntity): Long
+
+    @Query("SELECT * FROM sync_outbox WHERE state = 'PENDING' ORDER BY createdAt ASC, id ASC LIMIT :limit")
+    suspend fun getPendingSyncMutations(limit: Int = 100): List<SyncOutboxEntity>
+
+    @Query("UPDATE sync_outbox SET state = 'SYNCED', lastAttemptAt = :attemptedAt, lastError = NULL WHERE id = :id")
+    suspend fun markSyncMutationComplete(id: Long, attemptedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE sync_outbox SET attemptCount = attemptCount + 1, lastAttemptAt = :attemptedAt, lastError = :error WHERE id = :id")
+    suspend fun recordSyncMutationFailure(id: Long, error: String, attemptedAt: Long = System.currentTimeMillis())
+
+    @Query("DELETE FROM sync_outbox WHERE state = 'SYNCED' AND createdAt < :before")
+    suspend fun pruneCompletedSyncMutations(before: Long): Int
