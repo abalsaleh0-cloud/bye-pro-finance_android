@@ -53,6 +53,9 @@ interface FinanceDao {
     @Delete
     suspend fun deleteAccount(account: AccountEntity)
 
+    @Query("DELETE FROM accounts WHERE id = :id")
+    suspend fun deleteAccountById(id: Long)
+
     // --- Transactions ---
     @Query("SELECT * FROM transactions ORDER BY date DESC, id DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
@@ -257,4 +260,7 @@ interface FinanceDao {
 
     @Query("DELETE FROM sync_outbox WHERE state = 'SYNCED' AND createdAt < :before")
     suspend fun pruneCompletedSyncMutations(before: Long): Int
+
+    @Query("SELECT COUNT(*) FROM sync_outbox WHERE state = 'PENDING'")
+    suspend fun countPendingSyncMutations(): Int
 }
