@@ -69,6 +69,9 @@ interface FinanceDao {
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun deleteTransactionById(id: Long)
 
+    @Query("SELECT * FROM transactions WHERE id = :id")
+    suspend fun getTransactionById(id: Long): TransactionEntity?
+
     @Query("SELECT * FROM transactions WHERE accountId = :accountId ORDER BY date DESC")
     fun getTransactionsByAccount(accountId: Long): Flow<List<TransactionEntity>>
 
@@ -90,6 +93,9 @@ interface FinanceDao {
 
     @Query("DELETE FROM transfers WHERE id = :id")
     suspend fun deleteTransferById(id: Long)
+
+    @Query("SELECT * FROM transfers WHERE id = :id")
+    suspend fun getTransferById(id: Long): TransferEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransfer(transfer: TransferEntity): Long
