@@ -80,35 +80,38 @@ class AccountSyncCoordinator(context: Context) {
     private suspend fun queueLegacyLocalAccounts() {
         dao.getAllAccountsSnapshot().forEach { account ->
             if (dao.getSyncEntityMap("accounts", account.id) == null) {
-                val remoteId = UUID.randomUUID().toString()
-                dao.upsertSyncEntityMap(SyncEntityMapEntity("accounts", account.id, remoteId))
-                val lastFour = account.accountNumberSafe.filter(Char::isDigit).takeLast(4).takeIf(String::isNotEmpty)
-                val payload = JSONObject()
-                    .put("id", remoteId)
-                    .put("name", account.name)
-                    .put("type", when (account.type) {
-                        AccountType.CASH -> "cash"
-                        AccountType.BANK -> "bank"
-                        AccountType.WALLET -> "wallet"
-                        AccountType.CREDIT_CARD -> "credit_card"
-                        AccountType.INVESTMENT -> "investment"
-                        AccountType.SAVINGS, AccountType.OTHER -> "other"
-                    })
-                    .put("currency_code", account.currency.uppercase())
-                    .put("opening_balance", account.openingBalance)
-                    .put("current_balance", account.balance)
-                    .put("institution_name", if (account.institution.isBlank()) JSONObject.NULL else account.institution)
-                    .put("last_four", lastFour ?: JSONObject.NULL)
-                    .put("is_active", !account.isArchived)
-                    .put("updated_at", utcTimestamp())
-                dao.enqueueSyncMutation(
-                    com.example.finance.model.SyncOutboxEntity(
-                        entityType = "accounts",
-                        localId = account.id,
-                        operation = "UPSERT",
-                        payload = payload.toString()
+                db.withTransaction {
+                    if (dao.getSyncEntityMap("accounts", account.id) != null) return@withTransaction
+                    val remoteId = UUID.randomUUID().toString()
+                    dao.upsertSyncEntityMap(SyncEntityMapEntity("accounts", account.id, remoteId))
+                    val lastFour = account.accountNumberSafe.filter(Char::isDigit).takeLast(4).takeIf(String::isNotEmpty)
+                    val payload = JSONObject()
+                        .put("id", remoteId)
+                        .put("name", account.name)
+                        .put("type", when (account.type) {
+                            AccountType.CASH -> "cash"
+                            AccountType.BANK -> "bank"
+                            AccountType.WALLET -> "wallet"
+                            AccountType.CREDIT_CARD -> "credit_card"
+                            AccountType.INVESTMENT -> "investment"
+                            AccountType.SAVINGS, AccountType.OTHER -> "other"
+                        })
+                        .put("currency_code", account.currency.uppercase())
+                        .put("opening_balance", account.openingBalance)
+                        .put("current_balance", account.balance)
+                        .put("institution_name", if (account.institution.isBlank()) JSONObject.NULL else account.institution)
+                        .put("last_four", lastFour ?: JSONObject.NULL)
+                        .put("is_active", !account.isArchived)
+                        .put("updated_at", utcTimestamp())
+                    dao.enqueueSyncMutation(
+                        com.example.finance.model.SyncOutboxEntity(
+                            entityType = "accounts",
+                            localId = account.id,
+                            operation = "UPSERT",
+                            payload = payload.toString()
+                        )
                     )
-                )
+                }
             }
         }
     }
