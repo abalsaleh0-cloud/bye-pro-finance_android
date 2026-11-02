@@ -396,52 +396,53 @@ class FinanceRepository(
             dao.getAccountById(fromAccountId)?.let { enqueueAccountUpsert(it) }
             dao.getAccountById(toAccountId)?.let { enqueueAccountUpsert(it) }
 
-            dao.insertTransfer(
-                TransferEntity(
-                    fromAccountId = fromAccountId,
-                    toAccountId = toAccountId,
-                    amount = amount,
-                    fee = fee,
-                    currency = currency,
-                    description = description,
-                    reference = reference
-                )
+            val transfer = TransferEntity(
+                fromAccountId = fromAccountId,
+                toAccountId = toAccountId,
+                amount = amount,
+                fee = fee,
+                currency = currency,
+                description = description,
+                reference = reference
             )
+            val transferId = dao.insertTransfer(transfer)
+            enqueueTransferUpsert(transfer.copy(id = transferId))
 
             // Keep each ledger row in the currency of the account it changes.
             // The transfer principal is excluded from cash-flow totals; the fee is an expense.
-            dao.insertTransaction(
-                TransactionEntity(
-                    accountId = fromAccountId,
-                    type = TransactionType.TRANSFER,
-                    amount = amount,
-                    currency = fromAcc.currency,
-                    category = "Transfer",
-                    description = "Transfer to ${toAcc.name}: $description"
-                )
+            val outgoingTransfer = TransactionEntity(
+                accountId = fromAccountId,
+                type = TransactionType.TRANSFER,
+                amount = amount,
+                currency = fromAcc.currency,
+                category = "Transfer",
+                description = "Transfer to ${toAcc.name}: $description",
+                targetAccountId = toAccountId
             )
+            val outgoingTransferId = dao.insertTransaction(outgoingTransfer)
+            enqueueTransactionUpsert(outgoingTransfer.copy(id = outgoingTransferId))
             if (transferFee > BigDecimal.ZERO) {
-                dao.insertTransaction(
-                    TransactionEntity(
-                        accountId = fromAccountId,
-                        type = TransactionType.EXPENSE,
-                        amount = fee,
-                        currency = fromAcc.currency,
-                        category = "Transfer Fee",
-                        description = "Transfer fee: $description"
-                    )
+                val feeTransaction = TransactionEntity(
+                    accountId = fromAccountId,
+                    type = TransactionType.EXPENSE,
+                    amount = fee,
+                    currency = fromAcc.currency,
+                    category = "Transfer Fee",
+                    description = "Transfer fee: $description"
                 )
+                val feeTransactionId = dao.insertTransaction(feeTransaction)
+                enqueueTransactionUpsert(feeTransaction.copy(id = feeTransactionId))
             }
-            dao.insertTransaction(
-                TransactionEntity(
-                    accountId = toAccountId,
-                    type = TransactionType.ADJUSTMENT,
-                    amount = creditAmount.toDouble(),
-                    currency = toAcc.currency,
-                    category = "Transfer",
-                    description = "Transfer received from ${fromAcc.name}: $description"
-                )
+            val incomingTransfer = TransactionEntity(
+                accountId = toAccountId,
+                type = TransactionType.ADJUSTMENT,
+                amount = creditAmount.toDouble(),
+                currency = toAcc.currency,
+                category = "Transfer",
+                description = "Transfer received from ${fromAcc.name}: $description"
             )
+            val incomingTransferId = dao.insertTransaction(incomingTransfer)
+            enqueueTransactionUpsert(incomingTransfer.copy(id = incomingTransferId))
 
             logAudit("TRANSFER", "Transfer", "Transferred $amount ${fromAcc.currency} to ${toAcc.name} (credited $creditAmount ${toAcc.currency})")
             true
@@ -592,22 +593,22 @@ class FinanceRepository(
                 !account.balance.isFinite() || account.balance < bill.amount
             ) return@operation false
 
-            dao.insertTransaction(
-                TransactionEntity(
-                    accountId = accountId,
-                    type = TransactionType.EXPENSE,
-                    amount = bill.amount,
-                    currency = bill.currency,
-                    category = bill.category,
-                    description = "Bill payment: ${bill.name}"
-                )
+            val billPayment = TransactionEntity(
+                accountId = accountId,
+                type = TransactionType.EXPENSE,
+                amount = bill.amount,
+                currency = bill.currency,
+                category = bill.category,
+                description = "Bill payment: ${bill.name}"
             )
+            val billPaymentId = dao.insertTransaction(billPayment)
             dao.updateAccountBalance(
                 accountId,
                 FinanceEngine.toBigDecimal(account.balance)
                     .subtract(FinanceEngine.toBigDecimal(bill.amount)).toDouble()
             )
             dao.getAccountById(accountId)?.let { enqueueAccountUpsert(it) }
+            enqueueTransactionUpsert(billPayment.copy(id = billPaymentId))
             dao.updateBill(bill.copy(isPaid = true))
             logAudit("PAYMENT", "Bill", "Marked bill ${bill.name} as paid")
             true
@@ -653,22 +654,22 @@ class FinanceRepository(
             val updatedGoalAmount = goal.currentAmount + amount
             if (!updatedGoalAmount.isFinite()) return@operation false
 
-            dao.insertTransaction(
-                TransactionEntity(
-                    accountId = accountId,
-                    type = TransactionType.EXPENSE,
-                    amount = amount,
-                    currency = goal.currency,
-                    category = "Savings",
-                    description = "Contribution to goal: ${goal.name}"
-                )
+            val savingsContribution = TransactionEntity(
+                accountId = accountId,
+                type = TransactionType.EXPENSE,
+                amount = amount,
+                currency = goal.currency,
+                category = "Savings",
+                description = "Contribution to goal: ${goal.name}"
             )
+            val savingsContributionId = dao.insertTransaction(savingsContribution)
             dao.updateAccountBalance(
                 accountId,
                 FinanceEngine.toBigDecimal(account.balance)
                     .subtract(FinanceEngine.toBigDecimal(amount)).toDouble()
             )
             dao.getAccountById(accountId)?.let { enqueueAccountUpsert(it) }
+            enqueueTransactionUpsert(savingsContribution.copy(id = savingsContributionId))
             dao.updateSavingsGoal(goal.copy(currentAmount = updatedGoalAmount))
             logAudit("CONTRIBUTION", "Savings", "Added $amount to goal ${goal.name}")
             true
