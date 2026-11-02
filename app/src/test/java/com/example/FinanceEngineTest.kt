@@ -76,6 +76,48 @@ class FinanceEngineTest {
     }
 
     @Test
+    fun incomingTransferIsCreditedExactlyOnceFromDestinationLedgerRow() {
+        val sourceId = 21L
+        val destinationId = 22L
+        val ledger = listOf(
+            TransactionEntity(
+                id = 1,
+                accountId = sourceId,
+                type = TransactionType.TRANSFER,
+                amount = 300.0,
+                category = "Transfer",
+                description = "Transfer to savings",
+                targetAccountId = destinationId
+            ),
+            TransactionEntity(
+                id = 2,
+                accountId = sourceId,
+                type = TransactionType.EXPENSE,
+                amount = 10.0,
+                category = "Transfer Fee",
+                description = "Transfer fee"
+            ),
+            TransactionEntity(
+                id = 3,
+                accountId = destinationId,
+                type = TransactionType.ADJUSTMENT,
+                amount = 300.0,
+                category = "Transfer",
+                description = "Transfer received"
+            )
+        )
+
+        assertEquals(
+            BigDecimal("690.00"),
+            FinanceEngine.calculateAccountBalance(BigDecimal("1000.00"), ledger, sourceId)
+        )
+        assertEquals(
+            BigDecimal("500.00"),
+            FinanceEngine.calculateAccountBalance(BigDecimal("200.00"), ledger, destinationId)
+        )
+    }
+
+    @Test
     fun cancelledTransactionsDoNotChangeBalancesAndAdjustmentsAreAdditive() {
         val accountId = 7L
         val transactions = listOf(
