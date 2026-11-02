@@ -107,7 +107,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
         viewModelScope.launch {
             repository.pendingSyncMutations.collectLatest { pending ->
-                if (pending.isNotEmpty()) AccountSyncWorker.enqueueNow(getApplication())
+                if (pending.isNotEmpty()) AccountSyncWorker.enqueueNow(getApplication<Application>())
             }
         }
     }
