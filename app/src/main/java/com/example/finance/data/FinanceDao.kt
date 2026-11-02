@@ -35,6 +35,9 @@ interface FinanceDao {
     @Query("SELECT * FROM accounts WHERE id = :id")
     suspend fun getAccountById(id: Long): AccountEntity?
 
+    @Query("SELECT * FROM accounts ORDER BY id ASC")
+    suspend fun getAllAccountsSnapshot(): List<AccountEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAccount(account: AccountEntity): Long
 
@@ -263,4 +266,7 @@ interface FinanceDao {
 
     @Query("SELECT COUNT(*) FROM sync_outbox WHERE state = 'PENDING'")
     suspend fun countPendingSyncMutations(): Int
+
+    @Query("SELECT EXISTS(SELECT 1 FROM sync_outbox WHERE entityType = :entityType AND localId = :localId AND state = 'PENDING')")
+    suspend fun hasPendingSyncMutation(entityType: String, localId: Long): Boolean
 }
