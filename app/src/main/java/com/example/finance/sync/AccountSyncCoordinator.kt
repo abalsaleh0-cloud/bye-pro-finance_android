@@ -133,6 +133,85 @@ class AccountSyncCoordinator(context: Context) {
         }
     }
 
+    private suspend fun enqueueTransactionForSync(tx: TransactionEntity) {
+        val accountMap = dao.getSyncEntityMap("accounts", tx.accountId)
+            ?: error("Account " + tx.accountId + " must be mapped before its transactions")
+        val targetRemoteId = tx.targetAccountId?.let { targetId ->
+            dao.getSyncEntityMap("accounts", targetId)?.remoteId
+        }
+        val mapping = dao.getSyncEntityMap("transactions", tx.id)
+            ?: SyncEntityMapEntity("transactions", tx.id, UUID.randomUUID().toString())
+        dao.upsertSyncEntityMap(mapping)
+        val metadata = JSONObject()
+            .put("local_type", tx.type.name.lowercase())
+            .put("category", tx.category)
+            .put("merchant", tx.merchant)
+            .put("tags", tx.tags)
+            .put("notes", tx.notes)
+            .put("is_recurring", tx.isRecurring)
+            .put("target_account_id", targetRemoteId ?: JSONObject.NULL)
+        val payload = JSONObject()
+            .put("id", mapping.remoteId)
+            .put("account_id", accountMap.remoteId)
+            .put("category_id", JSONObject.NULL)
+            .put("type", when (tx.type) {
+                TransactionType.INCOME, TransactionType.REFUND -> "income"
+                TransactionType.EXPENSE -> "expense"
+                TransactionType.TRANSFER -> "transfer"
+                TransactionType.ADJUSTMENT -> "adjustment"
+            })
+            .put("status", tx.status.name.lowercase())
+            .put("amount", tx.amount)
+            .put("currency_code", tx.currency.uppercase())
+            .put("description", tx.description)
+            .put("transaction_date", utcTimestamp(tx.date))
+            .put("reference", JSONObject.NULL)
+            .put("metadata", metadata)
+            .put("updated_at", utcTimestamp())
+        dao.enqueueSyncMutation(SyncOutboxEntity("transactions", tx.id, "UPSERT", payload.toString()))
+    }
+
+    private suspend fun enqueueTransferForSync(transfer: TransferEntity) {
+        val from = dao.getSyncEntityMap("accounts", transfer.fromAccountId)
+            ?: error("Transfer source account must be mapped first")
+        val to = dao.getSyncEntityMap("accounts", transfer.toAccountId)
+            ?: error("Transfer destination account must be mapped first")
+        val mapping = dao.getSyncEntityMap("transfers", transfer.id)
+            ?: SyncEntityMapEntity("transfers", transfer.id, UUID.randomUUID().toString())
+        dao.upsertSyncEntityMap(mapping)
+        val payload = JSONObject()
+            .put("id", mapping.remoteId)
+            .put("from_account_id", from.remoteId)
+            .put("to_account_id", to.remoteId)
+            .put("amount", transfer.amount)
+            .put("fee", transfer.fee)
+            .put("currency_code", transfer.currency.uppercase())
+            .put("description", transfer.description)
+            .put("transfer_date", utcTimestamp(transfer.date))
+            .put("status", "completed")
+        dao.enqueueSyncMutation(SyncOutboxEntity("transfers", transfer.id, "UPSERT", payload.toString()))
+    }
+
+    private suspend fun queueLegacyLocalTransactions() {
+        dao.getAllTransactionsSnapshot().forEach { tx ->
+            if (dao.getSyncEntityMap("transactions", tx.id) == null) {
+                db.withTransaction {
+                    if (dao.getSyncEntityMap("transactions", tx.id) == null) enqueueTransactionForSync(tx)
+                }
+            }
+        }
+    }
+
+    private suspend fun queueLegacyLocalTransfers() {
+        dao.getAllTransfersSnapshot().forEach { transfer ->
+            if (dao.getSyncEntityMap("transfers", transfer.id) == null) {
+                db.withTransaction {
+                    if (dao.getSyncEntityMap("transfers", transfer.id) == null) enqueueTransferForSync(transfer)
+                }
+            }
+        }
+    }
+
     private suspend fun pushPending(token: String, userId: String) {
         dao.getPendingSyncMutations(500).forEach { item ->
             try {
@@ -232,9 +311,98 @@ class AccountSyncCoordinator(context: Context) {
         }
     }
 
-    private fun utcTimestamp(): String = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+    private suspend fun applyRemoteTransaction(row: JSONObject) {
+        val remoteId = row.getString("id")
+        val mapping = dao.getSyncEntityMapByRemoteId("transactions", remoteId)
+        if (mapping != null && dao.hasPendingSyncMutation("transactions", mapping.localId)) return
+        val accountRemoteId = row.optString("account_id")
+        val accountMapping = dao.getSyncEntityMapByRemoteId("accounts", accountRemoteId) ?: return
+        val existing = mapping?.let { dao.getTransactionById(it.localId) }
+        val metadata = row.optJSONObject("metadata") ?: JSONObject()
+        val targetRemoteId = metadata.optString("target_account_id").takeIf { it.isNotBlank() && it != "null" }
+        val targetLocalId = targetRemoteId?.let { dao.getSyncEntityMapByRemoteId("accounts", it)?.localId }
+        val localType = metadata.optString("local_type")
+        val type = when (localType) {
+            "refund" -> TransactionType.REFUND
+            "income" -> TransactionType.INCOME
+            "expense" -> TransactionType.EXPENSE
+            "transfer" -> TransactionType.TRANSFER
+            "adjustment" -> TransactionType.ADJUSTMENT
+            else -> when (row.optString("type")) {
+                "income" -> TransactionType.INCOME
+                "expense" -> TransactionType.EXPENSE
+                "transfer" -> TransactionType.TRANSFER
+                else -> TransactionType.ADJUSTMENT
+            }
+        }
+        val status = when (row.optString("status")) {
+            "pending" -> TransactionStatus.PENDING
+            "cancelled" -> TransactionStatus.CANCELLED
+            else -> TransactionStatus.COMPLETED
+        }
+        val transaction = TransactionEntity(
+            id = mapping?.localId ?: 0L,
+            accountId = accountMapping.localId,
+            type = type,
+            amount = row.optDouble("amount", 0.0),
+            currency = row.optString("currency_code", "LYD"),
+            category = metadata.optString("category", existing?.category.orEmpty()),
+            date = parseTimestamp(row.optString("transaction_date")),
+            description = row.optString("description").takeUnless { it == "null" }.orEmpty(),
+            merchant = metadata.optString("merchant", existing?.merchant.orEmpty()),
+            tags = metadata.optString("tags", existing?.tags.orEmpty()),
+            notes = metadata.optString("notes", existing?.notes.orEmpty()),
+            attachmentUri = existing?.attachmentUri,
+            isRecurring = metadata.optBoolean("is_recurring", existing?.isRecurring ?: false),
+            status = status,
+            targetAccountId = targetLocalId
+        )
+        db.withTransaction {
+            val localId = dao.insertTransaction(transaction)
+            dao.upsertSyncEntityMap(SyncEntityMapEntity("transactions", localId, remoteId))
+        }
+    }
+
+    private suspend fun applyRemoteTransfer(row: JSONObject) {
+        val remoteId = row.getString("id")
+        val mapping = dao.getSyncEntityMapByRemoteId("transfers", remoteId)
+        if (mapping != null && dao.hasPendingSyncMutation("transfers", mapping.localId)) return
+        val from = dao.getSyncEntityMapByRemoteId("accounts", row.optString("from_account_id")) ?: return
+        val to = dao.getSyncEntityMapByRemoteId("accounts", row.optString("to_account_id")) ?: return
+        val existing = mapping?.let { dao.getTransferById(it.localId) }
+        val transfer = TransferEntity(
+            id = mapping?.localId ?: 0L,
+            fromAccountId = from.localId,
+            toAccountId = to.localId,
+            amount = row.optDouble("amount", 0.0),
+            fee = row.optDouble("fee", 0.0),
+            currency = row.optString("currency_code", "LYD"),
+            date = parseTimestamp(row.optString("transfer_date")),
+            description = row.optString("description").takeUnless { it == "null" }.orEmpty(),
+            reference = existing?.reference.orEmpty()
+        )
+        db.withTransaction {
+            val localId = dao.insertTransfer(transfer)
+            dao.upsertSyncEntityMap(SyncEntityMapEntity("transfers", localId, remoteId))
+        }
+    }
+
+    private fun parseTimestamp(value: String): Long {
+        val patterns = listOf("yyyy-MM-dd'T'HH:mm:ss.SSSX", "yyyy-MM-dd'T'HH:mm:ssX", "yyyy-MM-dd")
+        for (pattern in patterns) {
+            val parsed = runCatching {
+                SimpleDateFormat(pattern, Locale.US).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }.parse(value)?.time
+            }.getOrNull()
+            if (parsed != null) return parsed
+        }
+        return System.currentTimeMillis()
+    }
+
+    private fun utcTimestamp(value: Long = System.currentTimeMillis()): String = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
-    }.format(Date())
+    }.format(Date(value))
 
     private fun fetchUserId(token: String): String {
         val url = "${SupabaseConnection.url.trimEnd('/')}/auth/v1/user"
