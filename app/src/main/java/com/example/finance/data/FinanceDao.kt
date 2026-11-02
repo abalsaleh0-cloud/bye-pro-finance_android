@@ -255,6 +255,9 @@ interface FinanceDao {
     @Query("SELECT * FROM sync_outbox WHERE state = 'PENDING' ORDER BY createdAt ASC, id ASC LIMIT :limit")
     suspend fun getPendingSyncMutations(limit: Int = 100): List<SyncOutboxEntity>
 
+    @Query("SELECT * FROM sync_outbox WHERE state = 'PENDING' ORDER BY createdAt ASC, id ASC")
+    fun observePendingSyncMutations(): Flow<List<SyncOutboxEntity>>
+
     @Query("UPDATE sync_outbox SET state = 'SYNCED', lastAttemptAt = :attemptedAt, lastError = NULL WHERE id = :id")
     suspend fun markSyncMutationComplete(id: Long, attemptedAt: Long = System.currentTimeMillis())
 
