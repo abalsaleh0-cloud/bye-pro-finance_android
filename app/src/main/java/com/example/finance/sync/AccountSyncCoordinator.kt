@@ -168,7 +168,7 @@ class AccountSyncCoordinator(context: Context) {
             .put("reference", JSONObject.NULL)
             .put("metadata", metadata)
             .put("updated_at", utcTimestamp())
-        dao.enqueueSyncMutation(SyncOutboxEntity("transactions", tx.id, "UPSERT", payload.toString()))
+        dao.enqueueSyncMutation(SyncOutboxEntity(entityType = "transactions", localId = tx.id, operation = "UPSERT", payload = payload.toString()))
     }
 
     private suspend fun enqueueTransferForSync(transfer: TransferEntity) {
@@ -189,7 +189,7 @@ class AccountSyncCoordinator(context: Context) {
             .put("description", transfer.description)
             .put("transfer_date", utcTimestamp(transfer.date))
             .put("status", "completed")
-        dao.enqueueSyncMutation(SyncOutboxEntity("transfers", transfer.id, "UPSERT", payload.toString()))
+        dao.enqueueSyncMutation(SyncOutboxEntity(entityType = "transfers", localId = transfer.id, operation = "UPSERT", payload = payload.toString()))
     }
 
     private suspend fun queueLegacyLocalTransactions() {
