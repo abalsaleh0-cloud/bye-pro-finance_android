@@ -76,6 +76,11 @@ class FinanceRepository(
         )
     }
 
+    private fun syncTimestamp(value: Long = System.currentTimeMillis()): String =
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }.format(Date(value))
+
     private suspend fun enqueueAccountUpsert(account: AccountEntity) {
         val mapping = dao.getSyncEntityMap("accounts", account.id)
             ?: SyncEntityMapEntity("accounts", account.id, UUID.randomUUID().toString())
@@ -98,17 +103,87 @@ class FinanceRepository(
             .put("institution_name", if (account.institution.isBlank()) JSONObject.NULL else account.institution)
             .put("last_four", lastFour ?: JSONObject.NULL)
             .put("is_active", !account.isArchived)
-            .put("updated_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
-                timeZone = TimeZone.getTimeZone("UTC")
-            }.format(Date()))
+            .put("updated_at", syncTimestamp())
+        dao.enqueueSyncMutation(
+            SyncOutboxEntity("accounts", account.id, "UPSERT", payload.toString())
+        )
+    }
+
+    private suspend fun enqueueTransactionUpsert(tx: TransactionEntity) {
+        val account = dao.getAccountById(tx.accountId)
+            ?: throw IllegalArgumentException("Transaction account not found: ${tx.accountId}")
+        if (dao.getSyncEntityMap("accounts", account.id) == null) enqueueAccountUpsert(account)
+        val targetRemoteId = tx.targetAccountId?.let { targetId ->
+            val target = dao.getAccountById(targetId)
+                ?: throw IllegalArgumentException("Transaction target account not found: $targetId")
+            if (dao.getSyncEntityMap("accounts", targetId) == null) enqueueAccountUpsert(target)
+            dao.getSyncEntityMap("accounts", targetId)?.remoteId
+        }
+        val mapping = dao.getSyncEntityMap("transactions", tx.id)
+            ?: SyncEntityMapEntity("transactions", tx.id, UUID.randomUUID().toString())
+        dao.upsertSyncEntityMap(mapping)
+        val metadata = JSONObject()
+            .put("local_type", tx.type.name.lowercase())
+            .put("category", tx.category)
+            .put("merchant", tx.merchant)
+            .put("tags", tx.tags)
+            .put("notes", tx.notes)
+            .put("is_recurring", tx.isRecurring)
+            .put("target_account_id", targetRemoteId ?: JSONObject.NULL)
+        val payload = JSONObject()
+            .put("id", mapping.remoteId)
+            .put("account_id", dao.getSyncEntityMap("accounts", tx.accountId)?.remoteId)
+            .put("category_id", JSONObject.NULL)
+            .put("type", when (tx.type) {
+                TransactionType.INCOME, TransactionType.REFUND -> "income"
+                TransactionType.EXPENSE -> "expense"
+                TransactionType.TRANSFER -> "transfer"
+                TransactionType.ADJUSTMENT -> "adjustment"
+            })
+            .put("status", tx.status.name.lowercase())
+            .put("amount", tx.amount)
+            .put("currency_code", tx.currency.uppercase())
+            .put("description", tx.description)
+            .put("transaction_date", syncTimestamp(tx.date))
+            .put("reference", JSONObject.NULL)
+            .put("metadata", metadata)
+            .put("updated_at", syncTimestamp())
+        dao.enqueueSyncMutation(SyncOutboxEntity("transactions", tx.id, "UPSERT", payload.toString()))
+    }
+
+    private suspend fun enqueueTransactionDelete(tx: TransactionEntity) {
+        val mapping = dao.getSyncEntityMap("transactions", tx.id) ?: return
         dao.enqueueSyncMutation(
             SyncOutboxEntity(
-                entityType = "accounts",
-                localId = account.id,
-                operation = "UPSERT",
-                payload = payload.toString()
+                "transactions",
+                tx.id,
+                "DELETE",
+                JSONObject().put("id", mapping.remoteId).toString()
             )
         )
+    }
+
+    private suspend fun enqueueTransferUpsert(transfer: TransferEntity) {
+        val from = dao.getAccountById(transfer.fromAccountId)
+            ?: throw IllegalArgumentException("Transfer source account not found")
+        val to = dao.getAccountById(transfer.toAccountId)
+            ?: throw IllegalArgumentException("Transfer destination account not found")
+        if (dao.getSyncEntityMap("accounts", from.id) == null) enqueueAccountUpsert(from)
+        if (dao.getSyncEntityMap("accounts", to.id) == null) enqueueAccountUpsert(to)
+        val mapping = dao.getSyncEntityMap("transfers", transfer.id)
+            ?: SyncEntityMapEntity("transfers", transfer.id, UUID.randomUUID().toString())
+        dao.upsertSyncEntityMap(mapping)
+        val payload = JSONObject()
+            .put("id", mapping.remoteId)
+            .put("from_account_id", dao.getSyncEntityMap("accounts", from.id)?.remoteId)
+            .put("to_account_id", dao.getSyncEntityMap("accounts", to.id)?.remoteId)
+            .put("amount", transfer.amount)
+            .put("fee", transfer.fee)
+            .put("currency_code", transfer.currency.uppercase())
+            .put("description", transfer.description)
+            .put("transfer_date", syncTimestamp(transfer.date))
+            .put("status", "completed")
+        dao.enqueueSyncMutation(SyncOutboxEntity("transfers", transfer.id, "UPSERT", payload.toString()))
     }
 
     suspend fun addAccount(account: AccountEntity): Long = withContext(Dispatchers.IO) {
@@ -169,6 +244,7 @@ class FinanceRepository(
                 dao.updateAccountBalance(account.id, newBal.toDouble())
                 dao.getAccountById(account.id)?.let { enqueueAccountUpsert(it) }
             }
+            enqueueTransactionUpsert(tx.copy(id = txId))
             logAudit("TRANSACTION", "Transaction", "${tx.type}: ${tx.amount} ${tx.currency} - ${tx.description}")
             txId
         }
@@ -199,7 +275,9 @@ class FinanceRepository(
                 }
             }
             if (account != null) dao.getAccountById(account.id)?.let { enqueueAccountUpsert(it) }
-            dao.updateTransaction(tx.copy(status = newStatus))
+            val updatedTransaction = tx.copy(status = newStatus)
+            dao.updateTransaction(updatedTransaction)
+            enqueueTransactionUpsert(updatedTransaction)
             logAudit("STATUS", "Transaction", "Transaction #${tx.id} status: ${tx.status} -> $newStatus")
         }
         if (db != null) db.withTransaction { operation() } else operation()
@@ -221,7 +299,7 @@ class FinanceRepository(
                 require(tx.currency.equals(account.currency, ignoreCase = true)) {
                     "Imported transaction currency does not match account ${account.id}"
                 }
-                dao.insertTransaction(tx)
+                val importedId = dao.insertTransaction(tx)
                 if (tx.status == TransactionStatus.COMPLETED) {
                     val current = FinanceEngine.toBigDecimal(account.balance)
                     val amount = FinanceEngine.toBigDecimal(tx.amount)
@@ -232,6 +310,7 @@ class FinanceRepository(
                     dao.updateAccountBalance(account.id, updated.toDouble())
                     dao.getAccountById(account.id)?.let { enqueueAccountUpsert(it) }
                 }
+                enqueueTransactionUpsert(tx.copy(id = importedId))
                 importedCount++
             }
             if (importedCount > 0) {
@@ -257,6 +336,7 @@ class FinanceRepository(
                 dao.updateAccountBalance(account.id, newBal.toDouble())
                 dao.getAccountById(account.id)?.let { enqueueAccountUpsert(it) }
             }
+            enqueueTransactionDelete(tx)
             dao.deleteTransaction(tx)
             logAudit("DELETE", "Transaction", "Deleted transaction #${tx.id}: ${tx.description}")
         }
