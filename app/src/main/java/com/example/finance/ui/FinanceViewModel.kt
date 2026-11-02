@@ -12,6 +12,7 @@ import com.example.finance.ai.FinancialAssistantEngine
 import com.example.finance.ai.GemmaLocalAssistant
 import com.example.finance.ai.OfflineFinanceService
 import com.example.finance.auth.SupabaseAuthRepository
+import com.example.finance.worker.AccountSyncWorker
 import com.example.finance.network.FinanceApiProvider
 import com.example.finance.network.SpeechRequest
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
@@ -97,7 +99,18 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val chatMessages: StateFlow<List<ChatMessage>> = _chatMessages.asStateFlow()
     private val _isAiLoading = MutableStateFlow(false)
     val isAiLoading: StateFlow<Boolean> = _isAiLoading.asStateFlow()
-    init { resetWelcomeMessage(); viewModelScope.launch { runCatching { repository.accounts.first(); repository.archivedAccounts.first() }; _accountsLoading.value = false } }
+    init {
+        resetWelcomeMessage()
+        viewModelScope.launch {
+            runCatching { repository.accounts.first(); repository.archivedAccounts.first() }
+            _accountsLoading.value = false
+        }
+        viewModelScope.launch {
+            repository.pendingSyncMutations.collectLatest { pending ->
+                if (pending.isNotEmpty()) AccountSyncWorker.enqueueNow(getApplication())
+            }
+        }
+    }
     private fun resetWelcomeMessage() { _chatMessages.value = listOf(ChatMessage("AI", WebI18n.tr("مرحباً بك في BYE PRO FINANCE! أنا مساعدك المالي الذكي. يمكنك سؤالي عن مصروفاتك، ميزانيتك، أو تحليل وضعك المالي بدقة.", "Welcome to BYE PRO FINANCE! I am your AI Financial Assistant. Ask me anything about your cash flow, budgets, or savings goals.", _appLanguage.value))) }
     fun setScreen(screen: String) { _currentScreen.value = screen }
     fun toggleLanguage() { setLanguage(if (_appLanguage.value == AppLanguage.AR) AppLanguage.EN else AppLanguage.AR) }
