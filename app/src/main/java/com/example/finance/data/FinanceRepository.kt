@@ -63,6 +63,7 @@ class FinanceRepository(
     val notifications: Flow<List<NotificationEntity>> = dao.getAllNotifications()
     val auditLogs: Flow<List<AuditLogEntity>> = dao.getAllAuditLogs()
     val currentUser: Flow<UserEntity?> = dao.getCurrentUser()
+    val pendingSyncMutations: Flow<List<SyncOutboxEntity>> = dao.observePendingSyncMutations()
 
     suspend fun logAudit(action: String, resource: String, details: String) {
         dao.insertAuditLog(
