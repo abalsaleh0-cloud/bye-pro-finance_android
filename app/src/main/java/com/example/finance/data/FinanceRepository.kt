@@ -159,6 +159,7 @@ class FinanceRepository(
                     TransactionType.ADJUSTMENT -> currentBal.add(txAmount)
                 }
                 dao.updateAccountBalance(account.id, newBal.toDouble())
+                dao.getAccountById(account.id)?.let { enqueueAccountUpsert(it) }
             }
             logAudit("TRANSACTION", "Transaction", "${tx.type}: ${tx.amount} ${tx.currency} - ${tx.description}")
             txId
@@ -189,6 +190,7 @@ class FinanceRepository(
                     dao.updateAccountBalance(account.id, posted.toDouble())
                 }
             }
+            if (account != null) dao.getAccountById(account.id)?.let { enqueueAccountUpsert(it) }
             dao.updateTransaction(tx.copy(status = newStatus))
             logAudit("STATUS", "Transaction", "Transaction #${tx.id} status: ${tx.status} -> $newStatus")
         }
@@ -220,6 +222,7 @@ class FinanceRepository(
                         TransactionType.EXPENSE, TransactionType.TRANSFER -> current.subtract(amount)
                     }
                     dao.updateAccountBalance(account.id, updated.toDouble())
+                    dao.getAccountById(account.id)?.let { enqueueAccountUpsert(it) }
                 }
                 importedCount++
             }
@@ -244,6 +247,7 @@ class FinanceRepository(
                     TransactionType.ADJUSTMENT -> currentBal.subtract(txAmount)
                 }
                 dao.updateAccountBalance(account.id, newBal.toDouble())
+                dao.getAccountById(account.id)?.let { enqueueAccountUpsert(it) }
             }
             dao.deleteTransaction(tx)
             logAudit("DELETE", "Transaction", "Deleted transaction #${tx.id}: ${tx.description}")
@@ -301,6 +305,8 @@ class FinanceRepository(
 
             dao.updateAccountBalance(fromAccountId, newFromBal.toDouble())
             dao.updateAccountBalance(toAccountId, newToBal.toDouble())
+            dao.getAccountById(fromAccountId)?.let { enqueueAccountUpsert(it) }
+            dao.getAccountById(toAccountId)?.let { enqueueAccountUpsert(it) }
 
             dao.insertTransfer(
                 TransferEntity(
@@ -513,6 +519,7 @@ class FinanceRepository(
                 FinanceEngine.toBigDecimal(account.balance)
                     .subtract(FinanceEngine.toBigDecimal(bill.amount)).toDouble()
             )
+            dao.getAccountById(accountId)?.let { enqueueAccountUpsert(it) }
             dao.updateBill(bill.copy(isPaid = true))
             logAudit("PAYMENT", "Bill", "Marked bill ${bill.name} as paid")
             true
@@ -573,6 +580,7 @@ class FinanceRepository(
                 FinanceEngine.toBigDecimal(account.balance)
                     .subtract(FinanceEngine.toBigDecimal(amount)).toDouble()
             )
+            dao.getAccountById(accountId)?.let { enqueueAccountUpsert(it) }
             dao.updateSavingsGoal(goal.copy(currentAmount = updatedGoalAmount))
             logAudit("CONTRIBUTION", "Savings", "Added $amount to goal ${goal.name}")
             true
