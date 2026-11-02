@@ -229,9 +229,7 @@ interface FinanceDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateUser(user: UserEntity): Long
-}
 
-    
     // --- Durable synchronization foundation ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertSyncEntityMap(mapping: SyncEntityMapEntity)
@@ -259,3 +257,4 @@ interface FinanceDao {
 
     @Query("DELETE FROM sync_outbox WHERE state = 'SYNCED' AND createdAt < :before")
     suspend fun pruneCompletedSyncMutations(before: Long): Int
+}
