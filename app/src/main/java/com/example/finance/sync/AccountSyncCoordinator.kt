@@ -19,6 +19,10 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
 /**
@@ -96,6 +100,7 @@ class AccountSyncCoordinator(context: Context) {
                     .put("institution_name", if (account.institution.isBlank()) JSONObject.NULL else account.institution)
                     .put("last_four", lastFour ?: JSONObject.NULL)
                     .put("is_active", !account.isArchived)
+                    .put("updated_at", utcTimestamp())
                 dao.enqueueSyncMutation(
                     com.example.finance.model.SyncOutboxEntity(
                         entityType = "accounts",
@@ -154,10 +159,12 @@ class AccountSyncCoordinator(context: Context) {
         val remoteId = row.getString("id")
         val mapping = dao.getSyncEntityMapByRemoteId("accounts", remoteId)
         if (mapping != null && dao.hasPendingSyncMutation("accounts", mapping.localId)) return
+        val existing = mapping?.let { dao.getAccountById(it.localId) }
+        val remoteType = row.optString("type")
         val account = AccountEntity(
             id = mapping?.localId ?: 0L,
             name = row.optString("name"),
-            type = when (row.optString("type")) {
+            type = if (remoteType == "other" && existing?.type == AccountType.SAVINGS) AccountType.SAVINGS else when (remoteType) {
                 "cash" -> AccountType.CASH
                 "bank" -> AccountType.BANK
                 "wallet" -> AccountType.WALLET
@@ -177,6 +184,10 @@ class AccountSyncCoordinator(context: Context) {
             dao.upsertSyncEntityMap(SyncEntityMapEntity("accounts", localId, remoteId))
         }
     }
+
+    private fun utcTimestamp(): String = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }.format(Date())
 
     private fun fetchUserId(token: String): String {
         val url = "${SupabaseConnection.url.trimEnd('/')}/auth/v1/user"
