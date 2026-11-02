@@ -70,7 +70,7 @@ class AccountSyncCoordinator(context: Context) {
         }
     }
 
-    private fun pushPending(token: String, userId: String) {
+    private suspend fun pushPending(token: String, userId: String) {
         dao.getPendingSyncMutations(200).forEach { item ->
             try {
                 if (item.entityType != "accounts") {
@@ -97,7 +97,7 @@ class AccountSyncCoordinator(context: Context) {
         }
     }
 
-    private fun pullAccounts(token: String) {
+    private suspend fun pullAccounts(token: String) {
         val url = "${SupabaseConnection.url.trimEnd('/')}/rest/v1/accounts?select=*&order=updated_at.asc"
         val body = execute(token, url, "GET", null, null)
         val rows = JSONArray(body)
@@ -106,13 +106,13 @@ class AccountSyncCoordinator(context: Context) {
         }
     }
 
-    private fun fetchAccount(token: String, remoteId: String): JSONObject? {
+    private suspend fun fetchAccount(token: String, remoteId: String): JSONObject? {
         val url = "${SupabaseConnection.url.trimEnd('/')}/rest/v1/accounts?id=eq.$remoteId&select=*"
         val rows = JSONArray(execute(token, url, "GET", null, null))
         return rows.optJSONObject(0)
     }
 
-    private fun applyRemoteAccount(row: JSONObject) {
+    private suspend fun applyRemoteAccount(row: JSONObject) {
         val remoteId = row.getString("id")
         val mapping = dao.getSyncEntityMapByRemoteId("accounts", remoteId)
         val account = AccountEntity(
@@ -133,10 +133,10 @@ class AccountSyncCoordinator(context: Context) {
             institution = row.optString("institution_name").takeIf(String::isNotBlank).orEmpty(),
             isArchived = !row.optBoolean("is_active", true)
         )
-        val localId = dao.insertAccount(account)
-        dao.upsertSyncEntityMap(
-            SyncEntityMapEntity("accounts", localId, remoteId)
-        )
+        db.withTransaction {
+            val localId = dao.insertAccount(account)
+            dao.upsertSyncEntityMap(SyncEntityMapEntity("accounts", localId, remoteId))
+        }
     }
 
     private fun fetchUserId(token: String): String {
