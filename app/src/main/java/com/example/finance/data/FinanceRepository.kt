@@ -26,6 +26,8 @@ import com.example.finance.model.TransactionType
 import com.example.finance.model.TransferEntity
 import com.example.finance.model.UserEntity
 import com.example.finance.model.UserRole
+import com.example.finance.model.SyncEntityMapEntity
+import com.example.finance.model.SyncOutboxEntity
 import androidx.room.withTransaction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +36,8 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.math.BigDecimal
+import java.util.UUID
+import org.json.JSONObject
 
 class FinanceRepository(
     private val dao: FinanceDao,
@@ -67,20 +71,74 @@ class FinanceRepository(
         )
     }
 
+    private suspend fun enqueueAccountUpsert(account: AccountEntity) {
+        val mapping = dao.getSyncEntityMap("accounts", account.id)
+            ?: SyncEntityMapEntity("accounts", account.id, UUID.randomUUID().toString())
+        dao.upsertSyncEntityMap(mapping)
+        val lastFour = account.accountNumberSafe.filter(Char::isDigit).takeLast(4).takeIf { it.isNotEmpty() }
+        val payload = JSONObject()
+            .put("id", mapping.remoteId)
+            .put("name", account.name)
+            .put("type", when (account.type) {
+                AccountType.CASH -> "cash"
+                AccountType.BANK -> "bank"
+                AccountType.WALLET -> "wallet"
+                AccountType.CREDIT_CARD -> "credit_card"
+                AccountType.INVESTMENT -> "investment"
+                AccountType.SAVINGS, AccountType.OTHER -> "other"
+            })
+            .put("currency_code", account.currency.uppercase())
+            .put("opening_balance", account.openingBalance)
+            .put("current_balance", account.balance)
+            .put("institution_name", account.institution.ifBlank { JSONObject.NULL })
+            .put("last_four", lastFour ?: JSONObject.NULL)
+            .put("is_active", !account.isArchived)
+        dao.enqueueSyncMutation(
+            SyncOutboxEntity(
+                entityType = "accounts",
+                localId = account.id,
+                operation = "UPSERT",
+                payload = payload.toString()
+            )
+        )
+    }
+
     suspend fun addAccount(account: AccountEntity): Long = withContext(Dispatchers.IO) {
-        val id = dao.insertAccount(account)
-        logAudit("CREATE", "Account", "Created account: ${account.name} with balance ${account.balance} ${account.currency}")
-        id
+        val operation: suspend () -> Long = {
+            val id = dao.insertAccount(account)
+            enqueueAccountUpsert(account.copy(id = id))
+            logAudit("CREATE", "Account", "Created account: ${account.name} with balance ${account.balance} ${account.currency}")
+            id
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun updateAccount(account: AccountEntity) = withContext(Dispatchers.IO) {
-        dao.updateAccount(account)
-        logAudit("UPDATE", "Account", "Updated account ${account.name}")
+        val operation: suspend () -> Unit = {
+            dao.updateAccount(account)
+            enqueueAccountUpsert(account)
+            logAudit("UPDATE", "Account", "Updated account ${account.name}")
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun deleteAccount(account: AccountEntity) = withContext(Dispatchers.IO) {
-        dao.deleteAccount(account)
-        logAudit("DELETE", "Account", "Deleted account ${account.name}")
+        val operation: suspend () -> Unit = {
+            val mapping = dao.getSyncEntityMap("accounts", account.id)
+            if (mapping != null) {
+                dao.enqueueSyncMutation(
+                    SyncOutboxEntity(
+                        entityType = "accounts",
+                        localId = account.id,
+                        operation = "DELETE",
+                        payload = JSONObject().put("id", mapping.remoteId).toString()
+                    )
+                )
+            }
+            dao.deleteAccount(account)
+            logAudit("DELETE", "Account", "Deleted account ${account.name}")
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun addTransaction(tx: TransactionEntity): Long = withContext(Dispatchers.IO) {
@@ -194,9 +252,13 @@ class FinanceRepository(
     }
 
     suspend fun archiveAccount(accountId: Long, isArchived: Boolean) = withContext(Dispatchers.IO) {
-        dao.setAccountArchived(accountId, isArchived)
-        val action = if (isArchived) "ARCHIVE" else "UNARCHIVE"
-        logAudit(action, "Account", "Account #$accountId archive status: $isArchived")
+        val operation: suspend () -> Unit = {
+            dao.setAccountArchived(accountId, isArchived)
+            dao.getAccountById(accountId)?.let { enqueueAccountUpsert(it) }
+            val action = if (isArchived) "ARCHIVE" else "UNARCHIVE"
+            logAudit(action, "Account", "Account #$accountId archive status: $isArchived")
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun executeTransfer(
