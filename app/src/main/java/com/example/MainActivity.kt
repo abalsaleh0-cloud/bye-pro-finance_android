@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -18,15 +19,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.Box
 import androidx.lifecycle.lifecycleScope
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.finance.auth.SupabaseAuthRepository
 import com.example.finance.supabase.SupabaseConnection
+import com.example.finance.sync.SupabaseRealtimeSync
+import com.example.finance.sync.AccountSyncCoordinator
 import com.example.finance.ui.FinanceViewModel
 import com.example.finance.worker.BillReminderWorker
+import com.example.finance.worker.AccountSyncWorker
 import com.example.ui.navigation.MainAppScaffold
 import com.example.ui.screens.AuthScreen
 import com.example.ui.theme.MyApplicationTheme
@@ -35,6 +38,23 @@ import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     private val financeViewModel: FinanceViewModel by viewModels()
+    private val authRepository by lazy { SupabaseAuthRepository(applicationContext) }
+    private val accountSyncCoordinator by lazy { AccountSyncCoordinator(applicationContext) }
+    private val realtimeSync by lazy {
+        SupabaseRealtimeSync(
+            auth = authRepository,
+            onDatabaseChange = { table, event, record, oldRecord ->
+                Log.i("BYE_PRO_REALTIME", "$event on $table received")
+                runCatching {
+                    accountSyncCoordinator.handleRealtimeEvent(table, event, record, oldRecord)
+                }.onFailure { error ->
+                    Log.e("BYE_PRO_REALTIME", "Could not apply remote change: $table/$event", error)
+                }
+                AccountSyncWorker.enqueueNow(applicationContext)
+            },
+            onStateChanged = { state -> Log.i("BYE_PRO_REALTIME", "Realtime state=$state") }
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,15 +68,16 @@ class MainActivity : ComponentActivity() {
             var isAuthenticated by remember { mutableStateOf(false) }
 
             LaunchedEffect(Unit) {
-                isAuthenticated = SupabaseAuthRepository(applicationContext).restoreSession()
+                isAuthenticated = authRepository.restoreSession()
                 authReady = true
+                if (isAuthenticated) {
+                    realtimeSync.start()
+                    AccountSyncWorker.enqueueNow(applicationContext)
+                }
             }
 
             MyApplicationTheme(darkTheme = isDark) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     when {
                         !authReady -> Box(
                             modifier = Modifier.fillMaxSize(),
@@ -66,7 +87,11 @@ class MainActivity : ComponentActivity() {
                         else -> AuthScreen(
                             language = language,
                             onToggleLanguage = { financeViewModel.toggleLanguage() },
-                            onAuthenticated = { isAuthenticated = true }
+                            onAuthenticated = {
+                                isAuthenticated = true
+                                realtimeSync.start()
+                                AccountSyncWorker.enqueueNow(applicationContext)
+                            }
                         )
                     }
                 }
@@ -74,19 +99,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onDestroy() {
+        realtimeSync.stop()
+        super.onDestroy()
+    }
+
     private fun verifySupabaseConnection() {
         lifecycleScope.launch {
             SupabaseConnection.checkConnection()
-                .onSuccess {
-                    Log.i("BYE_PRO_SUPABASE", "Supabase connection established")
-                }
-                .onFailure { error ->
-                    Log.e("BYE_PRO_SUPABASE", "Supabase connection unavailable", error)
-                }
+                .onSuccess { Log.i("BYE_PRO_SUPABASE", "Supabase connection established") }
+                .onFailure { error -> Log.e("BYE_PRO_SUPABASE", "Supabase connection unavailable", error) }
         }
     }
 
     private fun scheduleFinanceBackgroundWork() {
+        runCatching { AccountSyncWorker.schedulePeriodic(applicationContext) }
         runCatching {
             val request = PeriodicWorkRequestBuilder<BillReminderWorker>(1, TimeUnit.DAYS).build()
             WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(

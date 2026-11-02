@@ -26,6 +26,8 @@ import com.example.finance.model.TransactionType
 import com.example.finance.model.TransferEntity
 import com.example.finance.model.UserEntity
 import com.example.finance.model.UserRole
+import com.example.finance.model.SyncEntityMapEntity
+import com.example.finance.model.SyncOutboxEntity
 import androidx.room.withTransaction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +36,12 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.math.BigDecimal
+import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+import org.json.JSONObject
 
 class FinanceRepository(
     private val dao: FinanceDao,
@@ -55,6 +63,7 @@ class FinanceRepository(
     val notifications: Flow<List<NotificationEntity>> = dao.getAllNotifications()
     val auditLogs: Flow<List<AuditLogEntity>> = dao.getAllAuditLogs()
     val currentUser: Flow<UserEntity?> = dao.getCurrentUser()
+    val pendingSyncMutations: Flow<List<SyncOutboxEntity>> = dao.observePendingSyncMutations()
 
     suspend fun logAudit(action: String, resource: String, details: String) {
         dao.insertAuditLog(
@@ -67,20 +76,152 @@ class FinanceRepository(
         )
     }
 
+    private fun syncTimestamp(value: Long = System.currentTimeMillis()): String =
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }.format(Date(value))
+
+    private suspend fun enqueueAccountUpsert(account: AccountEntity) {
+        val mapping = dao.getSyncEntityMap("accounts", account.id)
+            ?: SyncEntityMapEntity("accounts", account.id, UUID.randomUUID().toString())
+        dao.upsertSyncEntityMap(mapping)
+        val lastFour = account.accountNumberSafe.filter(Char::isDigit).takeLast(4).takeIf { it.isNotEmpty() }
+        val payload = JSONObject()
+            .put("id", mapping.remoteId)
+            .put("name", account.name)
+            .put("type", when (account.type) {
+                AccountType.CASH -> "cash"
+                AccountType.BANK -> "bank"
+                AccountType.WALLET -> "wallet"
+                AccountType.CREDIT_CARD -> "credit_card"
+                AccountType.INVESTMENT -> "investment"
+                AccountType.SAVINGS, AccountType.OTHER -> "other"
+            })
+            .put("currency_code", account.currency.uppercase())
+            .put("opening_balance", account.openingBalance)
+            .put("current_balance", account.balance)
+            .put("institution_name", if (account.institution.isBlank()) JSONObject.NULL else account.institution)
+            .put("last_four", lastFour ?: JSONObject.NULL)
+            .put("is_active", !account.isArchived)
+            .put("updated_at", syncTimestamp())
+        dao.enqueueSyncMutation(
+            SyncOutboxEntity(entityType = "accounts", localId = account.id, operation = "UPSERT", payload = payload.toString())
+        )
+    }
+
+    private suspend fun enqueueTransactionUpsert(tx: TransactionEntity) {
+        val account = dao.getAccountById(tx.accountId)
+            ?: throw IllegalArgumentException("Transaction account not found: ${tx.accountId}")
+        if (dao.getSyncEntityMap("accounts", account.id) == null) enqueueAccountUpsert(account)
+        val targetRemoteId = tx.targetAccountId?.let { targetId ->
+            val target = dao.getAccountById(targetId)
+                ?: throw IllegalArgumentException("Transaction target account not found: $targetId")
+            if (dao.getSyncEntityMap("accounts", targetId) == null) enqueueAccountUpsert(target)
+            dao.getSyncEntityMap("accounts", targetId)?.remoteId
+        }
+        val mapping = dao.getSyncEntityMap("transactions", tx.id)
+            ?: SyncEntityMapEntity("transactions", tx.id, UUID.randomUUID().toString())
+        dao.upsertSyncEntityMap(mapping)
+        val metadata = JSONObject()
+            .put("local_type", tx.type.name.lowercase())
+            .put("category", tx.category)
+            .put("merchant", tx.merchant)
+            .put("tags", tx.tags)
+            .put("notes", tx.notes)
+            .put("is_recurring", tx.isRecurring)
+            .put("target_account_id", targetRemoteId ?: JSONObject.NULL)
+        val payload = JSONObject()
+            .put("id", mapping.remoteId)
+            .put("account_id", dao.getSyncEntityMap("accounts", tx.accountId)?.remoteId)
+            .put("category_id", JSONObject.NULL)
+            .put("type", when (tx.type) {
+                TransactionType.INCOME, TransactionType.REFUND -> "income"
+                TransactionType.EXPENSE -> "expense"
+                TransactionType.TRANSFER -> "transfer"
+                TransactionType.ADJUSTMENT -> "adjustment"
+            })
+            .put("status", tx.status.name.lowercase())
+            .put("amount", tx.amount)
+            .put("currency_code", tx.currency.uppercase())
+            .put("description", tx.description)
+            .put("transaction_date", syncTimestamp(tx.date))
+            .put("reference", JSONObject.NULL)
+            .put("metadata", metadata)
+            .put("updated_at", syncTimestamp())
+        dao.enqueueSyncMutation(SyncOutboxEntity(entityType = "transactions", localId = tx.id, operation = "UPSERT", payload = payload.toString()))
+    }
+
+    private suspend fun enqueueTransactionDelete(tx: TransactionEntity) {
+        val mapping = dao.getSyncEntityMap("transactions", tx.id) ?: return
+        dao.enqueueSyncMutation(
+            SyncOutboxEntity(
+                entityType = "transactions",
+                localId = tx.id,
+                operation = "DELETE",
+                payload = JSONObject().put("id", mapping.remoteId).toString()
+            )
+        )
+    }
+
+    private suspend fun enqueueTransferUpsert(transfer: TransferEntity) {
+        val from = dao.getAccountById(transfer.fromAccountId)
+            ?: throw IllegalArgumentException("Transfer source account not found")
+        val to = dao.getAccountById(transfer.toAccountId)
+            ?: throw IllegalArgumentException("Transfer destination account not found")
+        if (dao.getSyncEntityMap("accounts", from.id) == null) enqueueAccountUpsert(from)
+        if (dao.getSyncEntityMap("accounts", to.id) == null) enqueueAccountUpsert(to)
+        val mapping = dao.getSyncEntityMap("transfers", transfer.id)
+            ?: SyncEntityMapEntity("transfers", transfer.id, UUID.randomUUID().toString())
+        dao.upsertSyncEntityMap(mapping)
+        val payload = JSONObject()
+            .put("id", mapping.remoteId)
+            .put("from_account_id", dao.getSyncEntityMap("accounts", from.id)?.remoteId)
+            .put("to_account_id", dao.getSyncEntityMap("accounts", to.id)?.remoteId)
+            .put("amount", transfer.amount)
+            .put("fee", transfer.fee)
+            .put("currency_code", transfer.currency.uppercase())
+            .put("description", transfer.description)
+            .put("transfer_date", syncTimestamp(transfer.date))
+            .put("status", "completed")
+        dao.enqueueSyncMutation(SyncOutboxEntity(entityType = "transfers", localId = transfer.id, operation = "UPSERT", payload = payload.toString()))
+    }
+
     suspend fun addAccount(account: AccountEntity): Long = withContext(Dispatchers.IO) {
-        val id = dao.insertAccount(account)
-        logAudit("CREATE", "Account", "Created account: ${account.name} with balance ${account.balance} ${account.currency}")
-        id
+        val operation: suspend () -> Long = {
+            val id = dao.insertAccount(account)
+            enqueueAccountUpsert(account.copy(id = id))
+            logAudit("CREATE", "Account", "Created account: ${account.name} with balance ${account.balance} ${account.currency}")
+            id
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun updateAccount(account: AccountEntity) = withContext(Dispatchers.IO) {
-        dao.updateAccount(account)
-        logAudit("UPDATE", "Account", "Updated account ${account.name}")
+        val operation: suspend () -> Unit = {
+            dao.updateAccount(account)
+            enqueueAccountUpsert(account)
+            logAudit("UPDATE", "Account", "Updated account ${account.name}")
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun deleteAccount(account: AccountEntity) = withContext(Dispatchers.IO) {
-        dao.deleteAccount(account)
-        logAudit("DELETE", "Account", "Deleted account ${account.name}")
+        val operation: suspend () -> Unit = {
+            val mapping = dao.getSyncEntityMap("accounts", account.id)
+            if (mapping != null) {
+                dao.enqueueSyncMutation(
+                    SyncOutboxEntity(
+                        entityType = "accounts",
+                        localId = account.id,
+                        operation = "DELETE",
+                        payload = JSONObject().put("id", mapping.remoteId).toString()
+                    )
+                )
+            }
+            dao.deleteAccount(account)
+            logAudit("DELETE", "Account", "Deleted account ${account.name}")
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun addTransaction(tx: TransactionEntity): Long = withContext(Dispatchers.IO) {
@@ -101,7 +242,9 @@ class FinanceRepository(
                     TransactionType.ADJUSTMENT -> currentBal.add(txAmount)
                 }
                 dao.updateAccountBalance(account.id, newBal.toDouble())
+                dao.getAccountById(account.id)?.let { enqueueAccountUpsert(it) }
             }
+            enqueueTransactionUpsert(tx.copy(id = txId))
             logAudit("TRANSACTION", "Transaction", "${tx.type}: ${tx.amount} ${tx.currency} - ${tx.description}")
             txId
         }
@@ -131,7 +274,10 @@ class FinanceRepository(
                     dao.updateAccountBalance(account.id, posted.toDouble())
                 }
             }
-            dao.updateTransaction(tx.copy(status = newStatus))
+            if (account != null) dao.getAccountById(account.id)?.let { enqueueAccountUpsert(it) }
+            val updatedTransaction = tx.copy(status = newStatus)
+            dao.updateTransaction(updatedTransaction)
+            enqueueTransactionUpsert(updatedTransaction)
             logAudit("STATUS", "Transaction", "Transaction #${tx.id} status: ${tx.status} -> $newStatus")
         }
         if (db != null) db.withTransaction { operation() } else operation()
@@ -153,7 +299,7 @@ class FinanceRepository(
                 require(tx.currency.equals(account.currency, ignoreCase = true)) {
                     "Imported transaction currency does not match account ${account.id}"
                 }
-                dao.insertTransaction(tx)
+                val importedId = dao.insertTransaction(tx)
                 if (tx.status == TransactionStatus.COMPLETED) {
                     val current = FinanceEngine.toBigDecimal(account.balance)
                     val amount = FinanceEngine.toBigDecimal(tx.amount)
@@ -162,7 +308,9 @@ class FinanceRepository(
                         TransactionType.EXPENSE, TransactionType.TRANSFER -> current.subtract(amount)
                     }
                     dao.updateAccountBalance(account.id, updated.toDouble())
+                    dao.getAccountById(account.id)?.let { enqueueAccountUpsert(it) }
                 }
+                enqueueTransactionUpsert(tx.copy(id = importedId))
                 importedCount++
             }
             if (importedCount > 0) {
@@ -186,7 +334,9 @@ class FinanceRepository(
                     TransactionType.ADJUSTMENT -> currentBal.subtract(txAmount)
                 }
                 dao.updateAccountBalance(account.id, newBal.toDouble())
+                dao.getAccountById(account.id)?.let { enqueueAccountUpsert(it) }
             }
+            enqueueTransactionDelete(tx)
             dao.deleteTransaction(tx)
             logAudit("DELETE", "Transaction", "Deleted transaction #${tx.id}: ${tx.description}")
         }
@@ -194,9 +344,13 @@ class FinanceRepository(
     }
 
     suspend fun archiveAccount(accountId: Long, isArchived: Boolean) = withContext(Dispatchers.IO) {
-        dao.setAccountArchived(accountId, isArchived)
-        val action = if (isArchived) "ARCHIVE" else "UNARCHIVE"
-        logAudit(action, "Account", "Account #$accountId archive status: $isArchived")
+        val operation: suspend () -> Unit = {
+            dao.setAccountArchived(accountId, isArchived)
+            dao.getAccountById(accountId)?.let { enqueueAccountUpsert(it) }
+            val action = if (isArchived) "ARCHIVE" else "UNARCHIVE"
+            logAudit(action, "Account", "Account #$accountId archive status: $isArchived")
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun executeTransfer(
@@ -239,53 +393,56 @@ class FinanceRepository(
 
             dao.updateAccountBalance(fromAccountId, newFromBal.toDouble())
             dao.updateAccountBalance(toAccountId, newToBal.toDouble())
+            dao.getAccountById(fromAccountId)?.let { enqueueAccountUpsert(it) }
+            dao.getAccountById(toAccountId)?.let { enqueueAccountUpsert(it) }
 
-            dao.insertTransfer(
-                TransferEntity(
-                    fromAccountId = fromAccountId,
-                    toAccountId = toAccountId,
-                    amount = amount,
-                    fee = fee,
-                    currency = currency,
-                    description = description,
-                    reference = reference
-                )
+            val transfer = TransferEntity(
+                fromAccountId = fromAccountId,
+                toAccountId = toAccountId,
+                amount = amount,
+                fee = fee,
+                currency = currency,
+                description = description,
+                reference = reference
             )
+            val transferId = dao.insertTransfer(transfer)
+            enqueueTransferUpsert(transfer.copy(id = transferId))
 
             // Keep each ledger row in the currency of the account it changes.
             // The transfer principal is excluded from cash-flow totals; the fee is an expense.
-            dao.insertTransaction(
-                TransactionEntity(
-                    accountId = fromAccountId,
-                    type = TransactionType.TRANSFER,
-                    amount = amount,
-                    currency = fromAcc.currency,
-                    category = "Transfer",
-                    description = "Transfer to ${toAcc.name}: $description"
-                )
+            val outgoingTransfer = TransactionEntity(
+                accountId = fromAccountId,
+                type = TransactionType.TRANSFER,
+                amount = amount,
+                currency = fromAcc.currency,
+                category = "Transfer",
+                description = "Transfer to ${toAcc.name}: $description",
+                targetAccountId = toAccountId
             )
+            val outgoingTransferId = dao.insertTransaction(outgoingTransfer)
+            enqueueTransactionUpsert(outgoingTransfer.copy(id = outgoingTransferId))
             if (transferFee > BigDecimal.ZERO) {
-                dao.insertTransaction(
-                    TransactionEntity(
-                        accountId = fromAccountId,
-                        type = TransactionType.EXPENSE,
-                        amount = fee,
-                        currency = fromAcc.currency,
-                        category = "Transfer Fee",
-                        description = "Transfer fee: $description"
-                    )
+                val feeTransaction = TransactionEntity(
+                    accountId = fromAccountId,
+                    type = TransactionType.EXPENSE,
+                    amount = fee,
+                    currency = fromAcc.currency,
+                    category = "Transfer Fee",
+                    description = "Transfer fee: $description"
                 )
+                val feeTransactionId = dao.insertTransaction(feeTransaction)
+                enqueueTransactionUpsert(feeTransaction.copy(id = feeTransactionId))
             }
-            dao.insertTransaction(
-                TransactionEntity(
-                    accountId = toAccountId,
-                    type = TransactionType.ADJUSTMENT,
-                    amount = creditAmount.toDouble(),
-                    currency = toAcc.currency,
-                    category = "Transfer",
-                    description = "Transfer received from ${fromAcc.name}: $description"
-                )
+            val incomingTransfer = TransactionEntity(
+                accountId = toAccountId,
+                type = TransactionType.ADJUSTMENT,
+                amount = creditAmount.toDouble(),
+                currency = toAcc.currency,
+                category = "Transfer",
+                description = "Transfer received from ${fromAcc.name}: $description"
             )
+            val incomingTransferId = dao.insertTransaction(incomingTransfer)
+            enqueueTransactionUpsert(incomingTransfer.copy(id = incomingTransferId))
 
             logAudit("TRANSFER", "Transfer", "Transferred $amount ${fromAcc.currency} to ${toAcc.name} (credited $creditAmount ${toAcc.currency})")
             true
@@ -436,21 +593,22 @@ class FinanceRepository(
                 !account.balance.isFinite() || account.balance < bill.amount
             ) return@operation false
 
-            dao.insertTransaction(
-                TransactionEntity(
-                    accountId = accountId,
-                    type = TransactionType.EXPENSE,
-                    amount = bill.amount,
-                    currency = bill.currency,
-                    category = bill.category,
-                    description = "Bill payment: ${bill.name}"
-                )
+            val billPayment = TransactionEntity(
+                accountId = accountId,
+                type = TransactionType.EXPENSE,
+                amount = bill.amount,
+                currency = bill.currency,
+                category = bill.category,
+                description = "Bill payment: ${bill.name}"
             )
+            val billPaymentId = dao.insertTransaction(billPayment)
             dao.updateAccountBalance(
                 accountId,
                 FinanceEngine.toBigDecimal(account.balance)
                     .subtract(FinanceEngine.toBigDecimal(bill.amount)).toDouble()
             )
+            dao.getAccountById(accountId)?.let { enqueueAccountUpsert(it) }
+            enqueueTransactionUpsert(billPayment.copy(id = billPaymentId))
             dao.updateBill(bill.copy(isPaid = true))
             logAudit("PAYMENT", "Bill", "Marked bill ${bill.name} as paid")
             true
@@ -496,21 +654,22 @@ class FinanceRepository(
             val updatedGoalAmount = goal.currentAmount + amount
             if (!updatedGoalAmount.isFinite()) return@operation false
 
-            dao.insertTransaction(
-                TransactionEntity(
-                    accountId = accountId,
-                    type = TransactionType.EXPENSE,
-                    amount = amount,
-                    currency = goal.currency,
-                    category = "Savings",
-                    description = "Contribution to goal: ${goal.name}"
-                )
+            val savingsContribution = TransactionEntity(
+                accountId = accountId,
+                type = TransactionType.EXPENSE,
+                amount = amount,
+                currency = goal.currency,
+                category = "Savings",
+                description = "Contribution to goal: ${goal.name}"
             )
+            val savingsContributionId = dao.insertTransaction(savingsContribution)
             dao.updateAccountBalance(
                 accountId,
                 FinanceEngine.toBigDecimal(account.balance)
                     .subtract(FinanceEngine.toBigDecimal(amount)).toDouble()
             )
+            dao.getAccountById(accountId)?.let { enqueueAccountUpsert(it) }
+            enqueueTransactionUpsert(savingsContribution.copy(id = savingsContributionId))
             dao.updateSavingsGoal(goal.copy(currentAmount = updatedGoalAmount))
             logAudit("CONTRIBUTION", "Savings", "Added $amount to goal ${goal.name}")
             true

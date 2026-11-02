@@ -4,6 +4,9 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.Response
+import retrofit2.http.Streaming
+import okhttp3.ResponseBody
 
 data class SessionResponse(val authenticated: Boolean, val user: Map<String, Any?>? = null)
 data class TransferRequest(
@@ -18,6 +21,7 @@ data class TransferRequest(
 )
 data class ApiEnvelope<T>(val data: T? = null, val error: String? = null)
 data class AiRequest(val prompt: String)
+data class SpeechRequest(val text: String)
 
 /** Retrofit contract matching the existing BYE PRO FINANCE Web API. */
 interface FinanceApi {
@@ -30,6 +34,13 @@ interface FinanceApi {
         @Header("Idempotency-Key") idempotencyKey: String?,
         @Body request: TransferRequest
     ): ApiEnvelope<Map<String, Any?>>
+
+    @Streaming
+    @POST("api/v1/ai/speech")
+    suspend fun synthesizeSpeech(
+        @Header("Authorization") bearerToken: String,
+        @Body request: SpeechRequest
+    ): Response<ResponseBody>
 
     @POST("api/v1/ai")
     suspend fun ai(

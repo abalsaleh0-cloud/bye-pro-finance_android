@@ -46,7 +46,7 @@ object FinancialAssistantEngine {
         val wantsBill = has(q, "فاتورة", "فواتير", "bill", "bills")
         val wantsSavingsGoal = has(q, "هدف ادخار", "أهداف الادخار", "savings goal", "savings goals")
         val wantsAssets = has(q, "أصل", "أصول", "asset", "assets", "صافي الثروة", "net worth")
-        val wantsOverview = has(q, "حلل", "تحليل", "وضعي", "مالي", "مالية", "finance", "financial", "analyze", "analysis", "overview", "summary", "cash flow", "تدفق")
+        val wantsOverview = has(q, "حلل", "تحليل", "وضعي المالي", "ملخص مالي", "التدفق المالي", "finance overview", "financial overview", "analyze", "analysis", "overview", "summary", "cash flow")
         val wantsHelp = has(q, "ماذا تستطيع", "كيف تستخدم", "مساعدة", "help", "what can you do", "capabilities")
         val recognized = wantsSpending || wantsIncome || wantsBudget || wantsSave || wantsCategory || wantsDebt || wantsBill || wantsSavingsGoal || wantsAssets || wantsOverview || wantsHelp
 

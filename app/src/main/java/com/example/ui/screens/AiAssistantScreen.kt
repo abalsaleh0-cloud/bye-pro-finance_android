@@ -11,6 +11,8 @@ import com.example.ui.components.FinanceFloatingActionButton
 
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -33,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
@@ -82,10 +85,6 @@ fun AiAssistantScreen(
     val lang by viewModel.appLanguage.collectAsState()
     val messages by viewModel.chatMessages.collectAsState()
     val isAiLoading by viewModel.isAiLoading.collectAsState()
-    val localModelReady by viewModel.localModelReady.collectAsState()
-    val localModelLoading by viewModel.localModelLoading.collectAsState()
-    val localModelProgress by viewModel.localModelProgress.collectAsState()
-    val localModelStatus by viewModel.localModelStatus.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
 
@@ -98,6 +97,8 @@ fun AiAssistantScreen(
         )
     }
     var inputText by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> selectedImageUri = uri }
     var speakNextAiResponse by remember { mutableStateOf(false) }
     var autoSpeakTimestamp by remember { mutableStateOf<Long?>(null) }
     val listState = rememberLazyListState()
@@ -199,7 +200,7 @@ fun AiAssistantScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(messages) { msg ->
-                        ChatBubbleItem(message = msg, lang = lang, autoSpeak = msg.timestamp == autoSpeakTimestamp)
+                        ChatBubbleItem(message = msg, lang = lang, autoSpeak = msg.timestamp == autoSpeakTimestamp, onSynthesizeSpeech = { text -> viewModel.synthesizeSpeech(text) })
                     }
                     if (isAiLoading) {
                         item {
@@ -248,6 +249,12 @@ fun AiAssistantScreen(
                         .padding(top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    IconButton(
+                        enabled = !isAiLoading,
+                        onClick = { imagePicker.launch("image/*") }
+                    ) {
+                        Icon(Icons.Default.Image, contentDescription = WebI18n.tr("إرفاق صورة", "Attach image", lang))
+                    }
                     VoiceInputButton(
                         languageCode = if (lang == AppLanguage.AR) "ar" else "en",
                         enabled = !isAiLoading,
@@ -271,10 +278,11 @@ fun AiAssistantScreen(
                     Spacer(modifier = Modifier.size(8.dp))
                     FinanceIconButton(
                         onClick = {
-                            if (inputText.isNotBlank()) {
+                            if (inputText.isNotBlank() || selectedImageUri != null) {
                                 val q = inputText
                                 inputText = ""
-                                viewModel.askAiAssistant(q)
+                                viewModel.askAiAssistant(q, selectedImageUri)
+                                selectedImageUri = null
                             }
                         },
                         modifier = Modifier
@@ -381,12 +389,6 @@ fun AiAssistantScreen(
         } else {
             AiModelsSettingsScreen(
                 autoSpeakReplies = autoSpeakReplies,
-                localModelReady = localModelReady,
-                localModelLoading = localModelLoading,
-                localModelProgress = localModelProgress,
-                localModelStatus = localModelStatus,
-                onLoadModelFile = viewModel::loadLocalModelFile,
-                onImportAndLoadModel = viewModel::importAndLoadLocalModel,
                 onAutoSpeakRepliesChange = { enabled ->
                     autoSpeakReplies = enabled
                     context.getSharedPreferences("bye_pro_ai_settings", 0)
@@ -400,7 +402,7 @@ fun AiAssistantScreen(
 }
 
 @Composable
-fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean = false) {
+fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean = false, onSynthesizeSpeech: suspend (String) -> Result<ByteArray>) {
     val isUser = message.sender == "USER"
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -441,7 +443,8 @@ fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean =
                     SpeakTextButton(
                         text = message.text,
                         languageCode = if (lang == AppLanguage.AR) "ar" else "en",
-                        autoSpeak = autoSpeak
+                        autoSpeak = autoSpeak,
+                        onSynthesizeSpeech = onSynthesizeSpeech
                     )
                 }
             }

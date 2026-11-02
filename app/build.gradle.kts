@@ -17,7 +17,7 @@ android {
     targetSdk = 36
     versionCode = providers.gradleProperty("APP_VERSION_CODE").get().toInt()
     versionName = providers.gradleProperty("APP_VERSION_NAME").get()
-    buildConfigField("String", "FINANCE_API_BASE_URL", "\"https://bye-pro-finance.vercel.app/\"")
+    buildConfigField("String", "FINANCE_API_BASE_URL", "\"https://bye-pro-finance-api.vercel.app/\"")
     buildConfigField("String", "SUPABASE_URL", "\"https://ngfaukvfsesoslfiwaue.supabase.co\"")
     buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_5zPaJKKmtGZtYUv1GGytjA_tsk9LaSR\"")
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -60,9 +60,9 @@ android {
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
 
 dependencies {
+  implementation("com.google.ai.edge.litertlm:litertlm-android:0.19.0")
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
-  implementation("com.google.ai.edge.litertlm:litertlm-android:0.18.0")
   implementation(libs.androidx.activity.compose)
   implementation(libs.androidx.compose.material.icons.core)
   implementation(libs.androidx.compose.material.icons.extended)
