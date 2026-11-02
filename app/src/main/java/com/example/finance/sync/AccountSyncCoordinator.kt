@@ -18,6 +18,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
@@ -38,6 +39,7 @@ class AccountSyncCoordinator(context: Context) {
         check(auth.restoreSession()) { "No active Supabase session; sync is paused without signing out" }
         val token = auth.currentAccessToken() ?: error("Supabase access token unavailable")
         val userId = fetchUserId(token)
+        queueLegacyLocalAccounts()
         pushPending(token, userId)
         pullAccounts(token)
         check(dao.countPendingSyncMutations() == 0) { "Some account changes remain queued for retry" }
@@ -57,6 +59,7 @@ class AccountSyncCoordinator(context: Context) {
             "DELETE" -> {
                 val remoteId = oldRecord.optString("id").takeIf(String::isNotBlank) ?: return@withContext
                 val mapping = dao.getSyncEntityMapByRemoteId("accounts", remoteId) ?: return@withContext
+                if (dao.hasPendingSyncMutation("accounts", mapping.localId)) return@withContext
                 db.withTransaction {
                     dao.deleteAccountById(mapping.localId)
                     dao.deleteSyncEntityMap("accounts", mapping.localId)
@@ -66,6 +69,41 @@ class AccountSyncCoordinator(context: Context) {
                 val remoteId = record.optString("id").takeIf(String::isNotBlank) ?: return@withContext
                 val row = fetchAccount(token, remoteId) ?: return@withContext
                 applyRemoteAccount(row)
+            }
+        }
+    }
+
+    private suspend fun queueLegacyLocalAccounts() {
+        dao.getAllAccountsSnapshot().forEach { account ->
+            if (dao.getSyncEntityMap("accounts", account.id) == null) {
+                val remoteId = UUID.randomUUID().toString()
+                dao.upsertSyncEntityMap(SyncEntityMapEntity("accounts", account.id, remoteId))
+                val lastFour = account.accountNumberSafe.filter(Char::isDigit).takeLast(4).takeIf(String::isNotEmpty)
+                val payload = JSONObject()
+                    .put("id", remoteId)
+                    .put("name", account.name)
+                    .put("type", when (account.type) {
+                        AccountType.CASH -> "cash"
+                        AccountType.BANK -> "bank"
+                        AccountType.WALLET -> "wallet"
+                        AccountType.CREDIT_CARD -> "credit_card"
+                        AccountType.INVESTMENT -> "investment"
+                        AccountType.SAVINGS, AccountType.OTHER -> "other"
+                    })
+                    .put("currency_code", account.currency.uppercase())
+                    .put("opening_balance", account.openingBalance)
+                    .put("current_balance", account.balance)
+                    .put("institution_name", if (account.institution.isBlank()) JSONObject.NULL else account.institution)
+                    .put("last_four", lastFour ?: JSONObject.NULL)
+                    .put("is_active", !account.isArchived)
+                dao.enqueueSyncMutation(
+                    com.example.finance.model.SyncOutboxEntity(
+                        entityType = "accounts",
+                        localId = account.id,
+                        operation = "UPSERT",
+                        payload = payload.toString()
+                    )
+                )
             }
         }
     }
@@ -115,6 +153,7 @@ class AccountSyncCoordinator(context: Context) {
     private suspend fun applyRemoteAccount(row: JSONObject) {
         val remoteId = row.getString("id")
         val mapping = dao.getSyncEntityMapByRemoteId("accounts", remoteId)
+        if (mapping != null && dao.hasPendingSyncMutation("accounts", mapping.localId)) return
         val account = AccountEntity(
             id = mapping?.localId ?: 0L,
             name = row.optString("name"),
