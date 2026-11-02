@@ -180,7 +180,10 @@ class AccountSyncCoordinator(context: Context) {
             openingBalance = row.optDouble("opening_balance", 0.0),
             accountNumberSafe = row.optString("last_four").takeIf(String::isNotBlank).orEmpty(),
             institution = row.optString("institution_name").takeIf(String::isNotBlank).orEmpty(),
-            isArchived = !row.optBoolean("is_active", true)
+            isArchived = !row.optBoolean("is_active", true),
+            notes = existing?.notes.orEmpty(),
+            colorHex = existing?.colorHex ?: "#00D09C",
+            createdAt = existing?.createdAt ?: System.currentTimeMillis()
         )
         db.withTransaction {
             val localId = dao.insertAccount(account)
