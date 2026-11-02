@@ -2,6 +2,7 @@ package com.example.finance.model
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "users")
@@ -192,4 +193,42 @@ data class AuditLogEntity(
     val details: String,
     val userRole: String = "ADMIN",
     val timestamp: Long = System.currentTimeMillis()
+)
+
+
+/**
+ * Stable bridge between Room's numeric primary keys and Supabase UUID primary keys.
+ * The mapping survives process death and prevents duplicate remote rows.
+ */
+@Entity(
+    tableName = "sync_entity_map",
+    primaryKeys = ["entityType", "localId"],
+    indices = [Index(value = ["remoteId"], unique = true)]
+)
+data class SyncEntityMapEntity(
+    val entityType: String,
+    val localId: Long,
+    val remoteId: String,
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+/**
+ * Durable outbound queue. Pending mutations remain on-device until acknowledged.
+ * Payload is canonical JSON; it contains no authentication credentials.
+ */
+@Entity(
+    tableName = "sync_outbox",
+    indices = [Index(value = ["state", "createdAt"]), Index(value = ["entityType", "localId"])]
+)
+data class SyncOutboxEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val entityType: String,
+    val localId: Long,
+    val operation: String,
+    val payload: String,
+    val state: String = "PENDING",
+    val attemptCount: Int = 0,
+    val createdAt: Long = System.currentTimeMillis(),
+    val lastAttemptAt: Long? = null,
+    val lastError: String? = null
 )
