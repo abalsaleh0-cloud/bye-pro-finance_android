@@ -124,12 +124,12 @@ object FinanceEngine {
                     }
                 }
                 TransactionType.TRANSFER -> {
+                    // A transfer is represented by its outgoing TRANSFER row plus a
+                    // separate incoming ADJUSTMENT row on the destination account.
+                    // Do not credit targetAccountId here: that would count the same
+                    // incoming amount twice when the destination adjustment is applied.
                     if (tx.accountId == accountId) {
-                        // Outgoing transfer
                         current = current.subtract(BigDecimal.valueOf(tx.amount))
-                    } else if (tx.targetAccountId == accountId) {
-                        // Incoming transfer
-                        current = current.add(BigDecimal.valueOf(tx.amount))
                     }
                 }
                 TransactionType.REFUND -> {
