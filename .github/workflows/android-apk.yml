@@ -110,6 +110,17 @@ jobs:
           gradle-version: "9.3.1"
           arguments: :app:testDebugUnitTest --stacktrace
 
+      - name: Preserve unit test reports on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: BYE-PRO-FINANCE-Android-Test-Reports-${{ github.run_number }}
+          path: |
+            app/build/reports/tests/testDebugUnitTest/**
+            app/build/test-results/testDebugUnitTest/**
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Create local debug signing key
         shell: bash
         run: |
