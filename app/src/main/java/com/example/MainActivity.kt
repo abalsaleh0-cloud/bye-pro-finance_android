@@ -26,8 +26,10 @@ import androidx.work.WorkManager
 import com.example.finance.auth.SupabaseAuthRepository
 import com.example.finance.supabase.SupabaseConnection
 import com.example.finance.sync.SupabaseRealtimeSync
+import com.example.finance.sync.AccountSyncCoordinator
 import com.example.finance.ui.FinanceViewModel
 import com.example.finance.worker.BillReminderWorker
+import com.example.finance.worker.AccountSyncWorker
 import com.example.ui.navigation.MainAppScaffold
 import com.example.ui.screens.AuthScreen
 import com.example.ui.theme.MyApplicationTheme
@@ -37,11 +39,18 @@ import java.util.concurrent.TimeUnit
 class MainActivity : ComponentActivity() {
     private val financeViewModel: FinanceViewModel by viewModels()
     private val authRepository by lazy { SupabaseAuthRepository(applicationContext) }
+    private val accountSyncCoordinator by lazy { AccountSyncCoordinator(applicationContext) }
     private val realtimeSync by lazy {
         SupabaseRealtimeSync(
             auth = authRepository,
-            onDatabaseChange = { table, event, _, _ ->
+            onDatabaseChange = { table, event, record, oldRecord ->
                 Log.i("BYE_PRO_REALTIME", "$event on $table received")
+                runCatching {
+                    accountSyncCoordinator.handleRealtimeEvent(table, event, record, oldRecord)
+                }.onFailure { error ->
+                    Log.e("BYE_PRO_REALTIME", "Could not apply remote change: $table/$event", error)
+                }
+                AccountSyncWorker.enqueueNow(applicationContext)
             },
             onStateChanged = { state -> Log.i("BYE_PRO_REALTIME", "Realtime state=$state") }
         )
@@ -61,7 +70,10 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 isAuthenticated = authRepository.restoreSession()
                 authReady = true
-                if (isAuthenticated) realtimeSync.start()
+                if (isAuthenticated) {
+                    realtimeSync.start()
+                    AccountSyncWorker.enqueueNow(applicationContext)
+                }
             }
 
             MyApplicationTheme(darkTheme = isDark) {
@@ -78,6 +90,7 @@ class MainActivity : ComponentActivity() {
                             onAuthenticated = {
                                 isAuthenticated = true
                                 realtimeSync.start()
+                                AccountSyncWorker.enqueueNow(applicationContext)
                             }
                         )
                     }
@@ -100,6 +113,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun scheduleFinanceBackgroundWork() {
+        AccountSyncWorker.schedulePeriodic(applicationContext)
         runCatching {
             val request = PeriodicWorkRequestBuilder<BillReminderWorker>(1, TimeUnit.DAYS).build()
             WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
