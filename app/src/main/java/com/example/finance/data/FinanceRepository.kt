@@ -105,7 +105,7 @@ class FinanceRepository(
             .put("is_active", !account.isArchived)
             .put("updated_at", syncTimestamp())
         dao.enqueueSyncMutation(
-            SyncOutboxEntity("accounts", account.id, "UPSERT", payload.toString())
+            SyncOutboxEntity(entityType = "accounts", localId = account.id, operation = "UPSERT", payload = payload.toString())
         )
     }
 
@@ -148,17 +148,17 @@ class FinanceRepository(
             .put("reference", JSONObject.NULL)
             .put("metadata", metadata)
             .put("updated_at", syncTimestamp())
-        dao.enqueueSyncMutation(SyncOutboxEntity("transactions", tx.id, "UPSERT", payload.toString()))
+        dao.enqueueSyncMutation(SyncOutboxEntity(entityType = "transactions", localId = tx.id, operation = "UPSERT", payload = payload.toString()))
     }
 
     private suspend fun enqueueTransactionDelete(tx: TransactionEntity) {
         val mapping = dao.getSyncEntityMap("transactions", tx.id) ?: return
         dao.enqueueSyncMutation(
             SyncOutboxEntity(
-                "transactions",
-                tx.id,
-                "DELETE",
-                JSONObject().put("id", mapping.remoteId).toString()
+                entityType = "transactions",
+                localId = tx.id,
+                operation = "DELETE",
+                payload = JSONObject().put("id", mapping.remoteId).toString()
             )
         )
     }
@@ -183,7 +183,7 @@ class FinanceRepository(
             .put("description", transfer.description)
             .put("transfer_date", syncTimestamp(transfer.date))
             .put("status", "completed")
-        dao.enqueueSyncMutation(SyncOutboxEntity("transfers", transfer.id, "UPSERT", payload.toString()))
+        dao.enqueueSyncMutation(SyncOutboxEntity(entityType = "transfers", localId = transfer.id, operation = "UPSERT", payload = payload.toString()))
     }
 
     suspend fun addAccount(account: AccountEntity): Long = withContext(Dispatchers.IO) {
