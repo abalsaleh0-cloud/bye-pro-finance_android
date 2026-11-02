@@ -113,7 +113,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun scheduleFinanceBackgroundWork() {
-        AccountSyncWorker.schedulePeriodic(applicationContext)
+        runCatching { AccountSyncWorker.schedulePeriodic(applicationContext) }
         runCatching {
             val request = PeriodicWorkRequestBuilder<BillReminderWorker>(1, TimeUnit.DAYS).build()
             WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
