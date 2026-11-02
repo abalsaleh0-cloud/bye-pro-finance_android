@@ -8,6 +8,11 @@ import com.example.finance.data.AppDatabase
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
 import com.example.finance.model.SyncEntityMapEntity
+import com.example.finance.model.SyncOutboxEntity
+import com.example.finance.model.TransactionEntity
+import com.example.finance.model.TransactionStatus
+import com.example.finance.model.TransactionType
+import com.example.finance.model.TransferEntity
 import com.example.finance.supabase.SupabaseConnection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -44,9 +49,13 @@ class AccountSyncCoordinator(context: Context) {
         val token = auth.currentAccessToken() ?: error("Supabase access token unavailable")
         val userId = fetchUserId(token)
         queueLegacyLocalAccounts()
+        queueLegacyLocalTransactions()
+        queueLegacyLocalTransfers()
         pushPending(token, userId)
         pullAccounts(token)
-        check(dao.countPendingSyncMutations() == 0) { "Some account changes remain queued for retry" }
+        pullTransactions(token)
+        pullTransfers(token)
+        check(dao.countPendingSyncMutations() == 0) { "Some finance changes remain queued for retry" }
         dao.pruneCompletedSyncMutations(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(14))
     }
 
@@ -56,23 +65,31 @@ class AccountSyncCoordinator(context: Context) {
         record: JSONObject,
         oldRecord: JSONObject
     ) = withContext(Dispatchers.IO) {
-        if (table != "accounts") return@withContext
+        if (table !in setOf("accounts", "transactions", "transfers")) return@withContext
         if (!auth.restoreSession()) return@withContext
         val token = auth.currentAccessToken() ?: return@withContext
         when (event.uppercase()) {
             "DELETE" -> {
                 val remoteId = oldRecord.optString("id").takeIf(String::isNotBlank) ?: return@withContext
-                val mapping = dao.getSyncEntityMapByRemoteId("accounts", remoteId) ?: return@withContext
-                if (dao.hasPendingSyncMutation("accounts", mapping.localId)) return@withContext
+                val mapping = dao.getSyncEntityMapByRemoteId(table, remoteId) ?: return@withContext
+                if (dao.hasPendingSyncMutation(table, mapping.localId)) return@withContext
                 db.withTransaction {
-                    dao.deleteAccountById(mapping.localId)
-                    dao.deleteSyncEntityMap("accounts", mapping.localId)
+                    when (table) {
+                        "accounts" -> dao.deleteAccountById(mapping.localId)
+                        "transactions" -> dao.deleteTransactionById(mapping.localId)
+                        "transfers" -> dao.deleteTransferById(mapping.localId)
+                    }
+                    dao.deleteSyncEntityMap(table, mapping.localId)
                 }
             }
             "INSERT", "UPDATE" -> {
                 val remoteId = record.optString("id").takeIf(String::isNotBlank) ?: return@withContext
-                val row = fetchAccount(token, remoteId) ?: return@withContext
-                applyRemoteAccount(row)
+                val row = fetchRow(token, table, remoteId) ?: return@withContext
+                when (table) {
+                    "accounts" -> applyRemoteAccount(row)
+                    "transactions" -> applyRemoteTransaction(row)
+                    "transfers" -> applyRemoteTransfer(row)
+                }
             }
         }
     }
@@ -117,27 +134,39 @@ class AccountSyncCoordinator(context: Context) {
     }
 
     private suspend fun pushPending(token: String, userId: String) {
-        dao.getPendingSyncMutations(200).forEach { item ->
+        dao.getPendingSyncMutations(500).forEach { item ->
             try {
-                if (item.entityType != "accounts") {
-                    dao.recordSyncMutationFailure(item.id, "Unsupported sync entity: ${item.entityType}")
+                val table = item.entityType
+                if (table !in setOf("accounts", "transactions", "transfers")) {
+                    dao.recordSyncMutationFailure(item.id, "Unsupported sync entity: $table")
                     return@forEach
                 }
                 val payload = JSONObject(item.payload)
+                val baseUrl = "${SupabaseConnection.url.trimEnd('/')}/rest/v1/$table"
                 if (item.operation == "DELETE") {
                     val remoteId = payload.getString("id")
-                    val url = "${SupabaseConnection.url.trimEnd('/')}/rest/v1/accounts?id=eq.$remoteId&user_id=eq.$userId"
-                    execute(token, url, "DELETE", null, "return=minimal")
+                    execute(
+                        token,
+                        "$baseUrl?id=eq.$remoteId&user_id=eq.$userId",
+                        "DELETE",
+                        null,
+                        "return=minimal"
+                    )
                     dao.markSyncMutationComplete(item.id)
-                    dao.deleteSyncEntityMap("accounts", item.localId)
+                    dao.deleteSyncEntityMap(table, item.localId)
                 } else {
                     payload.put("user_id", userId)
-                    val url = "${SupabaseConnection.url.trimEnd('/')}/rest/v1/accounts?on_conflict=id"
-                    execute(token, url, "POST", payload.toString(), "resolution=merge-duplicates,return=minimal")
+                    execute(
+                        token,
+                        "$baseUrl?on_conflict=id",
+                        "POST",
+                        payload.toString(),
+                        "resolution=merge-duplicates,return=minimal"
+                    )
                     dao.markSyncMutationComplete(item.id)
                 }
             } catch (error: Exception) {
-                Log.e(TAG, "Account outbox item ${item.id} failed", error)
+                Log.e(TAG, "Outbox item ${item.id} failed", error)
                 dao.recordSyncMutationFailure(item.id, error.message ?: error.javaClass.simpleName)
             }
         }
@@ -145,18 +174,30 @@ class AccountSyncCoordinator(context: Context) {
 
     private suspend fun pullAccounts(token: String) {
         val url = "${SupabaseConnection.url.trimEnd('/')}/rest/v1/accounts?select=*&order=updated_at.asc"
-        val body = execute(token, url, "GET", null, null)
-        val rows = JSONArray(body)
-        for (index in 0 until rows.length()) {
-            applyRemoteAccount(rows.getJSONObject(index))
-        }
+        val rows = JSONArray(execute(token, url, "GET", null, null))
+        for (index in 0 until rows.length()) applyRemoteAccount(rows.getJSONObject(index))
     }
 
-    private suspend fun fetchAccount(token: String, remoteId: String): JSONObject? {
-        val url = "${SupabaseConnection.url.trimEnd('/')}/rest/v1/accounts?id=eq.$remoteId&select=*"
+    private suspend fun pullTransactions(token: String) {
+        val url = "${SupabaseConnection.url.trimEnd('/')}/rest/v1/transactions?select=*&order=updated_at.asc"
         val rows = JSONArray(execute(token, url, "GET", null, null))
-        return rows.optJSONObject(0)
+        for (index in 0 until rows.length()) applyRemoteTransaction(rows.getJSONObject(index))
     }
+
+    private suspend fun pullTransfers(token: String) {
+        val url = "${SupabaseConnection.url.trimEnd('/')}/rest/v1/transfers?select=*&order=created_at.asc"
+        val rows = JSONArray(execute(token, url, "GET", null, null))
+        for (index in 0 until rows.length()) applyRemoteTransfer(rows.getJSONObject(index))
+    }
+
+    private suspend fun fetchRow(token: String, table: String, remoteId: String): JSONObject? {
+        if (table !in setOf("accounts", "transactions", "transfers")) return null
+        val url = "${SupabaseConnection.url.trimEnd('/')}/rest/v1/$table?id=eq.$remoteId&select=*"
+        return JSONArray(execute(token, url, "GET", null, null)).optJSONObject(0)
+    }
+
+    private suspend fun fetchAccount(token: String, remoteId: String): JSONObject? =
+        fetchRow(token, "accounts", remoteId)
 
     private suspend fun applyRemoteAccount(row: JSONObject) {
         val remoteId = row.getString("id")
