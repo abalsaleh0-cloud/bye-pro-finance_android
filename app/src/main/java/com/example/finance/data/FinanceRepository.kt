@@ -90,7 +90,7 @@ class FinanceRepository(
             .put("currency_code", account.currency.uppercase())
             .put("opening_balance", account.openingBalance)
             .put("current_balance", account.balance)
-            .put("institution_name", account.institution.ifBlank { JSONObject.NULL })
+            .put("institution_name", if (account.institution.isBlank()) JSONObject.NULL else account.institution)
             .put("last_four", lastFour ?: JSONObject.NULL)
             .put("is_active", !account.isArchived)
         dao.enqueueSyncMutation(
