@@ -22,6 +22,8 @@ import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransferEntity
 import com.example.finance.model.UserEntity
+import com.example.finance.model.SyncEntityMapEntity
+import com.example.finance.model.SyncOutboxEntity
 
 @Database(
     entities = [
@@ -39,9 +41,11 @@ import com.example.finance.model.UserEntity
         HouseholdExpenseEntity::class,
         DocumentEntity::class,
         NotificationEntity::class,
-        AuditLogEntity::class
+        AuditLogEntity::class,
+        SyncEntityMapEntity::class,
+        SyncOutboxEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -76,6 +80,37 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS sync_entity_map (
+                        entityType TEXT NOT NULL,
+                        localId INTEGER NOT NULL,
+                        remoteId TEXT NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        PRIMARY KEY(entityType, localId)
+                    )
+                """.trimIndent())
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_sync_entity_map_remoteId ON sync_entity_map(remoteId)")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS sync_outbox (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        entityType TEXT NOT NULL,
+                        localId INTEGER NOT NULL,
+                        operation TEXT NOT NULL,
+                        payload TEXT NOT NULL,
+                        state TEXT NOT NULL,
+                        attemptCount INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        lastAttemptAt INTEGER,
+                        lastError TEXT
+                    )
+                """.trimIndent())
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_sync_outbox_state_createdAt ON sync_outbox(state, createdAt)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_sync_outbox_entityType_localId ON sync_outbox(entityType, localId)")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -85,7 +120,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "bye_pro_finance.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build()
                 INSTANCE = instance
                 instance
             }
