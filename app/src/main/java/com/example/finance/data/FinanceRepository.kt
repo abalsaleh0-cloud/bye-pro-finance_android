@@ -37,6 +37,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.math.BigDecimal
 import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import org.json.JSONObject
 
 class FinanceRepository(
@@ -93,6 +97,9 @@ class FinanceRepository(
             .put("institution_name", if (account.institution.isBlank()) JSONObject.NULL else account.institution)
             .put("last_four", lastFour ?: JSONObject.NULL)
             .put("is_active", !account.isArchived)
+            .put("updated_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }.format(Date()))
         dao.enqueueSyncMutation(
             SyncOutboxEntity(
                 entityType = "accounts",
