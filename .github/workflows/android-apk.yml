@@ -15,6 +15,11 @@ on:
 permissions:
   contents: read
 
+# Keep only the newest release validation active for this branch.
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-release:
     runs-on: ubuntu-latest
