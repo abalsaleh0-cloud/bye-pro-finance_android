@@ -52,7 +52,7 @@ class LiteRtLocalAssistant(private val cacheDir: File) {
                 val candidateConversation = candidate.createConversation(
                     ConversationConfig(
                         systemInstruction = Contents.of(
-                            "You are BYE PRO, a capable general-purpose personal AI assistant. " +
+                            "You are AI Bye Pro, a capable general-purpose personal AI assistant. " +
                                 "Talk naturally and warmly, like a thoughtful human conversation partner, without pretending to be human. " +
                                 "Understand general knowledge, explanations, writing, translation, brainstorming, learning, coding and problem solving. " +
                                 "Reply in the same language and conversational register as the user; use natural Arabic when the user writes Arabic. " +
