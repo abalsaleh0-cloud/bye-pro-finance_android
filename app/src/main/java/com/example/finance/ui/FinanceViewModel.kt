@@ -43,6 +43,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.io.FileOutputStream
 
 data class AccountActionFeedback(val operation: String, val succeeded: Boolean)
@@ -472,12 +475,44 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }.getOrNull()
     }
 
+    private fun isFinancialQuestion(query: String): Boolean {
+        val q = query.lowercase(Locale.ROOT)
+        return listOf(
+            "مال", "حساب", "رصيد", "مصروف", "انفاق", "إنفاق", "دخل", "راتب",
+            "معامل", "تحويل", "ميزاني", "دين", "دائن", "مدين", "فاتور",
+            "ادخار", "توفير", "أصل", "أصول", "financial", "account", "balance",
+            "spend", "expense", "income", "salary", "transaction", "transfer",
+            "budget", "debt", "bill", "saving", "asset", "net worth"
+        ).any(q::contains)
+    }
+
+    private fun currentDateAnswer(query: String): String? {
+        val normalized = query.trim().lowercase(Locale.ROOT)
+        val asksForToday = listOf(
+            "ماهو اليوم", "ما هو اليوم", "اي يوم اليوم", "أي يوم اليوم",
+            "ما تاريخ اليوم", "ما هو تاريخ اليوم", "تاريخ اليوم", "كم التاريخ",
+            "what day is it", "what day is today", "what is today's date",
+            "what's today's date", "what is the date today", "current date"
+        ).any(normalized::contains)
+        if (!asksForToday) return null
+        val locale = if (_appLanguage.value == AppLanguage.AR) Locale("ar") else Locale.ENGLISH
+        val pattern = if (_appLanguage.value == AppLanguage.AR) "EEEE، d MMMM yyyy" else "EEEE, MMMM d, yyyy"
+        val today = SimpleDateFormat(pattern, locale).format(Date())
+        return if (_appLanguage.value == AppLanguage.AR) "اليوم هو $today." else "Today is $today."
+    }
+
     fun askAiAssistant(query: String, attachments: List<String> = emptyList()) {
         if ((query.isBlank() && attachments.isEmpty()) || _isAiLoading.value) return
         val trimmedQuery = query.trim()
         _chatMessages.value = _chatMessages.value + ChatMessage("USER", trimmedQuery, attachments = attachments)
         _isAiLoading.value = true
         viewModelScope.launch {
+            val currentDateResponse = if (attachments.isEmpty()) currentDateAnswer(trimmedQuery) else null
+            if (currentDateResponse != null) {
+                _chatMessages.value = _chatMessages.value + ChatMessage("AI", currentDateResponse)
+                _isAiLoading.value = false
+                return@launch
+            }
             val response = if (attachments.isNotEmpty()) {
                 runCatching {
                     require(attachments.size <= 4) { "يمكن تحليل أربع صور كحد أقصى في الرسالة الواحدة." }
@@ -518,17 +553,19 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                     )
                 }
             } else runCatching {
-                val financialContext = FinancialAssistantEngine.answer(
-                    query = trimmedQuery,
-                    accounts = accounts.value,
-                    transactions = transactions.value,
-                    budgets = budgets.value,
-                    debts = debts.value,
-                    savingsGoals = savingsGoals.value,
-                    assets = assets.value,
-                    bills = bills.value,
-                    language = _appLanguage.value
-                )
+                val financialContext = if (isFinancialQuestion(trimmedQuery)) {
+                    FinancialAssistantEngine.answer(
+                        query = trimmedQuery,
+                        accounts = accounts.value,
+                        transactions = transactions.value,
+                        budgets = budgets.value,
+                        debts = debts.value,
+                        savingsGoals = savingsGoals.value,
+                        assets = assets.value,
+                        bills = bills.value,
+                        language = _appLanguage.value
+                    )
+                } else ""
                 val savedPath = aiModelPreferences.getString("active_model_path", null)
                 val savedModel = savedPath?.let(::File)
                 if (savedModel != null && savedModel.isFile) {
