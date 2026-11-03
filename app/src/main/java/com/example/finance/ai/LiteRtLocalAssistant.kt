@@ -104,7 +104,11 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
         }
     }
 
-    suspend fun sendMessage(\n        message: String,\n        financialContext: String,\n        onChunk: (String) -> Unit = {}\n    ): String =
+    suspend fun sendMessage(
+        message: String,
+        financialContext: String,
+        onChunk: (String) -> Unit = {}
+    ): String =
         withContext(dispatcher) {
             mutex.withLock {
                 val activeConversation = checkNotNull(conversation) {
@@ -122,7 +126,9 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
                 }
                 val output = StringBuilder()
                 activeConversation.sendMessageAsync(prompt).collect { chunk ->
-                    output.append(chunk.toString())
+                    val text = chunk.toString()
+                    output.append(text)
+                    onChunk(text)
                 }
                 output.toString().trim().ifBlank { "لم ينتج النموذج إجابة نصية." }
             }
