@@ -79,6 +79,12 @@ class SupabaseAuthRepository(context: Context) {
         }.getOrDefault(false)
     }
 
+    /** Returns a usable bearer token, refreshing the stored session when needed. */
+    suspend fun getValidAccessToken(): String? = withContext(Dispatchers.IO) {
+        if (!hasValidSession() && !restoreSession()) return@withContext null
+        preferences.getString(KEY_ACCESS_TOKEN, null)?.takeIf(String::isNotBlank)
+    }
+
     suspend fun requestPasswordReset(email: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val normalizedEmail = email.trim()
