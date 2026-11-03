@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
@@ -588,12 +589,38 @@ fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean =
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (isUser) MaterialTheme.colorScheme.onPrimary else ByeProTheme.colors.textPrimary
                 )
-                if (!isUser) {
-                    SpeakTextButton(
-                        text = message.text,
-                        languageCode = if (lang == AppLanguage.AR) "ar" else "en",
-                        autoSpeak = autoSpeak
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val context = LocalContext.current
+                    IconButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+                            clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("AI Bye Pro", message.text))
+                            Toast.makeText(
+                                context,
+                                WebI18n.tr("تم نسخ النص", "Text copied", lang),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.ContentCopy,
+                            contentDescription = WebI18n.tr("نسخ النص", "Copy text", lang),
+                            tint = if (isUser) MaterialTheme.colorScheme.onPrimary else ByeProTheme.colors.goldPrimary,
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
+                    if (!isUser) {
+                        SpeakTextButton(
+                            text = message.text,
+                            languageCode = if (lang == AppLanguage.AR) "ar" else "en",
+                            autoSpeak = autoSpeak
+                        )
+                    }
                 }
             }
         }
