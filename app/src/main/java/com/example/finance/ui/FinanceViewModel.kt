@@ -112,7 +112,34 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private fun resetWelcomeMessage() { _chatMessages.value = listOf(ChatMessage("AI", WebI18n.tr("مرحباً بك في BYE PRO FINANCE! أنا مساعدك المالي الذكي. يمكنك سؤالي عن مصروفاتك، ميزانيتك، أو تحليل وضعك المالي بدقة.", "Welcome to BYE PRO FINANCE! I am your AI Financial Assistant. Ask me anything about your cash flow, budgets, or savings goals.", _appLanguage.value))) }
     fun setScreen(screen: String) { _currentScreen.value = screen }
     fun addWorkSource(source: WorkSourceEntity, onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { onComplete(runCatching { repository.addWorkSource(source) }.isSuccess) } }
-    fun addWorkRecord(record: WorkRecordEntity, onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { onComplete(runCatching { repository.addWorkRecord(record) }.isSuccess) } }
+    fun addWorkRecord(record: WorkRecordEntity, accountId: Long? = null, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = runCatching {
+                val linkedRecord = if (accountId != null) {
+                    val account = accounts.value.firstOrNull { it.id == accountId }
+                        ?: throw IllegalArgumentException("Selected account was not found")
+                    val isExpense = record.type == WorkRecordType.FREELANCE_EXPENSE
+                    val isCashMovement = record.type in setOf(WorkRecordType.ADVANCE, WorkRecordType.BONUS, WorkRecordType.OVERTIME, WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.SALARY_PAYMENT)
+                    if (isCashMovement) {
+                        val txId = repository.addTransaction(
+                            TransactionEntity(
+                                accountId = account.id,
+                                type = if (isExpense) TransactionType.EXPENSE else TransactionType.INCOME,
+                                amount = record.amount,
+                                currency = account.currency,
+                                category = if (isExpense) "WORK_EXPENSE" else "WORK_INCOME",
+                                description = record.notes.ifBlank { record.type.name },
+                                status = TransactionStatus.COMPLETED
+                            )
+                        )
+                        record.copy(currency = account.currency, linkedAccountId = account.id, linkedTransactionId = txId)
+                    } else record
+                } else record
+                repository.addWorkRecord(linkedRecord)
+            }
+            onComplete(result.isSuccess)
+        }
+    }
     fun toggleLanguage() { setLanguage(if (_appLanguage.value == AppLanguage.AR) AppLanguage.EN else AppLanguage.AR) }
     fun setLanguage(lang: AppLanguage) { if (_appLanguage.value == lang) return; _appLanguage.value = lang; WebI18n.write(getApplication(), lang); if (_chatMessages.value.size <= 1) resetWelcomeMessage() }
     fun setDarkMode(dark: Boolean) { _isDarkMode.value = dark; WebI18n.writeDarkMode(getApplication(), dark) }
