@@ -60,6 +60,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val notifications: StateFlow<List<NotificationEntity>> = repository.notifications.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val auditLogs: StateFlow<List<AuditLogEntity>> = repository.auditLogs.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val currentUser: StateFlow<UserEntity?> = repository.currentUser.withStartupFallback(null).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val workSources: StateFlow<List<WorkSourceEntity>> = repository.workSources.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val workRecords: StateFlow<List<WorkRecordEntity>> = repository.workRecords.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val _appLanguage = MutableStateFlow(WebI18n.read(application))
     val appLanguage: StateFlow<AppLanguage> = _appLanguage.asStateFlow()
     private val preferences = application.getSharedPreferences("bye_pro_finance_preferences", Application.MODE_PRIVATE)
@@ -109,6 +111,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     init { resetWelcomeMessage(); viewModelScope.launch { runCatching { repository.accounts.first(); repository.archivedAccounts.first() }; _accountsLoading.value = false } }
     private fun resetWelcomeMessage() { _chatMessages.value = listOf(ChatMessage("AI", WebI18n.tr("مرحباً بك في BYE PRO FINANCE! أنا مساعدك المالي الذكي. يمكنك سؤالي عن مصروفاتك، ميزانيتك، أو تحليل وضعك المالي بدقة.", "Welcome to BYE PRO FINANCE! I am your AI Financial Assistant. Ask me anything about your cash flow, budgets, or savings goals.", _appLanguage.value))) }
     fun setScreen(screen: String) { _currentScreen.value = screen }
+    fun addWorkSource(source: WorkSourceEntity, onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { onComplete(runCatching { repository.addWorkSource(source) }.isSuccess) } }
+    fun addWorkRecord(record: WorkRecordEntity, onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { onComplete(runCatching { repository.addWorkRecord(record) }.isSuccess) } }
     fun toggleLanguage() { setLanguage(if (_appLanguage.value == AppLanguage.AR) AppLanguage.EN else AppLanguage.AR) }
     fun setLanguage(lang: AppLanguage) { if (_appLanguage.value == lang) return; _appLanguage.value = lang; WebI18n.write(getApplication(), lang); if (_chatMessages.value.size <= 1) resetWelcomeMessage() }
     fun setDarkMode(dark: Boolean) { _isDarkMode.value = dark; WebI18n.writeDarkMode(getApplication(), dark) }
