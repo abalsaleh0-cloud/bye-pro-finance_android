@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Eq '^APP_VERSION_NAME=[0-9]+\\.[0-9]+\\.[0-9]+$' gradle.properties
+          grep -Eq '^APP_VERSION_NAME=[0-9]+\.[0-9]+\.[0-9]+$' gradle.properties
           grep -Eq '^APP_VERSION_CODE=[0-9]+$' gradle.properties
 
       - name: Set up JDK 21
@@ -45,8 +45,8 @@ jobs:
 
       - name: Create local debug signing key
         run: |
-          keytool -genkeypair -v -keystore debug.keystore -storepass android \\
-            -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \\
+          keytool -genkeypair -v -keystore debug.keystore -storepass android \
+            -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
             -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
 
       - name: Build debug APK
@@ -63,7 +63,7 @@ jobs:
           script: |
             adb wait-for-device
             for attempt in $(seq 1 60); do
-              boot_completed=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\\r')
+              boot_completed=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
               package_service=$(adb shell service check package 2>/dev/null || true)
               activity_service=$(adb shell service check activity 2>/dev/null || true)
               if [ "$boot_completed" = "1" ] && echo "$package_service" | grep -q "found" && echo "$activity_service" | grep -q "found"; then break; fi
