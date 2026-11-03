@@ -16,6 +16,7 @@ import com.example.finance.model.AssetType
 import com.google.ai.edge.litertlm.Tool
 import com.google.ai.edge.litertlm.ToolParam
 import com.google.ai.edge.litertlm.ToolSet
+import org.json.JSONArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,6 +51,7 @@ class AiAppToolSet(
         data class Budget(val value: BudgetEntity) : PendingPayload
         data class Project(val value: AiProjectPlan) : PendingPayload
         data class ProjectFile(val projectId: String, val path: String, val content: String) : PendingPayload
+        data class ProjectFiles(val projectId: String, val writes: List<AiProjectFileWrite>) : PendingPayload
         data class Account(val value: AccountEntity) : PendingPayload
         data class Transaction(val value: TransactionEntity) : PendingPayload
         data class Debt(val value: DebtEntity) : PendingPayload
@@ -200,6 +202,47 @@ class AiAppToolSet(
         _pendingAction.value = preview
         return mapOf("success" to true, "requires_user_confirmation" to true, "preview_id" to preview.id,
             "message" to "A project file write preview is visible. Wait for user confirmation.")
+    }
+    @Tool(description = "Prepare multiple UTF-8 source or project files in one reviewable change. Pass a JSON array of objects with path and content. Limits: 20 files, 1 MiB per file, 5 MiB total. No file is written until the user confirms the preview.")
+    fun proposeWriteProjectFiles(
+        @ToolParam(description = "Existing project identifier.") projectId: String,
+        @ToolParam(description = "JSON array of objects with path and content fields.") filesJson: String
+    ): Map<String, Any> {
+        if (workspace.getPlan(projectId) == null) return mapOf("success" to false, "error" to "Project not found.")
+        if (filesJson.toByteArray(Charsets.UTF_8).size > 5 * 1024 * 1024) {
+            return mapOf("success" to false, "error" to "Project batch exceeds the 5 MiB limit.")
+        }
+        val writes = runCatching {
+            val array = JSONArray(filesJson)
+            require(array.length() in 1..20) { "A batch must contain 1 to 20 files." }
+            (0 until array.length()).map { index ->
+                val item = array.getJSONObject(index)
+                require(item.has("path") && item.has("content")) { "Each file needs path and content." }
+                AiProjectFileWrite(item.getString("path"), item.getString("content"))
+            }
+        }.getOrElse { error ->
+            return mapOf("success" to false, "error" to (error.message ?: "Invalid file manifest."))
+        }
+        val fileWorkspace = workspace.fileWorkspace()
+        runCatching { fileWorkspace.validateWrites(projectId, writes) }.onFailure { error ->
+            return mapOf("success" to false, "error" to (error.message ?: "Invalid project file batch."))
+        }
+        val totalBytes = writes.sumOf { it.content.toByteArray(Charsets.UTF_8).size }
+        val preview = AiActionPreview(
+            id = UUID.randomUUID().toString(),
+            title = "مراجعة تعديل ملفات المشروع",
+            description = buildString {
+                append("المشروع: ").append(projectId).append("\n")
+                append("عدد الملفات: ").append(writes.size).append("\n")
+                append("الحجم الإجمالي: ").append(totalBytes).append(" bytes\n")
+                writes.forEach { append("• ").append(it.path).append(" (").append(it.content.toByteArray(Charsets.UTF_8).size).append(" bytes)\n") }
+                append("لن تتغير الملفات قبل تأكيدك.")
+            }
+        )
+        pending = Pending(preview, PendingPayload.ProjectFiles(projectId, writes))
+        _pendingAction.value = preview
+        return mapOf("success" to true, "requires_user_confirmation" to true, "preview_id" to preview.id,
+            "message" to "A multi-file project change preview is visible. Wait for explicit confirmation.")
     }
     @Tool(description = "Read the most recent transactions from the local database. Never infer or invent missing transaction fields.")
     fun getRecentTransactions(
@@ -522,6 +565,10 @@ class AiAppToolSet(
             is PendingPayload.ProjectFile -> {
                 val saved = workspace.fileWorkspace().writeFile(payload.projectId, payload.path, payload.content)
                 "تم حفظ الملف «" + saved.path + "» داخل مساحة المشروع بعد تأكيدك."
+            }
+            is PendingPayload.ProjectFiles -> {
+                val saved = workspace.fileWorkspace().writeFiles(payload.projectId, payload.writes)
+                "تم حفظ ${saved.size} ملفات داخل مساحة المشروع بعد تأكيدك."
             }
             is PendingPayload.Account -> { repository.addAccount(payload.value); "تم إنشاء الحساب بعد تأكيدك." }
             is PendingPayload.Transaction -> { repository.addTransaction(payload.value); "تم تسجيل المعاملة بعد تأكيدك." }
