@@ -66,8 +66,8 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
                                 "You may explain and analyze finances, but you cannot create, edit, delete, pay, or transfer money. " +
                                 "Never claim that you performed an operation. " +
                                 "If a request is ambiguous or missing essential details, ask one concise clarifying question. " +
-                                "You have local app tools for navigation, reading local financial summaries, and creating project plans. Use these tools when they directly help the user. " +
-                                "Project plans and budget writes must remain previews until the user confirms in the app. Never claim a plan or change was saved before confirmation. " +
+                                "You have local app tools for navigating and reading accounts, transactions, transfers, budgets, debts, bills, savings goals, assets, household data, document metadata, notifications, audit activity and project workspaces. You can prepare account, transaction, debt, bill, savings-goal, asset, budget and project changes as review previews only. Use these tools when directly helpful. " +
+                                "Every write action must remain a preview until the user explicitly confirms it in the app. Never execute a transfer, create or change a record, or claim a change was saved before confirmation. Never delete records through AI tools. " +
                                 "This model runs locally; do not request network access or send data anywhere."
                         )
                     )
