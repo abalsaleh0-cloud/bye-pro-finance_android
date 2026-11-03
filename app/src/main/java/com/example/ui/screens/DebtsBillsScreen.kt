@@ -14,6 +14,7 @@ import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,6 +36,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -207,69 +210,71 @@ fun DebtsBillsScreen(
         DebtPaymentHistoryDialog(debt = historyDebt!!, viewModel = viewModel, lang = lang, onDismiss = { historyDebt = null })
     }
 
-    // Pay Debt Dialog
+    // Debt payments are posted to the selected account and transaction ledger atomically.
     if (debtToPay != null) {
         val target = debtToPay!!
-        var payAmountStr by remember { mutableStateOf(target.minimumPayment.toString()) }
-        var payNotes by remember { mutableStateOf(WebI18n.tr("دفعة سداد", "Debt payment", lang)) }
-        var paymentDateText by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())) }
-        var paymentError by remember { mutableStateOf("") }
+        val eligibleAccounts = accounts.filter { it.currency.equals(target.currency, ignoreCase = true) }
+        var payAmountStr by remember(target.id) { mutableStateOf(target.minimumPayment.toString()) }
+        var payNotes by remember(target.id) { mutableStateOf(WebI18n.tr("دفعة دين", "Debt payment", lang)) }
+        var paymentDateText by remember(target.id) { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())) }
+        var paymentError by remember(target.id) { mutableStateOf("") }
+        var accountMenuExpanded by remember(target.id) { mutableStateOf(false) }
+        var selectedAccountId by remember(target.id) { mutableStateOf(eligibleAccounts.firstOrNull()?.id) }
+        val selectedAccount = eligibleAccounts.firstOrNull { it.id == selectedAccountId }
+        val isOutgoingDebt = target.direction == "i_owe"
 
         FinanceAlertDialog(
             onDismissRequest = { debtToPay = null },
-            title = { Text(WebI18n.tr("تسجيل سداد:", "Record payment:", lang) + " ${target.name}") },
+            title = { Text(WebI18n.tr(if (isOutgoingDebt) "تسجيل سداد:" else "تسجيل تحصيل:", if (isOutgoingDebt) "Record payment:" else "Record collection:", lang) + " " + target.name) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(WebI18n.tr("المتبقي الحالي:", "Current remaining:", lang) + " ${TextContent.money(target.remaining, target.currency, lang)}")
-                    FinanceTextField(
-                        value = payAmountStr,
-                        onValueChange = { payAmountStr = it },
-                        label = { Text(WebI18n.tr("مبلغ السداد", "Payment amount", lang)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    FinanceTextField(
-                        value = paymentDateText,
-                        onValueChange = { paymentDateText = it },
-                        label = { Text(WebI18n.tr("تاريخ الدفعة (YYYY-MM-DD)", "Payment date (YYYY-MM-DD)", lang)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    FinanceTextField(
-                        value = payNotes,
-                        onValueChange = { payNotes = it },
-                        label = { Text(WebI18n.tr("ملاحظات", "Notes", lang)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Text(WebI18n.tr("المتبقي الحالي:", "Current remaining:", lang) + " " + TextContent.money(target.remaining, target.currency, lang))
+                    Text(WebI18n.tr("الحساب المالي", "Financial account", lang), style = MaterialTheme.typography.labelMedium)
+                    Box {
+                        FinanceOutlinedButton(onClick = { accountMenuExpanded = true }, modifier = Modifier.fillMaxWidth(), enabled = eligibleAccounts.isNotEmpty()) {
+                            Text(selectedAccount?.let { it.name + " • " + TextContent.money(it.balance, it.currency, lang) } ?: WebI18n.tr("لا يوجد حساب بهذه العملة", "No account in this currency", lang))
+                        }
+                        DropdownMenu(expanded = accountMenuExpanded, onDismissRequest = { accountMenuExpanded = false }) {
+                            eligibleAccounts.forEach { account ->
+                                DropdownMenuItem(
+                                    text = { Text(account.name + " • " + TextContent.money(account.balance, account.currency, lang)) },
+                                    onClick = { selectedAccountId = account.id; accountMenuExpanded = false }
+                                )
+                            }
+                        }
+                    }
+                    FinanceTextField(value = payAmountStr, onValueChange = { payAmountStr = it }, label = { Text(WebI18n.tr("مبلغ العملية", "Amount", lang)) }, modifier = Modifier.fillMaxWidth())
+                    FinanceTextField(value = paymentDateText, onValueChange = { paymentDateText = it }, label = { Text(WebI18n.tr("تاريخ العملية (YYYY-MM-DD)", "Transaction date (YYYY-MM-DD)", lang)) }, modifier = Modifier.fillMaxWidth())
+                    FinanceTextField(value = payNotes, onValueChange = { payNotes = it }, label = { Text(WebI18n.tr("ملاحظات", "Notes", lang)) }, modifier = Modifier.fillMaxWidth())
                     if (paymentError.isNotBlank()) Text(paymentError, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
                 }
             },
             confirmButton = {
                 FinanceButton(
                     onClick = {
-                        val amt = payAmountStr.toDoubleOrNull() ?: 0.0
+                        val amount = payAmountStr.toDoubleOrNull() ?: 0.0
                         val parsedDate = try { SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(paymentDateText)?.time } catch (_: Exception) { null }
                         paymentError = when {
-                            !amt.isFinite() || amt <= 0.0 -> WebI18n.tr("أدخل مبلغ دفعة صحيحاً.", "Enter a valid payment amount.", lang)
-                            amt > target.remaining -> WebI18n.tr("مبلغ الدفعة أكبر من المتبقي.", "Payment exceeds remaining balance.", lang)
+                            selectedAccount == null -> WebI18n.tr("اختر حساباً بنفس عملة الدين.", "Select an account in the debt currency.", lang)
+                            !amount.isFinite() || amount <= 0.0 -> WebI18n.tr("أدخل مبلغاً صحيحاً.", "Enter a valid amount.", lang)
+                            amount > target.remaining -> WebI18n.tr("المبلغ أكبر من المتبقي.", "Amount exceeds remaining balance.", lang)
+                            isOutgoingDebt && selectedAccount.balance < amount -> WebI18n.tr("رصيد الحساب غير كافٍ.", "Insufficient account balance.", lang)
                             parsedDate == null -> WebI18n.tr("أدخل تاريخاً صحيحاً.", "Enter a valid date.", lang)
                             else -> ""
                         }
-                        if (paymentError.isBlank() && parsedDate != null) {
-                            viewModel.payDebt(target.id, amt, payNotes, parsedDate)
-                            debtToPay = null
+                        if (paymentError.isBlank() && parsedDate != null && selectedAccount != null) {
+                            viewModel.payDebt(target.id, selectedAccount.id, amount, payNotes, parsedDate) { success ->
+                                if (success) debtToPay = null
+                                else paymentError = WebI18n.tr("تعذر تسجيل العملية. لم تتغير البيانات المالية.", "Could not post transaction. Financial data was not changed.", lang)
+                            }
                         }
-                    }
-                ) {
-                    Text(Strings.get("confirm", lang))
-                }
+                    },
+                    enabled = eligibleAccounts.isNotEmpty()
+                ) { Text(Strings.get("confirm", lang)) }
             },
-            dismissButton = {
-                FinanceOutlinedButton(onClick = { debtToPay = null }) {
-                    Text(Strings.get("cancel", lang))
-                }
-            }
+            dismissButton = { FinanceOutlinedButton(onClick = { debtToPay = null }) { Text(Strings.get("cancel", lang)) } }
         )
     }
-
     if (showAddDebtDialog || editingDebt != null) {
         AddDebtDialog(
             lang = lang,
