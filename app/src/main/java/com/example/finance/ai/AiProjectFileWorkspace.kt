@@ -4,6 +4,7 @@ import java.io.File
 import java.io.IOException
 
 data class AiProjectFileEntry(val path: String, val sizeBytes: Long, val modifiedAt: Long)
+data class AiProjectFileWrite(val path: String, val content: String)
 
 /** App-private project files. All writes are confirmation-gated by AiAppToolSet. */
 class AiProjectFileWorkspace(private val rootDirectory: File) {
@@ -40,6 +41,42 @@ class AiProjectFileWorkspace(private val rootDirectory: File) {
         return AiProjectFileEntry(file.relativeTo(projectDirectory(projectId)).invariantSeparatorsPath, file.length(), file.lastModified())
     }
 
+    /** Validate the full batch before changing anything; restore prior files if a later write fails. */
+    fun writeFiles(projectId: String, writes: List<AiProjectFileWrite>): List<AiProjectFileEntry> {
+        require(writes.isNotEmpty() && writes.size <= MAX_BATCH_FILES) { "A batch must contain 1 to 20 files." }
+        val normalizedPaths = writes.map { it.path.trim() }
+        require(normalizedPaths.distinct().size == normalizedPaths.size) { "Duplicate paths are not allowed in one batch." }
+        val prepared = writes.mapIndexed { index, write ->
+            val bytes = write.content.toByteArray(Charsets.UTF_8)
+            require(bytes.size <= MAX_FILE_BYTES) { "Project file exceeds the 1 MiB write limit: ${write.path}" }
+            Triple(resolveFile(projectId, normalizedPaths[index]), bytes, normalizedPaths[index])
+        }
+        require(prepared.sumOf { it.second.size.toLong() } <= MAX_BATCH_BYTES) {
+            "The total project batch exceeds the 5 MiB limit."
+        }
+        prepared.forEach { (file, _, path) ->
+            require(!file.exists() || file.isFile) { "Project path is not a regular file: $path" }
+        }
+        val previous = prepared.associate { (file, _, path) ->
+            path to if (file.isFile) file.readBytes() else null
+        }
+        val completed = mutableListOf<String>()
+        try {
+            return prepared.map { (_, bytes, path) ->
+                writeFile(projectId, path, String(bytes, Charsets.UTF_8)).also { completed += path }
+            }
+        } catch (error: Throwable) {
+            completed.asReversed().forEach { path ->
+                runCatching {
+                    val old = previous[path]
+                    if (old == null) resolveFile(projectId, path).delete()
+                    else writeFile(projectId, path, String(old, Charsets.UTF_8))
+                }
+            }
+            throw error
+        }
+    }
+
     private fun projectDirectory(projectId: String): File {
         require(projectId.matches(Regex("[A-Za-z0-9_-]{1,80}"))) { "Invalid project identifier." }
         val root = rootDirectory.canonicalFile
@@ -64,5 +101,7 @@ class AiProjectFileWorkspace(private val rootDirectory: File) {
     private companion object {
         const val MAX_FILE_BYTES = 1024L * 1024L
         const val MAX_FILES = 200
+        const val MAX_BATCH_FILES = 20
+        const val MAX_BATCH_BYTES = 5L * 1024L * 1024L
     }
 }
