@@ -99,7 +99,8 @@ fun AiAssistantScreen(
 ) {
     val lang by viewModel.appLanguage.collectAsState()
     val messages by viewModel.chatMessages.collectAsState()
-    val isAiLoading by viewModel.isAiLoading.collectAsState()\n    val streamingAiText by viewModel.streamingAiText.collectAsState()
+    val isAiLoading by viewModel.isAiLoading.collectAsState()
+    val streamingAiText by viewModel.streamingAiText.collectAsState()
     val localModelReady by viewModel.localModelReady.collectAsState()
     val localModelLoading by viewModel.localModelLoading.collectAsState()
     val localModelProgress by viewModel.localModelProgress.collectAsState()
