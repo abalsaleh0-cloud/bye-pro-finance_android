@@ -36,6 +36,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -86,6 +88,7 @@ fun AiAssistantScreen(
     val localModelLoading by viewModel.localModelLoading.collectAsState()
     val localModelProgress by viewModel.localModelProgress.collectAsState()
     val localModelStatus by viewModel.localModelStatus.collectAsState()
+    val pendingAiAction by viewModel.pendingAiAction.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
 
@@ -414,6 +417,24 @@ fun AiAssistantScreen(
                 }
             )
         }
+    }
+
+    pendingAiAction?.let { action ->
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelPendingAiAction(action.id) },
+            title = { Text(action.title) },
+            text = { Text(action.description) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmPendingAiAction(action.id) }) {
+                    Text(WebI18n.tr("تأكيد التنفيذ", "Confirm", lang))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelPendingAiAction(action.id) }) {
+                    Text(WebI18n.tr("إلغاء", "Cancel", lang))
+                }
+            }
+        )
     }
 }
 
