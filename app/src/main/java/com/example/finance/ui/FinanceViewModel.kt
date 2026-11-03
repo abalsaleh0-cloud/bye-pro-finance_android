@@ -219,11 +219,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun deleteDebt(debt: DebtEntity) { viewModelScope.launch { repository.deleteDebt(debt) } }
     fun addBill(bill: BillEntity) { viewModelScope.launch { repository.addBill(bill) } }
     fun updateBill(bill: BillEntity) { viewModelScope.launch { repository.updateBill(bill) } }
-    fun markBillPaid(billId: Long, accountId: Long) { viewModelScope.launch { repository.markBillPaid(billId, accountId) } }
+    fun markBillPaid(billId: Long, accountId: Long, onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { onComplete(runCatching { repository.markBillPaid(billId, accountId) }.getOrDefault(false)) } }
     fun deleteBill(bill: BillEntity) { viewModelScope.launch { repository.deleteBill(bill) } }
     fun addSavingsGoal(goal: SavingsGoalEntity) { viewModelScope.launch { repository.addSavingsGoal(goal) } }
     fun updateSavingsGoal(goal: SavingsGoalEntity) { viewModelScope.launch { repository.updateSavingsGoal(goal) } }
-    fun contributeToSavings(goalId: Long, amount: Double, accountId: Long) { viewModelScope.launch { repository.contributeToSavings(goalId, amount, accountId) } }
+    fun contributeToSavings(goalId: Long, amount: Double, accountId: Long, onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { onComplete(runCatching { repository.contributeToSavings(goalId, amount, accountId) }.getOrDefault(false)) } }
     fun deleteSavingsGoal(goal: SavingsGoalEntity) { viewModelScope.launch { repository.deleteSavingsGoal(goal) } }
     fun addAsset(asset: AssetEntity) { viewModelScope.launch { repository.addAsset(asset) } }
     fun updateAsset(asset: AssetEntity) { viewModelScope.launch { repository.updateAsset(asset) } }
