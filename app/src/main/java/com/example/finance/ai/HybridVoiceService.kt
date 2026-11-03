@@ -108,7 +108,7 @@ class ElevenLabsSpeechProvider(context: Context) {
         .callTimeout(120, TimeUnit.SECONDS)
         .build()
 
-    suspend fun synthesize(text: String, languageCode: String): ByteArray? = withContext(Dispatchers.IO) {
+    suspend fun synthesize(text: String): ByteArray? = withContext(Dispatchers.IO) {
         val apiKey = settings.readApiKey() ?: return@withContext null
         val voiceId = settings.readVoiceId().ifBlank { return@withContext null }
         val cleanText = text.trim().take(MAX_TEXT_LENGTH)
