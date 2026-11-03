@@ -30,11 +30,18 @@ data class AiActionPreview(
  */
 class AiAppToolSet(
     private val repository: FinanceRepository,
+    private val workspace: AiProjectWorkspace,
     private val navigate: (String) -> Unit
 ) : ToolSet {
     private val _pendingAction = MutableStateFlow<AiActionPreview?>(null)
     val pendingAction: StateFlow<AiActionPreview?> = _pendingAction.asStateFlow()
     private val actionMutex = Mutex()
+    private sealed interface PendingPayload {
+        data class Budget(val value: BudgetEntity) : PendingPayload
+        data class Project(val value: AiProjectPlan) : PendingPayload
+    }
+    private data class Pending(val preview: AiActionPreview, val payload: PendingPayload)
+    @Volatile private var pending: Pending? = null
 
     @Tool(description = "Navigate to an existing section of the BYE PRO FINANCE app. Allowed sections: dashboard, accounts, transactions, budgets, debts, bills, savings, assets, transfers, reports, household, documents, notifications, settings, ai_assistant.")
     fun navigateToAppSection(
@@ -70,6 +77,66 @@ class AiAppToolSet(
             "savingsGoals" to savingsRows.take(30).map {
                 mapOf("name" to it.name, "target" to it.targetAmount, "current" to it.currentAmount, "currency" to it.currency)
             }
+        )
+    }
+
+    @Tool(description = "List locally saved project plans and their milestones and tasks. Do not invent project details.")
+    fun listProjectPlans(): List<Map<String, Any>> = workspace.listPlans().take(30).map { plan ->
+        mapOf(
+            "id" to plan.id,
+            "title" to plan.title,
+            "objective" to plan.objective,
+            "technologyStack" to plan.technologyStack,
+            "milestones" to plan.milestones,
+            "tasks" to plan.tasks,
+            "createdAt" to plan.createdAt
+        )
+    }
+
+    @Tool(description = "Prepare a complete project plan for local saving. Provide milestones and tasks as newline-separated lists. This only creates a review preview; it does not save until the user confirms.")
+    fun proposeCreateProjectPlan(
+        @ToolParam(description = "Short project title.") title: String,
+        @ToolParam(description = "Clear project objective and scope.") objective: String,
+        @ToolParam(description = "Suggested technology stack.") technologyStack: String,
+        @ToolParam(description = "Milestones, one per line, in execution order.") milestones: String,
+        @ToolParam(description = "Concrete tasks, one per line.") tasks: String
+    ): Map<String, Any> {
+        val cleanTitle = title.trim()
+        val cleanObjective = objective.trim()
+        val cleanStack = technologyStack.trim()
+        val milestoneItems = milestones.lines().map(String::trim).filter(String::isNotBlank).take(15)
+        val taskItems = tasks.lines().map(String::trim).filter(String::isNotBlank).take(40)
+        if (cleanTitle.length !in 3..100 || cleanObjective.length !in 10..1500 ||
+            cleanStack.length !in 3..1200 || milestoneItems.isEmpty() || taskItems.isEmpty()
+        ) return mapOf("success" to false, "error" to "Project plan is incomplete or exceeds the supported limits.")
+        val plan = AiProjectPlan(
+            id = UUID.randomUUID().toString(),
+            title = cleanTitle,
+            objective = cleanObjective,
+            technologyStack = cleanStack,
+            milestones = milestoneItems,
+            tasks = taskItems,
+            createdAt = System.currentTimeMillis()
+        )
+        val preview = AiActionPreview(
+            id = UUID.randomUUID().toString(),
+            title = "مراجعة خطة المشروع",
+            description = buildString {
+                append("المشروع: $cleanTitle\n")
+                append("الهدف: $cleanObjective\n")
+                append("التقنيات: $cleanStack\n")
+                append("المراحل:\n")
+                milestoneItems.forEachIndexed { index, item -> append("${index + 1}. $item\n") }
+                append("المهام: ${taskItems.size}")
+            }
+        )
+        pending = Pending(preview, PendingPayload.Project(plan))
+        _pendingAction.value = preview
+        return mapOf(
+            "success" to true,
+            "requires_user_confirmation" to true,
+            "preview_id" to preview.id,
+            "message" to "A project plan preview is visible. Wait for user confirmation before saving."
         )
     }
 
@@ -112,14 +179,14 @@ class AiAppToolSet(
             title = "مراجعة إنشاء ميزانية",
             description = "الاسم: $cleanName\nالفئة: $cleanCategory\nالحد: $limitAmount $cleanCurrency\nالمدة: شهرية"
         )
-        _pendingAction.value = preview
-        stagedBudget = BudgetEntity(
+        pending = Pending(preview, PendingPayload.Budget(BudgetEntity(
             name = cleanName,
             category = cleanCategory,
             period = BudgetPeriod.MONTHLY,
             limitAmount = limitAmount,
             currency = cleanCurrency
-        )
+        )))
+        _pendingAction.value = preview
         return mapOf(
             "success" to true,
             "requires_user_confirmation" to true,
@@ -128,22 +195,27 @@ class AiAppToolSet(
         )
     }
 
-    @Volatile
-    private var stagedBudget: BudgetEntity? = null
-
     suspend fun confirmPendingAction(actionId: String): String = actionMutex.withLock {
-        val preview = _pendingAction.value ?: error("لا توجد عملية تنتظر التأكيد.")
-        require(preview.id == actionId) { "انتهت صلاحية معاينة العملية." }
-        val budget = stagedBudget ?: error("بيانات الميزانية غير متاحة.")
-        repository.addBudget(budget)
+        val staged = pending ?: error("لا توجد عملية تنتظر التأكيد.")
+        require(staged.preview.id == actionId) { "انتهت صلاحية معاينة العملية." }
+        val result = when (val payload = staged.payload) {
+            is PendingPayload.Budget -> {
+                repository.addBudget(payload.value)
+                "تم إنشاء الميزانية «${payload.value.name}» بنجاح بعد تأكيدك."
+            }
+            is PendingPayload.Project -> {
+                workspace.savePlan(payload.value)
+                "تم حفظ خطة المشروع «${payload.value.title}» محليًا بعد تأكيدك."
+            }
+        }
+        pending = null
         _pendingAction.value = null
-        stagedBudget = null
-        "تم إنشاء الميزانية «${budget.name}» بنجاح بعد تأكيدك."
+        result
     }
 
     fun cancelPendingAction(actionId: String) {
-        if (_pendingAction.value?.id != actionId) return
+        if (pending?.preview?.id != actionId) return
+        pending = null
         _pendingAction.value = null
-        stagedBudget = null
     }
 }
