@@ -173,7 +173,7 @@ fun DebtsBillsScreen(
                                     lang = lang,
                                     onMarkPaid = {
                                         val matchingAccount = accounts.firstOrNull { it.currency.equals(bill.currency, true) && it.balance >= bill.amount }
-                                        if (matchingAccount != null) viewModel.markBillPaid(bill.id, matchingAccount.id)
+                                        if (matchingAccount != null) viewModel.markBillPaid(bill.id, matchingAccount.id) { success -> billPaymentFailed = !success } else billPaymentFailed = true
                                     },
                                     onDelete = { viewModel.deleteBill(bill) }
                                 )
