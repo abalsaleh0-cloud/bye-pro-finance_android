@@ -112,6 +112,8 @@ private inline fun ByteArray.takeWhileIndexed(predicate: (Int, Byte) -> Boolean)
 fun AiModelsSettingsScreen(
     autoSpeakReplies: Boolean,
     onAutoSpeakRepliesChange: (Boolean) -> Unit,
+    cloudGeneralEnabled: Boolean,
+    onCloudGeneralEnabledChange: (Boolean) -> Unit,
     localModelReady: Boolean,
     localModelLoading: Boolean,
     localModelProgress: Float,
@@ -319,6 +321,12 @@ fun AiModelsSettingsScreen(
         }
         item {
             VoiceProviderSettingsCard()
+        }
+        item {
+            HybridAssistantSettingsCard(
+                cloudGeneralEnabled = cloudGeneralEnabled,
+                onCloudGeneralEnabledChange = onCloudGeneralEnabledChange
+            )
         }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
