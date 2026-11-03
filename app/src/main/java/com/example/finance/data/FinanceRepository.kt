@@ -68,11 +68,21 @@ class FinanceRepository(
         id
     }
 
-    suspend fun addWorkRecord(record: WorkRecordEntity): Long = withContext(Dispatchers.IO) {
+    suspend fun addWorkRecord(record: WorkRecordEntity, transaction: TransactionEntity? = null): Long = withContext(Dispatchers.IO) {
         require(record.amount > 0.0 && record.amount.isFinite()) { "Amount must be positive" }
-        val id = dao.insertWorkRecord(record)
-        logAudit("CREATE", "WorkRecord", "Recorded ${record.type}: ${record.amount} ${record.currency}")
-        id
+        require(record.period.matches(Regex("\\d{4}-\\d{2}"))) { "Work record period must use YYYY-MM format" }
+        val operation: suspend () -> Long = {
+            val transactionId = transaction?.let { addTransaction(it) }
+            val linked = if (transactionId != null) record.copy(
+                currency = transaction.currency,
+                linkedAccountId = transaction.accountId,
+                linkedTransactionId = transactionId
+            ) else record
+            val id = dao.insertWorkRecord(linked)
+            logAudit("CREATE", "WorkRecord", "Recorded ${linked.type}: ${linked.amount} ${linked.currency}")
+            id
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
     }
 
     suspend fun logAudit(action: String, resource: String, details: String) {
