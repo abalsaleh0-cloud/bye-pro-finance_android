@@ -32,7 +32,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
@@ -124,22 +123,6 @@ fun AiAssistantScreen(
         }
     }
 
-    val quickChips = if (lang == AppLanguage.AR) listOf(
-        "اشرح لي موضوعاً بطريقة بسيطة",
-        "ساعدني في كتابة رسالة احترافية",
-        "ترجم هذا النص إلى الإنجليزية",
-        "لدي فكرة وأريد تطويرها",
-        "حلل مصروفاتي هذا الشهر",
-        "ساعدني في وضع خطة ادخار"
-    ) else listOf(
-        "Explain a topic in simple terms",
-        "Help me write a professional message",
-        "Translate this text into Arabic",
-        "Help me develop an idea",
-        "Analyze my spending this month",
-        "Help me create a savings plan"
-    )
-
     Column(
         modifier = Modifier.fillMaxSize().background(ByeProTheme.colors.bgMain)
     ) {
@@ -230,33 +213,6 @@ fun AiAssistantScreen(
                     }
                 }
 
-                // Safety Disclaimer banner
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                        .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.3f), RoundedCornerShape(10.dp)),
-                    colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.08f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = ByeProTheme.colors.goldPrimary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(
-                            text = Strings.get("ai_disclaimer", lang),
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                            color = ByeProTheme.colors.textSecondary
-                        )
-                    }
-                }
-
                 // Chat Messages List
                 LazyColumn(
                     state = listState,
@@ -326,76 +282,66 @@ fun AiAssistantScreen(
                     }
                 }
 
-                // Quick Prompt Chips
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp)
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    quickChips.forEach { chip ->
-                        FilterChip(
-                            selected = false,
-                            onClick = { viewModel.askAiAssistant(chip) },
-                            label = { Text(chip, fontSize = 12.sp) },
-                            colors = FilterChipDefaults.filterChipColors(containerColor = ByeProTheme.colors.cardMain)
-                        )
-                    }
-                }
-
-                // Studio composer surface
+                // Expanded chat composer: a blank, multi-line writing area with voice and send actions below.
                 Card(
                     modifier = Modifier.fillMaxWidth()
                         .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.32f), RoundedCornerShape(22.dp)),
                     shape = RoundedCornerShape(22.dp),
                     colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                    VoiceInputButton(
-                        languageCode = if (lang == AppLanguage.AR) "ar" else "en",
-                        enabled = !isAiLoading,
-                        onRecognized = {
-                            inputText = ""
-                            speakNextAiResponse = autoSpeakReplies
-                            viewModel.askAiAssistant(it)
-                        },
-                        modifier = Modifier.testTag("ai_assistant_voice_input")
-                    )
-                    FinanceTextField(
-                        value = inputText,
-                        onValueChange = { inputText = it },
-                        placeholder = { Text(Strings.get("ask_placeholder", lang), fontSize = 12.sp) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("ai_assistant_input"),
-                        shape = RoundedCornerShape(24.dp),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    FinanceIconButton(
-                        onClick = {
-                            if (inputText.isNotBlank()) {
-                                val q = inputText
-                                inputText = ""
-                                viewModel.askAiAssistant(q)
-                            }
-                        },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(ByeProTheme.colors.goldPrimary)
-                            .testTag("ai_assistant_send_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Send,
-                            contentDescription = WebI18n.tr("إرسال", "Send", lang),
-                            tint = MaterialTheme.colorScheme.onPrimary
+                        FinanceTextField(
+                            value = inputText,
+                            onValueChange = { inputText = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(116.dp)
+                                .testTag("ai_assistant_input"),
+                            shape = RoundedCornerShape(18.dp),
+                            singleLine = false,
+                            minLines = 3,
+                            maxLines = 5
                         )
-                    }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            VoiceInputButton(
+                                languageCode = if (lang == AppLanguage.AR) "ar" else "en",
+                                enabled = !isAiLoading,
+                                onRecognized = {
+                                    inputText = ""
+                                    speakNextAiResponse = autoSpeakReplies
+                                    viewModel.askAiAssistant(it)
+                                },
+                                modifier = Modifier.testTag("ai_assistant_voice_input")
+                            )
+                            FinanceIconButton(
+                                onClick = {
+                                    if (inputText.isNotBlank() && !isAiLoading) {
+                                        val q = inputText
+                                        inputText = ""
+                                        speakNextAiResponse = autoSpeakReplies
+                                        viewModel.askAiAssistant(q)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(ByeProTheme.colors.goldPrimary)
+                                    .testTag("ai_assistant_send_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Send,
+                                    contentDescription = WebI18n.tr("إرسال", "Send", lang),
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        }
                     }
                 }
             }
