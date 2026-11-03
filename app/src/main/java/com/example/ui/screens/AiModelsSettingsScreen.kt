@@ -295,23 +295,26 @@ fun AiModelsSettingsScreen(
                         }
                         if (model.detectedFormat == "GGUF") {
                             Text(
-                                WebI18n.tr("تم التعرف على ترويسة وبيانات النموذج فقط. تشغيل GGUF غير متاح حتى اكتمال دمج واختبار محرك llama.cpp؛ لن يتم تغيير امتداد الملف أو تمريره إلى LiteRT-LM.", "Only GGUF header and metadata were identified. GGUF execution is unavailable until llama.cpp is integrated and tested; the file will not be renamed or passed to LiteRT-LM.", lang),
+                                WebI18n.tr("تم التحقق من بيانات GGUF. سيُشغّل عبر محرك llama.cpp المحلي على CPU، دون رفع الملف إلى السحابة.", "GGUF metadata is validated. The file will run through the local llama.cpp CPU engine without cloud upload.", lang),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
+                                color = ByeProTheme.colors.goldPrimary
                             )
                         }
                         Text(
                             if (model.detectedFormat == "GGUF") {
-                                WebI18n.tr("يتم فحص بيانات GGUF محلياً فقط حالياً. لم يتم دمج محرك التشغيل بعد، لذلك لن ينسخ التطبيق هذا الملف أو يحاول تحميله.", "GGUF metadata is inspected locally only. The runtime is not integrated yet, so the app will not copy or attempt to load this file.", lang)
+                                WebI18n.tr("سيتم نسخ GGUF إلى مساحة التطبيق الخاصة ثم تحميله عبر llama.cpp. هذا الإصدار يدعم المحادثة النصية؛ الصور والصوت غير مفعّلين عبر هذا المحرك.", "GGUF will be copied into app-private storage and loaded with llama.cpp. This release supports text chat; image and audio input are not enabled through this engine.", lang)
                             } else {
                                 WebI18n.tr("حزم LiteRT-LM المتوافقة تُنسخ إلى مساحة التطبيق الخاصة ثم تُحمّل محلياً. لا يتم إرسال ملف النموذج إلى الإنترنت.", "Compatible LiteRT-LM packages are copied into app-private storage and loaded locally. Model files are never sent to the internet.", lang)
                             },
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (model.detectedFormat == "GGUF") MaterialTheme.colorScheme.error else ByeProTheme.colors.goldPrimary
+                            color = ByeProTheme.colors.goldPrimary
                         )
                         OutlinedButton(
                             onClick = { onImportAndLoadModel(model.uri) },
-                            enabled = !localModelLoading && model.name.endsWith(".litertlm", ignoreCase = true),
+                            enabled = !localModelLoading && (
+                                model.name.endsWith(".litertlm", ignoreCase = true) ||
+                                    model.name.endsWith(".gguf", ignoreCase = true)
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(if (localModelLoading) WebI18n.tr("جارٍ تجهيز النموذج...", "Preparing model...", lang) else WebI18n.tr("نسخ النموذج وتشغيله محلياً", "Copy and run model locally", lang))
