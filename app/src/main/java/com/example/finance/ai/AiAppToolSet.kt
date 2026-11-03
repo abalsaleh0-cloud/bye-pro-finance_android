@@ -3,6 +3,16 @@ package com.example.finance.ai
 import com.example.finance.data.FinanceRepository
 import com.example.finance.model.BudgetEntity
 import com.example.finance.model.BudgetPeriod
+import com.example.finance.model.AccountEntity
+import com.example.finance.model.AccountType
+import com.example.finance.model.TransactionEntity
+import com.example.finance.model.TransactionType
+import com.example.finance.model.TransactionStatus
+import com.example.finance.model.DebtEntity
+import com.example.finance.model.BillEntity
+import com.example.finance.model.SavingsGoalEntity
+import com.example.finance.model.AssetEntity
+import com.example.finance.model.AssetType
 import com.google.ai.edge.litertlm.Tool
 import com.google.ai.edge.litertlm.ToolParam
 import com.google.ai.edge.litertlm.ToolSet
@@ -40,6 +50,12 @@ class AiAppToolSet(
         data class Budget(val value: BudgetEntity) : PendingPayload
         data class Project(val value: AiProjectPlan) : PendingPayload
         data class ProjectFile(val projectId: String, val path: String, val content: String) : PendingPayload
+        data class Account(val value: AccountEntity) : PendingPayload
+        data class Transaction(val value: TransactionEntity) : PendingPayload
+        data class Debt(val value: DebtEntity) : PendingPayload
+        data class Bill(val value: BillEntity) : PendingPayload
+        data class SavingsGoal(val value: SavingsGoalEntity) : PendingPayload
+        data class Asset(val value: AssetEntity) : PendingPayload
     }
     private data class Pending(val preview: AiActionPreview, val payload: PendingPayload)
     @Volatile private var pending: Pending? = null
@@ -296,6 +312,54 @@ class AiAppToolSet(
     fun listAuditActivity(): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
         repository.auditLogs.first().take(30).map { mapOf("id" to it.id, "action" to it.action, "resource" to it.resource, "details" to it.details, "timestamp" to it.timestamp) }
     }
+    // Every write tool creates a review card only. The repository is touched solely by confirmPendingAction.
+    @Tool(description = "Prepare a new account. It is not saved until the user confirms the preview in the app.")
+    fun proposeCreateAccount(name: String, type: String, currency: String = "LYD", openingBalance: Double = 0.0): Map<String, Any> {
+        val n=name.trim(); val cur=currency.trim().uppercase(); val parsed=runCatching { AccountType.valueOf(type.trim().uppercase()) }.getOrNull()
+        if (n.length !in 2..80 || parsed == null || !cur.matches(Regex("[A-Z]{3}")) || !openingBalance.isFinite()) return mapOf("success" to false, "error" to "Account details are invalid.")
+        return stageAction("مراجعة إنشاء حساب", "الحساب: " + n + "\nالنوع: " + parsed.name + "\nالرصيد: " + openingBalance + " " + cur, PendingPayload.Account(AccountEntity(name=n,type=parsed,currency=cur,balance=openingBalance,openingBalance=openingBalance)))
+    }
+
+    @Tool(description = "Prepare a transaction. Account existence and matching currency are checked again when confirmed.")
+    fun proposeCreateTransaction(accountId: Long, type: String, amount: Double, category: String, description: String, currency: String = "LYD", status: String = "COMPLETED"): Map<String, Any> {
+        val t=runCatching { TransactionType.valueOf(type.trim().uppercase()) }.getOrNull(); val s=runCatching { TransactionStatus.valueOf(status.trim().uppercase()) }.getOrNull(); val cur=currency.trim().uppercase()
+        if (accountId<=0 || t==null || s==null || !amount.isFinite() || amount<=0.0 || category.isBlank() || description.isBlank() || !cur.matches(Regex("[A-Z]{3}"))) return mapOf("success" to false, "error" to "Transaction details are invalid.")
+        val value=TransactionEntity(accountId=accountId,type=t,amount=amount,currency=cur,category=category.trim(),description=description.trim(),status=s)
+        return stageAction("مراجعة تسجيل معاملة", "النوع: " + t.name + "\nالمبلغ: " + amount + " " + cur + "\nالحساب: " + accountId, PendingPayload.Transaction(value))
+    }
+
+    @Tool(description = "Prepare a debt record. direction must be i_owe or owed_to_me. Requires user confirmation.")
+    fun proposeCreateDebt(name: String, principal: Double, remaining: Double, direction: String, currency: String = "LYD"): Map<String, Any> {
+        val n=name.trim(); val d=direction.trim().lowercase(); val cur=currency.trim().uppercase()
+        if (n.length !in 2..100 || !principal.isFinite() || principal<=0.0 || !remaining.isFinite() || remaining !in 0.0..principal || d !in setOf("i_owe","owed_to_me") || !cur.matches(Regex("[A-Z]{3}"))) return mapOf("success" to false, "error" to "Debt details are invalid.")
+        return stageAction("مراجعة إضافة دين", "الاسم: " + n + "\nالاتجاه: " + d + "\nالمتبقي: " + remaining + " " + cur, PendingPayload.Debt(DebtEntity(name=n,creditor=n,principal=principal,remaining=remaining,direction=d,currency=cur)))
+    }
+
+    @Tool(description = "Prepare a bill for review. Requires user confirmation.")
+    fun proposeCreateBill(name: String, category: String, amount: Double, dueDate: Long, currency: String = "LYD", recurring: Boolean = true): Map<String, Any> {
+        val n=name.trim(); val cat=category.trim(); val cur=currency.trim().uppercase()
+        if (n.length !in 2..100 || cat.isBlank() || !amount.isFinite() || amount<=0.0 || !cur.matches(Regex("[A-Z]{3}"))) return mapOf("success" to false, "error" to "Bill details are invalid.")
+        return stageAction("مراجعة إضافة فاتورة", "الفاتورة: " + n + "\nالمبلغ: " + amount + " " + cur + "\nالاستحقاق: " + dueDate, PendingPayload.Bill(BillEntity(name=n,category=cat,amount=amount,currency=cur,dueDate=dueDate,isRecurring=recurring)))
+    }
+
+    @Tool(description = "Prepare a savings goal for review. Requires user confirmation.")
+    fun proposeCreateSavingsGoal(name: String, targetAmount: Double, currentAmount: Double = 0.0, currency: String = "LYD", deadline: Long = System.currentTimeMillis() + 15552000000L): Map<String, Any> {
+        val n=name.trim(); val cur=currency.trim().uppercase()
+        if (n.length !in 2..100 || !targetAmount.isFinite() || targetAmount<=0.0 || !currentAmount.isFinite() || currentAmount !in 0.0..targetAmount || !cur.matches(Regex("[A-Z]{3}"))) return mapOf("success" to false, "error" to "Savings goal details are invalid.")
+        return stageAction("مراجعة هدف ادخار", "الهدف: " + n + "\nالمستهدف: " + targetAmount + " " + cur, PendingPayload.SavingsGoal(SavingsGoalEntity(name=n,targetAmount=targetAmount,currentAmount=currentAmount,currency=cur,deadline=deadline)))
+    }
+
+    @Tool(description = "Prepare an asset record for review. Requires user confirmation.")
+    fun proposeCreateAsset(name: String, type: String, value: Double, currency: String = "LYD", notes: String = ""): Map<String, Any> {
+        val n=name.trim(); val cur=currency.trim().uppercase(); val parsed=runCatching { AssetType.valueOf(type.trim().uppercase()) }.getOrNull()
+        if (n.length !in 2..100 || parsed==null || !value.isFinite() || value<0.0 || !cur.matches(Regex("[A-Z]{3}"))) return mapOf("success" to false, "error" to "Asset details are invalid.")
+        return stageAction("مراجعة إضافة أصل", "الأصل: " + n + "\nالنوع: " + parsed.name + "\nالقيمة: " + value + " " + cur, PendingPayload.Asset(AssetEntity(name=n,type=parsed,value=value,currency=cur,notes=notes.trim())))
+    }
+
+    private fun stageAction(title: String, description: String, payload: PendingPayload): Map<String, Any> {
+        val preview=AiActionPreview(UUID.randomUUID().toString(),title,description); pending=Pending(preview,payload); _pendingAction.value=preview
+        return mapOf("success" to true,"requires_user_confirmation" to true,"preview_id" to preview.id,"message" to "Preview only. Wait for explicit user confirmation; no data has changed.")
+    }
     suspend fun confirmPendingAction(actionId: String): String = actionMutex.withLock {
         val staged = pending ?: error("لا توجد عملية تنتظر التأكيد.")
         require(staged.preview.id == actionId) { "انتهت صلاحية معاينة العملية." }
@@ -312,6 +376,12 @@ class AiAppToolSet(
                 val saved = workspace.fileWorkspace().writeFile(payload.projectId, payload.path, payload.content)
                 "تم حفظ الملف «" + saved.path + "» داخل مساحة المشروع بعد تأكيدك."
             }
+            is PendingPayload.Account -> { repository.addAccount(payload.value); "تم إنشاء الحساب بعد تأكيدك." }
+            is PendingPayload.Transaction -> { repository.addTransaction(payload.value); "تم تسجيل المعاملة بعد تأكيدك." }
+            is PendingPayload.Debt -> { repository.addDebt(payload.value); "تمت إضافة الدين بعد تأكيدك." }
+            is PendingPayload.Bill -> { repository.addBill(payload.value); "تمت إضافة الفاتورة بعد تأكيدك." }
+            is PendingPayload.SavingsGoal -> { repository.addSavingsGoal(payload.value); "تمت إضافة هدف الادخار بعد تأكيدك." }
+            is PendingPayload.Asset -> { repository.addAsset(payload.value); "تمت إضافة الأصل بعد تأكيدك." }
         }
         pending = null
         _pendingAction.value = null
