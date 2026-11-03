@@ -27,6 +27,6 @@
 
 ## 10.0.88 — expanded AI app tools (implementation in progress)
 - Added bounded read tools for accounts (including archived), transfers, budgets, debts, bills, savings goals, assets, household members and expenses, document metadata, notifications and audit activity.
-- Added confirmation-gated create previews for accounts, transactions, debts, bills, savings goals and assets. Repository writes occur only after explicit in-app confirmation; destructive AI deletion is not exposed.
+- Added confirmation-gated create previews for accounts, transactions, debts, bills, savings goals, assets, internal transfers, household members and household expenses. Repository writes occur only after explicit in-app confirmation; destructive AI deletion is not exposed.
 - Existing budget/project plan/file previews remain confirmation-gated. Navigation remains restricted to an explicit allowlist.
 - Remaining validation: compile and unit tests, tool-schema/runtime compatibility, and end-to-end confirmation/cancellation tests. This is not yet declared complete.
