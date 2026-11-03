@@ -120,7 +120,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                     WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_EXPENSE,
                     WorkRecordType.SALARY_PAYMENT
                 )
-                val transaction = if (isCashMovement && accountId != null) {
+                if (isCashMovement && accountId == null) {
+                    throw IllegalArgumentException("A finance account must be selected for cash movements")
+                }
+                val transaction = if (isCashMovement) {
                     val account = accounts.value.firstOrNull { it.id == accountId }
                         ?: throw IllegalArgumentException("Selected account was not found")
                     TransactionEntity(
