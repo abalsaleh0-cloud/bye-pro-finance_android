@@ -1,16 +1,26 @@
 package com.example.finance.ui
 
+import android.app.ActivityManager
 import android.app.Application
 import android.net.Uri
 import android.os.StatFs
 import android.provider.OpenableColumns
 import android.util.Log
+import android.webkit.MimeTypeMap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.finance.ai.ExtractedReceiptData
 import com.example.finance.ai.FinancialAssistantEngine
 import com.example.finance.ai.OfflineFinanceService
 import com.example.finance.ai.LiteRtLocalAssistant
+import com.example.finance.ai.GgufLocalAssistant
+import com.example.finance.ai.GgufMetadataInspector
+import com.example.finance.ai.AiAppToolSet
+import com.example.finance.ai.AiProjectWorkspace
+import com.example.finance.auth.SupabaseAuthRepository
+import com.example.finance.settings.SupabaseUserSettingsRepository
+import com.example.finance.network.AiRequest
+import com.example.finance.network.FinanceApiProvider
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceExportService
 import com.example.finance.data.FinanceRepository
@@ -29,18 +39,28 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 
 data class AccountActionFeedback(val operation: String, val succeeded: Boolean)
-data class ChatMessage(val sender: String, val text: String, val timestamp: Long = System.currentTimeMillis())
+data class ChatMessage(val sender: String, val text: String, val timestamp: Long = System.currentTimeMillis(), val attachments: List<String> = emptyList())
 
 class FinanceViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getDatabase(application)
     val repository = FinanceRepository(db.financeDao(), db)
     val aiService = OfflineFinanceService()
     private val aiModelPreferences = application.getSharedPreferences("bye_pro_finance_ai_models", Application.MODE_PRIVATE)
-    private val localLlm = LiteRtLocalAssistant(application.cacheDir)
+    private val authRepository = SupabaseAuthRepository(application)
+    private val userSettingsRepository = SupabaseUserSettingsRepository(authRepository)
+    private val settingsSyncMutex = Mutex()
+    private val aiProjectWorkspace = AiProjectWorkspace(File(application.filesDir, "ai_projects.properties"))
+    private val aiAppTools = AiAppToolSet(repository, aiProjectWorkspace) { section -> setScreen(section) }
+    val pendingAiAction = aiAppTools.pendingAction
+    private val localLlm = LiteRtLocalAssistant(application.cacheDir, aiAppTools)
+    private val ggufLlm = GgufLocalAssistant()
     val accounts: StateFlow<List<AccountEntity>> = repository.accounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val archivedAccounts: StateFlow<List<AccountEntity>> = repository.archivedAccounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val _accountsLoading = MutableStateFlow(true)
@@ -81,14 +101,14 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val billReminders: StateFlow<Boolean> = _billReminders.asStateFlow()
     private val _budgetAlerts = MutableStateFlow(preferences.getBoolean("budget_alerts", true))
     val budgetAlerts: StateFlow<Boolean> = _budgetAlerts.asStateFlow()
-    fun setPrimaryCurrency(currency: String) { val normalized = currency.trim().uppercase(); if (normalized !in setOf("LYD", "USD", "EUR", "GBP", "SAR", "AED", "EGP")) return; _primaryCurrency.value = normalized; preferences.edit().putString("currency_code", normalized).apply() }
-    fun setTimeZone(value: String) { if (value !in setOf("Africa/Tripoli", "Asia/Damascus", "Asia/Amman", "Europe/Istanbul", "Europe/London", "UTC")) return; _timeZone.value = value; preferences.edit().putString("time_zone", value).apply() }
-    fun setDateFormat(value: String) { if (value !in setOf("YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY")) return; _dateFormat.value = value; preferences.edit().putString("date_format", value).apply() }
-    fun setNumberFormat(value: String) { if (value !in setOf("1,234.56", "1.234,56", "1 234,56")) return; _numberFormat.value = value; preferences.edit().putString("number_format", value).apply() }
-    fun setEmailNotifications(value: Boolean) { _emailNotifications.value = value; preferences.edit().putBoolean("email_notifications", value).apply() }
-    fun setTransactionAlerts(value: Boolean) { _transactionAlerts.value = value; preferences.edit().putBoolean("transaction_alerts", value).apply() }
-    fun setBillReminders(value: Boolean) { _billReminders.value = value; preferences.edit().putBoolean("bill_reminders", value).apply() }
-    fun setBudgetAlerts(value: Boolean) { _budgetAlerts.value = value; preferences.edit().putBoolean("budget_alerts", value).apply() }
+    fun setPrimaryCurrency(currency: String) { val normalized = currency.trim().uppercase(); if (normalized !in setOf("LYD", "USD", "EUR", "GBP", "SAR", "AED", "EGP")) return; _primaryCurrency.value = normalized; preferences.edit().putString("currency_code", normalized).apply(); scheduleUserSettingsSync() }
+    fun setTimeZone(value: String) { if (value !in setOf("Africa/Tripoli", "Asia/Damascus", "Asia/Amman", "Europe/Istanbul", "Europe/London", "UTC")) return; _timeZone.value = value; preferences.edit().putString("time_zone", value).apply(); scheduleUserSettingsSync() }
+    fun setDateFormat(value: String) { if (value !in setOf("YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY")) return; _dateFormat.value = value; preferences.edit().putString("date_format", value).apply(); scheduleUserSettingsSync() }
+    fun setNumberFormat(value: String) { if (value !in setOf("1,234.56", "1.234,56", "1 234,56")) return; _numberFormat.value = value; preferences.edit().putString("number_format", value).apply(); scheduleUserSettingsSync() }
+    fun setEmailNotifications(value: Boolean) { _emailNotifications.value = value; preferences.edit().putBoolean("email_notifications", value).apply(); scheduleUserSettingsSync() }
+    fun setTransactionAlerts(value: Boolean) { _transactionAlerts.value = value; preferences.edit().putBoolean("transaction_alerts", value).apply(); scheduleUserSettingsSync() }
+    fun setBillReminders(value: Boolean) { _billReminders.value = value; preferences.edit().putBoolean("bill_reminders", value).apply(); scheduleUserSettingsSync() }
+    fun setBudgetAlerts(value: Boolean) { _budgetAlerts.value = value; preferences.edit().putBoolean("budget_alerts", value).apply(); scheduleUserSettingsSync() }
     fun updateLocalProfile(user: UserEntity) { val normalized = user.name.trim(); if (normalized.length < 2 || normalized.length > 100) return; viewModelScope.launch { runCatching { repository.updateCurrentUser(user.copy(name = normalized)) }.onFailure { Log.e("BYE_PRO_FINANCE", "Update local profile failed", it) } } }
     private val _currentScreen = MutableStateFlow("dashboard")
     val currentScreen: StateFlow<String> = _currentScreen.asStateFlow()
@@ -106,12 +126,69 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val localModelProgress: StateFlow<Float> = _localModelProgress.asStateFlow()
     private val _localModelStatus = MutableStateFlow("لم يتم تحميل نموذج محلي بعد.")
     val localModelStatus: StateFlow<String> = _localModelStatus.asStateFlow()
-    init { resetWelcomeMessage(); viewModelScope.launch { runCatching { repository.accounts.first(); repository.archivedAccounts.first() }; _accountsLoading.value = false } }
-    private fun resetWelcomeMessage() { _chatMessages.value = listOf(ChatMessage("AI", WebI18n.tr("مرحباً بك في BYE PRO FINANCE! أنا مساعدك المالي الذكي. يمكنك سؤالي عن مصروفاتك، ميزانيتك، أو تحليل وضعك المالي بدقة.", "Welcome to BYE PRO FINANCE! I am your AI Financial Assistant. Ask me anything about your cash flow, budgets, or savings goals.", _appLanguage.value))) }
+    init { resetWelcomeMessage(); viewModelScope.launch { restoreUserSettingsFromCloud(); resetWelcomeMessage(); runCatching { repository.accounts.first(); repository.archivedAccounts.first() }; _accountsLoading.value = false } }
+    private fun currentUserSettingsPayload(): JSONObject = JSONObject()
+        .put("theme", if (_isDarkMode.value) "dark" else "light")
+        .put("locale", if (_appLanguage.value == AppLanguage.EN) "en" else "ar")
+        .put("timezone", _timeZone.value)
+        .put("currency_code", _primaryCurrency.value)
+        .put("date_format", _dateFormat.value)
+        .put("number_format", _numberFormat.value)
+        .put("email_notifications", _emailNotifications.value)
+        .put("transaction_alerts", _transactionAlerts.value)
+        .put("bill_reminders", _billReminders.value)
+        .put("budget_alerts", _budgetAlerts.value)
+
+    private fun scheduleUserSettingsSync() {
+        viewModelScope.launch {
+            settingsSyncMutex.withLock {
+                userSettingsRepository.save(currentUserSettingsPayload())
+                    .onFailure { Log.w("BYE_PRO_FINANCE", "Cloud settings sync deferred; local preferences remain saved", it) }
+            }
+        }
+    }
+
+    private suspend fun restoreUserSettingsFromCloud() {
+        userSettingsRepository.load().onSuccess { row ->
+            if (row == null) return@onSuccess
+            val language = if (row.optString("locale") == "en") AppLanguage.EN else AppLanguage.AR
+            val dark = row.optString("theme", "dark") != "light"
+            val currency = row.optString("currency_code", "LYD")
+            val timezone = row.optString("timezone", "Africa/Tripoli")
+            val date = row.optString("date_format", "YYYY-MM-DD")
+            val number = row.optString("number_format", "1,234.56")
+            _appLanguage.value = language
+            _isDarkMode.value = dark
+            _primaryCurrency.value = currency
+            _timeZone.value = timezone
+            _dateFormat.value = date
+            _numberFormat.value = number
+            _emailNotifications.value = row.optBoolean("email_notifications", true)
+            _transactionAlerts.value = row.optBoolean("transaction_alerts", true)
+            _billReminders.value = row.optBoolean("bill_reminders", true)
+            _budgetAlerts.value = row.optBoolean("budget_alerts", true)
+            preferences.edit()
+                .putString("currency_code", currency)
+                .putString("time_zone", timezone)
+                .putString("date_format", date)
+                .putString("number_format", number)
+                .putBoolean("email_notifications", _emailNotifications.value)
+                .putBoolean("transaction_alerts", _transactionAlerts.value)
+                .putBoolean("bill_reminders", _billReminders.value)
+                .putBoolean("budget_alerts", _budgetAlerts.value)
+                .apply()
+            WebI18n.write(getApplication(), language)
+            WebI18n.writeDarkMode(getApplication(), dark)
+        }.onFailure {
+            Log.w("BYE_PRO_FINANCE", "Could not restore cloud settings; keeping local preferences", it)
+        }
+    }
+
+    private fun resetWelcomeMessage() { _chatMessages.value = listOf(ChatMessage("AI", WebI18n.tr("مرحباً بك! أنا AI Bye Pro، مساعدك الذكي. تحدث معي بشكل طبيعي عن أي موضوع؛ أستطيع مساعدتك في المعرفة والكتابة والترجمة والتخطيط والتحليل، وكذلك شؤونك المالية عند طلبك.", "Welcome! I am AI Bye Pro, your general-purpose AI assistant. Talk to me naturally about any topic: knowledge, writing, translation, planning, analysis, and your finances whenever you ask.", _appLanguage.value))) }
     fun setScreen(screen: String) { _currentScreen.value = screen }
     fun toggleLanguage() { setLanguage(if (_appLanguage.value == AppLanguage.AR) AppLanguage.EN else AppLanguage.AR) }
-    fun setLanguage(lang: AppLanguage) { if (_appLanguage.value == lang) return; _appLanguage.value = lang; WebI18n.write(getApplication(), lang); if (_chatMessages.value.size <= 1) resetWelcomeMessage() }
-    fun setDarkMode(dark: Boolean) { _isDarkMode.value = dark; WebI18n.writeDarkMode(getApplication(), dark) }
+    fun setLanguage(lang: AppLanguage) { if (_appLanguage.value == lang) return; _appLanguage.value = lang; WebI18n.write(getApplication(), lang); if (_chatMessages.value.size <= 1) resetWelcomeMessage(); scheduleUserSettingsSync() }
+    fun setDarkMode(dark: Boolean) { _isDarkMode.value = dark; WebI18n.writeDarkMode(getApplication(), dark); scheduleUserSettingsSync() }
     fun toggleTheme() { setDarkMode(!_isDarkMode.value) }
     fun addAccount(account: AccountEntity) { viewModelScope.launch { _accountActionFeedback.value = AccountActionFeedback("add", runCatching { repository.addAccount(account) }.isSuccess) } }
     fun clearAccountActionFeedback() { _accountActionFeedback.value = null }
@@ -159,19 +236,13 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             _localModelLoading.value = true
             _localModelProgress.value = 0f
-            _localModelStatus.value = "جارٍ تهيئة النموذج المحلي على المعالج..."
+            _localModelStatus.value = "جارٍ تهيئة محرك النموذج المحلي..."
             try {
-                require(file.extension.equals("litertlm", ignoreCase = true)) {
-                    "صيغة النموذج غير مدعومة هنا. اختر ملف .litertlm."
-                }
-                localLlm.load(file)
-                aiModelPreferences.edit().putString("active_model_path", file.absolutePath).apply()
-                _localModelReady.value = true
-                _localModelStatus.value = "النموذج المحلي جاهز. المحادثة تعمل على الهاتف دون اتصال."
+                loadLocalModelIntoRuntime(file)
             } catch (error: Throwable) {
                 _localModelReady.value = false
                 _localModelStatus.value = "تعذر تحميل النموذج: " + (error.message ?: "خطأ غير معروف")
-                Log.e("BYE_PRO_LOCAL_AI", "Local LiteRT-LM model load failed", error)
+                Log.e("BYE_PRO_LOCAL_AI", "Local model load failed", error)
             } finally {
                 _localModelLoading.value = false
             }
@@ -186,11 +257,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             _localModelStatus.value = "جارٍ نسخ ملف النموذج إلى مساحة التطبيق الخاصة..."
             try {
                 val modelFile = copyLocalModelIntoApp(uri)
-                _localModelStatus.value = "تم تجهيز الملف. جارٍ تحميل Gemma على المعالج..."
-                localLlm.load(modelFile)
-                aiModelPreferences.edit().putString("active_model_path", modelFile.absolutePath).apply()
-                _localModelReady.value = true
-                _localModelStatus.value = "النموذج المحلي جاهز. المحادثة تعمل على الهاتف دون اتصال."
+                loadLocalModelIntoRuntime(modelFile)
             } catch (error: Throwable) {
                 _localModelReady.value = false
                 _localModelStatus.value = "تعذر تجهيز أو تشغيل النموذج: " + (error.message ?: "خطأ غير معروف")
@@ -201,8 +268,60 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private suspend fun loadLocalModelIntoRuntime(modelFile: File) {
+        require(modelFile.isFile && modelFile.canRead() && modelFile.length() > 0L) {
+            "ملف النموذج غير موجود أو فارغ أو غير قابل للقراءة."
+        }
+        when (modelFile.extension.lowercase()) {
+            "gguf" -> {
+                val metadata = withContext(Dispatchers.IO) {
+                    modelFile.inputStream().use(GgufMetadataInspector::inspect)
+                }
+                require(!metadata.architecture.isNullOrBlank()) {
+                    "تعذر تحديد بنية GGUF؛ الملف لا يحتوي على بيانات معمارية صالحة."
+                }
+                // Release any previous local runtime before estimating memory for GGUF.
+                localLlm.unload()
+                ggufLlm.unload()
+                val manager = getApplication<Application>().getSystemService(ActivityManager::class.java)
+                val memory = ActivityManager.MemoryInfo()
+                manager.getMemoryInfo(memory)
+                val estimatedBytes = (modelFile.length() * 1.20).toLong() + 512L * 1024L * 1024L
+                require(memory.availMem >= estimatedBytes) {
+                    "الذاكرة المتاحة غير كافية لتشغيل هذا النموذج بأمان. يلزم تقريباً " +
+                        String.format(java.util.Locale.US, "%.2f GB", estimatedBytes / 1_073_741_824.0) +
+                        " متاحة حالياً؛ أغلق التطبيقات الأخرى أو استخدم نسخة GGUF أصغر."
+                }
+                _localModelStatus.value = "جارٍ تحميل GGUF عبر llama.cpp على المعالج..."
+                ggufLlm.load(modelFile)
+                aiModelPreferences.edit()
+                    .putString("active_model_path", modelFile.absolutePath)
+                    .putString("active_model_format", "GGUF")
+                    .putString("active_model_architecture", metadata.architecture)
+                    .putBoolean("active_model_supports_vision", false)
+                    .apply()
+                _localModelReady.value = true
+                _localModelStatus.value = "محرك llama.cpp جاهز. نموذج GGUF يعمل محلياً على الهاتف."
+            }
+            "litertlm" -> {
+                ggufLlm.unload()
+                _localModelStatus.value = "جارٍ تحميل حزمة LiteRT-LM على المعالج..."
+                localLlm.load(modelFile)
+                aiModelPreferences.edit()
+                    .putString("active_model_path", modelFile.absolutePath)
+                    .putString("active_model_format", "LITERTLM")
+                    .remove("active_model_architecture")
+                    .putBoolean("active_model_supports_vision", modelFile.name.contains("gemma-3n", ignoreCase = true))
+                    .apply()
+                _localModelReady.value = true
+                _localModelStatus.value = "محرك LiteRT-LM جاهز. النموذج يعمل محلياً على الهاتف."
+            }
+            else -> error("صيغة النموذج غير مدعومة. اختر ملف .gguf أو .litertlm.")
+        }
+    }
+
     private suspend fun copyLocalModelIntoApp(uri: Uri): File = withContext(Dispatchers.IO) {
-        var displayName = "selected-model.litertlm"
+        var displayName = "selected-model.gguf"
         var expectedSize = -1L
         getApplication<Application>().contentResolver.query(
             uri,
@@ -218,8 +337,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) expectedSize = cursor.getLong(sizeIndex)
             }
         }
-        require(displayName.endsWith(".litertlm", ignoreCase = true)) {
-            "الملف المختار ليس حزمة LiteRT-LM بامتداد .litertlm."
+        require(
+            displayName.endsWith(".litertlm", ignoreCase = true) ||
+                displayName.endsWith(".gguf", ignoreCase = true)
+        ) {
+            "صيغة الملف غير مدعومة. اختر ملف GGUF أو LiteRT-LM."
         }
 
         val directory = File(getApplication<Application>().filesDir, "ai-models")
@@ -229,8 +351,13 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             "المساحة الحرة غير كافية لنسخ النموذج؛ يلزم توفير مساحة إضافية على الهاتف."
         }
 
-        val temporary = File(directory, "selected-model.litertlm.part")
-        val destination = File(directory, "selected-model.litertlm")
+        val safeModelName = displayName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+            .takeIf {
+                it.endsWith(".litertlm", ignoreCase = true) ||
+                    it.endsWith(".gguf", ignoreCase = true)
+            } ?: "selected-model.gguf"
+        val destination = File(directory, safeModelName)
+        val temporary = File(directory, "$safeModelName.part")
         var copied = 0L
         try {
             val input = getApplication<Application>().contentResolver.openInputStream(uri)
@@ -274,13 +401,123 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun askAiAssistant(query: String) {
-        if (query.isBlank() || _isAiLoading.value) return
+    private suspend fun prepareLocalImageFiles(attachments: List<String>): List<File> =
+        withContext(Dispatchers.IO) {
+            require(attachments.isNotEmpty() && attachments.size <= 4) {
+                "يُسمح بإرفاق صورة واحدة إلى أربع صور."
+            }
+            val resolver = getApplication<Application>().contentResolver
+            val prepared = mutableListOf<File>()
+            try {
+                attachments.forEachIndexed { index, rawUri ->
+                    val uri = Uri.parse(rawUri)
+                    val mimeType = resolver.getType(uri)
+                    require(mimeType?.startsWith("image/") == true) {
+                        "أحد المرفقات ليس ملف صورة صالحاً."
+                    }
+                    val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: "img"
+                    val destination = File.createTempFile(
+                        "bye-pro-vision-$index-",
+                        ".$extension",
+                        getApplication<Application>().cacheDir
+                    )
+                    try {
+                        val input = resolver.openInputStream(uri)
+                            ?: error("تعذر فتح إحدى الصور المرفقة.")
+                        input.use { source ->
+                            FileOutputStream(destination).use { output ->
+                                val buffer = ByteArray(64 * 1024)
+                                var totalBytes = 0L
+                                while (true) {
+                                    currentCoroutineContext().ensureActive()
+                                    val count = source.read(buffer)
+                                    if (count < 0) break
+                                    totalBytes += count
+                                    require(totalBytes <= 10L * 1024L * 1024L) {
+                                        "حجم الصورة الواحدة يتجاوز الحد المسموح وهو 10 ميغابايت."
+                                    }
+                                    output.write(buffer, 0, count)
+                                }
+                            }
+                        }
+                        require(destination.length() > 0L) { "إحدى الصور المرفقة فارغة." }
+                        prepared.add(destination)
+                    } catch (error: Throwable) {
+                        destination.delete()
+                        throw error
+                    }
+                }
+                prepared
+            } catch (error: Throwable) {
+                prepared.forEach { it.delete() }
+                throw error
+            }
+        }
+
+    private suspend fun askCloudGeneralAssistant(query: String): String? {
+        if (!aiModelPreferences.getBoolean("cloud_general_enabled", true)) return null
+        val token = authRepository.getValidAccessToken() ?: return null
+        return runCatching {
+            // Only the user's general question is sent to the cloud. Personal
+            // financial records remain on-device unless a separate consent flow
+            // is implemented in a future version.
+            val envelope = FinanceApiProvider.api.ai("Bearer $token", AiRequest(query))
+            val data = envelope.data ?: return@runCatching null
+            listOf("answer", "response", "text", "message", "content")
+                .firstNotNullOfOrNull { key ->
+                    data[key]?.toString()?.trim()?.takeIf(String::isNotBlank)
+                }
+        }.onFailure { error ->
+            Log.w("BYE_PRO_CLOUD_AI", "Cloud general assistant request failed; using local fallback.", error)
+        }.getOrNull()
+    }
+
+    fun askAiAssistant(query: String, attachments: List<String> = emptyList()) {
+        if ((query.isBlank() && attachments.isEmpty()) || _isAiLoading.value) return
         val trimmedQuery = query.trim()
-        _chatMessages.value = _chatMessages.value + ChatMessage("USER", trimmedQuery)
+        _chatMessages.value = _chatMessages.value + ChatMessage("USER", trimmedQuery, attachments = attachments)
         _isAiLoading.value = true
         viewModelScope.launch {
-            val response = runCatching {
+            val response = if (attachments.isNotEmpty()) {
+                runCatching {
+                    require(attachments.size <= 4) { "يمكن تحليل أربع صور كحد أقصى في الرسالة الواحدة." }
+                    require(
+                        aiModelPreferences.getString("active_model_format", "LITERTLM") != "GGUF" &&
+                            aiModelPreferences.getBoolean("active_model_supports_vision", false)
+                    ) {
+                        "تحليل الصور يحتاج نموذج Gemma 3n متوافقاً بصيغة .litertlm؛ محرك GGUF الحالي مخصص للمحادثة النصية."
+                    }
+                    val savedPath = aiModelPreferences.getString("active_model_path", null)
+                        ?: error("لم يتم تثبيت نموذج محلي يدعم الصور بعد.")
+                    val savedModel = File(savedPath)
+                    require(savedModel.isFile) { "ملف النموذج المحلي غير موجود؛ أعد اختياره من إعدادات النماذج." }
+                    if (!_localModelReady.value) {
+                        _localModelLoading.value = true
+                        try {
+                            localLlm.load(savedModel)
+                            _localModelReady.value = true
+                        } finally {
+                            _localModelLoading.value = false
+                        }
+                    }
+                    val imageFiles = prepareLocalImageFiles(attachments)
+                    try {
+                        val imagePrompt = trimmedQuery.ifBlank {
+                            WebI18n.tr("حلّل الصور المرفقة واشرح ما يظهر فيها بدقة.", "Analyze the attached images and explain what is visible.", _appLanguage.value)
+                        }
+                        localLlm.sendMessageWithImages(imagePrompt, imageFiles)
+                    } finally {
+                        imageFiles.forEach { it.delete() }
+                    }
+                }.getOrElse { error ->
+                    Log.e("BYE_PRO_LOCAL_VISION", "On-device image analysis failed.", error)
+                    WebI18n.tr(
+                        "تعذر تحليل الصور محلياً: " + (error.message ?: "خطأ غير معروف"),
+                        "On-device image analysis failed: " + (error.message ?: "unknown error"),
+                        _appLanguage.value
+                    )
+                }
+            } else runCatching {
                 val financialContext = FinancialAssistantEngine.answer(
                     query = trimmedQuery,
                     accounts = accounts.value,
@@ -295,27 +532,43 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 val savedPath = aiModelPreferences.getString("active_model_path", null)
                 val savedModel = savedPath?.let(::File)
                 if (savedModel != null && savedModel.isFile) {
-                    if (!_localModelReady.value) {
-                        _localModelLoading.value = true
-                        _localModelStatus.value = "جارٍ استعادة النموذج المحلي..."
-                        try {
-                            localLlm.load(savedModel)
-                            _localModelReady.value = true
-                            _localModelStatus.value = "النموذج المحلي جاهز."
-                        } finally {
-                            _localModelLoading.value = false
+                    try {
+                        val format = aiModelPreferences.getString(
+                            "active_model_format",
+                            if (savedModel.extension.equals("gguf", ignoreCase = true)) "GGUF" else "LITERTLM"
+                        )
+                        if (!_localModelReady.value) {
+                            _localModelLoading.value = true
+                            _localModelStatus.value = "جارٍ استعادة النموذج المحلي..."
+                            try {
+                                if (format == "GGUF") {
+                                    ggufLlm.load(savedModel)
+                                } else {
+                                    localLlm.load(savedModel)
+                                }
+                                _localModelReady.value = true
+                                _localModelStatus.value = "النموذج المحلي جاهز."
+                            } finally {
+                                _localModelLoading.value = false
+                            }
                         }
+                        if (format == "GGUF") {
+                            ggufLlm.sendMessage(trimmedQuery, financialContext)
+                        } else {
+                            localLlm.sendMessage(trimmedQuery, financialContext)
+                        }
+                    } catch (localError: Throwable) {
+                        Log.e("BYE_PRO_LOCAL_AI", "Local assistant failed; trying cloud general assistant.", localError)
+                        askCloudGeneralAssistant(trimmedQuery) ?: financialContext
                     }
-                    localLlm.sendMessage(trimmedQuery, financialContext)
                 } else {
-                    financialContext
+                    askCloudGeneralAssistant(trimmedQuery) ?: financialContext
                 }
             }.getOrElse { error ->
-                Log.e("BYE_PRO_FINANCE", "Local AI assistant failed", error)
-                _localModelStatus.value = "تعذر تشغيل المساعد المحلي: " + (error.message ?: "خطأ غير معروف")
+                Log.e("BYE_PRO_FINANCE", "Assistant request failed", error)
                 WebI18n.tr(
-                    "تعذر تشغيل النموذج المحلي: " + (error.message ?: "خطأ غير معروف"),
-                    "Could not run the local model: " + (error.message ?: "unknown error"),
+                    "تعذر تشغيل المساعد حالياً: " + (error.message ?: "خطأ غير معروف"),
+                    "The assistant could not respond right now: " + (error.message ?: "unknown error"),
                     _appLanguage.value
                 )
             }
@@ -324,8 +577,19 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun confirmPendingAiAction(actionId: String) {
+        viewModelScope.launch {
+            runCatching { aiAppTools.confirmPendingAction(actionId) }
+                .onSuccess { message -> _chatMessages.value = _chatMessages.value + ChatMessage("AI", message) }
+                .onFailure { error -> _chatMessages.value = _chatMessages.value + ChatMessage("AI", "لم يتم تنفيذ العملية: ${error.message ?: "خطأ غير معروف"}") }
+        }
+    }
+
+    fun cancelPendingAiAction(actionId: String) { aiAppTools.cancelPendingAction(actionId) }
+
     override fun onCleared() {
         localLlm.shutdown()
+        ggufLlm.shutdown()
         super.onCleared()
     }
     private val _ocrError = MutableStateFlow<String?>(null)

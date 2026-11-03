@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,11 +41,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.finance.ai.GgufMetadataInspector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.io.File
+import com.example.ui.theme.ByeProTheme
+import com.example.finance.model.AppLanguage
+import com.example.finance.i18n.WebI18n
 
 private data class LocalModelFile(
     val name: String,
@@ -56,7 +63,8 @@ private data class SelectedModelInfo(
     val name: String,
     val sizeBytes: Long,
     val detectedFormat: String,
-    val headerHex: String
+    val headerHex: String,
+    val metadataSummary: String? = null
 )
 
 private fun inspectSelectedModel(context: android.content.Context, uri: Uri): SelectedModelInfo {
@@ -93,12 +101,20 @@ private fun inspectSelectedModel(context: android.content.Context, uri: Uri): Se
         extension == "bin" -> "BIN غير محدد"
         else -> "صيغة غير معروفة"
     }
+    val metadataSummary = if (format == "GGUF") {
+        runCatching {
+            context.contentResolver.openInputStream(uri)?.use(GgufMetadataInspector::inspect)?.toDisplayText()
+                ?: "تعذر فتح ملف GGUF."
+        }.getOrElse { "تعذر قراءة بيانات GGUF: ${it.message ?: "ملف غير صالح"}" }
+    } else null
+
     return SelectedModelInfo(
         uri = uri,
         name = name,
         sizeBytes = size,
         detectedFormat = format,
-        headerHex = header.joinToString(" ") { "%02X".format(it) }.ifBlank { "غير متاح" }
+        headerHex = header.joinToString(" ") { "%02X".format(it) }.ifBlank { "غير متاح" },
+        metadataSummary = metadataSummary
     )
 }
 
@@ -110,8 +126,11 @@ private inline fun ByteArray.takeWhileIndexed(predicate: (Int, Byte) -> Boolean)
 
 @Composable
 fun AiModelsSettingsScreen(
+    lang: AppLanguage,
     autoSpeakReplies: Boolean,
     onAutoSpeakRepliesChange: (Boolean) -> Unit,
+    cloudGeneralEnabled: Boolean,
+    onCloudGeneralEnabledChange: (Boolean) -> Unit,
     localModelReady: Boolean,
     localModelLoading: Boolean,
     localModelProgress: Float,
@@ -198,27 +217,37 @@ fun AiModelsSettingsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text("النماذج المحلية", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Card(
+                modifier = Modifier.fillMaxWidth().border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.35f), RoundedCornerShape(18.dp)),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)
+            ) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("MODEL LAB  /  AI BYE PRO", style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
+                    Text(WebI18n.tr("النماذج والقدرات", "Models & capabilities", lang), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = ByeProTheme.colors.textPrimary)
+                    Text(WebI18n.tr("إدارة النماذج المحلية والهجينة، حالة التشغيل، الصوت والخصوصية من مساحة موحدة.", "Manage local and hybrid models, runtime status, voice and privacy in one workspace.", lang), style = MaterialTheme.typography.bodySmall, color = ByeProTheme.colors.textSecondary)
+                }
+            }
             Text(
-                "إدارة ملفات النماذج المحلية المحفوظة على هاتفك والتحقق من وجودها.",
+                WebI18n.tr("إدارة ملفات النماذج المحلية المحفوظة على هاتفك والتحقق من وجودها.", "Manage local model files stored on your phone and verify their availability.", lang),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Storage, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Storage, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                         Spacer(Modifier.size(8.dp))
-                        Text("فحص ملفات النماذج", fontWeight = FontWeight.SemiBold)
+                        Text(WebI18n.tr("فحص ملفات النماذج", "Model file scanner", lang), fontWeight = FontWeight.SemiBold)
                     }
                     Text(
                         text = when {
-                            isScanning -> "جارٍ فحص مجلدات التطبيق…"
-                            !scanCompleted -> "لم يبدأ الفحص بعد"
-                            modelFiles.isEmpty() -> "لم يتم العثور على ملف نموذج كبير داخل مجلدات التطبيق التي أمكن فحصها. هذا لا يثبت أن النموذج حُذف؛ قد يكون محفوظاً في موقع آخر."
-                            else -> "تم العثور على ${modelFiles.size} ملف كبير. الاسم والحجم أدناه لا يكفيان وحدهما لتأكيد نوع النموذج."
+                            isScanning -> WebI18n.tr("جارٍ فحص مجلدات التطبيق…", "Scanning app folders…", lang)
+                            !scanCompleted -> WebI18n.tr("لم يبدأ الفحص بعد", "Scan has not started", lang)
+                            modelFiles.isEmpty() -> WebI18n.tr("لم يتم العثور على ملف نموذج كبير داخل مجلدات التطبيق التي أمكن فحصها. هذا لا يثبت أن النموذج حُذف؛ قد يكون محفوظاً في موقع آخر.", "No large model file was found in the app folders scanned. This does not prove the model was deleted; it may be stored elsewhere.", lang)
+                            else -> WebI18n.tr("تم العثور على ${modelFiles.size} ملف كبير. الاسم والحجم أدناه لا يكفيان وحدهما لتأكيد نوع النموذج.", "Found ${modelFiles.size} large files. File name and size alone cannot confirm the model type.", lang)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -230,17 +259,17 @@ fun AiModelsSettingsScreen(
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null)
                         Spacer(Modifier.size(6.dp))
-                        Text("إعادة فحص الملفات")
+                        Text(WebI18n.tr("إعادة فحص الملفات", "Rescan files", lang))
                     }
                 }
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("استعادة النموذج الموجود على الهاتف", fontWeight = FontWeight.SemiBold)
+                    Text(WebI18n.tr("استعادة النموذج الموجود على الهاتف", "Restore a model already on this phone", lang), fontWeight = FontWeight.SemiBold)
                     Text(
-                        "اختر ملف النموذج الذي سبق تنزيله. سيقرأ التطبيق الاسم والحجم وأول 16 بايت فقط، ولن يرفع الملف أو ينزّله أو يحذفه.",
+                        WebI18n.tr("اختر ملف النموذج الذي سبق تنزيله. سيقرأ التطبيق الاسم والحجم وأول 16 بايت فقط، ولن يرفع الملف أو ينزّله أو يحذفه.", "Choose a model file already downloaded. The app reads only its name, size and first 16 bytes; it will not upload, download or delete the file.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -250,28 +279,45 @@ fun AiModelsSettingsScreen(
                     ) {
                         Icon(Icons.Default.Storage, contentDescription = null)
                         Spacer(Modifier.size(6.dp))
-                        Text("اختيار ملف النموذج من الهاتف")
+                        Text(WebI18n.tr("اختيار ملف النموذج من الهاتف", "Choose model file from phone", lang))
                     }
                     selectedModel?.let { model ->
                         Text(model.name, fontWeight = FontWeight.SemiBold)
                         Text(
                             if (model.sizeBytes >= 0) String.format(Locale.US, "%.2f GB", model.sizeBytes / 1_073_741_824.0)
-                            else "الحجم غير متاح من مزود الملفات",
+                            else WebI18n.tr("الحجم غير متاح من مزود الملفات", "File size unavailable from provider", lang),
                             style = MaterialTheme.typography.bodySmall
                         )
-                        Text("الصيغة المكتشفة: ${model.detectedFormat}", style = MaterialTheme.typography.bodySmall)
-                        Text("ترويسة الملف: ${model.headerHex}", style = MaterialTheme.typography.labelSmall)
+                        Text(WebI18n.tr("الصيغة المكتشفة: ", "Detected format: ", lang) + model.detectedFormat, style = MaterialTheme.typography.bodySmall)
+                        Text(WebI18n.tr("ترويسة الملف: ", "File header: ", lang) + model.headerHex, style = MaterialTheme.typography.labelSmall)
+                        model.metadataSummary?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall)
+                        }
+                        if (model.detectedFormat == "GGUF") {
+                            Text(
+                                WebI18n.tr("تم التحقق من بيانات GGUF. سيُشغّل عبر محرك llama.cpp المحلي على CPU، دون رفع الملف إلى السحابة.", "GGUF metadata is validated. The file will run through the local llama.cpp CPU engine without cloud upload.", lang),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ByeProTheme.colors.goldPrimary
+                            )
+                        }
                         Text(
-                            "الحزمة ستُنسخ إلى مساحة التطبيق الخاصة ثم يجري تحميلها على المعالج. لا يتم إرسال الملف إلى الإنترنت.",
+                            if (model.detectedFormat == "GGUF") {
+                                WebI18n.tr("سيتم نسخ GGUF إلى مساحة التطبيق الخاصة ثم تحميله عبر llama.cpp. هذا الإصدار يدعم المحادثة النصية؛ الصور والصوت غير مفعّلين عبر هذا المحرك.", "GGUF will be copied into app-private storage and loaded with llama.cpp. This release supports text chat; image and audio input are not enabled through this engine.", lang)
+                            } else {
+                                WebI18n.tr("حزم LiteRT-LM المتوافقة تُنسخ إلى مساحة التطبيق الخاصة ثم تُحمّل محلياً. لا يتم إرسال ملف النموذج إلى الإنترنت.", "Compatible LiteRT-LM packages are copied into app-private storage and loaded locally. Model files are never sent to the internet.", lang)
+                            },
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.tertiary
+                            color = ByeProTheme.colors.goldPrimary
                         )
                         OutlinedButton(
                             onClick = { onImportAndLoadModel(model.uri) },
-                            enabled = !localModelLoading && model.name.endsWith(".litertlm", ignoreCase = true),
+                            enabled = !localModelLoading && (
+                                model.name.endsWith(".litertlm", ignoreCase = true) ||
+                                    model.name.endsWith(".gguf", ignoreCase = true)
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(if (localModelLoading) "جارٍ تجهيز النموذج..." else "نسخ النموذج وتشغيله محلياً")
+                            Text(if (localModelLoading) WebI18n.tr("جارٍ تجهيز النموذج...", "Preparing model...", lang) else WebI18n.tr("نسخ النموذج وتشغيله محلياً", "Copy and run model locally", lang))
                         }
                     }
                     if (localModelLoading) {
@@ -283,7 +329,7 @@ fun AiModelsSettingsScreen(
                     Text(
                         localModelStatus,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (localModelReady) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (localModelReady) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     modelInspectionError?.let {
                         Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -292,13 +338,13 @@ fun AiModelsSettingsScreen(
             }
         }
         items(modelFiles) { model ->
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(model.name, fontWeight = FontWeight.SemiBold)
                     Text(String.format(Locale.US, "%.2f GB", model.sizeBytes / 1_073_741_824.0))
                     Text(model.locationLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        "لا يمكن تحديد اسم النموذج من الحجم وحده. يمكن تشغيل حزم LiteRT-LM من هذا المجلد مباشرة.",
+                        WebI18n.tr("لا يمكن تحديد اسم النموذج من الحجم وحده. يمكن تشغيل حزم LiteRT-LM من هذا المجلد مباشرة.", "A model cannot be identified by file size alone. LiteRT-LM packages can be launched directly from this folder.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -308,22 +354,32 @@ fun AiModelsSettingsScreen(
                             enabled = !localModelLoading,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("تشغيل هذا النموذج دون نسخه")
+                            Text(WebI18n.tr("تشغيل هذا النموذج دون نسخه", "Run this model without copying", lang))
                         }
                     }
                 }
             }
         }
         item {
-            Text("إعدادات المساعد", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(WebI18n.tr("إعدادات المساعد", "Assistant settings", lang), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = ByeProTheme.colors.textPrimary)
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            VoiceProviderSettingsCard(lang = lang)
+        }
+        item {
+            HybridAssistantSettingsCard(
+                lang = lang,
+                cloudGeneralEnabled = cloudGeneralEnabled,
+                onCloudGeneralEnabledChange = onCloudGeneralEnabledChange
+            )
+        }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Tune, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                         Spacer(Modifier.size(8.dp))
-                        Text("الصوت والاستجابة", fontWeight = FontWeight.SemiBold)
+                        Text(WebI18n.tr("الصوت والاستجابة", "Voice & response", lang), fontWeight = FontWeight.SemiBold)
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -331,17 +387,17 @@ fun AiModelsSettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("قراءة رد المساعد صوتياً بعد التحدث")
+                            Text(WebI18n.tr("قراءة رد المساعد صوتياً بعد التحدث", "Speak assistant replies automatically", lang))
                             Text(
-                                "يستخدم محرك تحويل النص إلى كلام المتاح على الهاتف.",
+                                WebI18n.tr("يستخدم الصوت السحابي الطبيعي عند ضبط ElevenLabs، مع الرجوع إلى صوت الهاتف عند عدم الاتصال.", "Uses natural cloud speech when ElevenLabs is configured, with device speech as an offline fallback.", lang),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Switch(checked = autoSpeakReplies, onCheckedChange = onAutoSpeakRepliesChange)
+                        Switch(checked = autoSpeakReplies, onCheckedChange = onAutoSpeakRepliesChange, colors = SwitchDefaults.colors(checkedThumbColor = ByeProTheme.colors.goldPrimary, checkedTrackColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.28f)))
                     }
                     Text(
-                        "لغة الرد: تتبع لغة التطبيق حالياً.",
+                        WebI18n.tr("لغة الرد: تتبع لغة التطبيق حالياً.", "Reply language currently follows the app language.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -349,16 +405,16 @@ fun AiModelsSettingsScreen(
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("الخصوصية والحفاظ على النموذج", fontWeight = FontWeight.SemiBold)
+                    Text(WebI18n.tr("الخصوصية والحفاظ على النموذج", "Privacy & model retention", lang), fontWeight = FontWeight.SemiBold)
                     Text(
-                        "لا تضغط على مسح بيانات التطبيق ولا تحذف التطبيق إذا كنت تريد الحفاظ على النموذج. تحديث APK فوق النسخة المثبتة يحافظ عادةً على ملفات التطبيق الخاصة، لكن مسح البيانات أو إلغاء التثبيت قد يحذفها.",
+                        WebI18n.tr("لا تضغط على مسح بيانات التطبيق ولا تحذف التطبيق إذا كنت تريد الحفاظ على النموذج. تحديث APK فوق النسخة المثبتة يحافظ عادةً على ملفات التطبيق الخاصة، لكن مسح البيانات أو إلغاء التثبيت قد يحذفها.", "Do not clear app data or uninstall if you want to keep the model. Installing an APK update over the existing app normally preserves private app files, while clearing data or uninstalling may remove them.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "يعمل محرك LiteRT-LM على المعالج CPU. لا تُحذف الملفات الأصلية؛ عند اختيار ملف من مجلد التنزيلات تُنشأ نسخة خاصة داخل التطبيق لتشغيلها. دعم الصور والصوت داخل النموذج يحتاج تكاملاً منفصلاً.",
+                        WebI18n.tr("يعمل محرك LiteRT-LM على المعالج CPU. لا تُحذف الملفات الأصلية؛ عند اختيار ملف من مجلد التنزيلات تُنشأ نسخة خاصة داخل التطبيق لتشغيلها. دعم الصور والصوت داخل النموذج يحتاج تكاملاً منفصلاً.", "LiteRT-LM currently runs on CPU. Original files are not deleted; selecting a Downloads file creates a private app copy for execution. In-model image and audio support requires separate integration.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

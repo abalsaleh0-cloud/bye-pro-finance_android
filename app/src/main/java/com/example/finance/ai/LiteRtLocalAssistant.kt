@@ -1,11 +1,13 @@
 package com.example.finance.ai
 
 import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.tool
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.sync.Mutex
@@ -19,7 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * On-device text assistant powered by LiteRT-LM.
  * All engine and conversation operations are serialized on one background thread.
  */
-class LiteRtLocalAssistant(private val cacheDir: File) {
+class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiAppToolSet) {
     private val executor = Executors.newSingleThreadExecutor()
     private val dispatcher = executor.asCoroutineDispatcher()
     private val mutex = Mutex()
@@ -42,6 +44,7 @@ class LiteRtLocalAssistant(private val cacheDir: File) {
                 EngineConfig(
                     modelPath = absolutePath,
                     backend = Backend.CPU(),
+                    visionBackend = Backend.CPU(),
                     cacheDir = cacheDir.absolutePath
                 )
             )
@@ -51,16 +54,22 @@ class LiteRtLocalAssistant(private val cacheDir: File) {
             try {
                 val candidateConversation = candidate.createConversation(
                     ConversationConfig(
+                        tools = listOf(tool(appTools)),
                         systemInstruction = Contents.of(
-                            "You are BYE PRO FINANCE, a private on-device financial assistant. " +
-                                "Reply in the same language as the user's message. " +
-                                "Use only the supplied local financial context for personal financial facts. " +
-                                "Never invent balances, amounts, dates, currencies, or account details. " +
+                            "You are AI Bye Pro, a capable general-purpose personal AI assistant. " +
+                                "Talk naturally and warmly, like a thoughtful human conversation partner, without pretending to be human. " +
+                                "Understand general knowledge, explanations, writing, translation, brainstorming, learning, coding and problem solving. " +
+                                "Reply in the same language and conversational register as the user; use natural Arabic when the user writes Arabic. " +
+                                "Use the supplied local financial context only when the user asks about their own finances. " +
+                                "Never invent balances, amounts, dates, currencies, transactions, or account details. " +
                                 "Keep currencies separate and never convert them unless an explicit rate is supplied. " +
-                                "You may explain and analyze, but you cannot create, edit, delete, pay, or transfer money. " +
-                                "Never claim that you performed a financial operation. " +
-                                "If a request is ambiguous or missing essential details, ask one clear question. " +
-                                "Do not request network access or send data anywhere."
+                                "You may analyze finances and use the available local app tools to carry out supported operations. " +
+                                "Never claim that an operation succeeded unless its tool returns success after execution. " +
+                                "If a request is ambiguous or missing essential details, ask one concise clarifying question. " +
+                                "You have local app tools for navigating and reading accounts, transactions, transfers, budgets, debts, bills, savings goals, assets, household data, document metadata, notifications, audit activity and project workspaces. You can prepare supported account, transaction, debt, bill, savings-goal, asset, budget, transfer, household and project changes as review previews. Use these tools when directly helpful. " +
+                                "For every write operation, first prepare a preview and wait for the user to explicitly confirm that exact preview in the app. The app executes the pending operation only after confirmation. If the user cancels, do not retry or perform the operation. Never bypass confirmation. Never delete records through AI tools. " +
+                                "Do not claim to edit records or perform payments unless a corresponding tool is explicitly available; payment execution is not currently exposed. " +
+                                "This local model must not send local records or project files to a network service."
                         )
                     )
                 )
@@ -94,6 +103,38 @@ class LiteRtLocalAssistant(private val cacheDir: File) {
                 output.toString().trim().ifBlank { "لم ينتج النموذج إجابة نصية." }
             }
         }
+
+    suspend fun sendMessageWithImages(message: String, imageFiles: List<File>): String =
+        withContext(dispatcher) {
+            mutex.withLock {
+                val activeConversation = checkNotNull(conversation) {
+                    "لم يتم تحميل النموذج المحلي بعد."
+                }
+                require(imageFiles.isNotEmpty() && imageFiles.size <= 4) {
+                    "يجب إرفاق صورة واحدة إلى أربع صور."
+                }
+                imageFiles.forEach { file ->
+                    require(file.isFile && file.canRead() && file.length() > 0L) {
+                        "تعذر قراءة إحدى الصور المرفقة."
+                    }
+                }
+                val contents = imageFiles.map { file ->
+                    Content.ImageFile(file.absolutePath)
+                } + Content.Text(
+                    "User request: $message\nAnalyze the supplied image(s) directly. " +
+                        "Describe only visible evidence, distinguish uncertainty, and do not invent details."
+                )
+                val output = StringBuilder()
+                activeConversation.sendMessageAsync(Contents.of(*contents.toTypedArray())).collect { chunk ->
+                    output.append(chunk.toString())
+                }
+                output.toString().trim().ifBlank { "لم ينتج النموذج إجابة نصية عن الصور." }
+            }
+        }
+
+    suspend fun unload() = withContext(dispatcher) {
+        mutex.withLock { closeLoadedModel() }
+    }
 
     private fun closeLoadedModel() {
         val oldConversation = conversation
