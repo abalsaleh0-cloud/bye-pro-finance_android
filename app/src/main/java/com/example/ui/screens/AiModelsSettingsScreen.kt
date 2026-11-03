@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.finance.ai.GgufMetadataInspector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,7 +57,8 @@ private data class SelectedModelInfo(
     val name: String,
     val sizeBytes: Long,
     val detectedFormat: String,
-    val headerHex: String
+    val headerHex: String,
+    val metadataSummary: String? = null
 )
 
 private fun inspectSelectedModel(context: android.content.Context, uri: Uri): SelectedModelInfo {
@@ -93,12 +95,20 @@ private fun inspectSelectedModel(context: android.content.Context, uri: Uri): Se
         extension == "bin" -> "BIN غير محدد"
         else -> "صيغة غير معروفة"
     }
+    val metadataSummary = if (format == "GGUF") {
+        runCatching {
+            context.contentResolver.openInputStream(uri)?.use(GgufMetadataInspector::inspect)?.toDisplayText()
+                ?: "تعذر فتح ملف GGUF."
+        }.getOrElse { "تعذر قراءة بيانات GGUF: ${it.message ?: "ملف غير صالح"}" }
+    } else null
+
     return SelectedModelInfo(
         uri = uri,
         name = name,
         sizeBytes = size,
         detectedFormat = format,
-        headerHex = header.joinToString(" ") { "%02X".format(it) }.ifBlank { "غير متاح" }
+        headerHex = header.joinToString(" ") { "%02X".format(it) }.ifBlank { "غير متاح" },
+        metadataSummary = metadataSummary
     )
 }
 
@@ -263,6 +273,16 @@ fun AiModelsSettingsScreen(
                         )
                         Text("الصيغة المكتشفة: ${model.detectedFormat}", style = MaterialTheme.typography.bodySmall)
                         Text("ترويسة الملف: ${model.headerHex}", style = MaterialTheme.typography.labelSmall)
+                        model.metadataSummary?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall)
+                        }
+                        if (model.detectedFormat == "GGUF") {
+                            Text(
+                                "تم التعرف على ترويسة وبيانات النموذج فقط. تشغيل GGUF غير متاح حتى اكتمال دمج واختبار محرك llama.cpp؛ لن يتم تغيير امتداد الملف أو تمريره إلى LiteRT-LM.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
                         Text(
                             "الحزمة ستُنسخ إلى مساحة التطبيق الخاصة ثم يجري تحميلها على المعالج. لا يتم إرسال الملف إلى الإنترنت.",
                             style = MaterialTheme.typography.bodySmall,
