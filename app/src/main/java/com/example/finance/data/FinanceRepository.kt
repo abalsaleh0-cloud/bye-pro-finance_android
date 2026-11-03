@@ -462,7 +462,7 @@ class FinanceRepository(
                 ?: return@operation false
             if (bill.isPaid) return@operation true
             val account = dao.getAccountById(accountId) ?: return@operation false
-            if (!bill.amount.isFinite() || bill.amount <= 0.0 ||
+            if (account.isArchived || !bill.amount.isFinite() || bill.amount <= 0.0 ||
                 !bill.currency.equals(account.currency, ignoreCase = true) ||
                 !account.balance.isFinite() || account.balance < bill.amount
             ) return@operation false
@@ -520,12 +520,13 @@ class FinanceRepository(
             val goal = dao.getSavingsGoalById(goalId)
                 ?: return@operation false
             val account = dao.getAccountById(accountId) ?: return@operation false
-            if (!amount.isFinite() || amount <= 0.0 ||
+            if (account.isArchived || !amount.isFinite() || amount <= 0.0 ||
                 !goal.currency.equals(account.currency, ignoreCase = true) ||
                 !account.balance.isFinite() || account.balance < amount
             ) return@operation false
-            val updatedGoalAmount = goal.currentAmount + amount
-            if (!updatedGoalAmount.isFinite()) return@operation false
+            val updatedGoalAmount = FinanceEngine.toBigDecimal(goal.currentAmount)
+                .add(FinanceEngine.toBigDecimal(amount))
+            if (updatedGoalAmount > FinanceEngine.toBigDecimal(goal.targetAmount)) return@operation false
 
             dao.insertTransaction(
                 TransactionEntity(
@@ -542,7 +543,7 @@ class FinanceRepository(
                 FinanceEngine.toBigDecimal(account.balance)
                     .subtract(FinanceEngine.toBigDecimal(amount)).toDouble()
             )
-            dao.updateSavingsGoal(goal.copy(currentAmount = updatedGoalAmount))
+            dao.updateSavingsGoal(goal.copy(currentAmount = updatedGoalAmount.toDouble()))
             logAudit("CONTRIBUTION", "Savings", "Added $amount to goal ${goal.name}")
             true
         }
