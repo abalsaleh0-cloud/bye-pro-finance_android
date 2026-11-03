@@ -97,6 +97,12 @@ fun AiAssistantScreen(
                 .getBoolean("auto_speak_replies", false)
         )
     }
+    var cloudGeneralEnabled by remember {
+        mutableStateOf(
+            context.getSharedPreferences("bye_pro_finance_ai_models", 0)
+                .getBoolean("cloud_general_enabled", true)
+        )
+    }
     var inputText by remember { mutableStateOf("") }
     var speakNextAiResponse by remember { mutableStateOf(false) }
     var autoSpeakTimestamp by remember { mutableStateOf<Long?>(null) }
@@ -381,6 +387,14 @@ fun AiAssistantScreen(
         } else {
             AiModelsSettingsScreen(
                 autoSpeakReplies = autoSpeakReplies,
+                cloudGeneralEnabled = cloudGeneralEnabled,
+                onCloudGeneralEnabledChange = { enabled ->
+                    cloudGeneralEnabled = enabled
+                    context.getSharedPreferences("bye_pro_finance_ai_models", 0)
+                        .edit()
+                        .putBoolean("cloud_general_enabled", enabled)
+                        .apply()
+                },
                 localModelReady = localModelReady,
                 localModelLoading = localModelLoading,
                 localModelProgress = localModelProgress,
