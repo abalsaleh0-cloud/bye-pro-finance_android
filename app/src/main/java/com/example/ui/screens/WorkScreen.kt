@@ -26,7 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.finance.i18n.WebI18n
 import com.example.finance.model.AppLanguage
 import com.example.finance.model.WorkRecordEntity
 import com.example.finance.model.WorkRecordType
@@ -50,18 +49,31 @@ fun WorkScreen(viewModel: FinanceViewModel) {
 
     val employmentIds = sources.filter { it.type == WorkSourceType.EMPLOYMENT }.map { it.id }.toSet()
     val freelanceIds = sources.filter { it.type == WorkSourceType.FREELANCE }.map { it.id }.toSet()
+    val currentPeriod = java.time.YearMonth.now().toString()
+    val periodRecords = records.filter { it.period == currentPeriod }
     val salary = sources.filter { it.type == WorkSourceType.EMPLOYMENT }.sumOf { it.monthlySalary }
-    val advances = records.filter { it.type == WorkRecordType.ADVANCE && it.sourceId in employmentIds }.sumOf { it.amount }
-    val deductions = records.filter { it.type == WorkRecordType.DEDUCTION && it.sourceId in employmentIds }.sumOf { it.amount }
-    val freelanceIncome = records.filter { it.type == WorkRecordType.FREELANCE_INCOME && it.sourceId in freelanceIds }.sumOf { it.amount }
-    val freelanceExpenses = records.filter { it.type == WorkRecordType.FREELANCE_EXPENSE && it.sourceId in freelanceIds }.sumOf { it.amount }
+    val employmentRecords = periodRecords.filter { it.sourceId in employmentIds }
+    val advances = employmentRecords.filter { it.type == WorkRecordType.ADVANCE }.sumOf { it.amount }
+    val deductions = employmentRecords.filter { it.type == WorkRecordType.DEDUCTION }.sumOf { it.amount }
+    val bonuses = employmentRecords.filter { it.type == WorkRecordType.BONUS }.sumOf { it.amount }
+    val overtime = employmentRecords.filter { it.type == WorkRecordType.OVERTIME }.sumOf { it.amount }
+    val salaryPayments = employmentRecords.filter { it.type == WorkRecordType.SALARY_PAYMENT }.sumOf { it.amount }
+    val remainingSalary = (salary + bonuses + overtime - advances - deductions - salaryPayments).coerceAtLeast(0.0)
+    val freelanceRecords = periodRecords.filter { it.sourceId in freelanceIds }
+    val freelanceIncome = freelanceRecords.filter { it.type == WorkRecordType.FREELANCE_INCOME }.sumOf { it.amount }
+    val freelanceExpenses = freelanceRecords.filter { it.type == WorkRecordType.FREELANCE_EXPENSE }.sumOf { it.amount }
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (ar) "العمل والدخل" else "Work & Income", style = MaterialTheme.typography.headlineSmall)
         Text(if (ar) "إدارة الوظائف والراتب والعمل الحر بشكل مستقل" else "Manage employment and freelance income separately", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(if (ar) "ملخص · ${currentPeriod}" else "Monthly summary · ${currentPeriod}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SummaryCard(if (ar) "الراتب الشهري" else "Monthly salary", salary, currency, Modifier.weight(1f), money)
+            SummaryCard(if (ar) "الراتب الأساسي" else "Base salary", salary, currency, Modifier.weight(1f), money)
+            SummaryCard(if (ar) "المتبقي المستحق" else "Salary remaining", remainingSalary, currency, Modifier.weight(1f), money)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SummaryCard(if (ar) "السلف" else "Advances", advances, currency, Modifier.weight(1f), money)
+            SummaryCard(if (ar) "الخصومات" else "Deductions", deductions, currency, Modifier.weight(1f), money)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SummaryCard(if (ar) "دخل العمل الحر" else "Freelance income", freelanceIncome, currency, Modifier.weight(1f), money)
