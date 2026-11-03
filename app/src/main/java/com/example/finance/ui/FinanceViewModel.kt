@@ -11,6 +11,8 @@ import com.example.finance.ai.ExtractedReceiptData
 import com.example.finance.ai.FinancialAssistantEngine
 import com.example.finance.ai.OfflineFinanceService
 import com.example.finance.ai.LiteRtLocalAssistant
+import com.example.finance.ai.AiAppToolSet
+import com.example.finance.ai.AiProjectWorkspace
 import com.example.finance.auth.SupabaseAuthRepository
 import com.example.finance.network.AiRequest
 import com.example.finance.network.FinanceApiProvider
@@ -44,7 +46,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val aiService = OfflineFinanceService()
     private val aiModelPreferences = application.getSharedPreferences("bye_pro_finance_ai_models", Application.MODE_PRIVATE)
     private val authRepository = SupabaseAuthRepository(application)
-    private val localLlm = LiteRtLocalAssistant(application.cacheDir)
+    private val aiProjectWorkspace = AiProjectWorkspace(File(application.filesDir, "ai_projects.properties"))
+    private val aiAppTools = AiAppToolSet(repository, aiProjectWorkspace) { section -> setScreen(section) }
+    val pendingAiAction = aiAppTools.pendingAction
+    private val localLlm = LiteRtLocalAssistant(application.cacheDir, aiAppTools)
     val accounts: StateFlow<List<AccountEntity>> = repository.accounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val archivedAccounts: StateFlow<List<AccountEntity>> = repository.archivedAccounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val _accountsLoading = MutableStateFlow(true)
@@ -349,6 +354,16 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             _chatMessages.value = _chatMessages.value + ChatMessage("AI", response)
         }
     }
+
+    fun confirmPendingAiAction(actionId: String) {
+        viewModelScope.launch {
+            runCatching { aiAppTools.confirmPendingAction(actionId) }
+                .onSuccess { message -> _chatMessages.value = _chatMessages.value + ChatMessage("AI", message) }
+                .onFailure { error -> _chatMessages.value = _chatMessages.value + ChatMessage("AI", "لم يتم تنفيذ العملية: ${error.message ?: "خطأ غير معروف"}") }
+        }
+    }
+
+    fun cancelPendingAiAction(actionId: String) { aiAppTools.cancelPendingAction(actionId) }
 
     override fun onCleared() {
         localLlm.shutdown()
