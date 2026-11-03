@@ -115,27 +115,28 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun addWorkRecord(record: WorkRecordEntity, accountId: Long? = null, onComplete: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             val result = runCatching {
-                val linkedRecord = if (accountId != null) {
+                val isCashMovement = record.type in setOf(
+                    WorkRecordType.ADVANCE, WorkRecordType.BONUS, WorkRecordType.OVERTIME,
+                    WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_EXPENSE,
+                    WorkRecordType.SALARY_PAYMENT
+                )
+                val transaction = if (isCashMovement && accountId != null) {
                     val account = accounts.value.firstOrNull { it.id == accountId }
                         ?: throw IllegalArgumentException("Selected account was not found")
-                    val isExpense = record.type == WorkRecordType.FREELANCE_EXPENSE
-                    val isCashMovement = record.type in setOf(WorkRecordType.ADVANCE, WorkRecordType.BONUS, WorkRecordType.OVERTIME, WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.SALARY_PAYMENT)
-                    if (isCashMovement) {
-                        val txId = repository.addTransaction(
-                            TransactionEntity(
-                                accountId = account.id,
-                                type = if (isExpense) TransactionType.EXPENSE else TransactionType.INCOME,
-                                amount = record.amount,
-                                currency = account.currency,
-                                category = if (isExpense) "WORK_EXPENSE" else "WORK_INCOME",
-                                description = record.notes.ifBlank { record.type.name },
-                                status = TransactionStatus.COMPLETED
-                            )
-                        )
-                        record.copy(currency = account.currency, linkedAccountId = account.id, linkedTransactionId = txId)
-                    } else record
+                    TransactionEntity(
+                        accountId = account.id,
+                        type = if (record.type == WorkRecordType.FREELANCE_EXPENSE) TransactionType.EXPENSE else TransactionType.INCOME,
+                        amount = record.amount,
+                        currency = account.currency,
+                        category = if (record.type == WorkRecordType.FREELANCE_EXPENSE) "WORK_EXPENSE" else "WORK_INCOME",
+                        description = record.notes.ifBlank { record.type.name },
+                        status = TransactionStatus.COMPLETED
+                    )
+                } else null
+                val datedRecord = if (record.period.isBlank()) {
+                    record.copy(period = java.time.YearMonth.now().toString())
                 } else record
-                repository.addWorkRecord(linkedRecord)
+                repository.addWorkRecord(datedRecord, transaction)
             }
             onComplete(result.isSuccess)
         }
