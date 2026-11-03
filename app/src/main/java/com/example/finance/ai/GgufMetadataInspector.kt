@@ -37,7 +37,7 @@ object GgufMetadataInspector {
     private const val MAX_METADATA_ENTRIES = 100_000L
     private const val MAX_TENSORS = 10_000_000L
     private const val MAX_STRING_BYTES = 8L * 1024L * 1024L
-    private const val MAX_ARRAY_ITEMS = 100_000_000L
+    private const val MAX_ARRAY_ITEMS = 1_000_000L
 
     @Throws(IOException::class)
     fun inspect(input: InputStream): GgufMetadataSummary {
@@ -58,7 +58,7 @@ object GgufMetadataInspector {
             val key = data.readGgufString()
             val valueType = data.readUInt32LE()
             val keepValue = key in SELECTED_KEYS || key.substringAfterLast('.') in ARCHITECTURE_KEYS
-            val value = data.readValue(valueType, keepValue)
+            val value = data.readValue(valueType)
             if (keepValue) values[key] = value
         }
 
@@ -79,7 +79,7 @@ object GgufMetadataInspector {
         )
     }
 
-    private fun DataInputStream.readValue(type: Long, keep: Boolean): Any? = when (type) {
+    private fun DataInputStream.readValue(type: Long): Any? = when (type) {
         0L -> readUnsignedByte().toLong()
         1L -> readByte().toLong()
         2L -> readUnsignedShortLE().toLong()
@@ -93,7 +93,7 @@ object GgufMetadataInspector {
             val elementType = readUInt32LE()
             val count = readInt64LE()
             if (count !in 0..MAX_ARRAY_ITEMS) throw IOException("GGUF array length is invalid.")
-            repeat(count.toInt()) { readValue(elementType, false) }
+            repeat(count.toInt()) { readValue(elementType) }
             null
         }
         10L -> readInt64LE().toULong().toLong()
