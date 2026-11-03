@@ -100,6 +100,10 @@ class SecureVoiceSettings(context: Context) {
  * configured; callers can then use the on-device speech engine as an offline
  * fallback. Audio is fetched only for the text the user asked to hear.
  */
+enum class ElevenLabsConnectionResult {
+    CONNECTED, MISSING_KEY, INVALID_KEY, FORBIDDEN, RATE_LIMITED, SERVER_ERROR, NETWORK_ERROR, REQUEST_FAILED
+}
+
 class ElevenLabsSpeechProvider(context: Context) {
     private val settings = SecureVoiceSettings(context)
     private val client = OkHttpClient.Builder()
@@ -107,6 +111,37 @@ class ElevenLabsSpeechProvider(context: Context) {
         .readTimeout(90, TimeUnit.SECONDS)
         .callTimeout(120, TimeUnit.SECONDS)
         .build()
+
+    /**
+     * Checks the stored credential against ElevenLabs' authenticated user endpoint.
+     * Provider response bodies are intentionally not exposed to the UI or logs.
+     */
+    suspend fun testConnection(): ElevenLabsConnectionResult = withContext(Dispatchers.IO) {
+        val apiKey = settings.readApiKey()
+            ?: return@withContext ElevenLabsConnectionResult.MISSING_KEY
+        val request = Request.Builder()
+            .url("https://api.elevenlabs.io/v1/user")
+            .header("xi-api-key", apiKey)
+            .header("Accept", "application/json")
+            .get()
+            .build()
+        try {
+            client.newCall(request).execute().use { response ->
+                when {
+                    response.isSuccessful -> ElevenLabsConnectionResult.CONNECTED
+                    response.code == 401 -> ElevenLabsConnectionResult.INVALID_KEY
+                    response.code == 403 -> ElevenLabsConnectionResult.FORBIDDEN
+                    response.code == 429 -> ElevenLabsConnectionResult.RATE_LIMITED
+                    response.code in 500..599 -> ElevenLabsConnectionResult.SERVER_ERROR
+                    else -> ElevenLabsConnectionResult.REQUEST_FAILED
+                }
+            }
+        } catch (_: IOException) {
+            ElevenLabsConnectionResult.NETWORK_ERROR
+        } catch (_: Exception) {
+            ElevenLabsConnectionResult.REQUEST_FAILED
+        }
+    }
 
     suspend fun synthesize(text: String): ByteArray? = withContext(Dispatchers.IO) {
         val apiKey = settings.readApiKey() ?: return@withContext null
