@@ -23,3 +23,10 @@
 - Enforces up to four images and a 10 MiB per-image limit, validates image MIME types, and deletes temporary copies after inference.
 - Vision is enabled only for a model file whose name identifies Gemma 3n; other local text-only models are not presented as vision-capable.
 - The feature requires the user to supply/install a compatible .litertlm vision model. A compatible Gemma 3n E2B package is approximately 3.66 GB and its published device-memory guidance is 8 GB; actual performance and compatibility still require device testing.
+
+
+## 10.0.88 — expanded AI app tools (implementation in progress)
+- Added bounded read tools for accounts (including archived), transfers, budgets, debts, bills, savings goals, assets, household members and expenses, document metadata, notifications and audit activity.
+- Added confirmation-gated create previews for accounts, transactions, debts, bills, savings goals and assets. Repository writes occur only after explicit in-app confirmation; destructive AI deletion is not exposed.
+- Existing budget/project plan/file previews remain confirmation-gated. Navigation remains restricted to an explicit allowlist.
+- Remaining validation: compile and unit tests, tool-schema/runtime compatibility, and end-to-end confirmation/cancellation tests. This is not yet declared complete.
