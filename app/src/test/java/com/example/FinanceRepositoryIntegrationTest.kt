@@ -226,6 +226,50 @@ class FinanceRepositoryIntegrationTest {
     }
 
     @Test
+    fun savingsContributionCannotExceedTargetAndLeavesAllLedgersUnchanged() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Savings funding", type = AccountType.CASH, balance = 100.0, currency = "LYD")
+        )
+        repository.addSavingsGoal(
+            SavingsGoalEntity(name = "Capped goal", targetAmount = 50.0, currentAmount = 40.0, currency = "LYD", deadline = System.currentTimeMillis() + 86400000)
+        )
+        val goalId = db.financeDao().getAllSavingsGoals().first().single().id
+
+        assertFalse(repository.contributeToSavings(goalId, 10.01, accountId))
+        assertEquals(40.0, db.financeDao().getSavingsGoalById(goalId)?.currentAmount ?: 0.0, 0.001)
+        assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertTrue(repository.transactions.first().isEmpty())
+
+        assertTrue(repository.contributeToSavings(goalId, 10.0, accountId))
+        assertEquals(50.0, db.financeDao().getSavingsGoalById(goalId)?.currentAmount ?: 0.0, 0.001)
+        assertEquals(90.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertEquals(1, repository.transactions.first().size)
+    }
+
+    @Test
+    fun archivedAccountCannotFundSavingsContributionOrBillPayment() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Archived account", type = AccountType.CASH, balance = 100.0, currency = "LYD")
+        )
+        repository.archiveAccount(accountId, true)
+        repository.addSavingsGoal(
+            SavingsGoalEntity(name = "Emergency fund", targetAmount = 200.0, currency = "LYD", deadline = System.currentTimeMillis() + 86400000)
+        )
+        repository.addBill(
+            BillEntity(name = "Archived account bill", category = "Utilities", amount = 20.0, currency = "LYD", dueDate = System.currentTimeMillis())
+        )
+        val goalId = db.financeDao().getAllSavingsGoals().first().single().id
+        val billId = db.financeDao().getAllBills().first().single().id
+
+        assertFalse(repository.contributeToSavings(goalId, 10.0, accountId))
+        assertFalse(repository.markBillPaid(billId, accountId))
+        assertEquals(0.0, db.financeDao().getSavingsGoalById(goalId)?.currentAmount ?: 0.0, 0.001)
+        assertFalse(db.financeDao().getBillById(billId)?.isPaid ?: true)
+        assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertTrue(repository.transactions.first().isEmpty())
+    }
+
+    @Test
     fun importingSameTransactionTwiceDoesNotDoublePostBalance() = runBlocking {
         val accountId = repository.addAccount(
             AccountEntity(name = "Import account", type = AccountType.CASH, balance = 100.0, currency = "LYD")
