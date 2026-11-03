@@ -220,7 +220,7 @@ fun DebtsBillsScreen(
         var paymentError by remember(target.id) { mutableStateOf("") }
         var accountMenuExpanded by remember(target.id) { mutableStateOf(false) }
         var selectedAccountId by remember(target.id) { mutableStateOf(eligibleAccounts.firstOrNull()?.id) }
-        val selectedAccount = eligibleAccounts.firstOrNull { it.id == selectedAccountId }
+        val selectedAccount = eligibleAccounts.firstOrNull { it.id == selectedAccountId } ?: eligibleAccounts.firstOrNull()
         val isOutgoingDebt = target.direction == "i_owe"
 
         FinanceAlertDialog(
