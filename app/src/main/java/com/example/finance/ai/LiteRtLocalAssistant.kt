@@ -6,6 +6,7 @@ import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.tool
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.sync.Mutex
@@ -19,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * On-device text assistant powered by LiteRT-LM.
  * All engine and conversation operations are serialized on one background thread.
  */
-class LiteRtLocalAssistant(private val cacheDir: File) {
+class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiAppToolSet) {
     private val executor = Executors.newSingleThreadExecutor()
     private val dispatcher = executor.asCoroutineDispatcher()
     private val mutex = Mutex()
@@ -51,6 +52,7 @@ class LiteRtLocalAssistant(private val cacheDir: File) {
             try {
                 val candidateConversation = candidate.createConversation(
                     ConversationConfig(
+                        tools = listOf(tool(appTools)),
                         systemInstruction = Contents.of(
                             "You are AI Bye Pro, a capable general-purpose personal AI assistant. " +
                                 "Talk naturally and warmly, like a thoughtful human conversation partner, without pretending to be human. " +
@@ -62,6 +64,8 @@ class LiteRtLocalAssistant(private val cacheDir: File) {
                                 "You may explain and analyze finances, but you cannot create, edit, delete, pay, or transfer money. " +
                                 "Never claim that you performed an operation. " +
                                 "If a request is ambiguous or missing essential details, ask one concise clarifying question. " +
+                                "You have local app tools for navigation, reading local financial summaries, and creating project plans. Use these tools when they directly help the user. " +
+                                "Project plans and budget writes must remain previews until the user confirms in the app. Never claim a plan or change was saved before confirmation. " +
                                 "This model runs locally; do not request network access or send data anywhere."
                         )
                     )
