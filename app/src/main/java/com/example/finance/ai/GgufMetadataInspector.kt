@@ -57,8 +57,9 @@ object GgufMetadataInspector {
         repeat(metadataCount.toInt()) {
             val key = data.readGgufString()
             val valueType = data.readUInt32LE()
-            val value = data.readValue(valueType, key in SELECTED_KEYS)
-            if (key in SELECTED_KEYS) values[key] = value
+            val keepValue = key in SELECTED_KEYS || key.substringAfterLast('.') in ARCHITECTURE_KEYS
+            val value = data.readValue(valueType, keepValue)
+            if (keepValue) values[key] = value
         }
 
         val architecture = values["general.architecture"] as? String
@@ -121,7 +122,8 @@ object GgufMetadataInspector {
 
     private fun DataInputStream.readShortLE(): Short = java.lang.Short.reverseBytes(readShort())
 
-    private val SELECTED_KEYS = setOf(
+    private val ARCHITECTURE_KEYS = setOf("context_length", "block_count", "embedding_length")
+\n    private val SELECTED_KEYS = setOf(
         "general.architecture",
         "general.name",
         "general.file_type",
