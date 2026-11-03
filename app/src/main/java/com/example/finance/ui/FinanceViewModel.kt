@@ -123,9 +123,14 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 if (isCashMovement && accountId == null) {
                     throw IllegalArgumentException("A finance account must be selected for cash movements")
                 }
+                val source = workSources.value.firstOrNull { it.id == record.sourceId }
+                    ?: throw IllegalArgumentException("Work source was not found")
                 val transaction = if (isCashMovement) {
                     val account = accounts.value.firstOrNull { it.id == accountId }
                         ?: throw IllegalArgumentException("Selected account was not found")
+                    require(account.currency.equals(source.currency, ignoreCase = true)) {
+                        "Selected account currency must match the work source currency"
+                    }
                     TransactionEntity(
                         accountId = account.id,
                         type = if (record.type == WorkRecordType.FREELANCE_EXPENSE) TransactionType.EXPENSE else TransactionType.INCOME,
@@ -136,9 +141,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                         status = TransactionStatus.COMPLETED
                     )
                 } else null
-                val datedRecord = if (record.period.isBlank()) {
-                    record.copy(period = java.time.YearMonth.now().toString())
-                } else record
+                val datedRecord = record.copy(
+                    currency = source.currency,
+                    period = record.period.ifBlank { java.time.YearMonth.now().toString() }
+                )
                 repository.addWorkRecord(datedRecord, transaction)
             }
             onComplete(result.isSuccess)
