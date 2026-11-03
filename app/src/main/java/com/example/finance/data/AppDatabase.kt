@@ -22,6 +22,8 @@ import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransferEntity
 import com.example.finance.model.UserEntity
+import com.example.finance.model.WorkSourceEntity
+import com.example.finance.model.WorkRecordEntity
 
 @Database(
     entities = [
@@ -39,9 +41,11 @@ import com.example.finance.model.UserEntity
         HouseholdExpenseEntity::class,
         DocumentEntity::class,
         NotificationEntity::class,
-        AuditLogEntity::class
+        AuditLogEntity::class,
+        WorkSourceEntity::class,
+        WorkRecordEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -76,6 +80,14 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE TABLE IF NOT EXISTS work_sources (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, monthlySalary REAL NOT NULL, currency TEXT NOT NULL, isActive INTEGER NOT NULL, createdAt INTEGER NOT NULL)")
+                database.execSQL("CREATE TABLE IF NOT EXISTS work_records (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, sourceId INTEGER NOT NULL, type TEXT NOT NULL, amount REAL NOT NULL, currency TEXT NOT NULL, date INTEGER NOT NULL, period TEXT NOT NULL, notes TEXT NOT NULL, linkedAccountId INTEGER, linkedTransactionId INTEGER)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_work_records_sourceId ON work_records(sourceId)")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -85,7 +97,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "bye_pro_finance.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build()
                 INSTANCE = instance
                 instance
             }
