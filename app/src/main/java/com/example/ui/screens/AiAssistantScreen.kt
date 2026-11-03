@@ -161,7 +161,8 @@ fun AiAssistantScreen(
 
     LaunchedEffect(messages.size, streamingAiText.length) {
         if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
+            val lastVisibleItem = if (isAiLoading && streamingAiText.isNotBlank()) messages.size else messages.size - 1
+            listState.animateScrollToItem(lastVisibleItem)
         }
     }
     LaunchedEffect(messages.lastOrNull()?.timestamp, isAiLoading) {
