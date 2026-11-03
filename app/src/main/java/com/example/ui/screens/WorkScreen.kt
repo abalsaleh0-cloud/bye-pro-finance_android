@@ -40,6 +40,7 @@ import java.util.Locale
 fun WorkScreen(viewModel: FinanceViewModel) {
     val sources by viewModel.workSources.collectAsState()
     val records by viewModel.workRecords.collectAsState()
+    val accounts by viewModel.accounts.collectAsState()
     val language by viewModel.appLanguage.collectAsState()
     val currency by viewModel.primaryCurrency.collectAsState()
     val ar = language == AppLanguage.AR
@@ -99,8 +100,8 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         }
     }
     if (showRecordDialog) {
-        AddWorkRecordDialog(ar, currency, sources, onDismiss = { showRecordDialog = false }) { sourceId, type, amount, note ->
-            viewModel.addWorkRecord(WorkRecordEntity(sourceId = sourceId, type = type, amount = amount, currency = currency, notes = note))
+        AddWorkRecordDialog(ar, currency, sources, accounts.map { it.id to it.name }, onDismiss = { showRecordDialog = false }) { sourceId, type, amount, note, accountId ->
+            viewModel.addWorkRecord(WorkRecordEntity(sourceId = sourceId, type = type, amount = amount, currency = currency, notes = note), accountId)
             showRecordDialog = false
         }
     }
@@ -141,11 +142,12 @@ private fun AddWorkSourceDialog(ar: Boolean, currency: String, onDismiss: () -> 
 }
 
 @Composable
-private fun AddWorkRecordDialog(ar: Boolean, currency: String, sources: List<WorkSourceEntity>, onDismiss: () -> Unit, onSave: (Long, WorkRecordType, Double, String) -> Unit) {
+private fun AddWorkRecordDialog(ar: Boolean, currency: String, sources: List<WorkSourceEntity>, accounts: List<Pair<Long, String>>, onDismiss: () -> Unit, onSave: (Long, WorkRecordType, Double, String, Long?) -> Unit) {
     var sourceId by remember(sources) { mutableStateOf(sources.firstOrNull()?.id ?: 0L) }
     var type by remember { mutableStateOf(WorkRecordType.ADVANCE) }
     var amount by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
+    var accountId by remember(accounts) { mutableStateOf(accounts.firstOrNull()?.first) }
     val selected = sources.firstOrNull { it.id == sourceId }
     val choices = if (selected?.type == WorkSourceType.EMPLOYMENT) listOf(WorkRecordType.ADVANCE, WorkRecordType.DEDUCTION, WorkRecordType.BONUS, WorkRecordType.OVERTIME, WorkRecordType.SALARY_PAYMENT) else listOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_EXPENSE)
     AlertDialog(
@@ -157,9 +159,13 @@ private fun AddWorkRecordDialog(ar: Boolean, currency: String, sources: List<Wor
                 choices.forEach { choice -> TextButton(onClick = { type = choice }) { Text(recordLabel(choice, ar)) } }
                 OutlinedTextField(amount, { amount = it }, label = { Text(if (ar) "المبلغ" else "Amount") }, singleLine = true)
                 OutlinedTextField(note, { note = it }, label = { Text(if (ar) "ملاحظات" else "Notes") })
+                if (type in setOf(WorkRecordType.ADVANCE, WorkRecordType.BONUS, WorkRecordType.OVERTIME, WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.SALARY_PAYMENT)) {
+                    Text(if (ar) "إضافة الحركة إلى الحساب" else "Post to account")
+                    accounts.forEach { account -> TextButton(onClick = { accountId = account.first }) { Text((if (accountId == account.first) "✓ " else "") + account.second) } }
+                }
             }
         },
-        confirmButton = { Button(onClick = { val value = amount.toDoubleOrNull(); if (value != null && value > 0 && selected != null && type in choices) onSave(sourceId, type, value, note) }, enabled = amount.toDoubleOrNull()?.let { it > 0 } == true && selected != null && type in choices) { Text(if (ar) "حفظ" else "Save") } },
+        confirmButton = { Button(onClick = { val value = amount.toDoubleOrNull(); if (value != null && value > 0 && selected != null && type in choices) onSave(sourceId, type, value, note, accountId) }, enabled = amount.toDoubleOrNull()?.let { it > 0 } == true && selected != null && type in choices) { Text(if (ar) "حفظ" else "Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(if (ar) "إلغاء" else "Cancel") } }
     )
 }
