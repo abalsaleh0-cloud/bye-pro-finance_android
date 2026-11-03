@@ -51,15 +51,15 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     val freelanceIds = sources.filter { it.type == WorkSourceType.FREELANCE }.map { it.id }.toSet()
     val currentPeriod = java.time.YearMonth.now().toString()
     val periodRecords = records.filter { it.period == currentPeriod }
-    val salary = sources.filter { it.type == WorkSourceType.EMPLOYMENT }.sumOf { it.monthlySalary }
-    val employmentRecords = periodRecords.filter { it.sourceId in employmentIds }
+    val salary = sources.filter { it.type == WorkSourceType.EMPLOYMENT && it.currency.equals(currency, true) }.sumOf { it.monthlySalary }
+    val employmentRecords = periodRecords.filter { it.sourceId in employmentIds && it.currency.equals(currency, true) }
     val advances = employmentRecords.filter { it.type == WorkRecordType.ADVANCE }.sumOf { it.amount }
     val deductions = employmentRecords.filter { it.type == WorkRecordType.DEDUCTION }.sumOf { it.amount }
     val bonuses = employmentRecords.filter { it.type == WorkRecordType.BONUS }.sumOf { it.amount }
     val overtime = employmentRecords.filter { it.type == WorkRecordType.OVERTIME }.sumOf { it.amount }
     val salaryPayments = employmentRecords.filter { it.type == WorkRecordType.SALARY_PAYMENT }.sumOf { it.amount }
     val remainingSalary = (salary + bonuses + overtime - advances - deductions - salaryPayments).coerceAtLeast(0.0)
-    val freelanceRecords = periodRecords.filter { it.sourceId in freelanceIds }
+    val freelanceRecords = periodRecords.filter { it.sourceId in freelanceIds && it.currency.equals(currency, true) }
     val freelanceIncome = freelanceRecords.filter { it.type == WorkRecordType.FREELANCE_INCOME }.sumOf { it.amount }
     val freelanceExpenses = freelanceRecords.filter { it.type == WorkRecordType.FREELANCE_EXPENSE }.sumOf { it.amount }
 
@@ -162,6 +162,7 @@ private fun AddWorkRecordDialog(ar: Boolean, currency: String, sources: List<Wor
     var accountId by remember(accounts) { mutableStateOf(accounts.firstOrNull()?.first) }
     val selected = sources.firstOrNull { it.id == sourceId }
     val choices = if (selected?.type == WorkSourceType.EMPLOYMENT) listOf(WorkRecordType.ADVANCE, WorkRecordType.DEDUCTION, WorkRecordType.BONUS, WorkRecordType.OVERTIME, WorkRecordType.SALARY_PAYMENT) else listOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_EXPENSE)
+    val requiresAccount = type in setOf(WorkRecordType.ADVANCE, WorkRecordType.BONUS, WorkRecordType.OVERTIME, WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.SALARY_PAYMENT)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (ar) "تسجيل حركة عمل" else "Add work record") },
@@ -177,7 +178,7 @@ private fun AddWorkRecordDialog(ar: Boolean, currency: String, sources: List<Wor
                 }
             }
         },
-        confirmButton = { Button(onClick = { val value = amount.toDoubleOrNull(); if (value != null && value > 0 && selected != null && type in choices) onSave(sourceId, type, value, note, accountId) }, enabled = amount.toDoubleOrNull()?.let { it > 0 } == true && selected != null && type in choices) { Text(if (ar) "حفظ" else "Save") } },
+        confirmButton = { Button(onClick = { val value = amount.toDoubleOrNull(); if (value != null && value > 0 && selected != null && type in choices) onSave(sourceId, type, value, note, accountId) }, enabled = amount.toDoubleOrNull()?.let { it > 0 } == true && selected != null && type in choices && (!requiresAccount || accountId != null)) { Text(if (ar) "حفظ" else "Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(if (ar) "إلغاء" else "Cancel") } }
     )
 }
