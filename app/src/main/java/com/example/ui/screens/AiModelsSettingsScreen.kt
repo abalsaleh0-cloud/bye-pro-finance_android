@@ -284,9 +284,13 @@ fun AiModelsSettingsScreen(
                             )
                         }
                         Text(
-                            "الحزمة ستُنسخ إلى مساحة التطبيق الخاصة ثم يجري تحميلها على المعالج. لا يتم إرسال الملف إلى الإنترنت.",
+                            if (model.detectedFormat == "GGUF") {
+                                "يتم فحص بيانات GGUF محلياً فقط حالياً. لم يتم دمج محرك التشغيل بعد، لذلك لن ينسخ التطبيق هذا الملف أو يحاول تحميله."
+                            } else {
+                                "حزم LiteRT-LM المتوافقة تُنسخ إلى مساحة التطبيق الخاصة ثم تُحمّل محلياً. لا يتم إرسال ملف النموذج إلى الإنترنت."
+                            },
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.tertiary
+                            color = if (model.detectedFormat == "GGUF") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
                         )
                         OutlinedButton(
                             onClick = { onImportAndLoadModel(model.uri) },
