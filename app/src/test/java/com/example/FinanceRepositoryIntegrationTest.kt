@@ -428,6 +428,37 @@ class FinanceRepositoryIntegrationTest {
     }
 
     @Test
+    fun transferLedgerRowsCannotBeChangedOrDeletedIndependently() = runBlocking {
+        val sourceId = repository.addAccount(
+            AccountEntity(name = "Protected source", type = AccountType.BANK, balance = 500.0, currency = "LYD")
+        )
+        val targetId = repository.addAccount(
+            AccountEntity(name = "Protected target", type = AccountType.SAVINGS, balance = 50.0, currency = "LYD")
+        )
+        assertTrue(repository.executeTransfer(sourceId, targetId, 100.0, 2.0, "LYD", "Protected transfer", ""))
+        val rows = repository.transactions.first()
+        assertEquals(3, rows.size)
+
+        rows.forEach { row ->
+            try {
+                repository.deleteTransaction(row)
+                fail("Transfer ledger row must not be deleted independently")
+            } catch (_: IllegalArgumentException) { }
+        }
+        rows.forEach { row ->
+            try {
+                repository.updateTransactionStatus(row, TransactionStatus.PENDING)
+                fail("Transfer ledger row status must not change independently")
+            } catch (_: IllegalArgumentException) { }
+        }
+
+        assertEquals(398.0, db.financeDao().getAccountById(sourceId)?.balance ?: 0.0, 0.001)
+        assertEquals(150.0, db.financeDao().getAccountById(targetId)?.balance ?: 0.0, 0.001)
+        assertEquals(1, repository.transfers.first().size)
+        assertEquals(3, repository.transactions.first().size)
+    }
+
+    @Test
     fun transferRejectsDifferentCurrenciesWithoutChangingBalances() = runBlocking {
         val sourceId = repository.addAccount(
             AccountEntity(name = "LYD source", type = AccountType.BANK, balance = 500.0, currency = "LYD")
