@@ -175,7 +175,7 @@ fun SpeakTextButton(
         if (latestText.isBlank()) return
         scope.launch {
             speaking = true
-            val audio = runCatching { provider.synthesize(latestText, latestLanguage) }.getOrNull()
+            val audio = runCatching { provider.synthesize(latestText) }.getOrNull()
             if (audio.isNullOrEmpty()) {
                 speaking = false
                 speakLocally()
