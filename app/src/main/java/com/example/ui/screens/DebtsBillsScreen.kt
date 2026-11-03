@@ -217,7 +217,7 @@ fun DebtsBillsScreen(
             onDismissRequest = { billPaymentFailed = false },
             title = { Text(WebI18n.tr("تعذّر دفع الفاتورة", "Bill payment failed", lang)) },
             text = { Text(WebI18n.tr("تحقق من الحساب والعملة والرصيد، وتأكد أن الحساب غير مؤرشف.", "Check the account, currency and balance, and make sure the account is not archived.", lang)) },
-            confirmButton = { FinanceButton(onClick = { billPaymentFailed = false }) { Text(Strings.get("ok", lang)) } }
+            confirmButton = { FinanceButton(onClick = { billPaymentFailed = false }) { Text(Strings.get("close", lang)) } }
         )
     }
 
