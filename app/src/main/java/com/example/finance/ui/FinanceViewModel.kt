@@ -1,5 +1,6 @@
 package com.example.finance.ui
 
+import android.app.ActivityManager
 import android.app.Application
 import android.net.Uri
 import android.os.StatFs
@@ -12,6 +13,8 @@ import com.example.finance.ai.ExtractedReceiptData
 import com.example.finance.ai.FinancialAssistantEngine
 import com.example.finance.ai.OfflineFinanceService
 import com.example.finance.ai.LiteRtLocalAssistant
+import com.example.finance.ai.GgufLocalAssistant
+import com.example.finance.ai.GgufMetadataInspector
 import com.example.finance.ai.AiAppToolSet
 import com.example.finance.ai.AiProjectWorkspace
 import com.example.finance.auth.SupabaseAuthRepository
@@ -57,6 +60,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private val aiAppTools = AiAppToolSet(repository, aiProjectWorkspace) { section -> setScreen(section) }
     val pendingAiAction = aiAppTools.pendingAction
     private val localLlm = LiteRtLocalAssistant(application.cacheDir, aiAppTools)
+    private val ggufLlm = GgufLocalAssistant()
     val accounts: StateFlow<List<AccountEntity>> = repository.accounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val archivedAccounts: StateFlow<List<AccountEntity>> = repository.archivedAccounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val _accountsLoading = MutableStateFlow(true)
@@ -232,22 +236,13 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             _localModelLoading.value = true
             _localModelProgress.value = 0f
-            _localModelStatus.value = "جارٍ تهيئة النموذج المحلي على المعالج..."
+            _localModelStatus.value = "جارٍ تهيئة محرك النموذج المحلي..."
             try {
-                require(file.extension.equals("litertlm", ignoreCase = true)) {
-                    "صيغة النموذج غير مدعومة هنا. اختر ملف .litertlm."
-                }
-                localLlm.load(file)
-                aiModelPreferences.edit()
-                    .putString("active_model_path", file.absolutePath)
-                    .putBoolean("active_model_supports_vision", file.name.contains("gemma-3n", ignoreCase = true))
-                    .apply()
-                _localModelReady.value = true
-                _localModelStatus.value = "النموذج المحلي جاهز. المحادثة تعمل على الهاتف دون اتصال."
+                loadLocalModelIntoRuntime(file)
             } catch (error: Throwable) {
                 _localModelReady.value = false
                 _localModelStatus.value = "تعذر تحميل النموذج: " + (error.message ?: "خطأ غير معروف")
-                Log.e("BYE_PRO_LOCAL_AI", "Local LiteRT-LM model load failed", error)
+                Log.e("BYE_PRO_LOCAL_AI", "Local model load failed", error)
             } finally {
                 _localModelLoading.value = false
             }
@@ -262,14 +257,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             _localModelStatus.value = "جارٍ نسخ ملف النموذج إلى مساحة التطبيق الخاصة..."
             try {
                 val modelFile = copyLocalModelIntoApp(uri)
-                _localModelStatus.value = "تم تجهيز الملف. جارٍ تحميل Gemma على المعالج..."
-                localLlm.load(modelFile)
-                aiModelPreferences.edit()
-                    .putString("active_model_path", modelFile.absolutePath)
-                    .putBoolean("active_model_supports_vision", modelFile.name.contains("gemma-3n", ignoreCase = true))
-                    .apply()
-                _localModelReady.value = true
-                _localModelStatus.value = "النموذج المحلي جاهز. المحادثة تعمل على الهاتف دون اتصال."
+                loadLocalModelIntoRuntime(modelFile)
             } catch (error: Throwable) {
                 _localModelReady.value = false
                 _localModelStatus.value = "تعذر تجهيز أو تشغيل النموذج: " + (error.message ?: "خطأ غير معروف")
@@ -280,8 +268,58 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private suspend fun loadLocalModelIntoRuntime(modelFile: File) {
+        require(modelFile.isFile && modelFile.canRead() && modelFile.length() > 0L) {
+            "ملف النموذج غير موجود أو فارغ أو غير قابل للقراءة."
+        }
+        when (modelFile.extension.lowercase()) {
+            "gguf" -> {
+                val metadata = withContext(Dispatchers.IO) {
+                    modelFile.inputStream().use(GgufMetadataInspector::inspect)
+                }
+                require(!metadata.architecture.isNullOrBlank()) {
+                    "تعذر تحديد بنية GGUF؛ الملف لا يحتوي على بيانات معمارية صالحة."
+                }
+                val manager = getApplication<Application>().getSystemService(ActivityManager::class.java)
+                val memory = ActivityManager.MemoryInfo()
+                manager.getMemoryInfo(memory)
+                val estimatedBytes = (modelFile.length() * 1.20).toLong() + 512L * 1024L * 1024L
+                require(memory.availMem >= estimatedBytes) {
+                    "الذاكرة المتاحة غير كافية لتشغيل هذا النموذج بأمان. يلزم تقريباً " +
+                        String.format(java.util.Locale.US, "%.2f GB", estimatedBytes / 1_073_741_824.0) +
+                        " متاحة حالياً؛ أغلق التطبيقات الأخرى أو استخدم نسخة GGUF أصغر."
+                }
+                localLlm.unload()
+                _localModelStatus.value = "جارٍ تحميل GGUF عبر llama.cpp على المعالج..."
+                ggufLlm.load(modelFile)
+                aiModelPreferences.edit()
+                    .putString("active_model_path", modelFile.absolutePath)
+                    .putString("active_model_format", "GGUF")
+                    .putString("active_model_architecture", metadata.architecture)
+                    .putBoolean("active_model_supports_vision", false)
+                    .apply()
+                _localModelReady.value = true
+                _localModelStatus.value = "محرك llama.cpp جاهز. نموذج GGUF يعمل محلياً على الهاتف."
+            }
+            "litertlm" -> {
+                ggufLlm.unload()
+                _localModelStatus.value = "جارٍ تحميل حزمة LiteRT-LM على المعالج..."
+                localLlm.load(modelFile)
+                aiModelPreferences.edit()
+                    .putString("active_model_path", modelFile.absolutePath)
+                    .putString("active_model_format", "LITERTLM")
+                    .remove("active_model_architecture")
+                    .putBoolean("active_model_supports_vision", modelFile.name.contains("gemma-3n", ignoreCase = true))
+                    .apply()
+                _localModelReady.value = true
+                _localModelStatus.value = "محرك LiteRT-LM جاهز. النموذج يعمل محلياً على الهاتف."
+            }
+            else -> error("صيغة النموذج غير مدعومة. اختر ملف .gguf أو .litertlm.")
+        }
+    }
+
     private suspend fun copyLocalModelIntoApp(uri: Uri): File = withContext(Dispatchers.IO) {
-        var displayName = "selected-model.litertlm"
+        var displayName = "selected-model.gguf"
         var expectedSize = -1L
         getApplication<Application>().contentResolver.query(
             uri,
@@ -297,8 +335,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) expectedSize = cursor.getLong(sizeIndex)
             }
         }
-        require(displayName.endsWith(".litertlm", ignoreCase = true)) {
-            "الملف المختار ليس حزمة LiteRT-LM بامتداد .litertlm."
+        require(
+            displayName.endsWith(".litertlm", ignoreCase = true) ||
+                displayName.endsWith(".gguf", ignoreCase = true)
+        ) {
+            "صيغة الملف غير مدعومة. اختر ملف GGUF أو LiteRT-LM."
         }
 
         val directory = File(getApplication<Application>().filesDir, "ai-models")
@@ -309,8 +350,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
 
         val safeModelName = displayName.replace(Regex("[^A-Za-z0-9._-]"), "_")
-            .takeIf { it.endsWith(".litertlm", ignoreCase = true) }
-            ?: "selected-model.litertlm"
+            .takeIf {
+                it.endsWith(".litertlm", ignoreCase = true) ||
+                    it.endsWith(".gguf", ignoreCase = true)
+            } ?: "selected-model.gguf"
         val destination = File(directory, safeModelName)
         val temporary = File(directory, "$safeModelName.part")
         var copied = 0L
@@ -436,8 +479,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             val response = if (attachments.isNotEmpty()) {
                 runCatching {
                     require(attachments.size <= 4) { "يمكن تحليل أربع صور كحد أقصى في الرسالة الواحدة." }
-                    require(aiModelPreferences.getBoolean("active_model_supports_vision", false)) {
-                        "تحليل الصور محلياً يحتاج نموذج Gemma 3n بصيغة .litertlm. اختر النموذج المجاني المتوافق من إعدادات النماذج أولاً."
+                    require(
+                        aiModelPreferences.getString("active_model_format", "LITERTLM") != "GGUF" &&
+                            aiModelPreferences.getBoolean("active_model_supports_vision", false)
+                    ) {
+                        "تحليل الصور يحتاج نموذج Gemma 3n متوافقاً بصيغة .litertlm؛ محرك GGUF الحالي مخصص للمحادثة النصية."
                     }
                     val savedPath = aiModelPreferences.getString("active_model_path", null)
                         ?: error("لم يتم تثبيت نموذج محلي يدعم الصور بعد.")
@@ -485,18 +531,30 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 val savedModel = savedPath?.let(::File)
                 if (savedModel != null && savedModel.isFile) {
                     try {
+                        val format = aiModelPreferences.getString(
+                            "active_model_format",
+                            if (savedModel.extension.equals("gguf", ignoreCase = true)) "GGUF" else "LITERTLM"
+                        )
                         if (!_localModelReady.value) {
                             _localModelLoading.value = true
                             _localModelStatus.value = "جارٍ استعادة النموذج المحلي..."
                             try {
-                                localLlm.load(savedModel)
+                                if (format == "GGUF") {
+                                    ggufLlm.load(savedModel)
+                                } else {
+                                    localLlm.load(savedModel)
+                                }
                                 _localModelReady.value = true
                                 _localModelStatus.value = "النموذج المحلي جاهز."
                             } finally {
                                 _localModelLoading.value = false
                             }
                         }
-                        localLlm.sendMessage(trimmedQuery, financialContext)
+                        if (format == "GGUF") {
+                            ggufLlm.sendMessage(trimmedQuery, financialContext)
+                        } else {
+                            localLlm.sendMessage(trimmedQuery, financialContext)
+                        }
                     } catch (localError: Throwable) {
                         Log.e("BYE_PRO_LOCAL_AI", "Local assistant failed; trying cloud general assistant.", localError)
                         askCloudGeneralAssistant(trimmedQuery) ?: financialContext
@@ -529,6 +587,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     override fun onCleared() {
         localLlm.shutdown()
+        ggufLlm.shutdown()
         super.onCleared()
     }
     private val _ocrError = MutableStateFlow<String?>(null)
