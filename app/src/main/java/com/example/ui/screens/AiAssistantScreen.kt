@@ -121,16 +121,20 @@ fun AiAssistantScreen(
         }
     }
 
-    val quickChips = if (lang == com.example.finance.model.AppLanguage.AR) listOf(
-        WebI18n.tr("كم أنفقت هذا الشهر؟", "How much have I spent this month?", lang),
-        WebI18n.tr("ما أعلى تصنيف أنفقت عليه؟", "What is my highest spending category?", lang),
-        WebI18n.tr("هل أنا في خطر تجاوز الميزانيات؟", "Am I at risk of exceeding my budgets?", lang),
-        WebI18n.tr("كيف أستطيع توفير المزيد من المال؟", "How can I save more money?", lang)
+    val quickChips = if (lang == AppLanguage.AR) listOf(
+        "اشرح لي موضوعاً بطريقة بسيطة",
+        "ساعدني في كتابة رسالة احترافية",
+        "ترجم هذا النص إلى الإنجليزية",
+        "لدي فكرة وأريد تطويرها",
+        "حلل مصروفاتي هذا الشهر",
+        "ساعدني في وضع خطة ادخار"
     ) else listOf(
-        "What is my spending this month?",
-        "What is my highest expense category?",
-        "Am I exceeding my budgets?",
-        "How can I save more money?"
+        "Explain a topic in simple terms",
+        "Help me write a professional message",
+        "Translate this text into Arabic",
+        "Help me develop an idea",
+        "Analyze my spending this month",
+        "Help me create a savings plan"
     )
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -220,7 +224,7 @@ fun AiAssistantScreen(
                                 )
                                 Spacer(modifier = Modifier.size(8.dp))
                                 Text(
-                                    text = WebI18n.tr("جاري التحليل المالي الذكي...", "Analyzing financial data...", lang),
+                                    text = WebI18n.tr("أفكر في إجابتك...", "Thinking through your request...", lang),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
