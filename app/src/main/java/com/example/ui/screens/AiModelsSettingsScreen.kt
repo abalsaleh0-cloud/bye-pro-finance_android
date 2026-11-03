@@ -244,10 +244,10 @@ fun AiModelsSettingsScreen(
                     }
                     Text(
                         text = when {
-                            isScanning -> "جارٍ فحص مجلدات التطبيق…"
-                            !scanCompleted -> "لم يبدأ الفحص بعد"
-                            modelFiles.isEmpty() -> "لم يتم العثور على ملف نموذج كبير داخل مجلدات التطبيق التي أمكن فحصها. هذا لا يثبت أن النموذج حُذف؛ قد يكون محفوظاً في موقع آخر."
-                            else -> "تم العثور على ${modelFiles.size} ملف كبير. الاسم والحجم أدناه لا يكفيان وحدهما لتأكيد نوع النموذج."
+                            isScanning -> WebI18n.tr("جارٍ فحص مجلدات التطبيق…", "Scanning app folders…", lang)
+                            !scanCompleted -> WebI18n.tr("لم يبدأ الفحص بعد", "Scan has not started", lang)
+                            modelFiles.isEmpty() -> WebI18n.tr("لم يتم العثور على ملف نموذج كبير داخل مجلدات التطبيق التي أمكن فحصها. هذا لا يثبت أن النموذج حُذف؛ قد يكون محفوظاً في موقع آخر.", "No large model file was found in the app folders scanned. This does not prove the model was deleted; it may be stored elsewhere.", lang)
+                            else -> WebI18n.tr("تم العثور على ${modelFiles.size} ملف كبير. الاسم والحجم أدناه لا يكفيان وحدهما لتأكيد نوع النموذج.", "Found ${modelFiles.size} large files. File name and size alone cannot confirm the model type.", lang)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -269,7 +269,7 @@ fun AiModelsSettingsScreen(
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(WebI18n.tr("استعادة النموذج الموجود على الهاتف", "Restore a model already on this phone", lang), fontWeight = FontWeight.SemiBold)
                     Text(
-                        "اختر ملف النموذج الذي سبق تنزيله. سيقرأ التطبيق الاسم والحجم وأول 16 بايت فقط، ولن يرفع الملف أو ينزّله أو يحذفه.",
+                        WebI18n.tr("اختر ملف النموذج الذي سبق تنزيله. سيقرأ التطبيق الاسم والحجم وأول 16 بايت فقط، ولن يرفع الملف أو ينزّله أو يحذفه.", "Choose a model file already downloaded. The app reads only its name, size and first 16 bytes; it will not upload, download or delete the file.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -295,16 +295,16 @@ fun AiModelsSettingsScreen(
                         }
                         if (model.detectedFormat == "GGUF") {
                             Text(
-                                "تم التعرف على ترويسة وبيانات النموذج فقط. تشغيل GGUF غير متاح حتى اكتمال دمج واختبار محرك llama.cpp؛ لن يتم تغيير امتداد الملف أو تمريره إلى LiteRT-LM.",
+                                WebI18n.tr("تم التعرف على ترويسة وبيانات النموذج فقط. تشغيل GGUF غير متاح حتى اكتمال دمج واختبار محرك llama.cpp؛ لن يتم تغيير امتداد الملف أو تمريره إلى LiteRT-LM.", "Only GGUF header and metadata were identified. GGUF execution is unavailable until llama.cpp is integrated and tested; the file will not be renamed or passed to LiteRT-LM.", lang),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
                         Text(
                             if (model.detectedFormat == "GGUF") {
-                                "يتم فحص بيانات GGUF محلياً فقط حالياً. لم يتم دمج محرك التشغيل بعد، لذلك لن ينسخ التطبيق هذا الملف أو يحاول تحميله."
+                                WebI18n.tr("يتم فحص بيانات GGUF محلياً فقط حالياً. لم يتم دمج محرك التشغيل بعد، لذلك لن ينسخ التطبيق هذا الملف أو يحاول تحميله.", "GGUF metadata is inspected locally only. The runtime is not integrated yet, so the app will not copy or attempt to load this file.", lang)
                             } else {
-                                "حزم LiteRT-LM المتوافقة تُنسخ إلى مساحة التطبيق الخاصة ثم تُحمّل محلياً. لا يتم إرسال ملف النموذج إلى الإنترنت."
+                                WebI18n.tr("حزم LiteRT-LM المتوافقة تُنسخ إلى مساحة التطبيق الخاصة ثم تُحمّل محلياً. لا يتم إرسال ملف النموذج إلى الإنترنت.", "Compatible LiteRT-LM packages are copied into app-private storage and loaded locally. Model files are never sent to the internet.", lang)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = if (model.detectedFormat == "GGUF") MaterialTheme.colorScheme.error else ByeProTheme.colors.goldPrimary
@@ -341,7 +341,7 @@ fun AiModelsSettingsScreen(
                     Text(String.format(Locale.US, "%.2f GB", model.sizeBytes / 1_073_741_824.0))
                     Text(model.locationLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        "لا يمكن تحديد اسم النموذج من الحجم وحده. يمكن تشغيل حزم LiteRT-LM من هذا المجلد مباشرة.",
+                        WebI18n.tr("لا يمكن تحديد اسم النموذج من الحجم وحده. يمكن تشغيل حزم LiteRT-LM من هذا المجلد مباشرة.", "A model cannot be identified by file size alone. LiteRT-LM packages can be launched directly from this folder.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -386,7 +386,7 @@ fun AiModelsSettingsScreen(
                         Column(Modifier.weight(1f)) {
                             Text(WebI18n.tr("قراءة رد المساعد صوتياً بعد التحدث", "Speak assistant replies automatically", lang))
                             Text(
-                                "يستخدم الصوت السحابي الطبيعي عند ضبط ElevenLabs، مع الرجوع إلى صوت الهاتف عند عدم الاتصال.",
+                                WebI18n.tr("يستخدم الصوت السحابي الطبيعي عند ضبط ElevenLabs، مع الرجوع إلى صوت الهاتف عند عدم الاتصال.", "Uses natural cloud speech when ElevenLabs is configured, with device speech as an offline fallback.", lang),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -394,7 +394,7 @@ fun AiModelsSettingsScreen(
                         Switch(checked = autoSpeakReplies, onCheckedChange = onAutoSpeakRepliesChange, colors = SwitchDefaults.colors(checkedThumbColor = ByeProTheme.colors.goldPrimary, checkedTrackColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.28f)))
                     }
                     Text(
-                        "لغة الرد: تتبع لغة التطبيق حالياً.",
+                        WebI18n.tr("لغة الرد: تتبع لغة التطبيق حالياً.", "Reply language currently follows the app language.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -406,12 +406,12 @@ fun AiModelsSettingsScreen(
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(WebI18n.tr("الخصوصية والحفاظ على النموذج", "Privacy & model retention", lang), fontWeight = FontWeight.SemiBold)
                     Text(
-                        "لا تضغط على مسح بيانات التطبيق ولا تحذف التطبيق إذا كنت تريد الحفاظ على النموذج. تحديث APK فوق النسخة المثبتة يحافظ عادةً على ملفات التطبيق الخاصة، لكن مسح البيانات أو إلغاء التثبيت قد يحذفها.",
+                        WebI18n.tr("لا تضغط على مسح بيانات التطبيق ولا تحذف التطبيق إذا كنت تريد الحفاظ على النموذج. تحديث APK فوق النسخة المثبتة يحافظ عادةً على ملفات التطبيق الخاصة، لكن مسح البيانات أو إلغاء التثبيت قد يحذفها.", "Do not clear app data or uninstall if you want to keep the model. Installing an APK update over the existing app normally preserves private app files, while clearing data or uninstalling may remove them.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "يعمل محرك LiteRT-LM على المعالج CPU. لا تُحذف الملفات الأصلية؛ عند اختيار ملف من مجلد التنزيلات تُنشأ نسخة خاصة داخل التطبيق لتشغيلها. دعم الصور والصوت داخل النموذج يحتاج تكاملاً منفصلاً.",
+                        WebI18n.tr("يعمل محرك LiteRT-LM على المعالج CPU. لا تُحذف الملفات الأصلية؛ عند اختيار ملف من مجلد التنزيلات تُنشأ نسخة خاصة داخل التطبيق لتشغيلها. دعم الصور والصوت داخل النموذج يحتاج تكاملاً منفصلاً.", "LiteRT-LM currently runs on CPU. Original files are not deleted; selecting a Downloads file creates a private app copy for execution. In-model image and audio support requires separate integration.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

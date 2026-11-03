@@ -36,7 +36,7 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
     var status by remember {
         mutableStateOf(
             if (settings.hasApiKey()) WebI18n.tr("تم حفظ مفتاح الصوت السحابي بشكل مشفر على هذا الجهاز.", "Cloud voice key is encrypted and saved on this device.", lang)
-            else WebI18n.tr("لم تتم إضافة مفتاح صوت سحابي بعد. Local device speech will be used offline.", "No cloud voice key added. Local device speech will be used offline.", lang)
+            else WebI18n.tr("لم تتم إضافة مفتاح صوت سحابي بعد. سيستخدم التطبيق الصوت المحلي عند عدم الاتصال.", "No cloud voice key added. Local device speech will be used offline.", lang)
         )
     }
 
