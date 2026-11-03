@@ -7,6 +7,8 @@ import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.SamplerConfig
+import com.google.ai.edge.litertlm.ThinkingConfig
 import com.google.ai.edge.litertlm.tool
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.collect
@@ -55,8 +57,12 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
                 val candidateConversation = candidate.createConversation(
                     ConversationConfig(
                         tools = listOf(tool(appTools)),
+                        samplerConfig = SamplerConfig(topK = 20, topP = 0.9, temperature = 0.35),
+                        maxOutputToken = 256,
+                        thinkingConfig = ThinkingConfig(enableThinking = false, thinkingTokenBudget = 0),
                         systemInstruction = Contents.of(
                             "You are AI Bye Pro, a capable general-purpose personal AI assistant. " +
+                                "Be concise and direct by default; give the answer first and add detail only when needed. Do not produce lengthy hidden reasoning or repeat the question. " +
                                 "Talk naturally and warmly, like a thoughtful human conversation partner, without pretending to be human. " +
                                 "Understand general knowledge, explanations, writing, translation, brainstorming, learning, coding and problem solving. " +
                                 "Reply in the same language and conversational register as the user; use natural Arabic when the user writes Arabic. " +
@@ -90,6 +96,9 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
                     "لم يتم تحميل النموذج المحلي بعد."
                 }
                 val prompt = buildString {
+                    append("Current device-local date and time: ")
+                    append(java.text.SimpleDateFormat("EEEE, yyyy-MM-dd HH:mm z", java.util.Locale.ENGLISH).format(java.util.Date()))
+                    append(". Treat this as the authoritative current date/time; never guess it from training data.\n\n")
                     append("User message:\n")
                     append(message)
                     append("\n\nLocal financial records context (generated on this device):\n")
