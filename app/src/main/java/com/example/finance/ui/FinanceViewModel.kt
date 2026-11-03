@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.StatFs
 import android.provider.OpenableColumns
 import android.util.Log
+import android.webkit.MimeTypeMap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.finance.ai.ExtractedReceiptData
@@ -174,7 +175,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                     "صيغة النموذج غير مدعومة هنا. اختر ملف .litertlm."
                 }
                 localLlm.load(file)
-                aiModelPreferences.edit().putString("active_model_path", file.absolutePath).apply()
+                aiModelPreferences.edit()
+                    .putString("active_model_path", file.absolutePath)
+                    .putBoolean("active_model_supports_vision", file.name.contains("gemma-3n", ignoreCase = true))
+                    .apply()
                 _localModelReady.value = true
                 _localModelStatus.value = "النموذج المحلي جاهز. المحادثة تعمل على الهاتف دون اتصال."
             } catch (error: Throwable) {
@@ -197,7 +201,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 val modelFile = copyLocalModelIntoApp(uri)
                 _localModelStatus.value = "تم تجهيز الملف. جارٍ تحميل Gemma على المعالج..."
                 localLlm.load(modelFile)
-                aiModelPreferences.edit().putString("active_model_path", modelFile.absolutePath).apply()
+                aiModelPreferences.edit()
+                    .putString("active_model_path", modelFile.absolutePath)
+                    .putBoolean("active_model_supports_vision", modelFile.name.contains("gemma-3n", ignoreCase = true))
+                    .apply()
                 _localModelReady.value = true
                 _localModelStatus.value = "النموذج المحلي جاهز. المحادثة تعمل على الهاتف دون اتصال."
             } catch (error: Throwable) {
@@ -238,8 +245,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             "المساحة الحرة غير كافية لنسخ النموذج؛ يلزم توفير مساحة إضافية على الهاتف."
         }
 
-        val temporary = File(directory, "selected-model.litertlm.part")
-        val destination = File(directory, "selected-model.litertlm")
+        val safeModelName = displayName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+            .takeIf { it.endsWith(".litertlm", ignoreCase = true) }
+            ?: "selected-model.litertlm"
+        val destination = File(directory, safeModelName)
+        val temporary = File(directory, "$safeModelName.part")
         var copied = 0L
         try {
             val input = getApplication<Application>().contentResolver.openInputStream(uri)
@@ -283,6 +293,59 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private suspend fun prepareLocalImageFiles(attachments: List<String>): List<File> =
+        withContext(Dispatchers.IO) {
+            require(attachments.isNotEmpty() && attachments.size <= 4) {
+                "يُسمح بإرفاق صورة واحدة إلى أربع صور."
+            }
+            val resolver = getApplication<Application>().contentResolver
+            val prepared = mutableListOf<File>()
+            try {
+                attachments.forEachIndexed { index, rawUri ->
+                    val uri = Uri.parse(rawUri)
+                    val mimeType = resolver.getType(uri)
+                    require(mimeType?.startsWith("image/") == true) {
+                        "أحد المرفقات ليس ملف صورة صالحاً."
+                    }
+                    val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: "img"
+                    val destination = File.createTempFile(
+                        "bye-pro-vision-$index-",
+                        ".$extension",
+                        getApplication<Application>().cacheDir
+                    )
+                    try {
+                        val input = resolver.openInputStream(uri)
+                            ?: error("تعذر فتح إحدى الصور المرفقة.")
+                        input.use { source ->
+                            FileOutputStream(destination).use { output ->
+                                val buffer = ByteArray(64 * 1024)
+                                var totalBytes = 0L
+                                while (true) {
+                                    currentCoroutineContext().ensureActive()
+                                    val count = source.read(buffer)
+                                    if (count < 0) break
+                                    totalBytes += count
+                                    require(totalBytes <= 10L * 1024L * 1024L) {
+                                        "حجم الصورة الواحدة يتجاوز الحد المسموح وهو 10 ميغابايت."
+                                    }
+                                    output.write(buffer, 0, count)
+                                }
+                            }
+                        }
+                        require(destination.length() > 0L) { "إحدى الصور المرفقة فارغة." }
+                        prepared.add(destination)
+                    } catch (error: Throwable) {
+                        destination.delete()
+                        throw error
+                    }
+                }
+                prepared
+            } catch (error: Throwable) {
+                prepared.forEach { it.delete() }
+                throw error
+            }
+        }
+
     private suspend fun askCloudGeneralAssistant(query: String): String? {
         if (!aiModelPreferences.getBoolean("cloud_general_enabled", true)) return null
         val token = authRepository.getValidAccessToken() ?: return null
@@ -308,11 +371,41 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         _isAiLoading.value = true
         viewModelScope.launch {
             val response = if (attachments.isNotEmpty()) {
-                WebI18n.tr(
-                    "تم إرفاق الصور في المحادثة. لكن تحليل محتوى الصور غير متصل بخدمة AI حتى الآن؛ لم تُرسل الصور إلى الخادم ولم يتم تحليلها.",
-                    "Images are attached to this conversation, but image understanding is not connected to the AI service yet. The images were not uploaded to the server or analyzed.",
-                    _appLanguage.value
-                )
+                runCatching {
+                    require(attachments.size <= 4) { "يمكن تحليل أربع صور كحد أقصى في الرسالة الواحدة." }
+                    require(aiModelPreferences.getBoolean("active_model_supports_vision", false)) {
+                        "تحليل الصور محلياً يحتاج نموذج Gemma 3n بصيغة .litertlm. اختر النموذج المجاني المتوافق من إعدادات النماذج أولاً."
+                    }
+                    val savedPath = aiModelPreferences.getString("active_model_path", null)
+                        ?: error("لم يتم تثبيت نموذج محلي يدعم الصور بعد.")
+                    val savedModel = File(savedPath)
+                    require(savedModel.isFile) { "ملف النموذج المحلي غير موجود؛ أعد اختياره من إعدادات النماذج." }
+                    if (!_localModelReady.value) {
+                        _localModelLoading.value = true
+                        try {
+                            localLlm.load(savedModel)
+                            _localModelReady.value = true
+                        } finally {
+                            _localModelLoading.value = false
+                        }
+                    }
+                    val imageFiles = prepareLocalImageFiles(attachments)
+                    try {
+                        val imagePrompt = trimmedQuery.ifBlank {
+                            WebI18n.tr("حلّل الصور المرفقة واشرح ما يظهر فيها بدقة.", "Analyze the attached images and explain what is visible.", _appLanguage.value)
+                        }
+                        localLlm.sendMessageWithImages(imagePrompt, imageFiles)
+                    } finally {
+                        imageFiles.forEach { it.delete() }
+                    }
+                }.getOrElse { error ->
+                    Log.e("BYE_PRO_LOCAL_VISION", "On-device image analysis failed.", error)
+                    WebI18n.tr(
+                        "تعذر تحليل الصور محلياً: " + (error.message ?: "خطأ غير معروف"),
+                        "On-device image analysis failed: " + (error.message ?: "unknown error"),
+                        _appLanguage.value
+                    )
+                }
             } else runCatching {
                 val financialContext = FinancialAssistantEngine.answer(
                     query = trimmedQuery,

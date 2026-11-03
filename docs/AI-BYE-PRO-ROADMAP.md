@@ -16,3 +16,10 @@
 - Verify and implement a secure image-capable backend contract without changing the Web repository.
 - Connect a vision-capable model, add size/type/count limits and consent/error handling.
 - Add end-to-end tests proving the selected image bytes reach the model and the answer is grounded in the image.
+
+## 10.0.82 — on-device image understanding (no paid API)
+- Added a local multimodal inference path through the existing LiteRT-LM runtime; selected images are copied to temporary app-cache files and passed as image content to the local model.
+- Image bytes stay on-device; no cloud API or paid key is used for image analysis.
+- Enforces up to four images and a 10 MiB per-image limit, validates image MIME types, and deletes temporary copies after inference.
+- Vision is enabled only for a model file whose name identifies Gemma 3n; other local text-only models are not presented as vision-capable.
+- The feature requires the user to supply/install a compatible .litertlm vision model. A compatible Gemma 3n E2B package is approximately 3.66 GB and its published device-memory guidance is 8 GB; actual performance and compatibility still require device testing.

@@ -1,6 +1,7 @@
 package com.example.finance.ai
 
 import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
@@ -43,6 +44,7 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
                 EngineConfig(
                     modelPath = absolutePath,
                     backend = Backend.CPU(),
+                    visionBackend = Backend.CPU(),
                     cacheDir = cacheDir.absolutePath
                 )
             )
@@ -98,6 +100,34 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
                     output.append(chunk.toString())
                 }
                 output.toString().trim().ifBlank { "لم ينتج النموذج إجابة نصية." }
+            }
+        }
+
+    suspend fun sendMessageWithImages(message: String, imageFiles: List<File>): String =
+        withContext(dispatcher) {
+            mutex.withLock {
+                val activeConversation = checkNotNull(conversation) {
+                    "لم يتم تحميل النموذج المحلي بعد."
+                }
+                require(imageFiles.isNotEmpty() && imageFiles.size <= 4) {
+                    "يجب إرفاق صورة واحدة إلى أربع صور."
+                }
+                imageFiles.forEach { file ->
+                    require(file.isFile && file.canRead() && file.length() > 0L) {
+                        "تعذر قراءة إحدى الصور المرفقة."
+                    }
+                }
+                val contents = imageFiles.map { file ->
+                    Content.ImageFile(file.absolutePath)
+                } + Content.Text(
+                    "User request: $message\nAnalyze the supplied image(s) directly. " +
+                        "Describe only visible evidence, distinguish uncertainty, and do not invent details."
+                )
+                val output = StringBuilder()
+                activeConversation.sendMessageAsync(Contents.of(*contents.toTypedArray())).collect { chunk ->
+                    output.append(chunk.toString())
+                }
+                output.toString().trim().ifBlank { "لم ينتج النموذج إجابة نصية عن الصور." }
             }
         }
 
