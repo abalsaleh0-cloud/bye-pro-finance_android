@@ -82,7 +82,7 @@ fun ReportsScreen(
     val totalIncome = FinanceEngine.calculateTotalIncome(currencyTransactions)
     val totalExpenses = FinanceEngine.calculateTotalExpenses(currencyTransactions)
     val netCashFlow = FinanceEngine.calculateNetCashFlow(currencyTransactions)
-    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, reportCurrency)
+    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, reportCurrency, savingsGoals)
     val currentSavings = savingsGoals.filter { it.currency.equals(reportCurrency, true) }.sumOf { it.currentAmount }
     val savingsTargets = savingsGoals.filter { it.currency.equals(reportCurrency, true) }.sumOf { it.targetAmount }
     val unpaidBillsTotal = bills.filter { !it.isPaid && it.currency.equals(reportCurrency, true) }.sumOf { it.amount }
