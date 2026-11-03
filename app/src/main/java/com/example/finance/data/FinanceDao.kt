@@ -21,6 +21,8 @@ import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransferEntity
 import com.example.finance.model.UserEntity
+import com.example.finance.model.WorkSourceEntity
+import com.example.finance.model.WorkRecordEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -220,6 +222,25 @@ interface FinanceDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAuditLog(log: AuditLogEntity): Long
+
+    // --- Work income ---
+    @Query("SELECT * FROM work_sources WHERE isActive = 1 ORDER BY createdAt DESC")
+    fun getWorkSources(): Flow<List<WorkSourceEntity>>
+
+    @Query("SELECT * FROM work_records ORDER BY date DESC, id DESC")
+    fun getWorkRecords(): Flow<List<WorkRecordEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWorkSource(source: WorkSourceEntity): Long
+
+    @Update
+    suspend fun updateWorkSource(source: WorkSourceEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWorkRecord(record: WorkRecordEntity): Long
+
+    @Query("SELECT * FROM work_records WHERE sourceId = :sourceId ORDER BY date DESC, id DESC")
+    fun getWorkRecordsBySource(sourceId: Long): Flow<List<WorkRecordEntity>>
 
     // --- User / Auth ---
     @Query("SELECT * FROM users LIMIT 1")

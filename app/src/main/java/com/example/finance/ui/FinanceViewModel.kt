@@ -60,6 +60,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val notifications: StateFlow<List<NotificationEntity>> = repository.notifications.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val auditLogs: StateFlow<List<AuditLogEntity>> = repository.auditLogs.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val currentUser: StateFlow<UserEntity?> = repository.currentUser.withStartupFallback(null).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val workSources: StateFlow<List<WorkSourceEntity>> = repository.workSources.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val workRecords: StateFlow<List<WorkRecordEntity>> = repository.workRecords.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val _appLanguage = MutableStateFlow(WebI18n.read(application))
     val appLanguage: StateFlow<AppLanguage> = _appLanguage.asStateFlow()
     private val preferences = application.getSharedPreferences("bye_pro_finance_preferences", Application.MODE_PRIVATE)
@@ -109,6 +111,45 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     init { resetWelcomeMessage(); viewModelScope.launch { runCatching { repository.accounts.first(); repository.archivedAccounts.first() }; _accountsLoading.value = false } }
     private fun resetWelcomeMessage() { _chatMessages.value = listOf(ChatMessage("AI", WebI18n.tr("مرحباً بك في BYE PRO FINANCE! أنا مساعدك المالي الذكي. يمكنك سؤالي عن مصروفاتك، ميزانيتك، أو تحليل وضعك المالي بدقة.", "Welcome to BYE PRO FINANCE! I am your AI Financial Assistant. Ask me anything about your cash flow, budgets, or savings goals.", _appLanguage.value))) }
     fun setScreen(screen: String) { _currentScreen.value = screen }
+    fun addWorkSource(source: WorkSourceEntity, onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { onComplete(runCatching { repository.addWorkSource(source) }.isSuccess) } }
+    fun addWorkRecord(record: WorkRecordEntity, accountId: Long? = null, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = runCatching {
+                val isCashMovement = record.type in setOf(
+                    WorkRecordType.ADVANCE, WorkRecordType.BONUS, WorkRecordType.OVERTIME,
+                    WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_EXPENSE,
+                    WorkRecordType.SALARY_PAYMENT
+                )
+                if (isCashMovement && accountId == null) {
+                    throw IllegalArgumentException("A finance account must be selected for cash movements")
+                }
+                val source = workSources.value.firstOrNull { it.id == record.sourceId }
+                    ?: throw IllegalArgumentException("Work source was not found")
+                val transaction = if (isCashMovement) {
+                    val account = accounts.value.firstOrNull { it.id == accountId }
+                        ?: throw IllegalArgumentException("Selected account was not found")
+                    require(account.currency.equals(source.currency, ignoreCase = true)) {
+                        "Selected account currency must match the work source currency"
+                    }
+                    TransactionEntity(
+                        accountId = account.id,
+                        type = if (record.type == WorkRecordType.FREELANCE_EXPENSE) TransactionType.EXPENSE else TransactionType.INCOME,
+                        amount = record.amount,
+                        currency = account.currency,
+                        category = if (record.type == WorkRecordType.FREELANCE_EXPENSE) "WORK_EXPENSE" else "WORK_INCOME",
+                        description = record.notes.ifBlank { record.type.name },
+                        status = TransactionStatus.COMPLETED
+                    )
+                } else null
+                val datedRecord = record.copy(
+                    currency = source.currency,
+                    period = record.period.ifBlank { java.time.YearMonth.now().toString() }
+                )
+                repository.addWorkRecord(datedRecord, transaction)
+            }
+            onComplete(result.isSuccess)
+        }
+    }
     fun toggleLanguage() { setLanguage(if (_appLanguage.value == AppLanguage.AR) AppLanguage.EN else AppLanguage.AR) }
     fun setLanguage(lang: AppLanguage) { if (_appLanguage.value == lang) return; _appLanguage.value = lang; WebI18n.write(getApplication(), lang); if (_chatMessages.value.size <= 1) resetWelcomeMessage() }
     fun setDarkMode(dark: Boolean) { _isDarkMode.value = dark; WebI18n.writeDarkMode(getApplication(), dark) }
