@@ -178,25 +178,42 @@ fun AiAssistantScreen(
                 }
             }
         }
-        TabRow(
-            selectedTabIndex = selectedTabIndex,
-            containerColor = ByeProTheme.colors.surfaceMain,
-            contentColor = ByeProTheme.colors.goldPrimary
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Tab(
+            FilterChip(
                 selected = selectedTabIndex == 0,
                 onClick = { selectedTabIndex = 0 },
-                text = { Text("AI Bye Pro", fontWeight = FontWeight.Bold) }
+                label = { Text(WebI18n.tr("المحادثة", "Studio", lang), fontWeight = FontWeight.SemiBold) },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = ByeProTheme.colors.cardMain,
+                    selectedContainerColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.18f),
+                    labelColor = ByeProTheme.colors.textSecondary,
+                    selectedLabelColor = ByeProTheme.colors.goldPrimary
+                )
             )
-            Tab(
+            FilterChip(
                 selected = selectedTabIndex == 1,
                 onClick = { selectedTabIndex = 1 },
-                text = { Text(Strings.get("nav_ai_insights", lang), fontWeight = FontWeight.Bold) }
+                label = { Text(Strings.get("nav_ai_insights", lang), fontWeight = FontWeight.SemiBold) },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = ByeProTheme.colors.cardMain,
+                    selectedContainerColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.18f),
+                    labelColor = ByeProTheme.colors.textSecondary,
+                    selectedLabelColor = ByeProTheme.colors.goldPrimary
+                )
             )
-            Tab(
+            FilterChip(
                 selected = selectedTabIndex == 2,
                 onClick = { selectedTabIndex = 2 },
-                text = { Text(WebI18n.tr("النماذج والإعدادات", "Models & Settings", lang), fontWeight = FontWeight.Bold) }
+                label = { Text(WebI18n.tr("النماذج والإعدادات", "Models & Settings", lang), fontWeight = FontWeight.SemiBold) },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = ByeProTheme.colors.cardMain,
+                    selectedContainerColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.18f),
+                    labelColor = ByeProTheme.colors.textSecondary,
+                    selectedLabelColor = ByeProTheme.colors.goldPrimary
+                )
             )
         }
 
@@ -207,17 +224,6 @@ fun AiAssistantScreen(
                     .fillMaxSize()
                     .padding(12.dp)
             ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
-                        .border(1.dp, ByeProTheme.colors.borderBase, RoundedCornerShape(18.dp)),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)
-                ) {
-                    Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Text(WebI18n.tr("ابدأ بفكرة… ودع الذكاء يعمل معك", "Start with an idea. Build it with intelligence.", lang), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = ByeProTheme.colors.textPrimary)
-                        Text(WebI18n.tr("معرفة، كتابة، تخطيط، تحليل، صوت، ومساعدة داخل التطبيق.", "Knowledge, writing, planning, analysis, voice and in-app assistance.", lang), style = MaterialTheme.typography.bodySmall, color = ByeProTheme.colors.textSecondary)
-                    }
-                }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     FinanceOutlinedButton(onClick = { viewModel.clearAiChat() }, enabled = !isAiLoading) {
                         Text(WebI18n.tr("مسح المحادثة", "Clear chat", lang), style = MaterialTheme.typography.labelSmall)
@@ -259,6 +265,42 @@ fun AiAssistantScreen(
                         .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    if (messages.isEmpty()) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth()
+                                    .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.38f), RoundedCornerShape(24.dp)),
+                                shape = RoundedCornerShape(24.dp),
+                                colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 28.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier.size(64.dp).clip(RoundedCornerShape(20.dp))
+                                            .background(ByeProTheme.colors.goldPrimary.copy(alpha = 0.12f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = ByeProTheme.colors.goldPrimary, modifier = Modifier.size(30.dp))
+                                    }
+                                    Text("AI BYE PRO", style = MaterialTheme.typography.labelMedium, color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.ExtraBold)
+                                    Text(
+                                        WebI18n.tr("مساحة تفكير وإنجاز، وليست مجرد محادثة", "A space to think and create — beyond chat", lang),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = ByeProTheme.colors.textPrimary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        WebI18n.tr("اسأل، حلّل، خطّط، اكتب، أو ابدأ مشروعاً جديداً. اختر أحد المسارات أدناه أو اكتب طلبك مباشرة.", "Ask, analyze, plan, write, or start a new project. Choose a prompt below or type your request.", lang),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = ByeProTheme.colors.textSecondary
+                                    )
+                                }
+                            }
+                        }
+                    }
                     items(messages) { msg ->
                         ChatBubbleItem(message = msg, lang = lang, autoSpeak = msg.timestamp == autoSpeakTimestamp)
                     }
@@ -302,13 +344,17 @@ fun AiAssistantScreen(
                     }
                 }
 
-                // Input box
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                // Studio composer surface
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                        .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.32f), RoundedCornerShape(22.dp)),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)
                 ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                     VoiceInputButton(
                         languageCode = if (lang == AppLanguage.AR) "ar" else "en",
                         enabled = !isAiLoading,
@@ -349,6 +395,7 @@ fun AiAssistantScreen(
                             contentDescription = WebI18n.tr("إرسال", "Send", lang),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
+                    }
                     }
                 }
             }
