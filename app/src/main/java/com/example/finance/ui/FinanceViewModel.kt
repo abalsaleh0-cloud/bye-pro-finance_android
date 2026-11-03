@@ -280,6 +280,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 require(!metadata.architecture.isNullOrBlank()) {
                     "تعذر تحديد بنية GGUF؛ الملف لا يحتوي على بيانات معمارية صالحة."
                 }
+                // Release any previous local runtime before estimating memory for GGUF.
+                localLlm.unload()
+                ggufLlm.unload()
                 val manager = getApplication<Application>().getSystemService(ActivityManager::class.java)
                 val memory = ActivityManager.MemoryInfo()
                 manager.getMemoryInfo(memory)
@@ -289,7 +292,6 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                         String.format(java.util.Locale.US, "%.2f GB", estimatedBytes / 1_073_741_824.0) +
                         " متاحة حالياً؛ أغلق التطبيقات الأخرى أو استخدم نسخة GGUF أصغر."
                 }
-                localLlm.unload()
                 _localModelStatus.value = "جارٍ تحميل GGUF عبر llama.cpp على المعالج..."
                 ggufLlm.load(modelFile)
                 aiModelPreferences.edit()
