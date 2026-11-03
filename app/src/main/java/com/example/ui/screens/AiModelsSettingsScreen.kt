@@ -336,7 +336,7 @@ fun AiModelsSettingsScreen(
                         Column(Modifier.weight(1f)) {
                             Text("قراءة رد المساعد صوتياً بعد التحدث")
                             Text(
-                                "يستخدم محرك تحويل النص إلى كلام المتاح على الهاتف.",
+                                "يستخدم الصوت السحابي الطبيعي عند ضبط ElevenLabs، مع الرجوع إلى صوت الهاتف عند عدم الاتصال.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
