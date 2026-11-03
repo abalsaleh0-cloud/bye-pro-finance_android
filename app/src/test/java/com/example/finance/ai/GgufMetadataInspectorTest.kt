@@ -48,7 +48,7 @@ class GgufMetadataInspectorTest {
             out.writeInt(Integer.reverseBytes(3))
             out.writeLong(java.lang.Long.reverseBytes(128L))
             out.writeLong(java.lang.Long.reverseBytes(entries.size.toLong()))
-            entries.forEach(out::write)
+            entries.forEach { out.write(it) }
         }
         return bytes.toByteArray()
     }
