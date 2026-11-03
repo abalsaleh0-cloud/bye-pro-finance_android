@@ -4,14 +4,15 @@
 - Blank multi-line composer and removal of the advisory banner and quick prompt strip.
 
 ## Implemented in 10.0.80 — Android image attachment UI
-- Added Android Photo Picker with a maximum of four selected images per message.
-- Added image previews and per-image removal in the composer.
-- Added image previews to user chat messages.
-- Image-only messages can be placed in the conversation history.
-- Safety behavior: the current `/api/v1/ai` contract accepts only `AiRequest(prompt: String)`. Therefore attached images are intentionally NOT uploaded to the server or passed to the text-only model. The assistant clearly tells the user that visual analysis is not yet connected instead of pretending to analyze the images.
+- Android Photo Picker supports up to four images per message.
+- Composer previews, per-image removal, and previews inside user chat messages.
+- Persistable read access is requested for selected photo URIs.
+- Selected images remain local: current `/api/v1/ai` accepts only `AiRequest(prompt: String)`, so image bytes are not sent to the server or vision model yet. The app explicitly tells the user that analysis is not connected.
+
+## 10.0.81 — validation correction
+- Restored the original non-empty Arabic and English dictionary values for the advisory and input hint keys. The chat screen still omits the advisory banner and the input remains visually blank; keeping dictionary values intact preserves the project's translation contract tests.
 
 ## Next required stage — real multimodal analysis
-- Add a verified server contract that accepts image content securely (prefer short-lived upload URLs or bounded multipart/base64 payloads).
-- Connect the AI backend to a vision-capable model; enforce MIME/size/count limits, authorization, privacy consent, and error handling.
-- Add end-to-end tests proving that image bytes reach the model and that the model response is grounded in the image.
-- Do not modify the Web repository as part of this Android client-only change.
+- Verify and implement a secure image-capable backend contract without changing the Web repository.
+- Connect a vision-capable model, add size/type/count limits and consent/error handling.
+- Add end-to-end tests proving the selected image bytes reach the model and the answer is grounded in the image.

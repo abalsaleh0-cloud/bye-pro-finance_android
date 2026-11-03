@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
+import android.content.Intent
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material.icons.filled.AttachFile
@@ -117,7 +118,15 @@ fun AiAssistantScreen(
     var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 4)
-    ) { picked -> selectedImageUris = picked.take(4) }
+    ) { picked ->
+        val selected = picked.take(4)
+        selected.forEach { uri ->
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        }
+        selectedImageUris = selected
+    }
     var speakNextAiResponse by remember { mutableStateOf(false) }
     var autoSpeakTimestamp by remember { mutableStateOf<Long?>(null) }
     val listState = rememberLazyListState()

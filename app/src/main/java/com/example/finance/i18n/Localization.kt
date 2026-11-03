@@ -168,8 +168,8 @@ object Strings {
 
         // AI Assistant
         "ai_assistant_title" to "المساعد المالي الذكي (Gemini)",
-        "ai_disclaimer" to "",
-        "ask_placeholder" to "",
+        "ai_disclaimer" to "ملاحظة: هذا التحليل استرشادي مبني على بياناتك المالية المسجلة وليس استشارة مهنية مرخصة.",
+        "ask_placeholder" to "اسأل المساعد المالي عن نفقاتك، ميزانيتك، أو نصائح التوفير...",
         "send" to "إرسال",
         "ai_chip_spending" to "كم إجمالي إنفاقي هذا الشهر؟",
         "ai_chip_highest" to "ما أعلى تصنيف أنفقت عليه؟",
@@ -408,8 +408,8 @@ object Strings {
 
         // AI Assistant
         "ai_assistant_title" to "AI Financial Assistant (Gemini)",
-        "ai_disclaimer" to "",
-        "ask_placeholder" to "",
+        "ai_disclaimer" to "Note: This is an analytical tool based on recorded data, not professional licensed financial advice.",
+        "ask_placeholder" to "Ask about your spending, budget health, or savings strategies...",
         "send" to "Send",
         "ai_chip_spending" to "What is my total spending this month?",
         "ai_chip_highest" to "What is my largest expense category?",
