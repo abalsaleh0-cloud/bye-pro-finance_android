@@ -1,14 +1,17 @@
 # AI BYE PRO development stages
 
 ## Implemented in 10.0.79
-- Clear the chat composer by default: no example or prompt text is displayed inside the writing field.
-- Expand the composer into a multi-line writing area and give the conversation more vertical room by removing the disclaimer banner and quick-prompt chip strip.
-- Remove the “this analysis is advisory” disclaimer from the conversation screen.
+- Blank multi-line composer and removal of the advisory banner and quick prompt strip.
 
-## Planned stage: image attachments in AI chat
-- Add Android Photo Picker attachment selection and visible image previews in the conversation composer.
-- Support selecting, removing, and sending one or more images with a user message.
-- Connect the attachment flow to a real multimodal AI endpoint and enforce image size/type limits.
-- Preserve the existing text-only chat fallback and never claim an image was analyzed unless the AI service actually received and processed it.
+## Implemented in 10.0.80 — Android image attachment UI
+- Added Android Photo Picker with a maximum of four selected images per message.
+- Added image previews and per-image removal in the composer.
+- Added image previews to user chat messages.
+- Image-only messages can be placed in the conversation history.
+- Safety behavior: the current `/api/v1/ai` contract accepts only `AiRequest(prompt: String)`. Therefore attached images are intentionally NOT uploaded to the server or passed to the text-only model. The assistant clearly tells the user that visual analysis is not yet connected instead of pretending to analyze the images.
 
-**Dependency:** the current Android chat request contract sends only a text prompt (AiRequest.prompt). Genuine image understanding therefore requires a compatible multimodal endpoint/API contract before end-to-end image upload can be marked complete. The Web repository remains unchanged.
+## Next required stage — real multimodal analysis
+- Add a verified server contract that accepts image content securely (prefer short-lived upload URLs or bounded multipart/base64 payloads).
+- Connect the AI backend to a vision-capable model; enforce MIME/size/count limits, authorization, privacy consent, and error handling.
+- Add end-to-end tests proving that image bytes reach the model and that the model response is grounded in the image.
+- Do not modify the Web repository as part of this Android client-only change.

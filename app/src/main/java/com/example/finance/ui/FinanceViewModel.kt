@@ -38,7 +38,7 @@ import java.io.File
 import java.io.FileOutputStream
 
 data class AccountActionFeedback(val operation: String, val succeeded: Boolean)
-data class ChatMessage(val sender: String, val text: String, val timestamp: Long = System.currentTimeMillis())
+data class ChatMessage(val sender: String, val text: String, val timestamp: Long = System.currentTimeMillis(), val attachments: List<String> = emptyList())
 
 class FinanceViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getDatabase(application)
@@ -301,13 +301,19 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }.getOrNull()
     }
 
-    fun askAiAssistant(query: String) {
-        if (query.isBlank() || _isAiLoading.value) return
+    fun askAiAssistant(query: String, attachments: List<String> = emptyList()) {
+        if ((query.isBlank() && attachments.isEmpty()) || _isAiLoading.value) return
         val trimmedQuery = query.trim()
-        _chatMessages.value = _chatMessages.value + ChatMessage("USER", trimmedQuery)
+        _chatMessages.value = _chatMessages.value + ChatMessage("USER", trimmedQuery, attachments = attachments)
         _isAiLoading.value = true
         viewModelScope.launch {
-            val response = runCatching {
+            val response = if (attachments.isNotEmpty()) {
+                WebI18n.tr(
+                    "تم إرفاق الصور في المحادثة. لكن تحليل محتوى الصور غير متصل بخدمة AI حتى الآن؛ لم تُرسل الصور إلى الخادم ولم يتم تحليلها.",
+                    "Images are attached to this conversation, but image understanding is not connected to the AI service yet. The images were not uploaded to the server or analyzed.",
+                    _appLanguage.value
+                )
+            } else runCatching {
                 val financialContext = FinancialAssistantEngine.answer(
                     query = trimmedQuery,
                     accounts = accounts.value,

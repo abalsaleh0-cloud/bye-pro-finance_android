@@ -1,6 +1,14 @@
 package com.example.ui.screens
 
 import com.example.finance.i18n.TextContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Close
 
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
@@ -106,6 +114,10 @@ fun AiAssistantScreen(
         )
     }
     var inputText by remember { mutableStateOf("") }
+    var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 4)
+    ) { picked -> selectedImageUris = picked.take(4) }
     var speakNextAiResponse by remember { mutableStateOf(false) }
     var autoSpeakTimestamp by remember { mutableStateOf<Long?>(null) }
     val listState = rememberLazyListState()
@@ -293,6 +305,34 @@ fun AiAssistantScreen(
                         modifier = Modifier.fillMaxWidth().padding(10.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        if (selectedImageUris.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                selectedImageUris.forEachIndexed { index, uri ->
+                                    Box(
+                                        modifier = Modifier.size(76.dp).clip(RoundedCornerShape(12.dp))
+                                            .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                                    ) {
+                                        AsyncImage(
+                                            model = uri,
+                                            contentDescription = WebI18n.tr("صورة مرفقة", "Attached image", lang),
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                        IconButton(
+                                            onClick = { selectedImageUris = selectedImageUris.filterIndexed { i, _ -> i != index } },
+                                            modifier = Modifier.align(Alignment.TopEnd).size(26.dp)
+                                                .background(ByeProTheme.colors.bgMain.copy(alpha = 0.85f), CircleShape)
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = WebI18n.tr("إزالة الصورة", "Remove image", lang),
+                                                tint = ByeProTheme.colors.textPrimary, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         FinanceTextField(
                             value = inputText,
                             onValueChange = { inputText = it },
@@ -310,23 +350,37 @@ fun AiAssistantScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            VoiceInputButton(
-                                languageCode = if (lang == AppLanguage.AR) "ar" else "en",
-                                enabled = !isAiLoading,
-                                onRecognized = {
-                                    inputText = ""
-                                    speakNextAiResponse = autoSpeakReplies
-                                    viewModel.askAiAssistant(it)
-                                },
-                                modifier = Modifier.testTag("ai_assistant_voice_input")
-                            )
-                            FinanceIconButton(
-                                onClick = {
-                                    if (inputText.isNotBlank() && !isAiLoading) {
-                                        val q = inputText
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                VoiceInputButton(
+                                    languageCode = if (lang == AppLanguage.AR) "ar" else "en",
+                                    enabled = !isAiLoading,
+                                    onRecognized = {
                                         inputText = ""
                                         speakNextAiResponse = autoSpeakReplies
-                                        viewModel.askAiAssistant(q)
+                                        viewModel.askAiAssistant(it)
+                                    },
+                                    modifier = Modifier.testTag("ai_assistant_voice_input")
+                                )
+                                IconButton(
+                                    onClick = {
+                                        imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                    },
+                                    enabled = !isAiLoading,
+                                    modifier = Modifier.size(48.dp).testTag("ai_assistant_attach_image")
+                                ) {
+                                    Icon(Icons.Default.AttachFile, contentDescription = WebI18n.tr("إرفاق صور", "Attach images", lang),
+                                        tint = ByeProTheme.colors.goldPrimary)
+                                }
+                            }
+                            FinanceIconButton(
+                                onClick = {
+                                    if ((inputText.isNotBlank() || selectedImageUris.isNotEmpty()) && !isAiLoading) {
+                                        val q = inputText.ifBlank { WebI18n.tr("أرفقت صوراً للمراجعة.", "I attached images for review.", lang) }
+                                        val attachments = selectedImageUris.map(Uri::toString)
+                                        inputText = ""
+                                        selectedImageUris = emptyList()
+                                        speakNextAiResponse = autoSpeakReplies
+                                        viewModel.askAiAssistant(q, attachments)
                                     }
                                 },
                                 modifier = Modifier
@@ -545,6 +599,14 @@ fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean =
                     color = if (isUser) MaterialTheme.colorScheme.onPrimary else ByeProTheme.colors.goldPrimary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+                message.attachments.forEach { attachment ->
+                    AsyncImage(
+                        model = attachment,
+                        contentDescription = WebI18n.tr("صورة مرفقة", "Attached image", lang),
+                        modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Fit
+                    )
+                }
                 Text(
                     text = message.text,
                     style = MaterialTheme.typography.bodyMedium,
