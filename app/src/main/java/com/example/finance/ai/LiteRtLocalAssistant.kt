@@ -131,6 +131,10 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
             }
         }
 
+    suspend fun unload() = withContext(dispatcher) {
+        mutex.withLock { closeLoadedModel() }
+    }
+
     private fun closeLoadedModel() {
         val oldConversation = conversation
         conversation = null
