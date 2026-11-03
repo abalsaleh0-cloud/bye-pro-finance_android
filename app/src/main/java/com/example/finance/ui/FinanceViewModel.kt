@@ -15,6 +15,7 @@ import com.example.finance.ai.LiteRtLocalAssistant
 import com.example.finance.ai.AiAppToolSet
 import com.example.finance.ai.AiProjectWorkspace
 import com.example.finance.auth.SupabaseAuthRepository
+import com.example.finance.settings.SupabaseUserSettingsRepository
 import com.example.finance.network.AiRequest
 import com.example.finance.network.FinanceApiProvider
 import com.example.finance.data.AppDatabase
@@ -35,6 +36,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 
@@ -47,6 +51,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val aiService = OfflineFinanceService()
     private val aiModelPreferences = application.getSharedPreferences("bye_pro_finance_ai_models", Application.MODE_PRIVATE)
     private val authRepository = SupabaseAuthRepository(application)
+    private val userSettingsRepository = SupabaseUserSettingsRepository(authRepository)
+    private val settingsSyncMutex = Mutex()
     private val aiProjectWorkspace = AiProjectWorkspace(File(application.filesDir, "ai_projects.properties"))
     private val aiAppTools = AiAppToolSet(repository, aiProjectWorkspace) { section -> setScreen(section) }
     val pendingAiAction = aiAppTools.pendingAction
@@ -91,14 +97,14 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val billReminders: StateFlow<Boolean> = _billReminders.asStateFlow()
     private val _budgetAlerts = MutableStateFlow(preferences.getBoolean("budget_alerts", true))
     val budgetAlerts: StateFlow<Boolean> = _budgetAlerts.asStateFlow()
-    fun setPrimaryCurrency(currency: String) { val normalized = currency.trim().uppercase(); if (normalized !in setOf("LYD", "USD", "EUR", "GBP", "SAR", "AED", "EGP")) return; _primaryCurrency.value = normalized; preferences.edit().putString("currency_code", normalized).apply() }
-    fun setTimeZone(value: String) { if (value !in setOf("Africa/Tripoli", "Asia/Damascus", "Asia/Amman", "Europe/Istanbul", "Europe/London", "UTC")) return; _timeZone.value = value; preferences.edit().putString("time_zone", value).apply() }
-    fun setDateFormat(value: String) { if (value !in setOf("YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY")) return; _dateFormat.value = value; preferences.edit().putString("date_format", value).apply() }
-    fun setNumberFormat(value: String) { if (value !in setOf("1,234.56", "1.234,56", "1 234,56")) return; _numberFormat.value = value; preferences.edit().putString("number_format", value).apply() }
-    fun setEmailNotifications(value: Boolean) { _emailNotifications.value = value; preferences.edit().putBoolean("email_notifications", value).apply() }
-    fun setTransactionAlerts(value: Boolean) { _transactionAlerts.value = value; preferences.edit().putBoolean("transaction_alerts", value).apply() }
-    fun setBillReminders(value: Boolean) { _billReminders.value = value; preferences.edit().putBoolean("bill_reminders", value).apply() }
-    fun setBudgetAlerts(value: Boolean) { _budgetAlerts.value = value; preferences.edit().putBoolean("budget_alerts", value).apply() }
+    fun setPrimaryCurrency(currency: String) { val normalized = currency.trim().uppercase(); if (normalized !in setOf("LYD", "USD", "EUR", "GBP", "SAR", "AED", "EGP")) return; _primaryCurrency.value = normalized; preferences.edit().putString("currency_code", normalized).apply(); scheduleUserSettingsSync() }
+    fun setTimeZone(value: String) { if (value !in setOf("Africa/Tripoli", "Asia/Damascus", "Asia/Amman", "Europe/Istanbul", "Europe/London", "UTC")) return; _timeZone.value = value; preferences.edit().putString("time_zone", value).apply(); scheduleUserSettingsSync() }
+    fun setDateFormat(value: String) { if (value !in setOf("YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY")) return; _dateFormat.value = value; preferences.edit().putString("date_format", value).apply(); scheduleUserSettingsSync() }
+    fun setNumberFormat(value: String) { if (value !in setOf("1,234.56", "1.234,56", "1 234,56")) return; _numberFormat.value = value; preferences.edit().putString("number_format", value).apply(); scheduleUserSettingsSync() }
+    fun setEmailNotifications(value: Boolean) { _emailNotifications.value = value; preferences.edit().putBoolean("email_notifications", value).apply(); scheduleUserSettingsSync() }
+    fun setTransactionAlerts(value: Boolean) { _transactionAlerts.value = value; preferences.edit().putBoolean("transaction_alerts", value).apply(); scheduleUserSettingsSync() }
+    fun setBillReminders(value: Boolean) { _billReminders.value = value; preferences.edit().putBoolean("bill_reminders", value).apply(); scheduleUserSettingsSync() }
+    fun setBudgetAlerts(value: Boolean) { _budgetAlerts.value = value; preferences.edit().putBoolean("budget_alerts", value).apply(); scheduleUserSettingsSync() }
     fun updateLocalProfile(user: UserEntity) { val normalized = user.name.trim(); if (normalized.length < 2 || normalized.length > 100) return; viewModelScope.launch { runCatching { repository.updateCurrentUser(user.copy(name = normalized)) }.onFailure { Log.e("BYE_PRO_FINANCE", "Update local profile failed", it) } } }
     private val _currentScreen = MutableStateFlow("dashboard")
     val currentScreen: StateFlow<String> = _currentScreen.asStateFlow()
@@ -116,12 +122,69 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val localModelProgress: StateFlow<Float> = _localModelProgress.asStateFlow()
     private val _localModelStatus = MutableStateFlow("لم يتم تحميل نموذج محلي بعد.")
     val localModelStatus: StateFlow<String> = _localModelStatus.asStateFlow()
-    init { resetWelcomeMessage(); viewModelScope.launch { runCatching { repository.accounts.first(); repository.archivedAccounts.first() }; _accountsLoading.value = false } }
+    init { resetWelcomeMessage(); viewModelScope.launch { restoreUserSettingsFromCloud(); resetWelcomeMessage(); runCatching { repository.accounts.first(); repository.archivedAccounts.first() }; _accountsLoading.value = false } }
+    private fun currentUserSettingsPayload(): JSONObject = JSONObject()
+        .put("theme", if (_isDarkMode.value) "dark" else "light")
+        .put("locale", if (_appLanguage.value == AppLanguage.EN) "en" else "ar")
+        .put("timezone", _timeZone.value)
+        .put("currency_code", _primaryCurrency.value)
+        .put("date_format", _dateFormat.value)
+        .put("number_format", _numberFormat.value)
+        .put("email_notifications", _emailNotifications.value)
+        .put("transaction_alerts", _transactionAlerts.value)
+        .put("bill_reminders", _billReminders.value)
+        .put("budget_alerts", _budgetAlerts.value)
+
+    private fun scheduleUserSettingsSync() {
+        viewModelScope.launch {
+            settingsSyncMutex.withLock {
+                userSettingsRepository.save(currentUserSettingsPayload())
+                    .onFailure { Log.w("BYE_PRO_FINANCE", "Cloud settings sync deferred; local preferences remain saved", it) }
+            }
+        }
+    }
+
+    private suspend fun restoreUserSettingsFromCloud() {
+        userSettingsRepository.load().onSuccess { row ->
+            if (row == null) return@onSuccess
+            val language = if (row.optString("locale") == "en") AppLanguage.EN else AppLanguage.AR
+            val dark = row.optString("theme", "dark") != "light"
+            val currency = row.optString("currency_code", "LYD")
+            val timezone = row.optString("timezone", "Africa/Tripoli")
+            val date = row.optString("date_format", "YYYY-MM-DD")
+            val number = row.optString("number_format", "1,234.56")
+            _appLanguage.value = language
+            _isDarkMode.value = dark
+            _primaryCurrency.value = currency
+            _timeZone.value = timezone
+            _dateFormat.value = date
+            _numberFormat.value = number
+            _emailNotifications.value = row.optBoolean("email_notifications", true)
+            _transactionAlerts.value = row.optBoolean("transaction_alerts", true)
+            _billReminders.value = row.optBoolean("bill_reminders", true)
+            _budgetAlerts.value = row.optBoolean("budget_alerts", true)
+            preferences.edit()
+                .putString("currency_code", currency)
+                .putString("time_zone", timezone)
+                .putString("date_format", date)
+                .putString("number_format", number)
+                .putBoolean("email_notifications", _emailNotifications.value)
+                .putBoolean("transaction_alerts", _transactionAlerts.value)
+                .putBoolean("bill_reminders", _billReminders.value)
+                .putBoolean("budget_alerts", _budgetAlerts.value)
+                .apply()
+            WebI18n.write(getApplication(), language)
+            WebI18n.writeDarkMode(getApplication(), dark)
+        }.onFailure {
+            Log.w("BYE_PRO_FINANCE", "Could not restore cloud settings; keeping local preferences", it)
+        }
+    }
+
     private fun resetWelcomeMessage() { _chatMessages.value = listOf(ChatMessage("AI", WebI18n.tr("مرحباً بك! أنا AI Bye Pro، مساعدك الذكي. تحدث معي بشكل طبيعي عن أي موضوع؛ أستطيع مساعدتك في المعرفة والكتابة والترجمة والتخطيط والتحليل، وكذلك شؤونك المالية عند طلبك.", "Welcome! I am AI Bye Pro, your general-purpose AI assistant. Talk to me naturally about any topic: knowledge, writing, translation, planning, analysis, and your finances whenever you ask.", _appLanguage.value))) }
     fun setScreen(screen: String) { _currentScreen.value = screen }
     fun toggleLanguage() { setLanguage(if (_appLanguage.value == AppLanguage.AR) AppLanguage.EN else AppLanguage.AR) }
-    fun setLanguage(lang: AppLanguage) { if (_appLanguage.value == lang) return; _appLanguage.value = lang; WebI18n.write(getApplication(), lang); if (_chatMessages.value.size <= 1) resetWelcomeMessage() }
-    fun setDarkMode(dark: Boolean) { _isDarkMode.value = dark; WebI18n.writeDarkMode(getApplication(), dark) }
+    fun setLanguage(lang: AppLanguage) { if (_appLanguage.value == lang) return; _appLanguage.value = lang; WebI18n.write(getApplication(), lang); if (_chatMessages.value.size <= 1) resetWelcomeMessage(); scheduleUserSettingsSync() }
+    fun setDarkMode(dark: Boolean) { _isDarkMode.value = dark; WebI18n.writeDarkMode(getApplication(), dark); scheduleUserSettingsSync() }
     fun toggleTheme() { setDarkMode(!_isDarkMode.value) }
     fun addAccount(account: AccountEntity) { viewModelScope.launch { _accountActionFeedback.value = AccountActionFeedback("add", runCatching { repository.addAccount(account) }.isSuccess) } }
     fun clearAccountActionFeedback() { _accountActionFeedback.value = null }
