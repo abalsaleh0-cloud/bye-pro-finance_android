@@ -84,7 +84,6 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("CREATE TABLE IF NOT EXISTS work_sources (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, monthlySalary REAL NOT NULL, currency TEXT NOT NULL, isActive INTEGER NOT NULL, createdAt INTEGER NOT NULL)")
                 database.execSQL("CREATE TABLE IF NOT EXISTS work_records (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, sourceId INTEGER NOT NULL, type TEXT NOT NULL, amount REAL NOT NULL, currency TEXT NOT NULL, date INTEGER NOT NULL, period TEXT NOT NULL, notes TEXT NOT NULL, linkedAccountId INTEGER, linkedTransactionId INTEGER)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_work_records_sourceId ON work_records(sourceId)")
             }
         }
 
