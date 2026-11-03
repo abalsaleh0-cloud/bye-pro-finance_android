@@ -39,6 +39,7 @@ class AiAppToolSet(
     private sealed interface PendingPayload {
         data class Budget(val value: BudgetEntity) : PendingPayload
         data class Project(val value: AiProjectPlan) : PendingPayload
+        data class ProjectFile(val projectId: String, val path: String, val content: String) : PendingPayload
     }
     private data class Pending(val preview: AiActionPreview, val payload: PendingPayload)
     @Volatile private var pending: Pending? = null
@@ -140,6 +141,46 @@ class AiAppToolSet(
         )
     }
 
+    @Tool(description = "List files saved inside an existing AI project workspace.")
+    fun listProjectFiles(@ToolParam(description = "Existing project identifier.") projectId: String): List<Map<String, Any>> {
+        if (workspace.getPlan(projectId) == null) return emptyList()
+        return workspace.fileWorkspace().listFiles(projectId).map {
+            mapOf("path" to it.path, "sizeBytes" to it.sizeBytes, "modifiedAt" to it.modifiedAt)
+        }
+    }
+
+    @Tool(description = "Read a UTF-8 text file from an existing AI project. Maximum file size is 1 MiB.")
+    fun readProjectFile(
+        @ToolParam(description = "Existing project identifier.") projectId: String,
+        @ToolParam(description = "Relative path inside the project.") path: String
+    ): Map<String, Any> {
+        if (workspace.getPlan(projectId) == null) return mapOf("success" to false, "error" to "Project not found.")
+        val content = workspace.fileWorkspace().readFile(projectId, path)
+            ?: return mapOf("success" to false, "error" to "Project file not found.")
+        return mapOf("success" to true, "path" to path, "content" to content.take(MAX_TOOL_FILE_READ_CHARS),
+            "truncated" to (content.length > MAX_TOOL_FILE_READ_CHARS))
+    }
+
+    @Tool(description = "Prepare a UTF-8 file write inside an existing AI project. This only creates a preview; wait for user confirmation before writing.")
+    fun proposeWriteProjectFile(
+        @ToolParam(description = "Existing project identifier.") projectId: String,
+        @ToolParam(description = "Relative path inside the project.") path: String,
+        @ToolParam(description = "Complete UTF-8 file content, maximum 1 MiB.") content: String
+    ): Map<String, Any> {
+        if (workspace.getPlan(projectId) == null) return mapOf("success" to false, "error" to "Project not found.")
+        if (content.toByteArray(Charsets.UTF_8).size > MAX_PROJECT_FILE_BYTES) {
+            return mapOf("success" to false, "error" to "Project file exceeds the 1 MiB limit.")
+        }
+        val preview = AiActionPreview(
+            id = UUID.randomUUID().toString(),
+            title = "مراجعة كتابة ملف مشروع",
+            description = "المشروع: " + projectId + "\\nالمسار: " + path + "\\nالحجم: " + content.toByteArray(Charsets.UTF_8).size + " bytes\\nلن يُكتب الملف قبل تأكيدك."
+        )
+        pending = Pending(preview, PendingPayload.ProjectFile(projectId, path, content))
+        _pendingAction.value = preview
+        return mapOf("success" to true, "requires_user_confirmation" to true, "preview_id" to preview.id,
+            "message" to "A project file write preview is visible. Wait for user confirmation.")
+    }
     @Tool(description = "Read the most recent transactions from the local database. Never infer or invent missing transaction fields.")
     fun getRecentTransactions(
         @ToolParam(description = "Maximum rows to return, from 1 to 20.") limit: Int = 10
@@ -207,10 +248,19 @@ class AiAppToolSet(
                 workspace.savePlan(payload.value)
                 "تم حفظ خطة المشروع «${payload.value.title}» محليًا بعد تأكيدك."
             }
+            is PendingPayload.ProjectFile -> {
+                val saved = workspace.fileWorkspace().writeFile(payload.projectId, payload.path, payload.content)
+                "تم حفظ الملف «" + saved.path + "» داخل مساحة المشروع بعد تأكيدك."
+            }
         }
         pending = null
         _pendingAction.value = null
         result
+    }
+
+    private companion object {
+        const val MAX_PROJECT_FILE_BYTES = 1024 * 1024
+        const val MAX_TOOL_FILE_READ_CHARS = 20_000
     }
 
     fun cancelPendingAction(actionId: String) {

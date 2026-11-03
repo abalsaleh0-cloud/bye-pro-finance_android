@@ -47,6 +47,10 @@ class AiProjectWorkspace(private val storageFile: File) {
     @Synchronized
     fun getPlan(id: String): AiProjectPlan? = readPlan(loadProperties(), id)
 
+    fun fileWorkspace(): AiProjectFileWorkspace = AiProjectFileWorkspace(
+        File(storageFile.absoluteFile.parentFile ?: File("."), "ai_project_files")
+    )
+
     private fun readPlan(properties: Properties, id: String): AiProjectPlan? {
         val prefix = "project.$id."
         val encodedTitle = properties.getProperty(prefix + "title") ?: return null
