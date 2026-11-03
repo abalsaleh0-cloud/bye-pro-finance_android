@@ -89,6 +89,7 @@ fun DebtsBillsScreen(
     var editingDebt by remember { mutableStateOf<DebtEntity?>(null) }
     var historyDebt by remember { mutableStateOf<DebtEntity?>(null) }
     var deleteDebtTarget by remember { mutableStateOf<DebtEntity?>(null) }
+    var billPaymentFailed by remember { mutableStateOf(false) }
 
     Scaffold(
         floatingActionButton = {
@@ -211,6 +212,15 @@ fun DebtsBillsScreen(
     }
 
     // Debt payments are posted to the selected account and transaction ledger atomically.
+    if (billPaymentFailed) {
+        FinanceAlertDialog(
+            onDismissRequest = { billPaymentFailed = false },
+            title = { Text(WebI18n.tr("تعذّر دفع الفاتورة", "Bill payment failed", lang)) },
+            text = { Text(WebI18n.tr("تحقق من الحساب والعملة والرصيد، وتأكد أن الحساب غير مؤرشف.", "Check the account, currency and balance, and make sure the account is not archived.", lang)) },
+            confirmButton = { FinanceButton(onClick = { billPaymentFailed = false }) { Text(Strings.get("ok", lang)) } }
+        )
+    }
+
     if (debtToPay != null) {
         val target = debtToPay!!
         val eligibleAccounts = accounts.filter { it.currency.equals(target.currency, ignoreCase = true) }
