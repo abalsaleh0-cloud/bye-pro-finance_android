@@ -602,7 +602,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                         if (format == "GGUF") {
                             ggufLlm.sendMessage(trimmedQuery, financialContext)
                         } else {
-                            localLlm.sendMessage(trimmedQuery, financialContext)
+                            localLlm.sendMessage(trimmedQuery, financialContext) { chunk ->\n                                _streamingAiText.value += chunk\n                            }
                         }
                     } catch (localError: Throwable) {
                         Log.e("BYE_PRO_LOCAL_AI", "Local assistant failed; trying cloud general assistant.", localError)
