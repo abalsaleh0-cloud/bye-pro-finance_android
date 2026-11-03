@@ -487,12 +487,22 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun currentDateAnswer(query: String): String? {
-        val normalized = query.trim().lowercase(Locale.ROOT)
+        // Normalize Arabic diacritics and punctuation so colloquial variants are
+        // answered from the device clock without invoking the language model.
+        val normalized = query.trim()
+            .lowercase(Locale.ROOT)
+            .replace(Regex("[\\u064B-\\u065F\\u0670]"), "")
+            .replace(Regex("[؟?!،,.؛:]+"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
         val asksForToday = listOf(
             "ماهو اليوم", "ما هو اليوم", "اي يوم اليوم", "أي يوم اليوم",
-            "ما تاريخ اليوم", "ما هو تاريخ اليوم", "تاريخ اليوم", "كم التاريخ",
-            "what day is it", "what day is today", "what is today's date",
-            "what's today's date", "what is the date today", "current date"
+            "ما اليوم", "شو اليوم", "ايش اليوم", "اليوم اي يوم", "اليوم أي يوم",
+            "اي يوم نحنا", "أي يوم نحن", "ما تاريخ اليوم", "ما هو تاريخ اليوم",
+            "تاريخ اليوم", "كم التاريخ", "كم تاريخ اليوم", "شو تاريخ اليوم",
+            "what day is it", "what day is today", "what is the day today",
+            "what is today's date", "what's today's date", "what is the date today",
+            "what date is it", "current date", "today's date"
         ).any(normalized::contains)
         if (!asksForToday) return null
         val locale = if (_appLanguage.value == AppLanguage.AR) Locale("ar") else Locale.ENGLISH
