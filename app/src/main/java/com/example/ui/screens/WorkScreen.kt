@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.finance.model.AppLanguage
+import com.example.finance.model.AccountEntity
 import com.example.finance.model.WorkRecordEntity
 import com.example.finance.model.WorkRecordType
 import com.example.finance.model.WorkSourceEntity
@@ -112,7 +113,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         }
     }
     if (showRecordDialog) {
-        AddWorkRecordDialog(ar, currency, sources, accounts.map { it.id to it.name }, onDismiss = { showRecordDialog = false }) { sourceId, type, amount, note, accountId ->
+        AddWorkRecordDialog(ar, currency, sources, accounts, onDismiss = { showRecordDialog = false }) { sourceId, type, amount, note, accountId ->
             viewModel.addWorkRecord(WorkRecordEntity(sourceId = sourceId, type = type, amount = amount, currency = currency, notes = note), accountId)
             showRecordDialog = false
         }
@@ -154,13 +155,14 @@ private fun AddWorkSourceDialog(ar: Boolean, currency: String, onDismiss: () -> 
 }
 
 @Composable
-private fun AddWorkRecordDialog(ar: Boolean, currency: String, sources: List<WorkSourceEntity>, accounts: List<Pair<Long, String>>, onDismiss: () -> Unit, onSave: (Long, WorkRecordType, Double, String, Long?) -> Unit) {
+private fun AddWorkRecordDialog(ar: Boolean, currency: String, sources: List<WorkSourceEntity>, accounts: List<AccountEntity>, onDismiss: () -> Unit, onSave: (Long, WorkRecordType, Double, String, Long?) -> Unit) {
     var sourceId by remember(sources) { mutableStateOf(sources.firstOrNull()?.id ?: 0L) }
     var type by remember { mutableStateOf(WorkRecordType.ADVANCE) }
     var amount by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
-    var accountId by remember(accounts) { mutableStateOf(accounts.firstOrNull()?.first) }
     val selected = sources.firstOrNull { it.id == sourceId }
+    val compatibleAccounts = accounts.filter { it.currency.equals(selected?.currency ?: currency, true) }
+    var accountId by remember(sourceId, compatibleAccounts) { mutableStateOf(compatibleAccounts.firstOrNull()?.id) }
     val choices = if (selected?.type == WorkSourceType.EMPLOYMENT) listOf(WorkRecordType.ADVANCE, WorkRecordType.DEDUCTION, WorkRecordType.BONUS, WorkRecordType.OVERTIME, WorkRecordType.SALARY_PAYMENT) else listOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_EXPENSE)
     val requiresAccount = type in setOf(WorkRecordType.ADVANCE, WorkRecordType.BONUS, WorkRecordType.OVERTIME, WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.SALARY_PAYMENT)
     AlertDialog(
@@ -174,7 +176,8 @@ private fun AddWorkRecordDialog(ar: Boolean, currency: String, sources: List<Wor
                 OutlinedTextField(note, { note = it }, label = { Text(if (ar) "ملاحظات" else "Notes") })
                 if (type in setOf(WorkRecordType.ADVANCE, WorkRecordType.BONUS, WorkRecordType.OVERTIME, WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.SALARY_PAYMENT)) {
                     Text(if (ar) "إضافة الحركة إلى الحساب" else "Post to account")
-                    accounts.forEach { account -> TextButton(onClick = { accountId = account.first }) { Text((if (accountId == account.first) "✓ " else "") + account.second) } }
+                    compatibleAccounts.forEach { account -> TextButton(onClick = { accountId = account.id }) { Text((if (accountId == account.id) "✓ " else "") + account.name) } }
+                    if (compatibleAccounts.isEmpty()) Text(if (ar) "لا يوجد حساب بنفس عملة مصدر الدخل" else "No account matches this income source currency", color = MaterialTheme.colorScheme.error)
                 }
             }
         },
