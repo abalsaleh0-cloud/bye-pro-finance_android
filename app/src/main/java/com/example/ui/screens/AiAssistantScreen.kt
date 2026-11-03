@@ -444,7 +444,7 @@ fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean =
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
-                    text = if (isUser) WebI18n.tr("أنت", "You", lang) else "BYE PRO Assistant",
+                    text = if (isUser) WebI18n.tr("أنت", "You", lang) else "AI Bye Pro",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = if (isUser) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f) else ByeProTheme.colors.goldPrimary
