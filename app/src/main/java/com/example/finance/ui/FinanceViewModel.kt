@@ -121,6 +121,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val chatMessages: StateFlow<List<ChatMessage>> = _chatMessages.asStateFlow()
     private val _isAiLoading = MutableStateFlow(false)
     val isAiLoading: StateFlow<Boolean> = _isAiLoading.asStateFlow()
+    private val _streamingAiText = MutableStateFlow("")
+    val streamingAiText: StateFlow<String> = _streamingAiText.asStateFlow()
     private val _localModelReady = MutableStateFlow(false)
     val localModelReady: StateFlow<Boolean> = _localModelReady.asStateFlow()
     private val _localModelLoading = MutableStateFlow(false)
@@ -515,6 +517,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         if ((query.isBlank() && attachments.isEmpty()) || _isAiLoading.value) return
         val trimmedQuery = query.trim()
         _chatMessages.value = _chatMessages.value + ChatMessage("USER", trimmedQuery, attachments = attachments)
+        _streamingAiText.value = ""
         _isAiLoading.value = true
         viewModelScope.launch {
             val currentDateResponse = if (attachments.isEmpty()) currentDateAnswer(trimmedQuery) else null
@@ -602,10 +605,13 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                         if (format == "GGUF") {
                             ggufLlm.sendMessage(trimmedQuery, financialContext)
                         } else {
-                            localLlm.sendMessage(trimmedQuery, financialContext) { chunk ->\n                                _streamingAiText.value += chunk\n                            }
+                            localLlm.sendMessage(trimmedQuery, financialContext) { chunk ->
+                                _streamingAiText.value += chunk
+                            }
                         }
                     } catch (localError: Throwable) {
                         Log.e("BYE_PRO_LOCAL_AI", "Local assistant failed; trying cloud general assistant.", localError)
+                        _streamingAiText.value = ""
                         askCloudGeneralAssistant(trimmedQuery) ?: financialContext
                     }
                 } else {
@@ -619,8 +625,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                     _appLanguage.value
                 )
             }
-            _isAiLoading.value = false
             _chatMessages.value = _chatMessages.value + ChatMessage("AI", response)
+            _streamingAiText.value = ""
+            _isAiLoading.value = false
         }
     }
 
