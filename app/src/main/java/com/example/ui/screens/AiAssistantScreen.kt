@@ -246,7 +246,7 @@ fun AiAssistantScreen(
                         Text(
                             text = Strings.get("ai_disclaimer", lang),
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = ByeProTheme.colors.textSecondary
                         )
                     }
                 }
@@ -277,7 +277,7 @@ fun AiAssistantScreen(
                                 Text(
                                     text = WebI18n.tr("أفكر في إجابتك...", "Thinking through your request...", lang),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = ByeProTheme.colors.textSecondary
                                 )
                             }
                         }
@@ -341,7 +341,7 @@ fun AiAssistantScreen(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(ByeProTheme.colors.financialGreen)
+                            .background(ByeProTheme.colors.goldPrimary)
                             .testTag("ai_assistant_send_btn")
                     ) {
                         Icon(
@@ -362,6 +362,38 @@ fun AiAssistantScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                            .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.38f), RoundedCornerShape(20.dp)),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)
+                    ) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("AI INTELLIGENCE / INSIGHTS", style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
+                            Text(WebI18n.tr("مركز التحليلات الذكية", "Intelligence analytics center", lang), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = ByeProTheme.colors.textPrimary)
+                            Text(WebI18n.tr("رؤى مبنية على بياناتك الفعلية لاكتشاف الأنماط والتنبيهات وفرص التحسين.", "Insights based on your actual data to reveal patterns, alerts and opportunities.", lang), style = MaterialTheme.typography.bodySmall, color = ByeProTheme.colors.textSecondary)
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
+                            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(insights.size.toString(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = ByeProTheme.colors.goldPrimary)
+                                Text(WebI18n.tr("إجمالي الرؤى", "Total insights", lang), style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.textSecondary)
+                            }
+                        }
+                        Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
+                            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(insights.count { it.impactType == "POSITIVE" }.toString(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = ByeProTheme.colors.goldPrimary)
+                                Text(WebI18n.tr("فرص إيجابية", "Positive signals", lang), style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.textSecondary)
+                            }
+                        }
+                        Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
+                            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(insights.count { it.impactType == "WARNING" }.toString(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                                Text(WebI18n.tr("تنبيهات", "Alerts", lang), style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.textSecondary)
+                            }
+                        }
+                    }
                     Text(
                         text = WebI18n.tr("الرؤى والتحليلات الاستباقية للإنفاق", "Proactive Spending Insights", lang),
                         style = MaterialTheme.typography.titleMedium,
@@ -370,7 +402,7 @@ fun AiAssistantScreen(
                     Text(
                         text = WebI18n.tr("تحليلات دورية تستكشف الهدر وفرص التوفير ومخاطر الميزانيات بدقة رياضية.", "Periodic analysis of waste, savings opportunities, and budget risks.", lang),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = ByeProTheme.colors.textSecondary
                     )
                 }
 
@@ -381,13 +413,13 @@ fun AiAssistantScreen(
                             .border(
                                 1.dp,
                                 when (insight.impactType) {
-                                    "POSITIVE" -> ByeProTheme.colors.financialGreen.copy(alpha = 0.5f)
+                                    "POSITIVE" -> ByeProTheme.colors.goldPrimary.copy(alpha = 0.5f)
                                     "WARNING" -> MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
                                     else -> ByeProTheme.colors.goldPrimary.copy(alpha = 0.5f)
                                 },
                                 RoundedCornerShape(16.dp)
                             ),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -401,7 +433,7 @@ fun AiAssistantScreen(
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = when (insight.impactType) {
-                                        "POSITIVE" -> ByeProTheme.colors.financialGreen
+                                        "POSITIVE" -> ByeProTheme.colors.goldPrimary
                                         "WARNING" -> MaterialTheme.colorScheme.error
                                         else -> ByeProTheme.colors.goldPrimary
                                     }
@@ -414,7 +446,7 @@ fun AiAssistantScreen(
                                     },
                                     contentDescription = null,
                                     tint = when (insight.impactType) {
-                                        "POSITIVE" -> ByeProTheme.colors.financialGreen
+                                        "POSITIVE" -> ByeProTheme.colors.goldPrimary
                                         "WARNING" -> MaterialTheme.colorScheme.error
                                         else -> ByeProTheme.colors.goldPrimary
                                     }
@@ -424,7 +456,7 @@ fun AiAssistantScreen(
                             Text(
                                 text = insight.description,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = ByeProTheme.colors.textPrimary
                             )
                             if (insight.estimatedSavings > 0) {
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -432,7 +464,7 @@ fun AiAssistantScreen(
                                     text = WebI18n.tr("التوفير المتوقع: +", "Expected savings: +", lang) + TextContent.money(insight.estimatedSavings, "SAR", lang),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = ByeProTheme.colors.financialGreen
+                                    color = ByeProTheme.colors.goldPrimary
                                 )
                             }
                         }
@@ -441,6 +473,7 @@ fun AiAssistantScreen(
             }
         } else {
             AiModelsSettingsScreen(
+                lang = lang,
                 autoSpeakReplies = autoSpeakReplies,
                 cloudGeneralEnabled = cloudGeneralEnabled,
                 onCloudGeneralEnabledChange = { enabled ->
@@ -501,13 +534,13 @@ fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean =
                 bottomEnd = if (isUser) 4.dp else 16.dp
             ),
             colors = CardDefaults.cardColors(
-                containerColor = if (isUser) ByeProTheme.colors.financialGreen else MaterialTheme.colorScheme.surfaceVariant
+                containerColor = if (isUser) ByeProTheme.colors.goldPrimary else ByeProTheme.colors.surfaceMain
             ),
             modifier = Modifier
                 .fillMaxWidth(0.85f)
                 .border(
                     1.dp,
-                    if (isUser) ByeProTheme.colors.financialGreen else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    if (isUser) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                     RoundedCornerShape(16.dp)
                 )
         ) {
@@ -516,13 +549,13 @@ fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean =
                     text = if (isUser) WebI18n.tr("أنت", "You", lang) else "AI Bye Pro",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (isUser) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f) else ByeProTheme.colors.goldPrimary
+                    color = if (isUser) MaterialTheme.colorScheme.onPrimary else ByeProTheme.colors.goldPrimary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = message.text,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                    color = if (isUser) MaterialTheme.colorScheme.onPrimary else ByeProTheme.colors.textPrimary
                 )
                 if (!isUser) {
                     SpeakTextButton(

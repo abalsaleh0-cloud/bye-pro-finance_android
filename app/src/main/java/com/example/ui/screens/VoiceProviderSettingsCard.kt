@@ -24,17 +24,19 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.finance.ai.SecureVoiceSettings
 import com.example.ui.theme.ByeProTheme
+import com.example.finance.model.AppLanguage
+import com.example.finance.i18n.WebI18n
 
 @Composable
-fun VoiceProviderSettingsCard() {
+fun VoiceProviderSettingsCard(lang: AppLanguage) {
     val context = LocalContext.current
     val settings = remember(context) { SecureVoiceSettings(context.applicationContext) }
     var apiKey by remember { mutableStateOf("") }
     var voiceId by remember { mutableStateOf(settings.readVoiceId()) }
     var status by remember {
         mutableStateOf(
-            if (settings.hasApiKey()) "تم حفظ مفتاح الصوت السحابي بشكل مشفر على هذا الجهاز."
-            else "لم تتم إضافة مفتاح صوت سحابي بعد. سيستخدم التطبيق الصوت المحلي عند عدم الاتصال."
+            if (settings.hasApiKey()) WebI18n.tr("تم حفظ مفتاح الصوت السحابي بشكل مشفر على هذا الجهاز.", "Cloud voice key is encrypted and saved on this device.", lang)
+            else WebI18n.tr("لم تتم إضافة مفتاح صوت سحابي بعد. Local device speech will be used offline.", "No cloud voice key added. Local device speech will be used offline.", lang)
         )
     }
 
@@ -43,9 +45,9 @@ fun VoiceProviderSettingsCard() {
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("الصوت البشري الطبيعي", style = MaterialTheme.typography.titleMedium)
+            Text(WebI18n.tr("الصوت البشري الطبيعي", "Natural human voice", lang), style = MaterialTheme.typography.titleMedium, color = ByeProTheme.colors.textPrimary)
             Text(
-                "للحصول على صوت أكثر واقعية، يمكن استخدام ElevenLabs عند توفر الإنترنت. أدخل مفتاح API الخاص بك وVoice ID. المفتاح يُشفّر باستخدام Android Keystore ولا يُحفظ كنص عادي.",
+                WebI18n.tr("للحصول على صوت أكثر واقعية، يمكن استخدام ElevenLabs عند توفر الإنترنت. أدخل مفتاح API الخاص بك وVoice ID. المفتاح يُشفّر باستخدام Android Keystore ولا يُحفظ كنص عادي.", "For more natural speech, connect ElevenLabs when online. Enter your API key and Voice ID. The key is encrypted with Android Keystore and never stored as plain text.", lang),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -54,7 +56,7 @@ fun VoiceProviderSettingsCard() {
                 onValueChange = { apiKey = it },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("ElevenLabs API Key") },
-                placeholder = { Text(if (settings.hasApiKey()) "مفتاح محفوظ؛ أدخل قيمة جديدة للاستبدال" else "أدخل مفتاح API") },
+                placeholder = { Text(if (settings.hasApiKey()) WebI18n.tr("مفتاح محفوظ؛ أدخل قيمة جديدة للاستبدال", "Key saved; enter a new value to replace it", lang) else WebI18n.tr("أدخل مفتاح API", "Enter API key", lang)) },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true
@@ -73,20 +75,20 @@ fun VoiceProviderSettingsCard() {
                         settings.saveVoiceId(voiceId)
                         apiKey = ""
                         status = if (settings.hasApiKey()) {
-                            "تم حفظ إعدادات الصوت. سيُستخدم الصوت السحابي أولاً مع الرجوع للصوت المحلي عند تعذر الاتصال."
+                            WebI18n.tr("تم حفظ إعدادات الصوت. سيُستخدم الصوت السحابي أولاً مع الرجوع للصوت المحلي عند تعذر الاتصال.", "Voice settings saved. Cloud speech will be used first, with local speech as fallback.", lang)
                         } else {
-                            "تم حفظ Voice ID. أضف مفتاح API لتفعيل الصوت السحابي."
+                            WebI18n.tr("تم حفظ Voice ID. أضف مفتاح API لتفعيل الصوت السحابي.", "Voice ID saved. Add an API key to enable cloud speech.", lang)
                         }
                     },
                     modifier = Modifier.weight(1f)
-                ) { Text("حفظ الإعدادات") }
+                ) { Text(WebI18n.tr("حفظ الإعدادات", "Save settings", lang)) }
                 OutlinedButton(
                     onClick = {
                         settings.saveApiKey("")
                         apiKey = ""
-                        status = "تم حذف مفتاح الصوت السحابي. سيعود المساعد إلى الصوت المحلي."
+                        status = WebI18n.tr("تم حذف مفتاح الصوت السحابي. سيعود المساعد إلى الصوت المحلي.", "Cloud voice key deleted. The assistant will use local speech.", lang)
                     }
-                ) { Text("حذف المفتاح") }
+                ) { Text(WebI18n.tr("حذف المفتاح", "Delete key", lang)) }
             }
             Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

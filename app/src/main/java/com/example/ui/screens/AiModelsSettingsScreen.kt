@@ -48,6 +48,8 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.io.File
 import com.example.ui.theme.ByeProTheme
+import com.example.finance.model.AppLanguage
+import com.example.finance.i18n.WebI18n
 
 private data class LocalModelFile(
     val name: String,
@@ -124,6 +126,7 @@ private inline fun ByteArray.takeWhileIndexed(predicate: (Int, Byte) -> Boolean)
 
 @Composable
 fun AiModelsSettingsScreen(
+    lang: AppLanguage,
     autoSpeakReplies: Boolean,
     onAutoSpeakRepliesChange: (Boolean) -> Unit,
     cloudGeneralEnabled: Boolean,
@@ -221,12 +224,12 @@ fun AiModelsSettingsScreen(
             ) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text("MODEL LAB  /  AI BYE PRO", style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
-                    Text("النماذج والقدرات", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = ByeProTheme.colors.textPrimary)
-                    Text("إدارة النماذج المحلية والهجينة، حالة التشغيل، الصوت والخصوصية من مساحة موحدة.", style = MaterialTheme.typography.bodySmall, color = ByeProTheme.colors.textSecondary)
+                    Text(WebI18n.tr("النماذج والقدرات", "Models & capabilities", lang), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = ByeProTheme.colors.textPrimary)
+                    Text(WebI18n.tr("إدارة النماذج المحلية والهجينة، حالة التشغيل، الصوت والخصوصية من مساحة موحدة.", "Manage local and hybrid models, runtime status, voice and privacy in one workspace.", lang), style = MaterialTheme.typography.bodySmall, color = ByeProTheme.colors.textSecondary)
                 }
             }
             Text(
-                "إدارة ملفات النماذج المحلية المحفوظة على هاتفك والتحقق من وجودها.",
+                WebI18n.tr("إدارة ملفات النماذج المحلية المحفوظة على هاتفك والتحقق من وجودها.", "Manage local model files stored on your phone and verify their availability.", lang),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -237,7 +240,7 @@ fun AiModelsSettingsScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Storage, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                         Spacer(Modifier.size(8.dp))
-                        Text("فحص ملفات النماذج", fontWeight = FontWeight.SemiBold)
+                        Text(WebI18n.tr("فحص ملفات النماذج", "Model file scanner", lang), fontWeight = FontWeight.SemiBold)
                     }
                     Text(
                         text = when {
@@ -256,15 +259,15 @@ fun AiModelsSettingsScreen(
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null)
                         Spacer(Modifier.size(6.dp))
-                        Text("إعادة فحص الملفات")
+                        Text(WebI18n.tr("إعادة فحص الملفات", "Rescan files", lang))
                     }
                 }
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("استعادة النموذج الموجود على الهاتف", fontWeight = FontWeight.SemiBold)
+                    Text(WebI18n.tr("استعادة النموذج الموجود على الهاتف", "Restore a model already on this phone", lang), fontWeight = FontWeight.SemiBold)
                     Text(
                         "اختر ملف النموذج الذي سبق تنزيله. سيقرأ التطبيق الاسم والحجم وأول 16 بايت فقط، ولن يرفع الملف أو ينزّله أو يحذفه.",
                         style = MaterialTheme.typography.bodySmall,
@@ -276,17 +279,17 @@ fun AiModelsSettingsScreen(
                     ) {
                         Icon(Icons.Default.Storage, contentDescription = null)
                         Spacer(Modifier.size(6.dp))
-                        Text("اختيار ملف النموذج من الهاتف")
+                        Text(WebI18n.tr("اختيار ملف النموذج من الهاتف", "Choose model file from phone", lang))
                     }
                     selectedModel?.let { model ->
                         Text(model.name, fontWeight = FontWeight.SemiBold)
                         Text(
                             if (model.sizeBytes >= 0) String.format(Locale.US, "%.2f GB", model.sizeBytes / 1_073_741_824.0)
-                            else "الحجم غير متاح من مزود الملفات",
+                            else WebI18n.tr("الحجم غير متاح من مزود الملفات", "File size unavailable from provider", lang),
                             style = MaterialTheme.typography.bodySmall
                         )
-                        Text("الصيغة المكتشفة: ${model.detectedFormat}", style = MaterialTheme.typography.bodySmall)
-                        Text("ترويسة الملف: ${model.headerHex}", style = MaterialTheme.typography.labelSmall)
+                        Text(WebI18n.tr("الصيغة المكتشفة: ", "Detected format: ", lang) + model.detectedFormat, style = MaterialTheme.typography.bodySmall)
+                        Text(WebI18n.tr("ترويسة الملف: ", "File header: ", lang) + model.headerHex, style = MaterialTheme.typography.labelSmall)
                         model.metadataSummary?.let {
                             Text(it, style = MaterialTheme.typography.bodySmall)
                         }
@@ -311,7 +314,7 @@ fun AiModelsSettingsScreen(
                             enabled = !localModelLoading && model.name.endsWith(".litertlm", ignoreCase = true),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(if (localModelLoading) "جارٍ تجهيز النموذج..." else "نسخ النموذج وتشغيله محلياً")
+                            Text(if (localModelLoading) WebI18n.tr("جارٍ تجهيز النموذج...", "Preparing model...", lang) else WebI18n.tr("نسخ النموذج وتشغيله محلياً", "Copy and run model locally", lang))
                         }
                     }
                     if (localModelLoading) {
@@ -323,7 +326,7 @@ fun AiModelsSettingsScreen(
                     Text(
                         localModelStatus,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (localModelReady) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (localModelReady) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     modelInspectionError?.let {
                         Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -348,31 +351,32 @@ fun AiModelsSettingsScreen(
                             enabled = !localModelLoading,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("تشغيل هذا النموذج دون نسخه")
+                            Text(WebI18n.tr("تشغيل هذا النموذج دون نسخه", "Run this model without copying", lang))
                         }
                     }
                 }
             }
         }
         item {
-            Text("إعدادات المساعد", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(WebI18n.tr("إعدادات المساعد", "Assistant settings", lang), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = ByeProTheme.colors.textPrimary)
         }
         item {
-            VoiceProviderSettingsCard()
+            VoiceProviderSettingsCard(lang = lang)
         }
         item {
             HybridAssistantSettingsCard(
+                lang = lang,
                 cloudGeneralEnabled = cloudGeneralEnabled,
                 onCloudGeneralEnabledChange = onCloudGeneralEnabledChange
             )
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Tune, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                         Spacer(Modifier.size(8.dp))
-                        Text("الصوت والاستجابة", fontWeight = FontWeight.SemiBold)
+                        Text(WebI18n.tr("الصوت والاستجابة", "Voice & response", lang), fontWeight = FontWeight.SemiBold)
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -380,7 +384,7 @@ fun AiModelsSettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("قراءة رد المساعد صوتياً بعد التحدث")
+                            Text(WebI18n.tr("قراءة رد المساعد صوتياً بعد التحدث", "Speak assistant replies automatically", lang))
                             Text(
                                 "يستخدم الصوت السحابي الطبيعي عند ضبط ElevenLabs، مع الرجوع إلى صوت الهاتف عند عدم الاتصال.",
                                 style = MaterialTheme.typography.bodySmall,
@@ -398,9 +402,9 @@ fun AiModelsSettingsScreen(
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("الخصوصية والحفاظ على النموذج", fontWeight = FontWeight.SemiBold)
+                    Text(WebI18n.tr("الخصوصية والحفاظ على النموذج", "Privacy & model retention", lang), fontWeight = FontWeight.SemiBold)
                     Text(
                         "لا تضغط على مسح بيانات التطبيق ولا تحذف التطبيق إذا كنت تريد الحفاظ على النموذج. تحديث APK فوق النسخة المثبتة يحافظ عادةً على ملفات التطبيق الخاصة، لكن مسح البيانات أو إلغاء التثبيت قد يحذفها.",
                         style = MaterialTheme.typography.bodySmall,
