@@ -201,8 +201,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun deleteAccount(account: AccountEntity) { viewModelScope.launch { repository.deleteAccount(account) } }
     fun archiveAccount(accountId: Long, isArchived: Boolean) { viewModelScope.launch { _accountActionFeedback.value = AccountActionFeedback(if (isArchived) "deactivate" else "activate", runCatching { repository.archiveAccount(accountId, isArchived) }.isSuccess) } }
     fun addTransaction(tx: TransactionEntity) { viewModelScope.launch { repository.addTransaction(tx) } }
-    fun updateTransactionStatus(tx: TransactionEntity, status: TransactionStatus) { viewModelScope.launch { repository.updateTransactionStatus(tx, status) } }
-    fun deleteTransaction(tx: TransactionEntity) { viewModelScope.launch { repository.deleteTransaction(tx) } }
+    fun updateTransactionStatus(tx: TransactionEntity, status: TransactionStatus) { viewModelScope.launch { runCatching { repository.updateTransactionStatus(tx, status) }.onFailure { Log.w("BYE_PRO_FINANCE", "Transaction status update rejected", it) } } }
+    fun deleteTransaction(tx: TransactionEntity) { viewModelScope.launch { runCatching { repository.deleteTransaction(tx) }.onFailure { Log.w("BYE_PRO_FINANCE", "Transaction deletion rejected", it) } } }
     fun executeTransfer(fromAccountId: Long, toAccountId: Long, amount: Double, fee: Double, currency: String, description: String, reference: String, onComplete: (Boolean) -> Unit) { viewModelScope.launch { onComplete(repository.executeTransfer(fromAccountId, toAccountId, amount, fee, currency, description, reference)) } }
     fun addBudget(budget: BudgetEntity) { viewModelScope.launch { repository.addBudget(budget) } }
     fun updateBudget(budget: BudgetEntity) { viewModelScope.launch { repository.updateBudget(budget) } }
