@@ -16,6 +16,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import android.util.Log
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -42,17 +43,31 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
             }
 
             closeLoadedModel()
-            val candidate = Engine(
+            // Prefer GPU acceleration for Gemma 3n. Devices without a usable
+            // OpenCL driver transparently fall back to the always-available CPU backend.
+            var candidate = Engine(
                 EngineConfig(
                     modelPath = absolutePath,
-                    backend = Backend.CPU(),
-                    visionBackend = Backend.CPU(),
+                    backend = Backend.GPU(),
+                    visionBackend = Backend.GPU(),
                     cacheDir = cacheDir.absolutePath
                 )
             )
-
-            // If initialize throws, do not call close on this Engine instance.
-            candidate.initialize()
+            try {
+                candidate.initialize()
+            } catch (gpuError: Throwable) {
+                Log.w("BYE_PRO_LOCAL_AI", "GPU backend unavailable; retrying with CPU.", gpuError)
+                // Do not close an Engine whose initialize() failed.
+                candidate = Engine(
+                    EngineConfig(
+                        modelPath = absolutePath,
+                        backend = Backend.CPU(),
+                        visionBackend = Backend.CPU(),
+                        cacheDir = cacheDir.absolutePath
+                    )
+                )
+                candidate.initialize()
+            }
             try {
                 val candidateConversation = candidate.createConversation(
                     ConversationConfig(
