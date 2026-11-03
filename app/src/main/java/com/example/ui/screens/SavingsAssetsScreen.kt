@@ -88,7 +88,7 @@ fun SavingsAssetsScreen(
     var goalToContribute by remember { mutableStateOf<SavingsGoalEntity?>(null) }
     var contributionFailed by remember { mutableStateOf(false) }
 
-    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, primaryCurrency)
+    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, primaryCurrency, savingsGoals)
 
     Scaffold(
         floatingActionButton = {
