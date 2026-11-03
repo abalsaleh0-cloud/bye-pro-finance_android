@@ -595,23 +595,37 @@ fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean =
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val context = LocalContext.current
-                    IconButton(
+                    TextButton(
                         onClick = {
                             val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
-                            clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("AI Bye Pro", message.text))
-                            Toast.makeText(
-                                context,
-                                WebI18n.tr("تم نسخ النص", "Text copied", lang),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            if (clipboard != null) {
+                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("AI Bye Pro", message.text))
+                                Toast.makeText(
+                                    context,
+                                    WebI18n.tr("تم نسخ النص", "Text copied", lang),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    WebI18n.tr("تعذر الوصول إلى الحافظة", "Clipboard unavailable", lang),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         },
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.height(36.dp)
                     ) {
                         Icon(
                             Icons.Default.ContentCopy,
                             contentDescription = WebI18n.tr("نسخ النص", "Copy text", lang),
                             tint = if (isUser) MaterialTheme.colorScheme.onPrimary else ByeProTheme.colors.goldPrimary,
-                            modifier = Modifier.size(17.dp)
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.size(4.dp))
+                        Text(
+                            WebI18n.tr("نسخ", "Copy", lang),
+                            color = if (isUser) MaterialTheme.colorScheme.onPrimary else ByeProTheme.colors.goldPrimary,
+                            style = MaterialTheme.typography.labelSmall
                         )
                     }
                     if (!isUser) {
