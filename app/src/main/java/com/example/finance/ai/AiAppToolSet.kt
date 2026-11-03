@@ -57,6 +57,8 @@ class AiAppToolSet(
         data class SavingsGoal(val value: SavingsGoalEntity) : PendingPayload
         data class Asset(val value: AssetEntity) : PendingPayload
         data class Transfer(val fromId: Long, val toId: Long, val amount: Double, val fee: Double, val currency: String, val description: String, val reference: String) : PendingPayload
+        data class HouseholdMember(val name: String, val email: String, val role: String, val percent: Double) : PendingPayload
+        data class HouseholdExpense(val title: String, val amount: Double, val payerId: Long, val category: String, val currency: String) : PendingPayload
     }
     private data class Pending(val preview: AiActionPreview, val payload: PendingPayload)
     @Volatile private var pending: Pending? = null
@@ -366,6 +368,23 @@ class AiAppToolSet(
         _pendingAction.value=preview
         return mapOf("success" to true,"requires_user_confirmation" to true,"preview_id" to preview.id,"message" to "Transfer preview only. Wait for user confirmation.")
     }
+    @Tool(description = "Prepare a household member. No member is saved until the user confirms the preview.")
+    fun proposeCreateHouseholdMember(name: String, role: String, contributionPercent: Double, email: String = ""): Map<String, Any> {
+        val cleanName=name.trim(); val cleanRole=role.trim()
+        if (cleanName.length !in 2..100 || cleanRole.isBlank() || !contributionPercent.isFinite() || contributionPercent !in 0.0..100.0) return mapOf("success" to false,"error" to "Household member details are invalid.")
+        val preview=AiActionPreview(UUID.randomUUID().toString(),"مراجعة إضافة فرد للأسرة","الاسم: " + cleanName + "\nالدور: " + cleanRole + "\nنسبة المساهمة: " + contributionPercent + "%")
+        pending=Pending(preview,PendingPayload.HouseholdMember(cleanName,email.trim(),cleanRole,contributionPercent)); _pendingAction.value=preview
+        return mapOf("success" to true,"requires_user_confirmation" to true,"preview_id" to preview.id,"message" to "Preview only. Wait for user confirmation.")
+    }
+
+    @Tool(description = "Prepare a household expense. The payer member is checked again when confirmed.")
+    fun proposeCreateHouseholdExpense(title: String, amount: Double, payerMemberId: Long, category: String, currency: String = "LYD"): Map<String, Any> {
+        val cleanTitle=title.trim(); val cleanCategory=category.trim(); val cur=currency.trim().uppercase()
+        if (cleanTitle.isBlank() || cleanCategory.isBlank() || payerMemberId<=0 || !amount.isFinite() || amount<=0.0 || !cur.matches(Regex("[A-Z]{3}"))) return mapOf("success" to false,"error" to "Household expense details are invalid.")
+        val preview=AiActionPreview(UUID.randomUUID().toString(),"مراجعة مصروف أسري","العنوان: " + cleanTitle + "\nالمبلغ: " + amount + " " + cur + "\nالمسؤول: " + payerMemberId)
+        pending=Pending(preview,PendingPayload.HouseholdExpense(cleanTitle,amount,payerMemberId,cleanCategory,cur)); _pendingAction.value=preview
+        return mapOf("success" to true,"requires_user_confirmation" to true,"preview_id" to preview.id,"message" to "Preview only. Wait for user confirmation.")
+    }
     private fun stageAction(title: String, description: String, payload: PendingPayload): Map<String, Any> {
         val preview=AiActionPreview(UUID.randomUUID().toString(),title,description); pending=Pending(preview,payload); _pendingAction.value=preview
         return mapOf("success" to true,"requires_user_confirmation" to true,"preview_id" to preview.id,"message" to "Preview only. Wait for explicit user confirmation; no data has changed.")
@@ -397,6 +416,8 @@ class AiAppToolSet(
                 check(completed) { "تعذر تنفيذ التحويل؛ تحقق من الحسابات والعملة وحالة الحساب." }
                 "تم تنفيذ التحويل بعد تأكيدك."
             }
+            is PendingPayload.HouseholdMember -> { repository.addHouseholdMember(payload.name,payload.email,payload.role,payload.percent); "تمت إضافة فرد الأسرة بعد تأكيدك." }
+            is PendingPayload.HouseholdExpense -> { repository.addHouseholdExpense(payload.title,payload.amount,payload.payerId,payload.category,payload.currency); "تم تسجيل المصروف الأسري بعد تأكيدك." }
         }
         pending = null
         _pendingAction.value = null
