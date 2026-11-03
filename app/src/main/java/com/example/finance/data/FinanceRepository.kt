@@ -26,6 +26,8 @@ import com.example.finance.model.TransactionType
 import com.example.finance.model.TransferEntity
 import com.example.finance.model.UserEntity
 import com.example.finance.model.UserRole
+import com.example.finance.model.WorkSourceEntity
+import com.example.finance.model.WorkRecordEntity
 import androidx.room.withTransaction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +57,23 @@ class FinanceRepository(
     val notifications: Flow<List<NotificationEntity>> = dao.getAllNotifications()
     val auditLogs: Flow<List<AuditLogEntity>> = dao.getAllAuditLogs()
     val currentUser: Flow<UserEntity?> = dao.getCurrentUser()
+    val workSources: Flow<List<WorkSourceEntity>> = dao.getWorkSources()
+    val workRecords: Flow<List<WorkRecordEntity>> = dao.getWorkRecords()
+
+    suspend fun addWorkSource(source: WorkSourceEntity): Long = withContext(Dispatchers.IO) {
+        require(source.name.isNotBlank()) { "Work source name is required" }
+        require(source.monthlySalary >= 0.0 && source.monthlySalary.isFinite()) { "Invalid monthly salary" }
+        val id = dao.insertWorkSource(source)
+        logAudit("CREATE", "WorkSource", "Created ${source.type} source: ${source.name}")
+        id
+    }
+
+    suspend fun addWorkRecord(record: WorkRecordEntity): Long = withContext(Dispatchers.IO) {
+        require(record.amount > 0.0 && record.amount.isFinite()) { "Amount must be positive" }
+        val id = dao.insertWorkRecord(record)
+        logAudit("CREATE", "WorkRecord", "Recorded ${record.type}: ${record.amount} ${record.currency}")
+        id
+    }
 
     suspend fun logAudit(action: String, resource: String, details: String) {
         dao.insertAuditLog(
