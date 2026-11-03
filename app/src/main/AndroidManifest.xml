@@ -8,8 +8,6 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
-        <uses-native-library android:name="libvndksupport.so" android:required="false" />
-        <uses-native-library android:name="libOpenCL.so" android:required="false" />
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -18,6 +16,8 @@
         android:roundIcon="@drawable/bye_pro_finance_icon"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
+        <uses-native-library android:name="libvndksupport.so" android:required="false" />
+        <uses-native-library android:name="libOpenCL.so" android:required="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
