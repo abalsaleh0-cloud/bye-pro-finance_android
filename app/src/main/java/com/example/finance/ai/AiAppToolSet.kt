@@ -56,6 +56,7 @@ class AiAppToolSet(
         data class Bill(val value: BillEntity) : PendingPayload
         data class SavingsGoal(val value: SavingsGoalEntity) : PendingPayload
         data class Asset(val value: AssetEntity) : PendingPayload
+        data class Transfer(val fromId: Long, val toId: Long, val amount: Double, val fee: Double, val currency: String, val description: String, val reference: String) : PendingPayload
     }
     private data class Pending(val preview: AiActionPreview, val payload: PendingPayload)
     @Volatile private var pending: Pending? = null
@@ -356,6 +357,15 @@ class AiAppToolSet(
         return stageAction("مراجعة إضافة أصل", "الأصل: " + n + "\nالنوع: " + parsed.name + "\nالقيمة: " + value + " " + cur, PendingPayload.Asset(AssetEntity(name=n,type=parsed,value=value,currency=cur,notes=notes.trim())))
     }
 
+    @Tool(description = "Prepare an internal transfer between two existing accounts. It is executed only after explicit confirmation; currency and funds are revalidated by the repository.")
+    fun proposeTransfer(fromAccountId: Long, toAccountId: Long, amount: Double, fee: Double = 0.0, currency: String = "LYD", description: String = ""): Map<String, Any> {
+        val cur=currency.trim().uppercase()
+        if (fromAccountId<=0 || toAccountId<=0 || fromAccountId==toAccountId || !amount.isFinite() || amount<=0.0 || !fee.isFinite() || fee<0.0 || !cur.matches(Regex("[A-Z]{3}"))) return mapOf("success" to false,"error" to "Transfer details are invalid.")
+        val preview=AiActionPreview(UUID.randomUUID().toString(),"مراجعة تحويل بين الحسابات","من الحساب: " + fromAccountId + "\nإلى الحساب: " + toAccountId + "\nالمبلغ: " + amount + " " + cur + "\nالرسوم: " + fee)
+        pending=Pending(preview,PendingPayload.Transfer(fromAccountId,toAccountId,amount,fee,cur,description.trim(),"AI-" + System.currentTimeMillis()))
+        _pendingAction.value=preview
+        return mapOf("success" to true,"requires_user_confirmation" to true,"preview_id" to preview.id,"message" to "Transfer preview only. Wait for user confirmation.")
+    }
     private fun stageAction(title: String, description: String, payload: PendingPayload): Map<String, Any> {
         val preview=AiActionPreview(UUID.randomUUID().toString(),title,description); pending=Pending(preview,payload); _pendingAction.value=preview
         return mapOf("success" to true,"requires_user_confirmation" to true,"preview_id" to preview.id,"message" to "Preview only. Wait for explicit user confirmation; no data has changed.")
@@ -382,6 +392,11 @@ class AiAppToolSet(
             is PendingPayload.Bill -> { repository.addBill(payload.value); "تمت إضافة الفاتورة بعد تأكيدك." }
             is PendingPayload.SavingsGoal -> { repository.addSavingsGoal(payload.value); "تمت إضافة هدف الادخار بعد تأكيدك." }
             is PendingPayload.Asset -> { repository.addAsset(payload.value); "تمت إضافة الأصل بعد تأكيدك." }
+            is PendingPayload.Transfer -> {
+                val completed = repository.executeTransfer(payload.fromId,payload.toId,payload.amount,payload.fee,payload.currency,payload.description,payload.reference)
+                check(completed) { "تعذر تنفيذ التحويل؛ تحقق من الحسابات والعملة وحالة الحساب." }
+                "تم تنفيذ التحويل بعد تأكيدك."
+            }
         }
         pending = null
         _pendingAction.value = null
