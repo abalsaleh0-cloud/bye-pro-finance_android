@@ -248,7 +248,12 @@ fun SpeakTextButton(
     ) {
         Icon(
             imageVector = Icons.Default.VolumeUp,
-            contentDescription = when {\n                speaking && languageCode == "ar" -> "إيقاف الصوت"\n                speaking -> "Stop speaking"\n                languageCode == "ar" -> "استمع إلى الرد"\n                else -> "Listen to response"\n            },
+            contentDescription = when {
+                speaking && languageCode == "ar" -> "إيقاف الصوت"
+                speaking -> "Stop speaking"
+                languageCode == "ar" -> "استمع إلى الرد"
+                else -> "Listen to response"
+            },
             tint = if (speaking) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
         )
     }
