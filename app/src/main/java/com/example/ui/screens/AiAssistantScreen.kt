@@ -6,9 +6,14 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
 import android.content.Intent
+import android.content.ContentValues
+import android.provider.MediaStore
+import android.widget.Toast
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 
 import com.example.ui.components.FinanceAlertDialog
@@ -51,6 +56,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -116,6 +123,7 @@ fun AiAssistantScreen(
     }
     var inputText by remember { mutableStateOf("") }
     var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var attachmentMenuExpanded by remember { mutableStateOf(false) }
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 4)
     ) { picked ->
@@ -126,6 +134,24 @@ fun AiAssistantScreen(
             }
         }
         selectedImageUris = selected
+    }
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        if (bitmap != null) runCatching {
+            val values = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, "bye-pro-camera-${System.currentTimeMillis()}.jpg")
+                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            }
+            val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: error("تعذر إنشاء ملف الصورة")
+            context.contentResolver.openOutputStream(uri)?.use { output -> check(bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 92, output)) }
+                ?: error("تعذر حفظ الصورة")
+            selectedImageUris = (selectedImageUris + uri).takeLast(4)
+        }.onFailure { Toast.makeText(context, WebI18n.tr("تعذر التقاط الصورة", "Could not capture image", lang), Toast.LENGTH_SHORT).show() }
+    }
+    val textFilePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) runCatching {
+            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: error("تعذر قراءة الملف")
+        }.onSuccess { content -> inputText = listOf(inputText.trim(), content).filter(String::isNotBlank).joinToString("\n\n") }
+         .onFailure { Toast.makeText(context, WebI18n.tr("تعذر قراءة الملف النصي", "Could not read text file", lang), Toast.LENGTH_SHORT).show() }
     }
     var speakNextAiResponse by remember { mutableStateOf(false) }
     var autoSpeakTimestamp by remember { mutableStateOf<Long?>(null) }
@@ -303,106 +329,47 @@ fun AiAssistantScreen(
                     }
                 }
 
-                // Expanded chat composer: a blank, multi-line writing area with voice and send actions below.
+                // Compact WhatsApp-style composer with every action inside the input bar.
                 Card(
-                    modifier = Modifier.fillMaxWidth()
-                        .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.32f), RoundedCornerShape(22.dp)),
-                    shape = RoundedCornerShape(22.dp),
+                    modifier = Modifier.fillMaxWidth().border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.32f), RoundedCornerShape(28.dp)),
+                    shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (selectedImageUris.isNotEmpty()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 selectedImageUris.forEachIndexed { index, uri ->
-                                    Box(
-                                        modifier = Modifier.size(76.dp).clip(RoundedCornerShape(12.dp))
-                                            .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
-                                    ) {
-                                        AsyncImage(
-                                            model = uri,
-                                            contentDescription = WebI18n.tr("صورة مرفقة", "Attached image", lang),
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentScale = ContentScale.Crop
-                                        )
-                                        IconButton(
-                                            onClick = { selectedImageUris = selectedImageUris.filterIndexed { i, _ -> i != index } },
-                                            modifier = Modifier.align(Alignment.TopEnd).size(26.dp)
-                                                .background(ByeProTheme.colors.bgMain.copy(alpha = 0.85f), CircleShape)
-                                        ) {
-                                            Icon(Icons.Default.Close, contentDescription = WebI18n.tr("إزالة الصورة", "Remove image", lang),
-                                                tint = ByeProTheme.colors.textPrimary, modifier = Modifier.size(16.dp))
+                                    Box(Modifier.size(58.dp).clip(RoundedCornerShape(10.dp)).border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.4f), RoundedCornerShape(10.dp))) {
+                                        AsyncImage(model = uri, contentDescription = WebI18n.tr("صورة مرفقة", "Attached image", lang), modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                        IconButton(onClick = { selectedImageUris = selectedImageUris.filterIndexed { i, _ -> i != index } }, modifier = Modifier.align(Alignment.TopEnd).size(22.dp).background(ByeProTheme.colors.bgMain.copy(alpha = 0.85f), CircleShape)) {
+                                            Icon(Icons.Default.Close, contentDescription = WebI18n.tr("إزالة الصورة", "Remove image", lang), tint = ByeProTheme.colors.textPrimary, modifier = Modifier.size(14.dp))
                                         }
                                     }
                                 }
                             }
                         }
-                        FinanceTextField(
-                            value = inputText,
-                            onValueChange = { inputText = it },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(116.dp)
-                                .testTag("ai_assistant_input"),
-                            shape = RoundedCornerShape(18.dp),
-                            singleLine = false,
-                            minLines = 3,
-                            maxLines = 5
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                VoiceInputButton(
-                                    languageCode = if (lang == AppLanguage.AR) "ar" else "en",
-                                    enabled = !isAiLoading,
-                                    onRecognized = {
-                                        inputText = ""
-                                        speakNextAiResponse = autoSpeakReplies
-                                        viewModel.askAiAssistant(it)
-                                    },
-                                    modifier = Modifier.testTag("ai_assistant_voice_input")
-                                )
-                                IconButton(
-                                    onClick = {
-                                        imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                                    },
-                                    enabled = !isAiLoading,
-                                    modifier = Modifier.size(48.dp).testTag("ai_assistant_attach_image")
-                                ) {
-                                    Icon(Icons.Default.AttachFile, contentDescription = WebI18n.tr("إرفاق صور", "Attach images", lang),
-                                        tint = ByeProTheme.colors.goldPrimary)
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            FinanceTextField(value = inputText, onValueChange = { inputText = it }, modifier = Modifier.weight(1f).testTag("ai_assistant_input"), shape = RoundedCornerShape(22.dp), singleLine = false, minLines = 1, maxLines = 4)
+                            VoiceInputButton(languageCode = if (lang == AppLanguage.AR) "ar" else "en", enabled = !isAiLoading, onRecognized = { inputText = it }, modifier = Modifier.size(40.dp).testTag("ai_assistant_voice_input"))
+                            Box {
+                                IconButton(onClick = { attachmentMenuExpanded = true }, enabled = !isAiLoading, modifier = Modifier.size(40.dp).testTag("ai_assistant_attach_menu")) {
+                                    Icon(Icons.Default.AttachFile, contentDescription = WebI18n.tr("المرفقات", "Attachments", lang), tint = ByeProTheme.colors.goldPrimary)
+                                }
+                                DropdownMenu(expanded = attachmentMenuExpanded, onDismissRequest = { attachmentMenuExpanded = false }) {
+                                    DropdownMenuItem(text = { Text(WebI18n.tr("الكاميرا", "Camera", lang)) }, leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) }, onClick = { attachmentMenuExpanded = false; cameraLauncher.launch(null) })
+                                    DropdownMenuItem(text = { Text(WebI18n.tr("استوديو الصور", "Photo gallery", lang)) }, leadingIcon = { Icon(Icons.Default.PhotoLibrary, contentDescription = null) }, onClick = { attachmentMenuExpanded = false; imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) })
+                                    DropdownMenuItem(text = { Text(WebI18n.tr("الملفات النصية", "Text files", lang)) }, leadingIcon = { Icon(Icons.Default.AttachFile, contentDescription = null) }, onClick = { attachmentMenuExpanded = false; textFilePicker.launch(arrayOf("text/plain", "text/markdown", "text/csv")) })
                                 }
                             }
-                            FinanceIconButton(
-                                onClick = {
-                                    if ((inputText.isNotBlank() || selectedImageUris.isNotEmpty()) && !isAiLoading) {
-                                        val q = inputText.ifBlank { WebI18n.tr("أرفقت صوراً للمراجعة.", "I attached images for review.", lang) }
-                                        val attachments = selectedImageUris.map(Uri::toString)
-                                        inputText = ""
-                                        selectedImageUris = emptyList()
-                                        speakNextAiResponse = autoSpeakReplies
-                                        viewModel.askAiAssistant(q, attachments)
-                                    }
-                                },
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(ByeProTheme.colors.goldPrimary)
-                                    .testTag("ai_assistant_send_btn")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Send,
-                                    contentDescription = WebI18n.tr("إرسال", "Send", lang),
-                                    tint = MaterialTheme.colorScheme.onPrimary
-                                )
+                            IconButton(onClick = {
+                                if ((inputText.isNotBlank() || selectedImageUris.isNotEmpty()) && !isAiLoading) {
+                                    val q = inputText.ifBlank { WebI18n.tr("حلّل الصور المرفقة واشرح ما يظهر فيها.", "Analyze the attached images.", lang) }
+                                    val attachments = selectedImageUris.map(Uri::toString)
+                                    inputText = ""; selectedImageUris = emptyList(); speakNextAiResponse = autoSpeakReplies
+                                    viewModel.askAiAssistant(q, attachments)
+                                }
+                            }, enabled = (inputText.isNotBlank() || selectedImageUris.isNotEmpty()) && !isAiLoading, modifier = Modifier.size(40.dp).testTag("ai_assistant_send_btn")) {
+                                Icon(Icons.Default.Send, contentDescription = WebI18n.tr("إرسال", "Send", lang), tint = if ((inputText.isNotBlank() || selectedImageUris.isNotEmpty()) && !isAiLoading) ByeProTheme.colors.goldPrimary else ByeProTheme.colors.textSecondary)
                             }
                         }
                     }
