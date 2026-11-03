@@ -99,7 +99,7 @@ fun AiAssistantScreen(
 ) {
     val lang by viewModel.appLanguage.collectAsState()
     val messages by viewModel.chatMessages.collectAsState()
-    val isAiLoading by viewModel.isAiLoading.collectAsState()
+    val isAiLoading by viewModel.isAiLoading.collectAsState()\n    val streamingAiText by viewModel.streamingAiText.collectAsState()
     val localModelReady by viewModel.localModelReady.collectAsState()
     val localModelLoading by viewModel.localModelLoading.collectAsState()
     val localModelProgress by viewModel.localModelProgress.collectAsState()
@@ -158,7 +158,7 @@ fun AiAssistantScreen(
     var autoSpeakTimestamp by remember { mutableStateOf<Long?>(null) }
     val listState = rememberLazyListState()
 
-    LaunchedEffect(messages.size) {
+    LaunchedEffect(messages.size, streamingAiText.length) {
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
         }
@@ -308,8 +308,15 @@ fun AiAssistantScreen(
                     items(messages) { msg ->
                         ChatBubbleItem(message = msg, lang = lang, autoSpeak = msg.timestamp == autoSpeakTimestamp)
                     }
-                    if (isAiLoading) {
-                        item {
+                    if (isAiLoading && streamingAiText.isNotBlank()) {
+                        item(key = "ai-streaming-response") {
+                            ChatBubbleItem(
+                                message = ChatMessage("AI", streamingAiText),
+                                lang = lang
+                            )
+                        }
+                    } else if (isAiLoading) {
+                        item(key = "ai-thinking-indicator") {
                             Row(
                                 modifier = Modifier.padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
