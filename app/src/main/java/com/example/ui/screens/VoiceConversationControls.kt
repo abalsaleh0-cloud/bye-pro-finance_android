@@ -31,6 +31,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.example.finance.ai.ElevenLabsSpeechProvider
 import com.example.finance.ai.SecureVoiceSettings
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Locale
@@ -136,6 +138,7 @@ fun SpeakTextButton(
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
     var audioFile by remember { mutableStateOf<File?>(null) }
     var speaking by remember { mutableStateOf(false) }
+    var synthesisJob by remember { mutableStateOf<Job?>(null) }
 
     DisposableEffect(languageCode) {
         val engine = TextToSpeech(context) { status ->
@@ -148,6 +151,7 @@ fun SpeakTextButton(
         }
         tts = engine
         onDispose {
+            synthesisJob?.cancel()
             runCatching { player?.stop() }
             player?.release()
             audioFile?.delete()
@@ -171,21 +175,38 @@ fun SpeakTextButton(
         speaking = true
     }
 
+    fun stopSpeaking() {
+        synthesisJob?.cancel()
+        synthesisJob = null
+        runCatching { player?.stop() }
+        player?.release()
+        player = null
+        audioFile?.delete()
+        audioFile = null
+        tts?.stop()
+        speaking = false
+    }
+
     fun speak() {
         if (latestText.isBlank()) return
-        scope.launch {
+        stopSpeaking()
+        synthesisJob = scope.launch {
             speaking = true
-            val audio = runCatching { provider.synthesize(latestText) }.getOrNull()
+            val audio = try {
+                provider.synthesize(latestText)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            }
             if (audio == null || audio.isEmpty()) {
                 speaking = false
                 speakLocally()
                 return@launch
             }
             val file = File(context.cacheDir, "bye-pro-voice-${UUID.randomUUID()}.mp3")
-            runCatching {
+            try {
                 file.writeBytes(audio)
-                player?.release()
-                audioFile?.delete()
                 val next = MediaPlayer()
                 next.setDataSource(file.absolutePath)
                 next.setOnPreparedListener { it.start() }
@@ -208,7 +229,7 @@ fun SpeakTextButton(
                 player = next
                 audioFile = file
                 next.prepareAsync()
-            }.onFailure {
+            } catch (_: Exception) {
                 file.delete()
                 speaking = false
                 speakLocally()
@@ -222,12 +243,12 @@ fun SpeakTextButton(
 
     IconButton(
         enabled = text.isNotBlank() && (ready || hasCloudCredentials),
-        onClick = { speak() },
+        onClick = { if (speaking) stopSpeaking() else speak() },
         modifier = modifier
     ) {
         Icon(
             imageVector = Icons.Default.VolumeUp,
-            contentDescription = if (languageCode == "ar") "استمع إلى الرد" else "Listen to response",
+            contentDescription = when {\n                speaking && languageCode == "ar" -> "إيقاف الصوت"\n                speaking -> "Stop speaking"\n                languageCode == "ar" -> "استمع إلى الرد"\n                else -> "Listen to response"\n            },
             tint = if (speaking) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
         )
     }
