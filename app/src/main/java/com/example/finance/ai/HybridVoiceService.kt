@@ -125,7 +125,6 @@ class ElevenLabsSpeechProvider(context: Context) {
                     .put("style", 0.22)
                     .put("use_speaker_boost", true)
             )
-            .put("language_code", if (languageCode == "ar") "ar" else "en")
             .toString()
 
         val request = Request.Builder()
