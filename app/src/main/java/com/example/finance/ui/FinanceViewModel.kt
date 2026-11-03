@@ -111,7 +111,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private val _localModelStatus = MutableStateFlow("لم يتم تحميل نموذج محلي بعد.")
     val localModelStatus: StateFlow<String> = _localModelStatus.asStateFlow()
     init { resetWelcomeMessage(); viewModelScope.launch { runCatching { repository.accounts.first(); repository.archivedAccounts.first() }; _accountsLoading.value = false } }
-    private fun resetWelcomeMessage() { _chatMessages.value = listOf(ChatMessage("AI", WebI18n.tr("مرحباً بك! أنا مساعد BYE PRO الذكي. تحدث معي بشكل طبيعي عن أي موضوع؛ أستطيع مساعدتك في المعرفة والكتابة والترجمة والتخطيط والتحليل، وكذلك شؤونك المالية عند طلبك.", "Welcome! I am BYE PRO, your general AI assistant. Talk to me naturally about any topic: knowledge, writing, translation, planning, analysis, and your finances whenever you ask.", _appLanguage.value))) }
+    private fun resetWelcomeMessage() { _chatMessages.value = listOf(ChatMessage("AI", WebI18n.tr("مرحباً بك! أنا AI Bye Pro، مساعدك الذكي. تحدث معي بشكل طبيعي عن أي موضوع؛ أستطيع مساعدتك في المعرفة والكتابة والترجمة والتخطيط والتحليل، وكذلك شؤونك المالية عند طلبك.", "Welcome! I am AI Bye Pro, your general-purpose AI assistant. Talk to me naturally about any topic: knowledge, writing, translation, planning, analysis, and your finances whenever you ask.", _appLanguage.value))) }
     fun setScreen(screen: String) { _currentScreen.value = screen }
     fun toggleLanguage() { setLanguage(if (_appLanguage.value == AppLanguage.AR) AppLanguage.EN else AppLanguage.AR) }
     fun setLanguage(lang: AppLanguage) { if (_appLanguage.value == lang) return; _appLanguage.value = lang; WebI18n.write(getApplication(), lang); if (_chatMessages.value.size <= 1) resetWelcomeMessage() }
