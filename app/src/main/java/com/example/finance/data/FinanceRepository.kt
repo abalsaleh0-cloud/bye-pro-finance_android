@@ -377,26 +377,47 @@ class FinanceRepository(
 
     suspend fun recordDebtPayment(
         debtId: Long,
+        accountId: Long,
         amount: Double,
         notes: String,
         paymentDate: Long = System.currentTimeMillis()
     ): Boolean = withContext(Dispatchers.IO) {
         val operation: suspend () -> Boolean = operation@{
             val debt = dao.getDebtById(debtId) ?: return@operation false
+            val account = dao.getAccountById(accountId) ?: return@operation false
             if (debt.status == DebtStatus.PAID || !amount.isFinite() || amount <= 0.0 ||
-                !debt.remaining.isFinite() || amount > debt.remaining || paymentDate <= 0L
+                !debt.remaining.isFinite() || amount > debt.remaining || paymentDate <= 0L ||
+                !debt.currency.equals(account.currency, ignoreCase = true) || !account.balance.isFinite()
             ) return@operation false
-            val remaining = FinanceEngine.toBigDecimal(debt.remaining)
-                .subtract(FinanceEngine.toBigDecimal(amount))
+            // Payments for debts we owe are expenses; collections are income.
+            val outgoing = debt.direction == "i_owe"
+            if (outgoing && account.balance < amount) return@operation false
+            val amountDecimal = FinanceEngine.toBigDecimal(amount)
+            val balance = FinanceEngine.toBigDecimal(account.balance).let {
+                if (outgoing) it.subtract(amountDecimal) else it.add(amountDecimal)
+            }
+            val remaining = FinanceEngine.toBigDecimal(debt.remaining).subtract(amountDecimal)
             val newStatus = if (remaining <= BigDecimal.ZERO) DebtStatus.PAID else DebtStatus.ACTIVE
+            dao.insertTransaction(
+                TransactionEntity(
+                    accountId = accountId,
+                    type = if (outgoing) TransactionType.EXPENSE else TransactionType.INCOME,
+                    amount = amount,
+                    currency = debt.currency,
+                    category = if (outgoing) "Debt payment" else "Debt collection",
+                    date = paymentDate,
+                    description = (if (outgoing) "Debt payment: " else "Debt collection: ") + debt.name,
+                    notes = notes.trim()
+                )
+            )
+            dao.updateAccountBalance(accountId, balance.toDouble())
             dao.updateDebt(debt.copy(remaining = remaining.toDouble(), status = newStatus))
             dao.insertDebtPayment(DebtPaymentEntity(debtId = debtId, amount = amount, date = paymentDate, notes = notes.trim(), currency = debt.currency))
-            logAudit("PAYMENT", "Debt", "Paid $amount toward ${debt.name}, remaining $remaining")
+            logAudit("PAYMENT", "Debt", (if (outgoing) "Paid " else "Collected ") + amount + " for " + debt.name + "; remaining " + remaining)
             true
         }
         if (db != null) db.withTransaction { operation() } else operation()
     }
-
     suspend fun deleteDebt(debt: DebtEntity) = withContext(Dispatchers.IO) {
         dao.deleteDebt(debt)
         logAudit("DELETE", "Debt", "Deleted debt ${debt.name}")
