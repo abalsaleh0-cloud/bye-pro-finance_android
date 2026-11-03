@@ -41,6 +41,23 @@ class AiProjectFileWorkspace(private val rootDirectory: File) {
         return AiProjectFileEntry(file.relativeTo(projectDirectory(projectId)).invariantSeparatorsPath, file.length(), file.lastModified())
     }
 
+    fun validateWrites(projectId: String, writes: List<AiProjectFileWrite>) {
+        require(writes.isNotEmpty() && writes.size <= MAX_BATCH_FILES) { "A batch must contain 1 to 20 files." }
+        val paths = writes.map { it.path.trim() }
+        require(paths.distinct().size == paths.size) { "Duplicate paths are not allowed in one batch." }
+        val prepared = writes.mapIndexed { index, write ->
+            val bytes = write.content.toByteArray(Charsets.UTF_8)
+            require(bytes.size <= MAX_FILE_BYTES) { "Project file exceeds the 1 MiB write limit: ${write.path}" }
+            Triple(resolveFile(projectId, paths[index]), bytes, paths[index])
+        }
+        require(prepared.sumOf { it.second.size.toLong() } <= MAX_BATCH_BYTES) {
+            "The total project batch exceeds the 5 MiB limit."
+        }
+        prepared.forEach { (file, _, path) ->
+            require(!file.exists() || file.isFile) { "Project path is not a regular file: $path" }
+        }
+    }
+
     /** Validate the full batch before changing anything; restore prior files if a later write fails. */
     fun writeFiles(projectId: String, writes: List<AiProjectFileWrite>): List<AiProjectFileEntry> {
         require(writes.isNotEmpty() && writes.size <= MAX_BATCH_FILES) { "A batch must contain 1 to 20 files." }
