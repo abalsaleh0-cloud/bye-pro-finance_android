@@ -11,6 +11,9 @@ import com.example.finance.ai.ExtractedReceiptData
 import com.example.finance.ai.FinancialAssistantEngine
 import com.example.finance.ai.OfflineFinanceService
 import com.example.finance.ai.LiteRtLocalAssistant
+import com.example.finance.auth.SupabaseAuthRepository
+import com.example.finance.network.AiRequest
+import com.example.finance.network.FinanceApiProvider
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceExportService
 import com.example.finance.data.FinanceRepository
@@ -40,6 +43,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val repository = FinanceRepository(db.financeDao(), db)
     val aiService = OfflineFinanceService()
     private val aiModelPreferences = application.getSharedPreferences("bye_pro_finance_ai_models", Application.MODE_PRIVATE)
+    private val authRepository = SupabaseAuthRepository(application)
     private val localLlm = LiteRtLocalAssistant(application.cacheDir)
     val accounts: StateFlow<List<AccountEntity>> = repository.accounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val archivedAccounts: StateFlow<List<AccountEntity>> = repository.archivedAccounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -274,6 +278,24 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private suspend fun askCloudGeneralAssistant(query: String): String? {
+        if (!aiModelPreferences.getBoolean("cloud_general_enabled", true)) return null
+        val token = authRepository.getValidAccessToken() ?: return null
+        return runCatching {
+            // Only the user's general question is sent to the cloud. Personal
+            // financial records remain on-device unless a separate consent flow
+            // is implemented in a future version.
+            val envelope = FinanceApiProvider.api.ai("Bearer $token", AiRequest(query))
+            val data = envelope.data ?: return@runCatching null
+            listOf("answer", "response", "text", "message", "content")
+                .firstNotNullOfOrNull { key ->
+                    data[key]?.toString()?.trim()?.takeIf(String::isNotBlank)
+                }
+        }.onFailure { error ->
+            Log.w("BYE_PRO_CLOUD_AI", "Cloud general assistant request failed; using local fallback.", error)
+        }.getOrNull()
+    }
+
     fun askAiAssistant(query: String) {
         if (query.isBlank() || _isAiLoading.value) return
         val trimmedQuery = query.trim()
@@ -295,27 +317,31 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 val savedPath = aiModelPreferences.getString("active_model_path", null)
                 val savedModel = savedPath?.let(::File)
                 if (savedModel != null && savedModel.isFile) {
-                    if (!_localModelReady.value) {
-                        _localModelLoading.value = true
-                        _localModelStatus.value = "جارٍ استعادة النموذج المحلي..."
-                        try {
-                            localLlm.load(savedModel)
-                            _localModelReady.value = true
-                            _localModelStatus.value = "النموذج المحلي جاهز."
-                        } finally {
-                            _localModelLoading.value = false
+                    try {
+                        if (!_localModelReady.value) {
+                            _localModelLoading.value = true
+                            _localModelStatus.value = "جارٍ استعادة النموذج المحلي..."
+                            try {
+                                localLlm.load(savedModel)
+                                _localModelReady.value = true
+                                _localModelStatus.value = "النموذج المحلي جاهز."
+                            } finally {
+                                _localModelLoading.value = false
+                            }
                         }
+                        localLlm.sendMessage(trimmedQuery, financialContext)
+                    } catch (localError: Throwable) {
+                        Log.e("BYE_PRO_LOCAL_AI", "Local assistant failed; trying cloud general assistant.", localError)
+                        askCloudGeneralAssistant(trimmedQuery) ?: financialContext
                     }
-                    localLlm.sendMessage(trimmedQuery, financialContext)
                 } else {
-                    financialContext
+                    askCloudGeneralAssistant(trimmedQuery) ?: financialContext
                 }
             }.getOrElse { error ->
-                Log.e("BYE_PRO_FINANCE", "Local AI assistant failed", error)
-                _localModelStatus.value = "تعذر تشغيل المساعد المحلي: " + (error.message ?: "خطأ غير معروف")
+                Log.e("BYE_PRO_FINANCE", "Assistant request failed", error)
                 WebI18n.tr(
-                    "تعذر تشغيل النموذج المحلي: " + (error.message ?: "خطأ غير معروف"),
-                    "Could not run the local model: " + (error.message ?: "unknown error"),
+                    "تعذر تشغيل المساعد حالياً: " + (error.message ?: "خطأ غير معروف"),
+                    "The assistant could not respond right now: " + (error.message ?: "unknown error"),
                     _appLanguage.value
                 )
             }
