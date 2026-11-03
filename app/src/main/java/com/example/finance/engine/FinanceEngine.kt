@@ -154,7 +154,8 @@ object FinanceEngine {
         accounts: List<AccountEntity>,
         assets: List<AssetEntity>,
         debts: List<DebtEntity>,
-        baseCurrency: String = "LYD"
+        baseCurrency: String = "LYD",
+        savingsGoals: List<com.example.finance.model.SavingsGoalEntity> = emptyList()
     ): BigDecimal {
         var liquidCash = BigDecimal.ZERO
         for (acc in accounts) {
@@ -173,13 +174,25 @@ object FinanceEngine {
         }
 
         var debtTotal = BigDecimal.ZERO
+        var receivableTotal = BigDecimal.ZERO
         for (debt in debts) {
             if (debt.currency.equals(baseCurrency, ignoreCase = true)) {
-                debtTotal = debtTotal.add(toBigDecimal(debt.remaining))
+                if (debt.direction == "owed_to_me") {
+                    receivableTotal = receivableTotal.add(toBigDecimal(debt.remaining))
+                } else {
+                    debtTotal = debtTotal.add(toBigDecimal(debt.remaining))
+                }
             }
         }
 
-        val totalAssets = liquidCash.add(assetTotal)
+        var savingsTotal = BigDecimal.ZERO
+        for (goal in savingsGoals) {
+            if (goal.currency.equals(baseCurrency, ignoreCase = true)) {
+                savingsTotal = savingsTotal.add(toBigDecimal(goal.currentAmount))
+            }
+        }
+
+        val totalAssets = liquidCash.add(assetTotal).add(receivableTotal).add(savingsTotal)
         return totalAssets.subtract(debtTotal).setScale(2, RoundingMode.HALF_EVEN)
     }
 
