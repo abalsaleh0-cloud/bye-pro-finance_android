@@ -86,6 +86,7 @@ fun SavingsAssetsScreen(
     var editingGoal by remember { mutableStateOf<SavingsGoalEntity?>(null) }
     var editingAsset by remember { mutableStateOf<AssetEntity?>(null) }
     var goalToContribute by remember { mutableStateOf<SavingsGoalEntity?>(null) }
+    var contributionFailed by remember { mutableStateOf(false) }
 
     val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, primaryCurrency)
 
