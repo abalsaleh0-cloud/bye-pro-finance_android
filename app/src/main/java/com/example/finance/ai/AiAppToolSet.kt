@@ -236,6 +236,66 @@ class AiAppToolSet(
         )
     }
 
+    @Tool(description = "Read active and archived accounts with balances and currencies.")
+    fun listAccounts(includeArchived: Boolean = false): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
+        val rows = repository.accounts.first() + if (includeArchived) repository.archivedAccounts.first() else emptyList()
+        rows.distinctBy { it.id }.take(50).map { mapOf("id" to it.id, "name" to it.name, "type" to it.type.name, "balance" to it.balance, "currency" to it.currency, "archived" to it.isArchived) }
+    }
+
+    @Tool(description = "Read saved transfers, newest first.")
+    fun listTransfers(): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
+        repository.transfers.first().take(30).map { mapOf("id" to it.id, "fromAccountId" to it.fromAccountId, "toAccountId" to it.toAccountId, "amount" to it.amount, "fee" to it.fee, "currency" to it.currency, "date" to it.date, "description" to it.description) }
+    }
+
+    @Tool(description = "Read all budgets and their limits.")
+    fun listBudgets(): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
+        repository.budgets.first().take(50).map { mapOf("id" to it.id, "name" to it.name, "category" to it.category, "period" to it.period.name, "limit" to it.limitAmount, "currency" to it.currency) }
+    }
+
+    @Tool(description = "Read debts, direction, remaining amount and due date.")
+    fun listDebts(): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
+        repository.debts.first().take(50).map { mapOf("id" to it.id, "name" to it.name, "principal" to it.principal, "remaining" to it.remaining, "currency" to it.currency, "direction" to it.direction, "status" to it.status.name, "dueDate" to it.dueDate) }
+    }
+
+    @Tool(description = "Read bills and payment status.")
+    fun listBills(): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
+        repository.bills.first().take(50).map { mapOf("id" to it.id, "name" to it.name, "category" to it.category, "amount" to it.amount, "currency" to it.currency, "dueDate" to it.dueDate, "paid" to it.isPaid, "recurring" to it.isRecurring) }
+    }
+
+    @Tool(description = "Read savings goals and progress.")
+    fun listSavingsGoals(): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
+        repository.savingsGoals.first().take(50).map { mapOf("id" to it.id, "name" to it.name, "target" to it.targetAmount, "current" to it.currentAmount, "currency" to it.currency, "deadline" to it.deadline) }
+    }
+
+    @Tool(description = "Read assets and recorded values.")
+    fun listAssets(): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
+        repository.assets.first().take(50).map { mapOf("id" to it.id, "name" to it.name, "type" to it.type.name, "value" to it.value, "currency" to it.currency, "purchaseDate" to it.purchaseDate) }
+    }
+
+    @Tool(description = "Read household members without exposing email addresses.")
+    fun listHouseholdMembers(): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
+        repository.householdMembers.first().take(50).map { mapOf("id" to it.id, "name" to it.name, "role" to it.role, "contributionPercent" to it.contributionPercent) }
+    }
+
+    @Tool(description = "Read household expenses.")
+    fun listHouseholdExpenses(): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
+        repository.householdExpenses.first().take(50).map { mapOf("id" to it.id, "title" to it.title, "amount" to it.amount, "payerMemberId" to it.payerMemberId, "category" to it.category, "currency" to it.currency, "date" to it.date, "settled" to it.isSettled) }
+    }
+
+    @Tool(description = "Read document register metadata only; never expose local file URIs or document contents.")
+    fun listDocuments(): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
+        repository.documents.first().take(50).map { mapOf("id" to it.id, "title" to it.title, "type" to it.type.name, "merchant" to it.merchant, "totalAmount" to it.totalAmount, "taxAmount" to it.taxAmount, "currency" to it.currency, "date" to it.date) }
+    }
+
+    @Tool(description = "Read recent in-app notifications.")
+    fun listNotifications(): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
+        repository.notifications.first().take(30).map { mapOf("id" to it.id, "title" to it.title, "message" to it.message, "type" to it.type.name, "timestamp" to it.timestamp, "read" to it.isRead) }
+    }
+
+    @Tool(description = "Read recent audit activity for transparency.")
+    fun listAuditActivity(): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
+        repository.auditLogs.first().take(30).map { mapOf("id" to it.id, "action" to it.action, "resource" to it.resource, "details" to it.details, "timestamp" to it.timestamp) }
+    }
     suspend fun confirmPendingAction(actionId: String): String = actionMutex.withLock {
         val staged = pending ?: error("لا توجد عملية تنتظر التأكيد.")
         require(staged.preview.id == actionId) { "انتهت صلاحية معاينة العملية." }
