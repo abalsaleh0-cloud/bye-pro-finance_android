@@ -146,7 +146,7 @@ fun AiAssistantScreen(
             Tab(
                 selected = selectedTabIndex == 0,
                 onClick = { selectedTabIndex = 0 },
-                text = { Text(Strings.get("nav_ai_assistant", lang), fontWeight = FontWeight.Bold) }
+                text = { Text("AI Bye Pro", fontWeight = FontWeight.Bold) }
             )
             Tab(
                 selected = selectedTabIndex == 1,
