@@ -121,6 +121,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val chatMessages: StateFlow<List<ChatMessage>> = _chatMessages.asStateFlow()
     private val _isAiLoading = MutableStateFlow(false)
     val isAiLoading: StateFlow<Boolean> = _isAiLoading.asStateFlow()
+    private val _streamingAiText = MutableStateFlow("")
+    val streamingAiText: StateFlow<String> = _streamingAiText.asStateFlow()
     private val _localModelReady = MutableStateFlow(false)
     val localModelReady: StateFlow<Boolean> = _localModelReady.asStateFlow()
     private val _localModelLoading = MutableStateFlow(false)
@@ -487,12 +489,22 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun currentDateAnswer(query: String): String? {
-        val normalized = query.trim().lowercase(Locale.ROOT)
+        // Normalize Arabic diacritics and punctuation so colloquial variants are
+        // answered from the device clock without invoking the language model.
+        val normalized = query.trim()
+            .lowercase(Locale.ROOT)
+            .replace(Regex("[\\u064B-\\u065F\\u0670]"), "")
+            .replace(Regex("[؟?!،,.؛:]+"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
         val asksForToday = listOf(
             "ماهو اليوم", "ما هو اليوم", "اي يوم اليوم", "أي يوم اليوم",
-            "ما تاريخ اليوم", "ما هو تاريخ اليوم", "تاريخ اليوم", "كم التاريخ",
-            "what day is it", "what day is today", "what is today's date",
-            "what's today's date", "what is the date today", "current date"
+            "ما اليوم", "شو اليوم", "ايش اليوم", "اليوم اي يوم", "اليوم أي يوم",
+            "اي يوم نحنا", "أي يوم نحن", "ما تاريخ اليوم", "ما هو تاريخ اليوم",
+            "تاريخ اليوم", "كم التاريخ", "كم تاريخ اليوم", "شو تاريخ اليوم",
+            "what day is it", "what day is today", "what is the day today",
+            "what is today's date", "what's today's date", "what is the date today",
+            "what date is it", "current date", "today's date"
         ).any(normalized::contains)
         if (!asksForToday) return null
         val locale = if (_appLanguage.value == AppLanguage.AR) Locale("ar") else Locale.ENGLISH
@@ -505,6 +517,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         if ((query.isBlank() && attachments.isEmpty()) || _isAiLoading.value) return
         val trimmedQuery = query.trim()
         _chatMessages.value = _chatMessages.value + ChatMessage("USER", trimmedQuery, attachments = attachments)
+        _streamingAiText.value = ""
         _isAiLoading.value = true
         viewModelScope.launch {
             val currentDateResponse = if (attachments.isEmpty()) currentDateAnswer(trimmedQuery) else null
@@ -592,10 +605,13 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                         if (format == "GGUF") {
                             ggufLlm.sendMessage(trimmedQuery, financialContext)
                         } else {
-                            localLlm.sendMessage(trimmedQuery, financialContext)
+                            localLlm.sendMessage(trimmedQuery, financialContext) { chunk ->
+                                _streamingAiText.value += chunk
+                            }
                         }
                     } catch (localError: Throwable) {
                         Log.e("BYE_PRO_LOCAL_AI", "Local assistant failed; trying cloud general assistant.", localError)
+                        _streamingAiText.value = ""
                         askCloudGeneralAssistant(trimmedQuery) ?: financialContext
                     }
                 } else {
@@ -609,8 +625,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                     _appLanguage.value
                 )
             }
-            _isAiLoading.value = false
             _chatMessages.value = _chatMessages.value + ChatMessage("AI", response)
+            _streamingAiText.value = ""
+            _isAiLoading.value = false
         }
     }
 

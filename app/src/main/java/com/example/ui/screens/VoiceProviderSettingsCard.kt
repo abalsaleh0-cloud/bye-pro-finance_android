@@ -48,6 +48,20 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
         )
     }
 
+    fun persistSettings(): Boolean = try {
+        if (apiKey.isNotBlank()) settings.saveApiKey(apiKey)
+        settings.saveVoiceId(voiceId)
+        apiKey = ""
+        true
+    } catch (error: Exception) {
+        status = WebI18n.tr(
+            "تعذر حفظ إعدادات الصوت بأمان. تحقق من إعدادات أمان الجهاز ثم أعد المحاولة.",
+            "Could not securely save voice settings. Check device security settings and try again.",
+            lang
+        )
+        false
+    }
+
     fun resultMessage(result: ElevenLabsConnectionResult): String = when (result) {
         ElevenLabsConnectionResult.CONNECTED ->
             WebI18n.tr("متصل بنجاح — مفتاح ElevenLabs صالح.", "Connected — ElevenLabs API key is valid.", lang)
@@ -98,13 +112,12 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = {
-                        if (apiKey.isNotBlank()) settings.saveApiKey(apiKey)
-                        settings.saveVoiceId(voiceId)
-                        apiKey = ""
-                        status = if (settings.hasApiKey()) {
-                            WebI18n.tr("تم حفظ المفتاح مشفّراً. اضغط اختبار الاتصال للتحقق من صلاحيته.", "API key saved securely. Tap Test connection to verify it.", lang)
-                        } else {
-                            WebI18n.tr("تم حفظ Voice ID. أضف مفتاح API لتفعيل الصوت السحابي.", "Voice ID saved. Add an API key to enable cloud speech.", lang)
+                        if (persistSettings()) {
+                            status = if (settings.hasApiKey()) {
+                                WebI18n.tr("تم حفظ المفتاح مشفّراً. اضغط اختبار الاتصال للتحقق من صلاحيته.", "API key saved securely. Tap Test connection to verify it.", lang)
+                            } else {
+                                WebI18n.tr("تم حفظ Voice ID. أضف مفتاح API لتفعيل الصوت السحابي.", "Voice ID saved. Add an API key to enable cloud speech.", lang)
+                            }
                         }
                     },
                     modifier = Modifier.weight(1f)
@@ -112,15 +125,18 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
                 OutlinedButton(
                     enabled = !isTesting,
                     onClick = {
-                        if (apiKey.isNotBlank()) settings.saveApiKey(apiKey)
-                        settings.saveVoiceId(voiceId)
-                        apiKey = ""
-                        isTesting = true
-                        status = WebI18n.tr("جارٍ التحقق من مفتاح ElevenLabs…", "Verifying ElevenLabs API key…", lang)
-                        scope.launch {
-                            val result = provider.testConnection()
-                            status = resultMessage(result)
-                            isTesting = false
+                        if (persistSettings()) {
+                            isTesting = true
+                            status = WebI18n.tr("جارٍ التحقق من مفتاح ElevenLabs…", "Verifying ElevenLabs API key…", lang)
+                            scope.launch {
+                                try {
+                                    val result = runCatching { provider.testConnection() }
+                                        .getOrElse { ElevenLabsConnectionResult.REQUEST_FAILED }
+                                    status = resultMessage(result)
+                                } finally {
+                                    isTesting = false
+                                }
+                            }
                         }
                     },
                     modifier = Modifier.weight(1f)
@@ -132,9 +148,14 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
             OutlinedButton(
                 enabled = !isTesting,
                 onClick = {
-                    settings.saveApiKey("")
-                    apiKey = ""
-                    status = WebI18n.tr("تم حذف مفتاح الصوت السحابي. سيعود المساعد إلى الصوت المحلي.", "Cloud voice key deleted. The assistant will use local speech.", lang)
+                    runCatching { settings.saveApiKey("") }
+                        .onSuccess {
+                            apiKey = ""
+                            status = WebI18n.tr("تم حذف مفتاح الصوت السحابي. سيعود المساعد إلى الصوت المحلي.", "Cloud voice key deleted. The assistant will use local speech.", lang)
+                        }
+                        .onFailure {
+                            status = WebI18n.tr("تعذر حذف المفتاح من التخزين الآمن.", "Could not delete the key from secure storage.", lang)
+                        }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) { Text(WebI18n.tr("حذف المفتاح", "Delete key", lang)) }

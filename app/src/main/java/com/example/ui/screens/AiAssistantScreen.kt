@@ -100,6 +100,7 @@ fun AiAssistantScreen(
     val lang by viewModel.appLanguage.collectAsState()
     val messages by viewModel.chatMessages.collectAsState()
     val isAiLoading by viewModel.isAiLoading.collectAsState()
+    val streamingAiText by viewModel.streamingAiText.collectAsState()
     val localModelReady by viewModel.localModelReady.collectAsState()
     val localModelLoading by viewModel.localModelLoading.collectAsState()
     val localModelProgress by viewModel.localModelProgress.collectAsState()
@@ -158,9 +159,10 @@ fun AiAssistantScreen(
     var autoSpeakTimestamp by remember { mutableStateOf<Long?>(null) }
     val listState = rememberLazyListState()
 
-    LaunchedEffect(messages.size) {
+    LaunchedEffect(messages.size, streamingAiText.length) {
         if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
+            val lastVisibleItem = if (isAiLoading && streamingAiText.isNotBlank()) messages.size else messages.size - 1
+            listState.animateScrollToItem(lastVisibleItem)
         }
     }
     LaunchedEffect(messages.lastOrNull()?.timestamp, isAiLoading) {
@@ -308,8 +310,15 @@ fun AiAssistantScreen(
                     items(messages) { msg ->
                         ChatBubbleItem(message = msg, lang = lang, autoSpeak = msg.timestamp == autoSpeakTimestamp)
                     }
-                    if (isAiLoading) {
-                        item {
+                    if (isAiLoading && streamingAiText.isNotBlank()) {
+                        item(key = "ai-streaming-response") {
+                            ChatBubbleItem(
+                                message = ChatMessage("AI", streamingAiText),
+                                lang = lang
+                            )
+                        }
+                    } else if (isAiLoading) {
+                        item(key = "ai-thinking-indicator") {
                             Row(
                                 modifier = Modifier.padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -595,23 +604,37 @@ fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean =
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val context = LocalContext.current
-                    IconButton(
+                    TextButton(
                         onClick = {
                             val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
-                            clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("AI Bye Pro", message.text))
-                            Toast.makeText(
-                                context,
-                                WebI18n.tr("تم نسخ النص", "Text copied", lang),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            if (clipboard != null) {
+                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("AI Bye Pro", message.text))
+                                Toast.makeText(
+                                    context,
+                                    WebI18n.tr("تم نسخ النص", "Text copied", lang),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    WebI18n.tr("تعذر الوصول إلى الحافظة", "Clipboard unavailable", lang),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         },
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.height(36.dp)
                     ) {
                         Icon(
                             Icons.Default.ContentCopy,
                             contentDescription = WebI18n.tr("نسخ النص", "Copy text", lang),
                             tint = if (isUser) MaterialTheme.colorScheme.onPrimary else ByeProTheme.colors.goldPrimary,
-                            modifier = Modifier.size(17.dp)
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.size(4.dp))
+                        Text(
+                            WebI18n.tr("نسخ", "Copy", lang),
+                            color = if (isUser) MaterialTheme.colorScheme.onPrimary else ByeProTheme.colors.goldPrimary,
+                            style = MaterialTheme.typography.labelSmall
                         )
                     }
                     if (!isUser) {
