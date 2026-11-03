@@ -318,6 +318,9 @@ fun AiModelsSettingsScreen(
             Text("إعدادات المساعد", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         }
         item {
+            VoiceProviderSettingsCard()
+        }
+        item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
