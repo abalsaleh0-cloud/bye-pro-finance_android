@@ -108,8 +108,15 @@ class FinanceRepository(
         if (db != null) db.withTransaction { operation() } else operation()
     }
 
+    private fun TransactionEntity.isTransferLedgerEntry(): Boolean =
+        category.equals("Transfer", ignoreCase = true) ||
+            category.equals("Transfer Fee", ignoreCase = true)
+
     suspend fun updateTransactionStatus(tx: TransactionEntity, newStatus: TransactionStatus) = withContext(Dispatchers.IO) {
         if (tx.status == newStatus) return@withContext
+        require(!tx.isTransferLedgerEntry()) {
+            "Transfer ledger entries are managed by the original transfer and cannot be changed independently"
+        }
         val operation: suspend () -> Unit = {
             val account = dao.getAccountById(tx.accountId)
             if (account != null) {
@@ -174,6 +181,9 @@ class FinanceRepository(
     }
 
     suspend fun deleteTransaction(tx: TransactionEntity) = withContext(Dispatchers.IO) {
+        require(!tx.isTransferLedgerEntry()) {
+            "Transfer ledger entries are managed by the original transfer and cannot be deleted independently"
+        }
         val operation: suspend () -> Unit = {
             val account = dao.getAccountById(tx.accountId)
             if (account != null && tx.status == TransactionStatus.COMPLETED) {
