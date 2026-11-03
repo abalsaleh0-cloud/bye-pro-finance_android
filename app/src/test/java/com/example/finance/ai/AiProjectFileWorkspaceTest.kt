@@ -30,4 +30,46 @@ class AiProjectFileWorkspaceTest {
             assertNull(workspace.readFile("project-1", "missing.txt"))
         } finally { root.deleteRecursively() }
     }
+    @Test
+    fun writesMultipleProjectFilesAsOneValidatedBatch() {
+        val root = createTempDir(prefix = "ai-project-batch")
+        try {
+            val workspace = AiProjectFileWorkspace(root)
+            val entries = workspace.writeFiles(
+                "project-2",
+                listOf(
+                    AiProjectFileWrite("src/Main.kt", "fun main() = Unit"),
+                    AiProjectFileWrite("README.md", "# Project")
+                )
+            )
+            assertEquals(listOf("src/Main.kt", "README.md"), entries.map { it.path })
+            assertEquals("fun main() = Unit", workspace.readFile("project-2", "src/Main.kt"))
+            assertEquals("# Project", workspace.readFile("project-2", "README.md"))
+        } finally { root.deleteRecursively() }
+    }
+
+    @Test
+    fun rejectsInvalidBatchBeforeWritingAnyFile() {
+        val root = createTempDir(prefix = "ai-project-batch-invalid")
+        try {
+            val workspace = AiProjectFileWorkspace(root)
+            assertThrows(IllegalArgumentException::class.java) {
+                workspace.writeFiles(
+                    "project-3",
+                    listOf(
+                        AiProjectFileWrite("src/One.kt", "one"),
+                        AiProjectFileWrite("../outside.txt", "no")
+                    )
+                )
+            }
+            assertNull(workspace.readFile("project-3", "src/One.kt"))
+            assertThrows(IllegalArgumentException::class.java) {
+                workspace.writeFiles(
+                    "project-3",
+                    listOf(AiProjectFileWrite("same.txt", "one"), AiProjectFileWrite("same.txt", "two"))
+                )
+            }
+        } finally { root.deleteRecursively() }
+    }
+
 }
