@@ -9,18 +9,20 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.ui.theme.ByeProTheme
 
 @Composable
 fun HybridAssistantSettingsCard(
     cloudGeneralEnabled: Boolean,
     onCloudGeneralEnabledChange: (Boolean) -> Unit
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -39,7 +41,7 @@ fun HybridAssistantSettingsCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Switch(checked = cloudGeneralEnabled, onCheckedChange = onCloudGeneralEnabledChange)
+                Switch(checked = cloudGeneralEnabled, onCheckedChange = onCloudGeneralEnabledChange, colors = SwitchDefaults.colors(checkedThumbColor = ByeProTheme.colors.goldPrimary, checkedTrackColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.28f)))
             }
             Text(
                 "يتطلب الاتصال بالإنترنت وجلسة تسجيل دخول صالحة. عند إيقاف الخيار أو تعذر الخدمة، يعود التطبيق إلى التحليل المحلي الحتمي.",

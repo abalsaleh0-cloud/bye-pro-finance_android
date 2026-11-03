@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -44,6 +45,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.io.File
+import com.example.ui.theme.ByeProTheme
 
 private data class LocalModelFile(
     val name: String,
@@ -210,7 +212,17 @@ fun AiModelsSettingsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text("النماذج المحلية", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Card(
+                modifier = Modifier.fillMaxWidth().border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.35f), RoundedCornerShape(18.dp)),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)
+            ) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("MODEL LAB  /  AI BYE PRO", style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
+                    Text("النماذج والقدرات", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = ByeProTheme.colors.textPrimary)
+                    Text("إدارة النماذج المحلية والهجينة، حالة التشغيل، الصوت والخصوصية من مساحة موحدة.", style = MaterialTheme.typography.bodySmall, color = ByeProTheme.colors.textSecondary)
+                }
+            }
             Text(
                 "إدارة ملفات النماذج المحلية المحفوظة على هاتفك والتحقق من وجودها.",
                 style = MaterialTheme.typography.bodySmall,
@@ -218,10 +230,10 @@ fun AiModelsSettingsScreen(
             )
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Storage, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Storage, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                         Spacer(Modifier.size(8.dp))
                         Text("فحص ملفات النماذج", fontWeight = FontWeight.SemiBold)
                     }
@@ -290,7 +302,7 @@ fun AiModelsSettingsScreen(
                                 "حزم LiteRT-LM المتوافقة تُنسخ إلى مساحة التطبيق الخاصة ثم تُحمّل محلياً. لا يتم إرسال ملف النموذج إلى الإنترنت."
                             },
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (model.detectedFormat == "GGUF") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+                            color = if (model.detectedFormat == "GGUF") MaterialTheme.colorScheme.error else ByeProTheme.colors.goldPrimary
                         )
                         OutlinedButton(
                             onClick = { onImportAndLoadModel(model.uri) },
@@ -318,7 +330,7 @@ fun AiModelsSettingsScreen(
             }
         }
         items(modelFiles) { model ->
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(model.name, fontWeight = FontWeight.SemiBold)
                     Text(String.format(Locale.US, "%.2f GB", model.sizeBytes / 1_073_741_824.0))
@@ -373,7 +385,7 @@ fun AiModelsSettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Switch(checked = autoSpeakReplies, onCheckedChange = onAutoSpeakRepliesChange)
+                        Switch(checked = autoSpeakReplies, onCheckedChange = onAutoSpeakRepliesChange, colors = SwitchDefaults.colors(checkedThumbColor = ByeProTheme.colors.goldPrimary, checkedTrackColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.28f)))
                     }
                     Text(
                         "لغة الرد: تتبع لغة التطبيق حالياً.",

@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.finance.ai.SecureVoiceSettings
+import com.example.ui.theme.ByeProTheme
 
 @Composable
 fun VoiceProviderSettingsCard() {
@@ -37,7 +38,7 @@ fun VoiceProviderSettingsCard() {
         )
     }
 
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
