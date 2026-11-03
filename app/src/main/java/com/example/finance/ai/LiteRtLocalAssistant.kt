@@ -104,7 +104,7 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
         }
     }
 
-    suspend fun sendMessage(message: String, financialContext: String): String =
+    suspend fun sendMessage(\n        message: String,\n        financialContext: String,\n        onChunk: (String) -> Unit = {}\n    ): String =
         withContext(dispatcher) {
             mutex.withLock {
                 val activeConversation = checkNotNull(conversation) {
