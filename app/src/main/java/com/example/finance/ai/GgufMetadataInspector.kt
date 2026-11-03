@@ -123,7 +123,8 @@ object GgufMetadataInspector {
     private fun DataInputStream.readShortLE(): Short = java.lang.Short.reverseBytes(readShort())
 
     private val ARCHITECTURE_KEYS = setOf("context_length", "block_count", "embedding_length")
-\n    private val SELECTED_KEYS = setOf(
+
+    private val SELECTED_KEYS = setOf(
         "general.architecture",
         "general.name",
         "general.file_type",
