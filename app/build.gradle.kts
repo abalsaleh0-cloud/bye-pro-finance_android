@@ -63,6 +63,8 @@ dependencies {
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
   implementation("com.google.ai.edge.litertlm:litertlm-android:0.16.1")
+  // CPU/NEON llama.cpp runtime for local GGUF models; model weights are imported separately.
+  implementation("dev.ffmpegkit-maintained:llama-android:0.1.1")
   implementation(libs.androidx.activity.compose)
   implementation(libs.androidx.compose.material.icons.core)
   implementation(libs.androidx.compose.material.icons.extended)
