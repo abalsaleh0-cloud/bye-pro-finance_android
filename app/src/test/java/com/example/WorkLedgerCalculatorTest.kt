@@ -10,8 +10,8 @@ import org.junit.Test
 class WorkLedgerCalculatorTest {
     @Test fun salaryDueSubtractsAdvancesDeductionsAndPartialPayments() {
         val source = WorkSourceEntity(id = 1, name = "Job", type = WorkSourceType.EMPLOYMENT, monthlySalary = 2000.0)
-        val rows = listOf(WorkRecordEntity(sourceId = 1, type = WorkRecordType.SALARY_ADVANCE, amount = 300.0, period = "2026-11"), WorkRecordEntity(sourceId = 1, type = WorkRecordType.SALARY_DEDUCTION, amount = 100.0, period = "2026-11"), WorkRecordEntity(sourceId = 1, type = WorkRecordType.SALARY_BONUS, amount = 150.0, period = "2026-11"), WorkRecordEntity(sourceId = 1, type = WorkRecordType.SALARY_OVERTIME, amount = 50.0, period = "2026-11"), WorkRecordEntity(sourceId = 1, type = WorkRecordType.SALARY_PAYMENT, amount = 400.0, period = "2026-11"))
-        assertEquals(1400.0, WorkLedgerCalculator.salaryDue(source, rows, "2026-11").toDouble(), 0.001)
+        val rows = listOf(WorkRecordEntity(sourceId = 1, type = WorkRecordType.SALARY_ADVANCE, amount = 300.0, period = "2026-11"), WorkRecordEntity(sourceId = 1, type = WorkRecordType.SALARY_DEDUCTION, amount = 100.0, period = "2026-11"), WorkRecordEntity(sourceId = 1, type = WorkRecordType.SALARY_ALLOWANCE, amount = 75.0), WorkRecordEntity(sourceId = 1, type = WorkRecordType.SALARY_BONUS, amount = 150.0, period = "2026-11"), WorkRecordEntity(sourceId = 1, type = WorkRecordType.SALARY_OVERTIME, amount = 50.0, period = "2026-11"), WorkRecordEntity(sourceId = 1, type = WorkRecordType.SALARY_PAYMENT, amount = 400.0, period = "2026-11"))
+        assertEquals(1475.0, WorkLedgerCalculator.salaryDue(source, rows, "2026-11").toDouble(), 0.001)
     }
     @Test fun freelanceReceivableAllowsPartialPayments() {
         val income = WorkRecordEntity(id = 10, sourceId = 2, type = WorkRecordType.FREELANCE_INCOME, amount = 900.0)
