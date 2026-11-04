@@ -13,7 +13,7 @@ internal object AiWriteIntentClassifier {
         val normalized = query.trim().lowercase(Locale.ROOT)
             .replace(Regex("[\\u064B-\\u065F\\u0670]"), "")
             .replace(Regex("[؟?!،,.؛:]+"), " ")
-            .replace(Regex("\s+"), " ")
+            .replace(Regex("""\s+"""), " ")
             .trim()
         if (normalized.isBlank()) return false
 
