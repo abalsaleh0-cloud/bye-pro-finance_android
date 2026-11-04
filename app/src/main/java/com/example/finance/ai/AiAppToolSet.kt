@@ -121,7 +121,7 @@ class AiAppToolSet(
     }
 
     @Tool(description = "Prepare a work ledger record. type must exactly match WorkRecordType. sourceId=0 means a general record without a work source; accountId=0 means save in the work ledger without linking a personal account. Salary and freelance-specific record types require a matching source. FREELANCE_PAYMENT requires relatedRecordId. Saved only after confirmation.")
-    fun proposeCreateWorkRecord(sourceId: Long, type: String, amount: Double, currency: String, period: String, notes: String, accountId: Long, relatedRecordId: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+    fun proposeCreateWorkRecord(sourceId: Long, type: String, amount: Double, currency: String, period: String, notes: String, accountId: Long, relatedRecordId: Long, scope: String = "EMPLOYMENT"): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val parsedType = runCatching { WorkRecordType.valueOf(type.trim().uppercase()) }.getOrNull()
             ?: return@runBlocking mapOf("success" to false, "error" to "Unknown work record type.")
         val cleanCurrency = currency.trim().uppercase()
@@ -156,7 +156,8 @@ class AiAppToolSet(
         ) else null
         val record = WorkRecordEntity(
             sourceId = sourceId.takeIf { it > 0L }, relatedRecordId = relatedRecordId.takeIf { it > 0L },
-            type = parsedType, amount = amount, currency = cleanCurrency, period = cleanPeriod, notes = notes.trim()
+            type = parsedType, amount = amount, currency = cleanCurrency, period = cleanPeriod, notes = notes.trim(),
+            scope = runCatching { WorkSourceType.valueOf(scope.trim().uppercase()) }.getOrDefault(WorkSourceType.EMPLOYMENT)
         )
         val isTransfer = parsedType == WorkRecordType.WORK_TRANSFER_IN || parsedType == WorkRecordType.WORK_TRANSFER_OUT
         val employmentRecord = parsedType in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
@@ -166,6 +167,7 @@ class AiAppToolSet(
         val sources = repository.workSources.first()
         val source = record.sourceId?.let { id -> sources.firstOrNull { it.id == id } }
         if (record.sourceId != null && (source == null || !source.isActive)) return@runBlocking mapOf("success" to false, "error" to "Active work source not found.")
+        if (source != null && source.type != record.scope) return@runBlocking mapOf("success" to false, "error" to "Work record scope must match its source type.")
         if (source != null && employmentRecord && source.type != WorkSourceType.EMPLOYMENT) return@runBlocking mapOf("success" to false, "error" to "Salary records require an employment source.")
         if (source != null && (freelanceRecord || parsedType == WorkRecordType.FREELANCE_EXPENSE) && source.type != WorkSourceType.FREELANCE) return@runBlocking mapOf("success" to false, "error" to "Freelance records require a freelance source.")
         if (source != null && !source.currency.equals(cleanCurrency, true)) return@runBlocking mapOf("success" to false, "error" to "Work source currency does not match the record.")
