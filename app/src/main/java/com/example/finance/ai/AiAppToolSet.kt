@@ -72,6 +72,8 @@ class AiAppToolSet(
     }
     private data class Pending(val preview: AiActionPreview, val payload: PendingPayload)
     @Volatile private var pending: Pending? = null
+    private val pendingLock = Any()
+    @Volatile private var confirmingActionId: String? = null
 
     @Tool(description = "Navigate to an existing section of the BYE PRO FINANCE app. Allowed sections: dashboard, accounts, transactions, budgets, debts, bills, savings, assets, transfers, reports, household, documents, notifications, settings, ai_assistant, work, smart_scan, import_export, admin.")
     fun navigateToAppSection(
@@ -505,27 +507,32 @@ class AiAppToolSet(
     fun proposeTransfer(fromAccountId: Long, toAccountId: Long, amount: Double, fee: Double = 0.0, currency: String = "LYD", description: String = ""): Map<String, Any> {
         val cur=currency.trim().uppercase()
         if (fromAccountId<=0 || toAccountId<=0 || fromAccountId==toAccountId || !amount.isFinite() || amount<=0.0 || !fee.isFinite() || fee<0.0 || !cur.matches(Regex("[A-Z]{3}"))) return mapOf("success" to false,"error" to "Transfer details are invalid.")
-        val preview=AiActionPreview(UUID.randomUUID().toString(),"مراجعة تحويل بين الحسابات","من الحساب: " + fromAccountId + "\nإلى الحساب: " + toAccountId + "\nالمبلغ: " + amount + " " + cur + "\nالرسوم: " + fee)
-        pending=Pending(preview,PendingPayload.Transfer(fromAccountId,toAccountId,amount,fee,cur,description.trim(),"AI-" + System.currentTimeMillis()))
-        _pendingAction.value=preview
-        return mapOf("success" to true,"requires_user_confirmation" to true,"preview_id" to preview.id,"message" to "Transfer preview only. Wait for user confirmation.")
+        return stageAction(
+            "مراجعة تحويل بين الحسابات",
+            "من الحساب: " + fromAccountId + "\nإلى الحساب: " + toAccountId + "\nالمبلغ: " + amount + " " + cur + "\nالرسوم: " + fee,
+            PendingPayload.Transfer(fromAccountId,toAccountId,amount,fee,cur,description.trim(),"AI-" + System.currentTimeMillis())
+        )
     }
     @Tool(description = "Prepare a household member. No member is saved until the user confirms the preview.")
     fun proposeCreateHouseholdMember(name: String, role: String, contributionPercent: Double, email: String = ""): Map<String, Any> {
         val cleanName=name.trim(); val cleanRole=role.trim()
         if (cleanName.length !in 2..100 || cleanRole.isBlank() || !contributionPercent.isFinite() || contributionPercent !in 0.0..100.0) return mapOf("success" to false,"error" to "Household member details are invalid.")
-        val preview=AiActionPreview(UUID.randomUUID().toString(),"مراجعة إضافة فرد للأسرة","الاسم: " + cleanName + "\nالدور: " + cleanRole + "\nنسبة المساهمة: " + contributionPercent + "%")
-        pending=Pending(preview,PendingPayload.HouseholdMember(cleanName,email.trim(),cleanRole,contributionPercent)); _pendingAction.value=preview
-        return mapOf("success" to true,"requires_user_confirmation" to true,"preview_id" to preview.id,"message" to "Preview only. Wait for user confirmation.")
+        return stageAction(
+            "مراجعة إضافة فرد للأسرة",
+            "الاسم: " + cleanName + "\nالدور: " + cleanRole + "\nنسبة المساهمة: " + contributionPercent + "%",
+            PendingPayload.HouseholdMember(cleanName,email.trim(),cleanRole,contributionPercent)
+        )
     }
 
     @Tool(description = "Prepare a household expense. The payer member is checked again when confirmed.")
     fun proposeCreateHouseholdExpense(title: String, amount: Double, payerMemberId: Long, category: String, currency: String = "LYD"): Map<String, Any> {
         val cleanTitle=title.trim(); val cleanCategory=category.trim(); val cur=currency.trim().uppercase()
         if (cleanTitle.isBlank() || cleanCategory.isBlank() || payerMemberId<=0 || !amount.isFinite() || amount<=0.0 || !cur.matches(Regex("[A-Z]{3}"))) return mapOf("success" to false,"error" to "Household expense details are invalid.")
-        val preview=AiActionPreview(UUID.randomUUID().toString(),"مراجعة مصروف أسري","العنوان: " + cleanTitle + "\nالمبلغ: " + amount + " " + cur + "\nالمسؤول: " + payerMemberId)
-        pending=Pending(preview,PendingPayload.HouseholdExpense(cleanTitle,amount,payerMemberId,cleanCategory,cur)); _pendingAction.value=preview
-        return mapOf("success" to true,"requires_user_confirmation" to true,"preview_id" to preview.id,"message" to "Preview only. Wait for user confirmation.")
+        return stageAction(
+            "مراجعة مصروف أسري",
+            "العنوان: " + cleanTitle + "\nالمبلغ: " + amount + " " + cur + "\nالمسؤول: " + payerMemberId,
+            PendingPayload.HouseholdExpense(cleanTitle,amount,payerMemberId,cleanCategory,cur)
+        )
     }
 
 
@@ -663,13 +670,8 @@ class AiAppToolSet(
         })
     }
 
-    private fun stageUpdate(title: String, description: String, execute: suspend () -> String): Map<String, Any> {
-        val preview = AiActionPreview(UUID.randomUUID().toString(), title, description + "\nلن يُحفظ التعديل قبل تأكيدك.")
-        pending = Pending(preview, PendingPayload.Update(execute))
-        _pendingAction.value = preview
-        return mapOf("success" to true, "requires_user_confirmation" to true, "preview_id" to preview.id,
-            "message" to "A change preview is visible. Wait for explicit confirmation in the app.")
-    }
+    private fun stageUpdate(title: String, description: String, execute: suspend () -> String): Map<String, Any> =
+        stageAction(title, description + "\nلن يُحفظ التعديل قبل تأكيدك.", PendingPayload.Update(execute))
 
     @Tool(description = "Prepare an account details update. Balance, currency and account history are not editable here.")
     fun proposeUpdateAccount(id: Long, name: String, institution: String, notes: String): Map<String, Any> = runBlocking(Dispatchers.IO) {
@@ -779,13 +781,28 @@ class AiAppToolSet(
         })
     }
 
-    private fun stageAction(title: String, description: String, payload: PendingPayload): Map<String, Any> {
-        val preview=AiActionPreview(UUID.randomUUID().toString(),title,description); pending=Pending(preview,payload); _pendingAction.value=preview
-        return mapOf("success" to true,"requires_user_confirmation" to true,"preview_id" to preview.id,"message" to "Preview only. Wait for explicit user confirmation; no data has changed.")
+    private fun stageAction(title: String, description: String, payload: PendingPayload): Map<String, Any> = synchronized(pendingLock) {
+        if (pending != null || confirmingActionId != null) {
+            return@synchronized mapOf(
+                "success" to false,
+                "error" to "هناك عملية أخرى تنتظر التأكيد أو يجري تنفيذها. أكملها أو ألغها أولاً."
+            )
+        }
+        val preview = AiActionPreview(UUID.randomUUID().toString(), title, description)
+        pending = Pending(preview, payload)
+        _pendingAction.value = preview
+        mapOf("success" to true, "requires_user_confirmation" to true, "preview_id" to preview.id,
+            "message" to "Preview only. Wait for explicit user confirmation; no data has changed.")
     }
     suspend fun confirmPendingAction(actionId: String): String = actionMutex.withLock {
-        val staged = pending ?: error("لا توجد عملية تنتظر التأكيد.")
-        require(staged.preview.id == actionId) { "انتهت صلاحية معاينة العملية." }
+        val staged = synchronized(pendingLock) {
+            val current = pending ?: error("لا توجد عملية تنتظر التأكيد.")
+            require(current.preview.id == actionId) { "انتهت صلاحية معاينة العملية." }
+            check(confirmingActionId == null) { "يجري تنفيذ عملية أخرى بالفعل." }
+            confirmingActionId = actionId
+            current
+        }
+        try {
         val result = when (val payload = staged.payload) {
             is PendingPayload.Budget -> {
                 repository.addBudget(payload.value)
@@ -820,9 +837,18 @@ class AiAppToolSet(
             is PendingPayload.HouseholdExpense -> { repository.addHouseholdExpense(payload.title,payload.amount,payload.payerId,payload.category,payload.currency); "تم تسجيل المصروف الأسري بعد تأكيدك." }
             is PendingPayload.Update -> payload.execute()
         }
-        pending = null
-        _pendingAction.value = null
+        synchronized(pendingLock) {
+            if (pending?.preview?.id == actionId) {
+                pending = null
+                _pendingAction.value = null
+            }
+            confirmingActionId = null
+        }
         result
+        } catch (error: Throwable) {
+            synchronized(pendingLock) { confirmingActionId = null }
+            throw error
+        }
     }
 
     private companion object {
@@ -830,8 +856,9 @@ class AiAppToolSet(
         const val MAX_TOOL_FILE_READ_CHARS = 20_000
     }
 
-    fun cancelPendingAction(actionId: String) {
-        if (pending?.preview?.id != actionId) return
+    fun cancelPendingAction(actionId: String) = synchronized(pendingLock) {
+        if (confirmingActionId == actionId) return@synchronized
+        if (pending?.preview?.id != actionId) return@synchronized
         pending = null
         _pendingAction.value = null
     }
