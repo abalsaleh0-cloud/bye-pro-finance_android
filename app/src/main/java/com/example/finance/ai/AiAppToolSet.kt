@@ -145,6 +145,11 @@ class AiAppToolSet(
             WorkRecordType.WORK_TRANSFER_OUT -> TransactionType.ADJUSTMENT
             else -> null
         }
+        val explicitScope = scope.trim().takeIf { it.isNotBlank() }?.let {
+            runCatching { WorkSourceType.valueOf(it.uppercase()) }.getOrNull()
+        }
+        if (scope.isNotBlank() && explicitScope == null) return@runBlocking mapOf("success" to false, "error" to "Unknown work scope. Use EMPLOYMENT or FREELANCE.")
+        val resolvedScope = explicitScope ?: if (parsedType in setOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.FREELANCE_EXPENSE)) WorkSourceType.FREELANCE else WorkSourceType.EMPLOYMENT
         val tx = if (account != null && txType != null) TransactionEntity(
             accountId = account.id, type = txType, amount = amount, currency = account.currency,
             category = when (txType) {
@@ -157,7 +162,7 @@ class AiAppToolSet(
         val record = WorkRecordEntity(
             sourceId = sourceId.takeIf { it > 0L }, relatedRecordId = relatedRecordId.takeIf { it > 0L },
             type = parsedType, amount = amount, currency = cleanCurrency, period = cleanPeriod, notes = notes.trim(),
-            scope = runCatching { WorkSourceType.valueOf(scope.trim().uppercase()) }.getOrDefault(WorkSourceType.EMPLOYMENT)
+            scope = resolvedScope
         )
         val isTransfer = parsedType == WorkRecordType.WORK_TRANSFER_IN || parsedType == WorkRecordType.WORK_TRANSFER_OUT
         val employmentRecord = parsedType in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_ALLOWANCE, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
