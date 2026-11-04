@@ -227,6 +227,13 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             result.exceptionOrNull()?.let { Log.w("BYE_PRO_FINANCE", "Work record rejected", it) }
         }
     }
+    fun deleteWorkRecord(recordId: Long, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = runCatching { repository.deleteWorkRecord(recordId) }
+            onComplete(result.isSuccess)
+            result.exceptionOrNull()?.let { Log.w("BYE_PRO_FINANCE", "Work record deletion failed", it) }
+        }
+    }
     fun toggleLanguage() { setLanguage(if (_appLanguage.value == AppLanguage.AR) AppLanguage.EN else AppLanguage.AR) }
     fun setLanguage(lang: AppLanguage) { if (_appLanguage.value == lang) return; _appLanguage.value = lang; WebI18n.write(getApplication(), lang); if (_chatMessages.value.size <= 1) resetWelcomeMessage(); scheduleUserSettingsSync() }
     fun setDarkMode(dark: Boolean) { _isDarkMode.value = dark; WebI18n.writeDarkMode(getApplication(), dark); scheduleUserSettingsSync() }
