@@ -714,7 +714,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         val matchingAccounts = aiAppTools.listAccounts()
             .filter { (it["currency"] as? String).equals(command.currency, ignoreCase = true) }
         if (matchingAccounts.isEmpty()) {
-            return "لم أجد حساباً نشطاً بعملة \${command.currency}. افتح قسم الحسابات وأنشئ حساباً بهذه العملة أولاً."
+            return "لم أجد حساباً نشطاً بعملة ${command.currency}. افتح قسم الحسابات وأنشئ حساباً بهذه العملة أولاً."
         }
 
         val mentionedAccounts = matchingAccounts.filter { account ->
@@ -729,7 +729,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
         if (selectedAccount == null) {
             val names = matchingAccounts.mapNotNull { it["name"] as? String }.joinToString("، ")
-            return "وجدت أكثر من حساب بعملة \${command.currency}: $names. اذكر اسم الحساب الذي تريد استخدامه."
+            return "وجدت أكثر من حساب بعملة ${command.currency}: $names. اذكر اسم الحساب الذي تريد استخدامه."
         }
 
         val accountId = (selectedAccount["id"] as? Number)?.toLong()
@@ -744,9 +744,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             status = "COMPLETED"
         )
         if (result["success"] != true) {
-            return "لم أتمكن من تجهيز العملية: \${result["error"] ?: "بيانات العملية غير صالحة"}. لم يتم حفظ أي شيء."
+            return "لم أتمكن من تجهيز العملية: ${result["error"] ?: "بيانات العملية غير صالحة"}. لم يتم حفظ أي شيء."
         }
-        return "جهزت معاينة \${if (command.type == "EXPENSE") "المصروف" else "الإيراد"} بمبلغ \${command.amount} \${command.currency} في حساب \${selectedAccount["name"]}. راجع نافذة التأكيد واضغط «تأكيد التنفيذ» لحفظها."
+        return "جهزت معاينة ${if (command.type == "EXPENSE") "المصروف" else "الإيراد"} بمبلغ ${command.amount} ${command.currency} في حساب ${selectedAccount["name"]}. راجع نافذة التأكيد واضغط «تأكيد التنفيذ» لحفظها."
     }
 
     fun confirmPendingAiAction(actionId: String) {
