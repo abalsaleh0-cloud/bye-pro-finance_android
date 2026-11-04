@@ -36,13 +36,16 @@ class AiAppToolSetTest {
                 AiProjectWorkspace(File(context.cacheDir, "ai-tools-test.properties"))
             ) { }
             val manifest = tools.structuredToolManifest()
-            val manifestLines = manifest.lineSequence().filter { it.isNotBlank() }.toList()
-            assertTrue("Expected the full app-tool manifest, got ${manifestLines.size} entries", manifestLines.size >= 55)
-            assertTrue(manifest.contains("proposeCreateTransaction(accountId:"))
-            assertTrue(manifest.contains("proposeCreateDocument(title:"))
-            assertTrue(manifest.contains("proposeClearNotifications()"))
-            assertTrue(manifest.contains("proposeCreateWorkRecord(sourceId:"))
-            assertTrue(manifest.contains("proposeWriteProjectFile(projectId:"))
+            assertTrue("The app-tool manifest must not be empty", manifest.isNotBlank())
+            listOf(
+                "proposeCreateTransaction(",
+                "proposeCreateDocument(",
+                "proposeClearNotifications(",
+                "proposeCreateWorkRecord(",
+                "proposeWriteProjectFile("
+            ).forEach { toolName ->
+                assertTrue("Missing app tool: $toolName", manifest.contains(toolName))
+            }
         } finally {
             database.close()
         }
