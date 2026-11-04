@@ -88,14 +88,14 @@ class GgufLocalAssistant(private val appTools: AiAppToolSet) {
             toolCallCount++
             val toolResult = appTools.invokeStructuredToolCall(toolCall.first, toolCall.second)
             toolTrace.append("\n\nTool ").append(toolCallCount).append(": ").append(toolCall.first)
-                .append("\\nResult: ").append(JSONObject(toolResult).toString())
+                .append("\nResult: ").append(JSONObject(toolResult).toString())
 
             val requiresConfirmation = toolResult["requires_user_confirmation"] == true
             val failed = toolResult["success"] == false
             val continuationPrompt = buildString {
                 append("Original user request:\n").append(message)
-                append("\\n\\nAuthoritative app-tool results so far:").append(toolTrace)
-                append("\\n\\nIf more information or another tool is needed, output ONLY one JSON object in this exact shape: {\\"tool\\":\\"exactToolName\\",\\"arguments\\":[positional values in manifest order]}. ")
+                append("\n\nAuthoritative app-tool results so far:").append(toolTrace)
+                append("\n\nIf more information or another tool is needed, output ONLY one JSON object in this exact shape: {\"tool\":\"exactToolName\",\"arguments\":[positional values in manifest order]}. ")
                 append("Use only the listed tools. If the task is complete, answer naturally in the user's language. ")
                 append("A preview requiring confirmation is NOT saved. Never claim a write, payment, transfer, or deletion completed before confirmation.")
             }
