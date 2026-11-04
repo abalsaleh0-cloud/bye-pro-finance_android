@@ -93,6 +93,9 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         if (error) Text(if (ar) "تعذر الحفظ. تحقق من صحة البيانات." else "Could not save. Check the entered details.", color = MaterialTheme.colorScheme.error)
         Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "جهات العمل" else "العملاء والأنشطة") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Employers" else "Clients and activities"), style = MaterialTheme.typography.titleMedium)
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (visibleSources.isEmpty()) item {
+                Text(if (ar) "لا توجد جهات أو أنشطة مسجلة تطابق البحث." else "No employers or activities match this search.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             items(visibleSources, key = { "source" + it.id }) { source ->
                 val due = if (source.type == WorkSourceType.EMPLOYMENT) WorkLedgerCalculator.salaryDue(source, records, period).toDouble() else records.filter { it.sourceId == source.id && it.type == WorkRecordType.FREELANCE_INCOME }.sumOf { WorkLedgerCalculator.freelanceOutstanding(it, records).toDouble() }
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
@@ -112,7 +115,10 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                 }
             }
             item { Text(if (ar) "آخر الحركات" else "Recent records", style = MaterialTheme.typography.titleMedium) }
-            items(visibleRecords.take(25), key = { "record" + it.id }) { row ->
+            if (visibleRecords.isEmpty()) item {
+                Text(if (ar) "لا توجد حركات مسجلة في هذا القسم بعد." else "No records have been added to this workspace yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            items(visibleRecords, key = { "record" + it.id }) { row ->
                 val name = sources.firstOrNull { it.id == row.sourceId }?.name ?: (if (row.type == WorkRecordType.WORK_TRANSFER_IN || row.type == WorkRecordType.WORK_TRANSFER_OUT) (if (ar) "تحويل داخلي" else "Internal transfer") else (if (ar) "عمل عام" else "General work"))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(name + " · " + workRecordLabel(row.type, ar) + " · " + money.format(row.amount) + " " + row.currency, modifier = Modifier.weight(1f))
