@@ -9,6 +9,8 @@ import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.SamplerConfig
 import com.google.ai.edge.litertlm.ThinkingConfig
+import com.google.ai.edge.litertlm.Tool
+import com.google.ai.edge.litertlm.ToolSet
 import com.google.ai.edge.litertlm.tool
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.collect
@@ -19,6 +21,39 @@ import java.io.File
 import android.util.Log
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+
+/**
+ * LiteRT's public tool schema supports Int but not Kotlin Long parameters.
+ * Keep the multimodal model's exposed tool surface on supported primitive types,
+ * then convert stable database IDs back to Long inside the app boundary.
+ */
+internal class LiteRtVisionToolSet(private val delegate: AiAppToolSet) : ToolSet {
+    @Tool(description = "Read active personal accounts and their currencies.")
+    fun listAccounts(): List<Map<String, Any>> = delegate.listAccounts().map { account ->
+        account.mapValues { (key, value) ->
+            if (key == "id" && value is Long) value.toInt() else value
+        }
+    }
+
+    @Tool(description = "Prepare a transaction preview. It is not saved until the user confirms it.")
+    fun proposeCreateTransaction(
+        accountId: Int,
+        type: String,
+        amount: Double,
+        category: String,
+        description: String,
+        currency: String,
+        status: String
+    ): Map<String, Any> = delegate.proposeCreateTransaction(
+        accountId = accountId.toLong(),
+        type = type,
+        amount = amount,
+        category = category,
+        description = description,
+        currency = currency,
+        status = status
+    )
+}
 
 /**
  * On-device text assistant powered by LiteRT-LM.
@@ -71,7 +106,7 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
             try {
                 val candidateConversation = candidate.createConversation(
                     ConversationConfig(
-                        tools = listOf(tool(appTools)),
+                        tools = listOf(tool(LiteRtVisionToolSet(appTools))),
                         samplerConfig = SamplerConfig(topK = 20, topP = 0.9, temperature = 0.35),
                         maxOutputToken = 256,
                         thinkingConfig = ThinkingConfig(enableThinking = false, thinkingTokenBudget = 0),
