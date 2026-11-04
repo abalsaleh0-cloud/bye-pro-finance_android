@@ -16,6 +16,7 @@ import com.example.finance.ai.LiteRtLocalAssistant
 import com.example.finance.ai.GgufLocalAssistant
 import com.example.finance.ai.GgufMetadataInspector
 import com.example.finance.ai.AiAppToolSet
+import com.example.finance.ai.AiCommandRouter
 import com.example.finance.ai.AiProjectWorkspace
 import com.example.finance.auth.SupabaseAuthRepository
 import com.example.finance.settings.SupabaseUserSettingsRepository
@@ -563,6 +564,12 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 _isAiLoading.value = false
                 return@launch
             }
+            val commandResponse = if (attachments.isEmpty()) prepareDeterministicAiCommand(trimmedQuery) else null
+            if (commandResponse != null) {
+                _chatMessages.value = _chatMessages.value + ChatMessage("AI", commandResponse)
+                _isAiLoading.value = false
+                return@launch
+            }
             val response = if (attachments.isNotEmpty()) {
                 runCatching {
                     require(attachments.size <= 4) { "يمكن تحليل أربع صور كحد أقصى في الرسالة الواحدة." }
@@ -666,6 +673,80 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             _streamingAiText.value = ""
             _isAiLoading.value = false
         }
+    }
+
+
+    /**
+     * Executes only deterministic, unambiguous app commands before invoking a
+     * conversational provider. All financial writes remain confirmation-gated.
+     */
+    private fun prepareDeterministicAiCommand(query: String): String? {
+        val targetSection = AiCommandRouter.parseSectionNavigation(query)
+        if (targetSection != null) {
+            val result = aiAppTools.navigateToAppSection(targetSection)
+            if (result["success"] == true) {
+                val sectionName = when (targetSection) {
+                    "dashboard" -> "الرئيسية"
+                    "accounts" -> "الحسابات"
+                    "transactions" -> "المعاملات"
+                    "budgets" -> "الميزانيات"
+                    "debts" -> "الديون"
+                    "bills" -> "الفواتير"
+                    "savings" -> "الادخار"
+                    "assets" -> "الأصول"
+                    "transfers" -> "التحويلات"
+                    "reports" -> "التقارير"
+                    "household" -> "الأسرة"
+                    "documents" -> "المستندات"
+                    "notifications" -> "الإشعارات"
+                    "settings" -> "الإعدادات"
+                    else -> "المساعد الذكي"
+                }
+                return "تم فتح قسم $sectionName."
+            }
+        }
+
+        val command = AiCommandRouter.parseTransaction(query, primaryCurrency.value) ?: return null
+        if (pendingAiAction.value != null) {
+            return "لديك عملية تنتظر التأكيد أو الإلغاء. أكملها أولاً قبل تجهيز عملية جديدة."
+        }
+
+        val matchingAccounts = aiAppTools.listAccounts()
+            .filter { (it["currency"] as? String).equals(command.currency, ignoreCase = true) }
+        if (matchingAccounts.isEmpty()) {
+            return "لم أجد حساباً نشطاً بعملة \${command.currency}. افتح قسم الحسابات وأنشئ حساباً بهذه العملة أولاً."
+        }
+
+        val mentionedAccounts = matchingAccounts.filter { account ->
+            val name = account["name"] as? String ?: return@filter false
+            query.contains(name, ignoreCase = true)
+        }
+        val selectedAccount = when {
+            mentionedAccounts.size == 1 -> mentionedAccounts.single()
+            mentionedAccounts.size > 1 -> null
+            matchingAccounts.size == 1 -> matchingAccounts.single()
+            else -> null
+        }
+        if (selectedAccount == null) {
+            val names = matchingAccounts.mapNotNull { it["name"] as? String }.joinToString("، ")
+            return "وجدت أكثر من حساب بعملة \${command.currency}: $names. اذكر اسم الحساب الذي تريد استخدامه."
+        }
+
+        val accountId = (selectedAccount["id"] as? Number)?.toLong()
+            ?: return "تعذر تحديد معرّف الحساب؛ لم أسجل أي عملية."
+        val result = aiAppTools.proposeCreateTransaction(
+            accountId = accountId,
+            type = command.type,
+            amount = command.amount,
+            category = command.category,
+            description = command.description,
+            currency = command.currency,
+            status = "COMPLETED"
+        )
+        if (result["success"] != true) {
+            return "لم أتمكن من تجهيز العملية: \${result["error"] ?: "بيانات العملية غير صالحة"}. لم يتم حفظ أي شيء."
+        }
+        return "جهزت معاينة \${if (command.type == "EXPENSE") "المصروف" else "الإيراد"} بمبلغ \${command.amount} \${command.currency} في حساب \${selectedAccount["name"]}. راجع نافذة التأكيد واضغط «تأكيد التنفيذ» لحفظها."
     }
 
     fun confirmPendingAiAction(actionId: String) {
