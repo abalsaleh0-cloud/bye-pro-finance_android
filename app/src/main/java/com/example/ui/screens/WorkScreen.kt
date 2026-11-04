@@ -123,11 +123,12 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     val options = buildList {
         add(WorkRecordType.WORK_INCOME)
         add(WorkRecordType.WORK_EXPENSE)
+        add(WorkRecordType.FREELANCE_EXPENSE)
         if (source?.type == WorkSourceType.EMPLOYMENT) {
             addAll(listOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT))
         }
         if (source?.type == WorkSourceType.FREELANCE) {
-            addAll(listOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.FREELANCE_EXPENSE))
+            addAll(listOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT))
         }
     }
     val cash = WorkLedgerCalculator.isCashMovement(type)
@@ -194,7 +195,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION,
             WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME,
             WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_INCOME,
-            WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.FREELANCE_EXPENSE
+            WorkRecordType.FREELANCE_PAYMENT
         )
         Button(
             onClick = {
