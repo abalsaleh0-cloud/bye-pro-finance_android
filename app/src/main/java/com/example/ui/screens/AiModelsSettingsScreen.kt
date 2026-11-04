@@ -229,7 +229,6 @@ fun AiModelsSettingsScreen(
                     Text(WebI18n.tr("إدارة النماذج المحلية والهجينة، حالة التشغيل، الصوت والخصوصية من مساحة موحدة.", "Manage local and hybrid models, runtime status, voice and privacy in one workspace.", lang), style = MaterialTheme.typography.bodySmall, color = ByeProTheme.colors.textSecondary)
                 }
             }
-        item {
             Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -273,7 +272,6 @@ fun AiModelsSettingsScreen(
                     )
                 }
             }
-        }
             Text(
                 WebI18n.tr("إدارة ملفات النماذج المحلية المحفوظة على هاتفك والتحقق من وجودها.", "Manage local model files stored on your phone and verify their availability.", lang),
                 style = MaterialTheme.typography.bodySmall,
