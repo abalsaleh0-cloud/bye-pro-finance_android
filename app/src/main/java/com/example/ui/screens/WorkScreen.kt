@@ -193,7 +193,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         add(WorkRecordType.WORK_EXPENSE)
         if (scope == WorkSourceType.FREELANCE && (source == null || source.type == WorkSourceType.FREELANCE)) add(WorkRecordType.FREELANCE_EXPENSE)
         if (scope == WorkSourceType.EMPLOYMENT) {
-            addAll(listOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT))
+            addAll(listOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_ALLOWANCE, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT))
         }
         if (scope == WorkSourceType.FREELANCE) {
             addAll(listOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT))
@@ -318,6 +318,7 @@ private fun workRecordLabel(type: WorkRecordType, ar: Boolean): String = when (t
     WorkRecordType.WORK_INCOME -> if (ar) "دخل عمل مباشر" else "Direct work income"
     WorkRecordType.SALARY_ADVANCE -> if (ar) "سلفة راتب مستلمة" else "Salary advance received"
     WorkRecordType.SALARY_DEDUCTION -> if (ar) "خصم راتب" else "Salary deduction"
+    WorkRecordType.SALARY_ALLOWANCE -> if (ar) "بدل وظيفي مستحق" else "Employment allowance accrued"
     WorkRecordType.SALARY_BONUS -> if (ar) "مكافأة مستحقة" else "Bonus accrued"
     WorkRecordType.SALARY_OVERTIME -> if (ar) "عمل إضافي مستحق" else "Overtime accrued"
     WorkRecordType.SALARY_PAYMENT -> if (ar) "دفعة راتب مستلمة" else "Salary payment received"
