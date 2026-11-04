@@ -750,34 +750,64 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                         language = _appLanguage.value
                     )
                 } else ""
-                val savedPath = aiModelPreferences.getString("active_model_path", null)
-                val savedModel = savedPath?.let(::File)
-                if (savedModel != null && savedModel.isFile) {
+                val activeSavedModel = aiModelPreferences.getString("active_model_path", null)
+                    ?.let(::File)?.takeIf { it.isFile && it.canRead() }
+                val visionSavedModel = aiModelPreferences.getString("vision_model_path", null)
+                    ?.let(::File)?.takeIf { it.isFile && it.canRead() && isGemma3nVisionModel(it) }
+                // A registered Gemma 3n vision model is also a capable local text/tool model.
+                // Use it automatically when no usable chat model (GGUF or text LiteRT-LM) exists.
+                // It is loaded only for this request and released immediately to limit RAM pressure.
+                val useVisionAsTextFallback = activeSavedModel == null && visionSavedModel != null
+                val savedModel = activeSavedModel ?: visionSavedModel
+                if (savedModel != null) {
                     try {
-                        val format = aiModelPreferences.getString(
-                            "active_model_format",
-                            if (savedModel.extension.equals("gguf", ignoreCase = true)) "GGUF" else "LITERTLM"
-                        )
-                        if (!_localModelReady.value) {
+                        if (useVisionAsTextFallback) {
                             _localModelLoading.value = true
-                            _localModelStatus.value = "جارٍ استعادة النموذج المحلي..."
+                            _localModelStatus.value = "جارٍ تجهيز Gemma 3n تلقائياً للمحادثة وأدوات التطبيق..."
                             try {
-                                if (format == "GGUF") {
-                                    ggufLlm.load(savedModel)
-                                } else {
-                                    localLlm.load(savedModel)
-                                }
-                                _localModelReady.value = true
-                                _localModelStatus.value = "النموذج المحلي جاهز."
+                                localLlm.unload()
+                                ggufLlm.unload()
+                                _localModelReady.value = false
+                                visionLlm.load(savedModel)
                             } finally {
                                 _localModelLoading.value = false
                             }
-                        }
-                        if (format == "GGUF") {
-                            ggufLlm.sendMessage(trimmedQuery, financialContext)
+                            try {
+                                visionLlm.sendMessage(trimmedQuery, financialContext) { chunk ->
+                                    _streamingAiText.value += chunk
+                                }
+                            } finally {
+                                runCatching { visionLlm.unload() }
+                                    .onFailure { Log.w("BYE_PRO_LOCAL_AI", "Gemma 3n fallback cleanup failed.", it) }
+                                _localModelReady.value = false
+                                _localModelStatus.value = "تم إيقاف Gemma 3n بعد الطلب لتحرير الذاكرة."
+                            }
                         } else {
-                            localLlm.sendMessage(trimmedQuery, financialContext) { chunk ->
-                                _streamingAiText.value += chunk
+                            val format = aiModelPreferences.getString(
+                                "active_model_format",
+                                if (savedModel.extension.equals("gguf", ignoreCase = true)) "GGUF" else "LITERTLM"
+                            )
+                            if (!_localModelReady.value) {
+                                _localModelLoading.value = true
+                                _localModelStatus.value = "جارٍ استعادة النموذج المحلي..."
+                                try {
+                                    if (format == "GGUF") {
+                                        ggufLlm.load(savedModel)
+                                    } else {
+                                        localLlm.load(savedModel)
+                                    }
+                                    _localModelReady.value = true
+                                    _localModelStatus.value = "النموذج المحلي جاهز."
+                                } finally {
+                                    _localModelLoading.value = false
+                                }
+                            }
+                            if (format == "GGUF") {
+                                ggufLlm.sendMessage(trimmedQuery, financialContext)
+                            } else {
+                                localLlm.sendMessage(trimmedQuery, financialContext) { chunk ->
+                                    _streamingAiText.value += chunk
+                                }
                             }
                         }
                     } catch (localError: Throwable) {
@@ -785,8 +815,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                         _streamingAiText.value = ""
                         if (isAppWriteIntent(trimmedQuery)) {
                             WebI18n.tr(
-                                "تعذر تشغيل النموذج المحلي؛ لذلك لم أرسل طلب التسجيل أو التعديل إلى المساعد السحابي ولم أغيّر أي بيانات. أعد تشغيل النموذج المحلي ثم أعد الطلب.",
-                                "The local model failed, so this create/update request was not sent to the cloud assistant and no data was changed. Reload the local model and try again.",
+                                "تعذر تشغيل أي نموذج محلي متصل بأدوات التطبيق؛ لذلك لم أرسل طلب التسجيل أو التعديل إلى المساعد السحابي ولم أغيّر أي بيانات. تحقق من النموذج المحلي والذاكرة المتاحة ثم أعد الطلب.",
+                                "No local model connected to app tools could run. The create/update request was not sent to the cloud and no data was changed. Check the local model and available memory, then retry.",
                                 _appLanguage.value
                             )
                         } else askCloudGeneralAssistant(trimmedQuery) ?: financialContext
