@@ -174,18 +174,20 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     var type by remember(existing?.id, scope) { mutableStateOf(existing?.type ?: WorkRecordType.WORK_INCOME) }
     var amount by remember(existing?.id) { mutableStateOf(existing?.amount?.toString().orEmpty()) }
     var note by remember(existing?.id) { mutableStateOf(existing?.notes.orEmpty()) }
+    var period by remember(existing?.id) { mutableStateOf(existing?.period ?: java.time.YearMonth.now().toString()) }
     var related by remember(existing?.id) { mutableStateOf(existing?.relatedRecordId) }
     var currencyCode by remember(existing?.id, sourceId, currency) { mutableStateOf(source?.currency ?: existing?.currency ?: currency) }
     val options = buildList {
         add(WorkRecordType.WORK_INCOME)
         add(WorkRecordType.WORK_EXPENSE)
-        if (source == null || source.type == WorkSourceType.FREELANCE) add(WorkRecordType.FREELANCE_EXPENSE)
+        if (scope == WorkSourceType.FREELANCE && (source == null || source.type == WorkSourceType.FREELANCE)) add(WorkRecordType.FREELANCE_EXPENSE)
         if (scope == WorkSourceType.EMPLOYMENT) {
             addAll(listOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT))
         }
         if (scope == WorkSourceType.FREELANCE) {
             addAll(listOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT))
         }
+        if (existing?.type == WorkRecordType.WORK_TRANSFER_IN || existing?.type == WorkRecordType.WORK_TRANSFER_OUT) add(existing.type)
     }
     val cash = WorkLedgerCalculator.isCashMovement(type)
     val selectedCurrency = (source?.currency ?: currencyCode).trim().uppercase()
@@ -230,6 +232,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                 }
             }
             OutlinedTextField(amount, { amount = it }, label = { Text(if (ar) "المبلغ" else "Amount") }, singleLine = true)
+            OutlinedTextField(period, { period = it.take(7) }, label = { Text(if (ar) "الفترة (YYYY-MM)" else "Period (YYYY-MM)") }, singleLine = true)
             OutlinedTextField(note, { note = it }, label = { Text(if (ar) "الوصف / الملاحظات" else "Description / notes") })
             if (cash) {
                 Text(if (ar) "ربط اختياري بحساب شخصي" else "Optional link to a personal account")
@@ -267,15 +270,15 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                             amount = value,
                             currency = selectedCurrency,
                             date = existing?.date ?: System.currentTimeMillis(),
-                            period = existing?.period ?: java.time.YearMonth.now().toString(),
+                            period = period.trim(),
                             notes = note.trim()
                         ),
                         if (cash) accountId else null
                     )
                 }
             },
-            enabled = value != null && value > 0 && currencyCode.isNotBlank() &&
-                (!needsSource || source != null) && (type != WorkRecordType.FREELANCE_PAYMENT || related != null)
+            enabled = value != null && value.isFinite() && value > 0 && currencyCode.isNotBlank() &&
+                period.trim().matches(Regex("\\d{4}-\\d{2}")) && (!needsSource || source != null) && (type != WorkRecordType.FREELANCE_PAYMENT || related != null)
         ) { Text(if (ar) "حفظ" else "Save") }
     }, dismissButton = { TextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
 }
