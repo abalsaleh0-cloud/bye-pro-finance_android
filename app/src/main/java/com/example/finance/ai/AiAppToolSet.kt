@@ -120,8 +120,8 @@ class AiAppToolSet(
         return stageAction("مراجعة إضافة مصدر عمل", "الاسم: $cleanName\nالنوع: $parsedType\nالراتب الشهري: $monthlySalary $cleanCurrency", PendingPayload.WorkSource(value))
     }
 
-    @Tool(description = "Prepare a work ledger record. type must exactly match WorkRecordType. sourceId=0 means a general record without a work source; accountId=0 means save in the work ledger without linking a personal account. Salary and freelance-specific record types require a matching source. FREELANCE_PAYMENT requires relatedRecordId. Saved only after confirmation.")
-    fun proposeCreateWorkRecord(sourceId: Long, type: String, amount: Double, currency: String, period: String, notes: String, accountId: Long, relatedRecordId: Long, scope: String = "EMPLOYMENT"): Map<String, Any> = runBlocking(Dispatchers.IO) {
+    @Tool(description = "Prepare a work ledger record. type must exactly match WorkRecordType. sourceId=0 means a general record without a work source; accountId=0 means save in the work ledger without linking a personal account. scope selects EMPLOYMENT or FREELANCE; omit it only when the record type makes the scope clear. Salary and freelance-specific record types require a matching source. FREELANCE_PAYMENT requires relatedRecordId. Saved only after confirmation.")
+    fun proposeCreateWorkRecord(sourceId: Long, type: String, amount: Double, currency: String, period: String, notes: String, accountId: Long, relatedRecordId: Long, scope: String = ""): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val parsedType = runCatching { WorkRecordType.valueOf(type.trim().uppercase()) }.getOrNull()
             ?: return@runBlocking mapOf("success" to false, "error" to "Unknown work record type.")
         val cleanCurrency = currency.trim().uppercase()
