@@ -451,17 +451,16 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             }
             "litertlm" -> {
                 if (isGemma3nVisionModel(modelFile)) {
-                    // Keep the selected text model path intact; only its runtime is released to control RAM use.
-                    localLlm.unload()
-                    ggufLlm.unload()
-                    _localModelReady.value = false
-                    _localModelStatus.value = "جارٍ تحميل نموذج الصور Gemma 3n LiteRT-LM..."
-                    visionLlm.load(modelFile)
+                    // Register the vision model without loading its multi-GB weights into RAM.
+                    // It is initialized only for an image request and released immediately afterwards.
+                    require(modelFile.length() >= 1_000_000_000L) {
+                        "حجم ملف Gemma 3n LiteRT-LM أصغر من المتوقع؛ تحقق من اكتمال التنزيل."
+                    }
                     aiModelPreferences.edit()
                         .putString("vision_model_path", modelFile.absolutePath)
                         .putBoolean("vision_model_available", true)
                         .apply()
-                    _localModelStatus.value = "نموذج الصور Gemma 3n جاهز. نموذج المحادثة النصية محفوظ ولم يتم استبداله."
+                    _localModelStatus.value = "تم حفظ نموذج الصور بشكل مستقل. سيُحمّل عند طلب تحليل صورة فقط، ولن يستبدل نموذج المحادثة."
                 } else {
                     visionLlm.unload()
                     ggufLlm.unload()
