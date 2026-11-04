@@ -153,8 +153,25 @@ class AiAppToolSet(
             sourceId = sourceId.takeIf { it > 0L }, relatedRecordId = relatedRecordId.takeIf { it > 0L },
             type = parsedType, amount = amount, currency = cleanCurrency, period = cleanPeriod, notes = notes.trim()
         )
-        val sourceName = record.sourceId?.let { id -> repository.workSources.first().firstOrNull { it.id == id }?.name }
-        if (record.sourceId != null && sourceName == null) return@runBlocking mapOf("success" to false, "error" to "Work source not found.")
+        val isTransfer = parsedType == WorkRecordType.WORK_TRANSFER_IN || parsedType == WorkRecordType.WORK_TRANSFER_OUT
+        if (isTransfer && record.sourceId != null) return@runBlocking mapOf("success" to false, "error" to "Internal work transfers must not reference an employment source.")
+        if (!isTransfer && record.sourceId == null) return@runBlocking mapOf("success" to false, "error" to "Choose an existing work source for this record.")
+        val sources = repository.workSources.first()
+        val source = record.sourceId?.let { id -> sources.firstOrNull { it.id == id } }
+        if (record.sourceId != null && (source == null || !source.isActive)) return@runBlocking mapOf("success" to false, "error" to "Active work source not found.")
+        val employmentRecord = parsedType in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
+        if (source != null && parsedType != WorkRecordType.WORK_EXPENSE &&
+            ((source.type == WorkSourceType.EMPLOYMENT) != employmentRecord)
+        ) return@runBlocking mapOf("success" to false, "error" to "This work record type does not match the selected source type.")
+        if (source != null && !source.currency.equals(cleanCurrency, true)) return@runBlocking mapOf("success" to false, "error" to "Work source currency does not match the record.")
+        if (parsedType == WorkRecordType.FREELANCE_PAYMENT) {
+            val receivable = repository.workRecords.first().firstOrNull { it.id == relatedRecordId }
+                ?: return@runBlocking mapOf("success" to false, "error" to "Freelance receivable not found.")
+            if (receivable.type != WorkRecordType.FREELANCE_INCOME || receivable.sourceId != record.sourceId) {
+                return@runBlocking mapOf("success" to false, "error" to "The selected record is not a receivable for this source.")
+            }
+        }
+        val sourceName = source?.name
         stageAction(
             "مراجعة تسجيل حركة عمل",
             "المصدر: " + (sourceName ?: "تحويل رصيد العمل") + "\nالنوع: " + parsedType + "\nالمبلغ: " + amount + " " + cleanCurrency + "\nالفترة: " + cleanPeriod + "\n" + notes.trim(),
@@ -509,6 +526,53 @@ class AiAppToolSet(
         val preview=AiActionPreview(UUID.randomUUID().toString(),"مراجعة مصروف أسري","العنوان: " + cleanTitle + "\nالمبلغ: " + amount + " " + cur + "\nالمسؤول: " + payerMemberId)
         pending=Pending(preview,PendingPayload.HouseholdExpense(cleanTitle,amount,payerMemberId,cleanCategory,cur)); _pendingAction.value=preview
         return mapOf("success" to true,"requires_user_confirmation" to true,"preview_id" to preview.id,"message" to "Preview only. Wait for user confirmation.")
+    }
+
+
+    @Tool(description = "Prepare a real debt payment or debt collection. Reads the debt and account first, validates currency, remaining amount and available funds, then executes atomically only after confirmation.")
+    fun proposeRecordDebtPayment(debtId: Long, accountId: Long, amount: Double, notes: String, paymentDate: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val debt = repository.debts.first().firstOrNull { it.id == debtId }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Debt not found.")
+        val account = repository.accounts.first().firstOrNull { it.id == accountId }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Active account not found.")
+        if (debt.status.name == "PAID" || !amount.isFinite() || amount <= 0.0 ||
+            amount > debt.remaining || paymentDate <= 0L ||
+            !debt.currency.equals(account.currency, true) ||
+            (debt.direction == "i_owe" && account.balance < amount)
+        ) return@runBlocking mapOf("success" to false, "error" to "Debt payment details, currency, remaining amount or account balance are invalid.")
+        val action = if (debt.direction == "i_owe") "سداد دين" else "تحصيل دين"
+        stageUpdate(
+            "مراجعة " + action,
+            "الدين: " + debt.name + "\nالمبلغ: " + amount + " " + debt.currency +
+                "\nالحساب: " + account.name + "\nالمتبقي بعد العملية: " + (debt.remaining - amount) + " " + debt.currency,
+            suspend {
+                val ok = repository.recordDebtPayment(debtId, accountId, amount, notes.trim(), paymentDate)
+                check(ok) { "تعذر تسجيل دفعة الدين؛ ربما تغير الرصيد أو حالة الدين." }
+                "تم تسجيل " + (if (debt.direction == "i_owe") "سداد الدين" else "تحصيل الدين") + " وتحديث الحساب والدين بعد تأكيدك."
+            }
+        )
+    }
+
+    @Tool(description = "Prepare paying an unpaid bill from an existing personal account. Checks account currency and available balance. Payment, transaction, account balance and bill status are updated atomically only after confirmation.")
+    fun proposeMarkBillPaid(billId: Long, accountId: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val bill = repository.bills.first().firstOrNull { it.id == billId }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Bill not found.")
+        if (bill.isPaid) return@runBlocking mapOf("success" to true, "message" to "الفاتورة مدفوعة مسبقاً؛ لم يتم إنشاء دفعة مكررة.")
+        val account = repository.accounts.first().firstOrNull { it.id == accountId }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Active account not found.")
+        if (!bill.amount.isFinite() || bill.amount <= 0.0 ||
+            !bill.currency.equals(account.currency, true) || account.balance < bill.amount
+        ) return@runBlocking mapOf("success" to false, "error" to "Bill amount, account currency or available balance is invalid.")
+        stageUpdate(
+            "مراجعة دفع فاتورة",
+            "الفاتورة: " + bill.name + "\nالمبلغ: " + bill.amount + " " + bill.currency +
+                "\nالحساب: " + account.name,
+            suspend {
+                val ok = repository.markBillPaid(billId, accountId)
+                check(ok) { "تعذر دفع الفاتورة؛ تحقق من الرصيد والحساب وحالة الفاتورة." }
+                "تم دفع الفاتورة وتسجيل المصروف وتحديث رصيد الحساب بعد تأكيدك."
+            }
+        )
     }
 
     private fun stageUpdate(title: String, description: String, execute: suspend () -> String): Map<String, Any> {
