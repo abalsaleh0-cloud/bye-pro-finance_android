@@ -38,6 +38,7 @@ import com.example.finance.model.BudgetPeriod
 import com.example.finance.ui.FinanceViewModel
 import com.example.ui.theme.ByeProTheme
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -48,8 +49,14 @@ private val budgetCategories = listOf("All", "Groceries", "Dining", "Utilities",
 private fun budgetDate(value: Long): String =
     SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(value))
 
-private fun parseBudgetDate(value: String): Long? = runCatching {
-    SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(value)?.time
+private fun parseBudgetDate(value: String, endOfDay: Boolean = false): Long? = runCatching {
+    val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(value)?.time
+        ?: return@runCatching null
+    if (!endOfDay) parsed else Calendar.getInstance().apply {
+        timeInMillis = parsed
+        add(Calendar.DAY_OF_MONTH, 1)
+        add(Calendar.MILLISECOND, -1)
+    }.timeInMillis
 }.getOrNull()
 
 private fun periodLabel(period: BudgetPeriod, lang: AppLanguage): String = when (period) {
@@ -295,7 +302,7 @@ private fun BudgetFormDialog(
             FinanceTextButton(onClick = {
                 val parsedAmount = amount.toDoubleOrNull()
                 val start = parseBudgetDate(startDate)
-                val end = parseBudgetDate(endDate)
+                val end = parseBudgetDate(endDate, endOfDay = true)
                 error = when {
                     name.isBlank() -> WebI18n.tr("أدخل اسم الميزانية.", "Enter a budget name.", lang)
                     parsedAmount == null || !parsedAmount.isFinite() || parsedAmount <= 0.0 -> WebI18n.tr("أدخل مبلغاً أكبر من الصفر.", "Enter an amount greater than zero.", lang)
