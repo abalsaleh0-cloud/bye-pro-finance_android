@@ -575,12 +575,97 @@ class AiAppToolSet(
         )
     }
 
+
+    @Tool(description = "Prepare deletion of an existing transaction. Shows its amount, date, account and description. The repository reverses the posted balance impact and writes an audit event atomically. Never delete a transfer ledger row independently; the repository rejects it. Requires explicit confirmation.")
+    fun proposeDeleteTransaction(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val row = repository.transactions.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Transaction not found.")
+        val account = repository.accounts.first().firstOrNull { it.id == row.accountId }
+        stageUpdate("تأكيد حذف معاملة", "المعاملة #$id\n\${row.description}\n\${row.amount} \${row.currency}\nالحساب: \${account?.name ?: "غير معروف"}\nالحالة: \${row.status}\nسيُعكس أثرها على رصيد الحساب إذا كانت مرحلة.", suspend {
+            repository.deleteTransaction(row)
+            "تم حذف المعاملة وعكس أثرها المحاسبي بعد تأكيدك."
+        })
+    }
+
+    @Tool(description = "Prepare deletion of an existing budget. The budget is deleted only after explicit confirmation.")
+    fun proposeDeleteBudget(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val row = repository.budgets.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Budget not found.")
+        stageUpdate("تأكيد حذف ميزانية", "الميزانية #$id\n\${row.name}\n\${row.category}\nالحد: \${row.limitAmount} \${row.currency}", suspend {
+            repository.deleteBudget(row)
+            "تم حذف الميزانية بعد تأكيدك."
+        })
+    }
+
+    @Tool(description = "Prepare deletion of a debt. This removes the debt record only; it does not create a payment or cash movement. Requires explicit confirmation.")
+    fun proposeDeleteDebt(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val row = repository.debts.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Debt not found.")
+        stageUpdate("تأكيد حذف دين", "الدين #$id\n\${row.name}\nالمتبقي: \${row.remaining} \${row.currency}\nالاتجاه: \${row.direction}", suspend {
+            repository.deleteDebt(row)
+            "تم حذف سجل الدين بعد تأكيدك؛ لم تُسجل دفعة مالية."
+        })
+    }
+
+    @Tool(description = "Prepare deletion of a bill. It removes the bill record only and does not reverse any payment already made. Requires explicit confirmation.")
+    fun proposeDeleteBill(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val row = repository.bills.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Bill not found.")
+        stageUpdate("تأكيد حذف فاتورة", "الفاتورة #$id\n\${row.name}\n\${row.amount} \${row.currency}\nالحالة: \${if (row.isPaid) "مدفوعة" else "غير مدفوعة"}", suspend {
+            repository.deleteBill(row)
+            "تم حذف سجل الفاتورة بعد تأكيدك؛ لم يتم عكس أي دفعة سابقة."
+        })
+    }
+
+    @Tool(description = "Prepare deletion of a savings goal. Requires explicit confirmation.")
+    fun proposeDeleteSavingsGoal(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val row = repository.savingsGoals.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Savings goal not found.")
+        stageUpdate("تأكيد حذف هدف ادخار", "الهدف #$id\n\${row.name}\nالمحقق: \${row.currentAmount} من \${row.targetAmount} \${row.currency}", suspend {
+            repository.deleteSavingsGoal(row)
+            "تم حذف هدف الادخار بعد تأكيدك."
+        })
+    }
+
+    @Tool(description = "Prepare deletion of an asset record. Requires explicit confirmation.")
+    fun proposeDeleteAsset(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val row = repository.assets.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Asset not found.")
+        stageUpdate("تأكيد حذف أصل", "الأصل #$id\n\${row.name}\nالقيمة: \${row.value} \${row.currency}", suspend {
+            repository.deleteAsset(row)
+            "تم حذف سجل الأصل بعد تأكيدك."
+        })
+    }
+
+    @Tool(description = "Prepare deletion of a household expense. Requires explicit confirmation.")
+    fun proposeDeleteHouseholdExpense(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val row = repository.householdExpenses.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Household expense not found.")
+        stageUpdate("تأكيد حذف مصروف أسري", "المصروف #$id\n\${row.title}\n\${row.amount} \${row.currency}", suspend {
+            repository.deleteHouseholdExpense(row)
+            "تم حذف المصروف الأسري بعد تأكيدك."
+        })
+    }
+
+    @Tool(description = "Prepare deletion of a household member. Deletion is rejected if the member still owns recorded household expenses. Requires explicit confirmation.")
+    fun proposeDeleteHouseholdMember(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val row = repository.householdMembers.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Household member not found.")
+        if (repository.householdExpenses.first().any { it.payerMemberId == id }) {
+            return@runBlocking mapOf("success" to false, "error" to "This member has recorded expenses. Reassign or remove those expenses first.")
+        }
+        stageUpdate("تأكيد حذف فرد الأسرة", "العضو #$id\n\${row.name}\nالدور: \${row.role}", suspend {
+            repository.deleteHouseholdMember(row)
+            "تم حذف فرد الأسرة بعد تأكيدك."
+        })
+    }
+
     private fun stageUpdate(title: String, description: String, execute: suspend () -> String): Map<String, Any> {
         val preview = AiActionPreview(UUID.randomUUID().toString(), title, description + "\\nلن يُحفظ التعديل قبل تأكيدك.")
         pending = Pending(preview, PendingPayload.Update(execute))
         _pendingAction.value = preview
         return mapOf("success" to true, "requires_user_confirmation" to true, "preview_id" to preview.id,
-            "message" to "An update preview is visible. Wait for explicit confirmation in the app.")
+            "message" to "A change preview is visible. Wait for explicit confirmation in the app.")
     }
 
     @Tool(description = "Prepare an account details update. Balance, currency and account history are not editable here.")
