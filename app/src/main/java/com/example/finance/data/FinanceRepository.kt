@@ -141,6 +141,32 @@ class FinanceRepository(
         if (db != null) db.withTransaction { operation() } else operation()
     }
 
+    suspend fun deleteWorkRecord(recordId: Long) = withContext(Dispatchers.IO) {
+        val operation: suspend () -> Unit = {
+            val record = dao.getWorkRecordById(recordId) ?: return@withContext
+            val linkedTransactionId = record.linkedTransactionId
+            if (linkedTransactionId != null) {
+                val tx = dao.getTransactionById(linkedTransactionId)
+                if (tx != null) {
+                    val account = dao.getAccountById(tx.accountId)
+                    if (account != null && tx.status == TransactionStatus.COMPLETED) {
+                        val current = FinanceEngine.toBigDecimal(account.balance)
+                        val amount = FinanceEngine.toBigDecimal(tx.amount)
+                        val reversed = when (tx.type) {
+                            TransactionType.INCOME, TransactionType.REFUND, TransactionType.ADJUSTMENT -> current.subtract(amount)
+                            TransactionType.EXPENSE, TransactionType.TRANSFER -> current.add(amount)
+                        }
+                        dao.updateAccountBalance(account.id, reversed.toDouble())
+                    }
+                    dao.deleteTransaction(tx)
+                }
+            }
+            dao.deleteWorkRecord(record)
+            logAudit("DELETE", "WorkRecord", "Deleted work record #${record.id}: ${record.type} ${record.amount} ${record.currency}")
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
+    }
+
     suspend fun logAudit(action: String, resource: String, details: String) {
         dao.insertAuditLog(
             AuditLogEntity(
