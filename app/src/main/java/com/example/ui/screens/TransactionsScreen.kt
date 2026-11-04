@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -99,6 +100,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
     var filter by remember { mutableStateOf<TransactionType?>(null) }
     var showForm by remember { mutableStateOf(initialAddOpen) }
     var deleteTarget by remember { mutableStateOf<TransactionEntity?>(null) }
+    var editTarget by remember { mutableStateOf<TransactionEntity?>(null) }
 
     val activeAccounts = accounts.filter { !it.isArchived }
     val visible = transactions.filter { tx ->
@@ -177,7 +179,18 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
 
             if (showForm) {
                 item {
-                    AddTransactionForm(accounts = activeAccounts, lang = lang, onCancel = { showForm = false }, onSave = { viewModel.addTransaction(it); showForm = false })
+                    AddTransactionForm(
+                        accounts = activeAccounts,
+                        lang = lang,
+                        initialTransaction = editTarget,
+                        onCancel = { showForm = false; editTarget = null },
+                        onSave = { transaction ->
+                            if (editTarget == null) viewModel.addTransaction(transaction)
+                            else viewModel.updateTransaction(transaction.copy(id = editTarget!!.id, status = editTarget!!.status))
+                            showForm = false
+                            editTarget = null
+                        }
+                    )
                 }
             }
 
@@ -192,7 +205,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
                 }
             } else {
                 items(visible, key = { it.id }) { tx ->
-                    TransactionItemCard(transaction = tx, account = accounts.firstOrNull { it.id == tx.accountId }, lang = lang, onDelete = { deleteTarget = tx }, onToggleStatus = { viewModel.updateTransactionStatus(tx, if (tx.status == TransactionStatus.COMPLETED) TransactionStatus.PENDING else TransactionStatus.COMPLETED) })
+                    TransactionItemCard(transaction = tx, account = accounts.firstOrNull { it.id == tx.accountId }, lang = lang, onEdit = { editTarget = tx; showForm = true }, onDelete = { deleteTarget = tx }, onToggleStatus = { viewModel.updateTransactionStatus(tx, if (tx.status == TransactionStatus.COMPLETED) TransactionStatus.PENDING else TransactionStatus.COMPLETED) })
                 }
             }
             item { Spacer(Modifier.height(72.dp)) }
@@ -211,13 +224,13 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
 }
 
 @Composable
-fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCancel: () -> Unit, onSave: (TransactionEntity) -> Unit) {
-    var type by remember { mutableStateOf(TransactionType.EXPENSE) }
-    var accountId by remember { mutableStateOf(accounts.firstOrNull()?.id ?: 0L) }
-    var category by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())) }
-    var description by remember { mutableStateOf("") }
+fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCancel: () -> Unit, onSave: (TransactionEntity) -> Unit, initialTransaction: TransactionEntity? = null) {
+    var type by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.type ?: TransactionType.EXPENSE) }
+    var accountId by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.accountId ?: accounts.firstOrNull()?.id ?: 0L) }
+    var category by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.category.orEmpty()) }
+    var amount by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.amount?.toString().orEmpty()) }
+    var date by remember(initialTransaction?.id) { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(initialTransaction?.date ?: System.currentTimeMillis()))) }
+    var description by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.description.orEmpty()) }
     var accountMenu by remember { mutableStateOf(false) }
     var categoryMenu by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
@@ -226,7 +239,7 @@ fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCance
 
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(WebI18n.tr("إضافة معاملة", "Add transaction", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(if (initialTransaction == null) WebI18n.tr("إضافة معاملة", "Add transaction", lang) else WebI18n.tr("تعديل المعاملة", "Edit transaction", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             if (accounts.isEmpty()) Text(WebI18n.tr("أضف حساباً نشطاً أولاً من قسم الحسابات.", "Add an active account in Accounts first.", lang), color = MaterialTheme.colorScheme.error)
 
             Text(WebI18n.tr("نوع المعاملة", "Transaction type", lang), style = MaterialTheme.typography.labelMedium)
@@ -270,16 +283,16 @@ fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCance
                         else -> ""
                     }
                     if (error.isBlank() && account != null && numeric != null && parsedDate != null) {
-                        onSave(TransactionEntity(accountId = account.id, type = type, amount = numeric, currency = account.currency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }, status = TransactionStatus.COMPLETED))
+                        onSave((initialTransaction ?: TransactionEntity()).copy(accountId = account.id, type = type, amount = numeric, currency = account.currency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }, status = initialTransaction?.status ?: TransactionStatus.COMPLETED))
                     }
-                }, modifier = Modifier.weight(1f).testTag("submit_transaction_btn")) { Text(WebI18n.tr("حفظ المعاملة", "Save transaction", lang)) }
+                }, modifier = Modifier.weight(1f).testTag("submit_transaction_btn")) { Text(if (initialTransaction == null) WebI18n.tr("حفظ المعاملة", "Save transaction", lang) else WebI18n.tr("حفظ التعديلات", "Save changes", lang)) }
             }
         }
     }
 }
 
 @Composable
-fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?, lang: AppLanguage, onDelete: () -> Unit, onToggleStatus: () -> Unit) {
+fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?, lang: AppLanguage, onDelete: () -> Unit, onToggleStatus: () -> Unit, onEdit: () -> Unit = {}) {
     val incomeLike = transaction.type == TransactionType.INCOME || transaction.type == TransactionType.REFUND || transaction.type == TransactionType.ADJUSTMENT
     val workManaged = transaction.category.equals("WORK_INCOME", ignoreCase = true) || transaction.category.equals("WORK_EXPENSE", ignoreCase = true) || transaction.category.equals("WORK_TRANSFER", ignoreCase = true)
     val transferManaged = transaction.category.equals("Transfer", ignoreCase = true) || transaction.category.equals("Transfer Fee", ignoreCase = true)
@@ -306,7 +319,10 @@ fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?,
                     Text(if (transaction.status == TransactionStatus.COMPLETED) WebI18n.tr("تعليق", "Set pending", lang) else WebI18n.tr("إكمال", "Complete", lang), style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary, modifier = Modifier.testTag("toggle_tx_status_${transaction.id}").clip(RoundedCornerShape(6.dp)).background(ByeProTheme.colors.goldPrimary.copy(alpha = .08f)).clickable(onClick = onToggleStatus).padding(4.dp))
                 }
             }
-            if (!ledgerManaged) FinanceIconButton(onClick = onDelete, modifier = Modifier.testTag("delete_tx_${transaction.id}")) { Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .6f)) }
+            if (!ledgerManaged) {
+                FinanceIconButton(onClick = onEdit, modifier = Modifier.testTag("edit_tx_${transaction.id}")) { Icon(Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل", "Edit", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .8f)) }
+                FinanceIconButton(onClick = onDelete, modifier = Modifier.testTag("delete_tx_${transaction.id}")) { Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .6f)) }
+            }
         }
     }
 }
