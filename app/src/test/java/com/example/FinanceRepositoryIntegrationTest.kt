@@ -757,4 +757,21 @@ class FinanceRepositoryIntegrationTest {
         assertTrue(repository.workRecords.first().isEmpty())
     }
 
+    @Test
+    fun deletingWorkRecordReversesLinkedPersonalLedgerPostingAtomically() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Work delete account", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addWorkRecord(
+            WorkRecordEntity(type = WorkRecordType.WORK_INCOME, amount = 80.0, currency = "LYD", period = "2026-11", scope = WorkSourceType.FREELANCE),
+            TransactionEntity(accountId = accountId, type = TransactionType.INCOME, amount = 80.0, currency = "LYD",
+                category = "WORK_INCOME", description = "Work income to delete", status = TransactionStatus.COMPLETED)
+        )
+        assertEquals(1080.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        repository.deleteWorkRecord(id)
+        assertEquals(1000.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertTrue(repository.workRecords.first().isEmpty())
+        assertTrue(repository.transactions.first().isEmpty())
+    }
+
 }
