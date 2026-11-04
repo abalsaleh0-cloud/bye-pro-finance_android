@@ -100,16 +100,13 @@ class GgufLocalAssistant(private val appTools: AiAppToolSet) {
                 append("A preview requiring confirmation is NOT saved. Never claim a write, payment, transfer, or deletion completed before confirmation.")
             }
             if (requiresConfirmation || failed) {
-                val fallback = when {
-                    requiresConfirmation -> "جهزت معاينة للعملية. راجعها وأكدها من التطبيق؛ لم يتم الحفظ بعد."
-                    else -> "تعذر تنفيذ الخطوة: ${toolResult["error"] ?: "خطأ غير معروف"}. لم يتم إجراء أي تغيير."
+                // Never ask the model to paraphrase a pending write or a failed write:
+                // the authoritative tool result is surfaced verbatim to avoid hallucinated success.
+                finalAnswer = if (requiresConfirmation) {
+                    "جهزت معاينة للعملية. راجع التفاصيل الظاهرة في التطبيق وأكدها بنفسك؛ لم يتم حفظ أي تغيير بعد."
+                } else {
+                    "تعذر تنفيذ الخطوة: ${toolResult["error"] ?: "خطأ غير معروف"}. لم يتم إجراء أي تغيير."
                 }
-                finalAnswer = Llama.complete(
-                    model = activeModel,
-                    prompt = continuationPrompt,
-                    systemPrompt = "You are AI Bye Pro. App-tool results are authoritative. Never claim a preview has been saved.",
-                    maxTokens = 384
-                ).text.trim().ifBlank { fallback }
             } else {
                 modelOutput = Llama.complete(
                     model = activeModel,
