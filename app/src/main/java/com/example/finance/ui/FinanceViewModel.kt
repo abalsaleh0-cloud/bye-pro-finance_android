@@ -887,7 +887,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         val matchingAccounts = withContext(Dispatchers.IO) { aiAppTools.listAccounts() }
             .filter { (it["currency"] as? String).equals(command.currency, ignoreCase = true) }
         if (matchingAccounts.isEmpty()) {
-            return "لم أجد حساباً نشطاً بعملة ${command.currency}. افتح قسم الحسابات وأنشئ حساباً بهذه العملة أولاً."
+            return "لا يوجد لديك حساب نشط بعملة ${command.currency}. هل تريد أن أجهّز لك معاينة إنشاء حساب نقدي بهذه العملة؟ لن يتم إنشاء الحساب أو تسجيل المصروف إلا بعد موافقتك."
         }
 
         val mentionedAccounts = matchingAccounts.filter { account ->
