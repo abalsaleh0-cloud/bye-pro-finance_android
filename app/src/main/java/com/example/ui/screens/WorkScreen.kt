@@ -144,7 +144,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     val options = buildList {
         add(WorkRecordType.WORK_INCOME)
         add(WorkRecordType.WORK_EXPENSE)
-        add(WorkRecordType.FREELANCE_EXPENSE)
+        if (source == null || source.type == WorkSourceType.FREELANCE) add(WorkRecordType.FREELANCE_EXPENSE)
         if (source?.type == WorkSourceType.EMPLOYMENT) {
             addAll(listOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT))
         }
