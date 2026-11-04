@@ -56,6 +56,8 @@ interface FinanceDao {
     // --- Transactions ---
     @Query("SELECT * FROM transactions ORDER BY date DESC, id DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
+    @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
+    suspend fun getTransactionById(id: Long): TransactionEntity?
 
     @Query("SELECT * FROM transactions ORDER BY date DESC, id DESC")
     suspend fun getAllTransactionsSnapshot(): List<TransactionEntity>
@@ -238,6 +240,8 @@ interface FinanceDao {
     suspend fun getWorkRecordById(id: Long): WorkRecordEntity?
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWorkRecord(record: WorkRecordEntity): Long
+    @Delete
+    suspend fun deleteWorkRecord(record: WorkRecordEntity)
 
     // --- User / Auth ---
     @Query("SELECT * FROM users LIMIT 1")
