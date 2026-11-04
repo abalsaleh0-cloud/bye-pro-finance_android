@@ -39,6 +39,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     }
     val received = periodRows.filter { it.type in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT) }.sumOf { it.amount }
     val expenses = periodRows.filter { it.type == WorkRecordType.FREELANCE_EXPENSE }.sumOf { it.amount }
+    val netProfit = received - expenses
     val balance = WorkLedgerCalculator.cashBalance(records, currency).toDouble()
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(if (ar) "العمل والدخل" else "Work & Income", style = MaterialTheme.typography.headlineSmall)
@@ -51,6 +52,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             WorkSummary(if (ar) "المقبوض" else "Received", received, currency, Modifier.weight(1f), money)
             WorkSummary(if (ar) "المصروفات" else "Expenses", expenses, currency, Modifier.weight(1f), money)
         }
+        WorkSummary(if (ar) "صافي العمل" else "Work net", netProfit, currency, Modifier.fillMaxWidth(), money)
         WorkSummary(if (ar) "رصيد العمل" else "Work cash balance", balance, currency, Modifier.fillMaxWidth(), money)
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TextButton(onClick = { reportPeriod = "day" }) { Text((if (reportPeriod == "day") "✓ " else "") + (if (ar) "يومي" else "Daily")) }
