@@ -35,6 +35,7 @@ object Strings {
         "nav_notifications" to "الإشعارات",
         "nav_admin" to "الإدارة والتدقيق",
         "nav_settings" to "الإعدادات",
+        "nav_work" to "العمل",
 
         // Dashboard Metrics
         "total_balance" to "إجمالي الرصيد السائل",
@@ -275,6 +276,7 @@ object Strings {
         "nav_notifications" to "Alerts",
         "nav_admin" to "Admin & Audit",
         "nav_settings" to "Settings",
+        "nav_work" to "Work",
 
         // Dashboard Metrics
         "total_balance" to "Total Liquid Balance",

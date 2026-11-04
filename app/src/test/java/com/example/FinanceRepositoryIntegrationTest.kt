@@ -25,6 +25,10 @@ import com.example.finance.model.NotificationEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
 import com.example.finance.model.TransactionStatus
+import com.example.finance.model.WorkSourceEntity
+import com.example.finance.model.WorkSourceType
+import com.example.finance.model.WorkRecordEntity
+import com.example.finance.model.WorkRecordType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -226,6 +230,50 @@ class FinanceRepositoryIntegrationTest {
     }
 
     @Test
+    fun savingsContributionCannotExceedTargetAndLeavesAllLedgersUnchanged() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Savings funding", type = AccountType.CASH, balance = 100.0, currency = "LYD")
+        )
+        repository.addSavingsGoal(
+            SavingsGoalEntity(name = "Capped goal", targetAmount = 50.0, currentAmount = 40.0, currency = "LYD", deadline = System.currentTimeMillis() + 86400000)
+        )
+        val goalId = db.financeDao().getAllSavingsGoals().first().single().id
+
+        assertFalse(repository.contributeToSavings(goalId, 10.01, accountId))
+        assertEquals(40.0, db.financeDao().getSavingsGoalById(goalId)?.currentAmount ?: 0.0, 0.001)
+        assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertTrue(repository.transactions.first().isEmpty())
+
+        assertTrue(repository.contributeToSavings(goalId, 10.0, accountId))
+        assertEquals(50.0, db.financeDao().getSavingsGoalById(goalId)?.currentAmount ?: 0.0, 0.001)
+        assertEquals(90.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertEquals(1, repository.transactions.first().size)
+    }
+
+    @Test
+    fun archivedAccountCannotFundSavingsContributionOrBillPayment() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Archived account", type = AccountType.CASH, balance = 100.0, currency = "LYD")
+        )
+        repository.archiveAccount(accountId, true)
+        repository.addSavingsGoal(
+            SavingsGoalEntity(name = "Emergency fund", targetAmount = 200.0, currency = "LYD", deadline = System.currentTimeMillis() + 86400000)
+        )
+        repository.addBill(
+            BillEntity(name = "Archived account bill", category = "Utilities", amount = 20.0, currency = "LYD", dueDate = System.currentTimeMillis())
+        )
+        val goalId = db.financeDao().getAllSavingsGoals().first().single().id
+        val billId = db.financeDao().getAllBills().first().single().id
+
+        assertFalse(repository.contributeToSavings(goalId, 10.0, accountId))
+        assertFalse(repository.markBillPaid(billId, accountId))
+        assertEquals(0.0, db.financeDao().getSavingsGoalById(goalId)?.currentAmount ?: 0.0, 0.001)
+        assertFalse(db.financeDao().getBillById(billId)?.isPaid ?: true)
+        assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertTrue(repository.transactions.first().isEmpty())
+    }
+
+    @Test
     fun importingSameTransactionTwiceDoesNotDoublePostBalance() = runBlocking {
         val accountId = repository.addAccount(
             AccountEntity(name = "Import account", type = AccountType.CASH, balance = 100.0, currency = "LYD")
@@ -257,8 +305,9 @@ class FinanceRepositoryIntegrationTest {
                 currency = "LYD"
             )
         )
+        val accountId = repository.addAccount(AccountEntity(name = "Debt account", type = AccountType.CASH, balance = 100.0, currency = "LYD"))
         val debtId = db.financeDao().getAllDebts().first().single().id
-        assertFalse(repository.recordDebtPayment(debtId, 45.0, "Overpayment"))
+        assertFalse(repository.recordDebtPayment(debtId, accountId, 45.0, "Overpayment"))
         assertEquals(40.0, db.financeDao().getDebtById(debtId)?.remaining ?: 0.0, 0.001)
     }
 
@@ -427,6 +476,37 @@ class FinanceRepositoryIntegrationTest {
     }
 
     @Test
+    fun transferLedgerRowsCannotBeChangedOrDeletedIndependently() = runBlocking {
+        val sourceId = repository.addAccount(
+            AccountEntity(name = "Protected source", type = AccountType.BANK, balance = 500.0, currency = "LYD")
+        )
+        val targetId = repository.addAccount(
+            AccountEntity(name = "Protected target", type = AccountType.SAVINGS, balance = 50.0, currency = "LYD")
+        )
+        assertTrue(repository.executeTransfer(sourceId, targetId, 100.0, 2.0, "LYD", "Protected transfer", ""))
+        val rows = repository.transactions.first()
+        assertEquals(3, rows.size)
+
+        rows.forEach { row ->
+            try {
+                repository.deleteTransaction(row)
+                fail("Transfer ledger row must not be deleted independently")
+            } catch (_: IllegalArgumentException) { }
+        }
+        rows.forEach { row ->
+            try {
+                repository.updateTransactionStatus(row, TransactionStatus.PENDING)
+                fail("Transfer ledger row status must not change independently")
+            } catch (_: IllegalArgumentException) { }
+        }
+
+        assertEquals(398.0, db.financeDao().getAccountById(sourceId)?.balance ?: 0.0, 0.001)
+        assertEquals(150.0, db.financeDao().getAccountById(targetId)?.balance ?: 0.0, 0.001)
+        assertEquals(1, repository.transfers.first().size)
+        assertEquals(3, repository.transactions.first().size)
+    }
+
+    @Test
     fun transferRejectsDifferentCurrenciesWithoutChangingBalances() = runBlocking {
         val sourceId = repository.addAccount(
             AccountEntity(name = "LYD source", type = AccountType.BANK, balance = 500.0, currency = "LYD")
@@ -446,6 +526,7 @@ class FinanceRepositoryIntegrationTest {
     @Test
     fun debtDirectionsEditingAndTimestampedPaymentsPersistCorrectly() = runBlocking {
         val dueDate = 1_800_000_000_000L
+        val accountId = repository.addAccount(AccountEntity(name = "Debt settlement", type = AccountType.BANK, balance = 1000.0, currency = "USD"))
         repository.addDebt(
             DebtEntity(
                 name = "Client A",
@@ -464,17 +545,21 @@ class FinanceRepositoryIntegrationTest {
         assertEquals(dueDate, created.dueDate)
 
         val paymentDate = 1_800_000_123_000L
-        assertTrue(repository.recordDebtPayment(created.id, 250.0, "First installment", paymentDate))
+        assertTrue(repository.recordDebtPayment(created.id, accountId, 250.0, "First installment", paymentDate))
         val afterPartial = repository.debts.first().single()
         assertEquals(650.0, afterPartial.remaining, 0.001)
         assertEquals(DebtStatus.ACTIVE, afterPartial.status)
         val history = repository.debtPayments(created.id).first()
         assertEquals(1, history.size)
+        assertEquals(1250.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        val collectionTransaction = repository.transactions.first().single()
+        assertEquals(TransactionType.INCOME, collectionTransaction.type)
+        assertEquals(250.0, collectionTransaction.amount, 0.001)
         assertEquals(paymentDate, history.single().date)
         assertEquals("USD", history.single().currency)
         assertEquals("First installment", history.single().notes)
 
-        assertFalse(repository.recordDebtPayment(created.id, 700.0, "Overpayment", paymentDate))
+        assertFalse(repository.recordDebtPayment(created.id, accountId, 700.0, "Overpayment", paymentDate))
         assertEquals(650.0, repository.debts.first().single().remaining, 0.001)
 
         repository.updateDebt(afterPartial.copy(name = "Client A updated", direction = "i_owe"))
@@ -482,9 +567,11 @@ class FinanceRepositoryIntegrationTest {
         assertEquals("Client A updated", updated.name)
         assertEquals("i_owe", updated.direction)
 
-        assertTrue(repository.recordDebtPayment(created.id, 650.0, "Final payment", paymentDate + 1000))
+        assertTrue(repository.recordDebtPayment(created.id, accountId, 650.0, "Final payment", paymentDate + 1000))
         assertEquals(DebtStatus.PAID, repository.debts.first().single().status)
         assertEquals(2, repository.debtPayments(created.id).first().size)
+        assertEquals(600.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertEquals(TransactionType.EXPENSE, repository.transactions.first().first { it.date == paymentDate + 1000 }.type)
     }
 
     @Test
@@ -575,4 +662,58 @@ class FinanceRepositoryIntegrationTest {
         assertEquals(75.0, updatedAsset.value, 0.001)
         assertEquals("Vault", updatedAsset.notes)
     }
+
+    @Test
+    fun debtPaymentRejectsInsufficientFundsAndCurrencyMismatchWithoutPartialWrites() = runBlocking {
+        val lowBalanceId = repository.addAccount(AccountEntity(name = "Low balance", type = AccountType.CASH, balance = 10.0, currency = "LYD"))
+        repository.addDebt(DebtEntity(name = "Personal loan", creditor = "Bank", principal = 100.0, remaining = 100.0, currency = "LYD", direction = "i_owe"))
+        val debtId = repository.debts.first().single().id
+        assertFalse(repository.recordDebtPayment(debtId, lowBalanceId, 20.0, "Insufficient"))
+        assertEquals(10.0, db.financeDao().getAccountById(lowBalanceId)?.balance ?: 0.0, 0.001)
+        assertEquals(100.0, repository.debts.first().single().remaining, 0.001)
+        assertTrue(repository.transactions.first().isEmpty())
+        assertTrue(repository.debtPayments(debtId).first().isEmpty())
+
+        val usdAccountId = repository.addAccount(AccountEntity(name = "USD account", type = AccountType.CASH, balance = 500.0, currency = "USD"))
+        assertFalse(repository.recordDebtPayment(debtId, usdAccountId, 20.0, "Wrong currency"))
+        assertEquals(500.0, db.financeDao().getAccountById(usdAccountId)?.balance ?: 0.0, 0.001)
+        assertEquals(100.0, repository.debts.first().single().remaining, 0.001)
+    }
+ 
+    @Test
+    fun workRecordRejectsMismatchedPersonalLedgerTransactionWithoutChangingBalances() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Work account", type = AccountType.CASH, balance = 500.0, currency = "LYD")
+        )
+        val sourceId = repository.addWorkSource(
+            WorkSourceEntity(name = "Main job", type = WorkSourceType.EMPLOYMENT, monthlySalary = 2000.0, currency = "LYD")
+        )
+
+        try {
+            repository.addWorkRecord(
+                WorkRecordEntity(
+                    sourceId = sourceId,
+                    type = WorkRecordType.SALARY_ADVANCE,
+                    amount = 100.0,
+                    currency = "LYD",
+                    period = "2026-11"
+                ),
+                TransactionEntity(
+                    accountId = accountId,
+                    type = TransactionType.EXPENSE,
+                    amount = 100.0,
+                    currency = "LYD",
+                    category = "WORK_EXPENSE",
+                    description = "Mismatched work transaction",
+                    status = TransactionStatus.COMPLETED
+                )
+            )
+            fail("Salary cash receipt must not be recorded as a personal expense")
+        } catch (_: IllegalArgumentException) { }
+
+        assertEquals(500.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertTrue(repository.workRecords.first().isEmpty())
+        assertTrue(repository.transactions.first().isEmpty())
+    }
+
 }

@@ -9,6 +9,7 @@ import com.example.finance.model.BudgetEntity
 import com.example.finance.model.BudgetPeriod
 import com.example.finance.model.DebtEntity
 import com.example.finance.model.DebtStatus
+import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
 import com.example.finance.model.TransactionStatus
@@ -230,6 +231,30 @@ class FinanceEngineTest {
         // 25,000 SAR + 500,000 SAR + 35,000 SAR - 20,000 SAR = 540,000 SAR.
         val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, baseCurrency = "SAR")
         assertEquals(BigDecimal("540000.00"), netWorth)
+    }
+
+    @Test
+    fun netWorthIncludesSavingsAndMoneyOwedToUsWithoutGuessingExchangeRates() {
+        val accounts = listOf(
+            AccountEntity(id = 1, name = "Checking", type = AccountType.BANK, balance = 1000.0, currency = "LYD")
+        )
+        val assets = listOf(
+            AssetEntity(id = 1, name = "Gold", type = AssetType.GOLD, value = 500.0, currency = "LYD")
+        )
+        val debts = listOf(
+            DebtEntity(id = 1, name = "Loan I owe", creditor = "Bank", principal = 300.0, remaining = 200.0, currency = "LYD", direction = "i_owe"),
+            DebtEntity(id = 2, name = "Money owed to me", creditor = "Friend", principal = 150.0, remaining = 100.0, currency = "LYD", direction = "owed_to_me")
+        )
+        val savings = listOf(
+            SavingsGoalEntity(id = 1, name = "Emergency savings", targetAmount = 400.0, currentAmount = 250.0, currency = "LYD", deadline = Long.MAX_VALUE),
+            SavingsGoalEntity(id = 2, name = "USD savings", targetAmount = 100.0, currentAmount = 90.0, currency = "USD", deadline = Long.MAX_VALUE)
+        )
+
+        // 1,000 cash + 500 assets + 100 receivable + 250 savings - 200 liability.
+        assertEquals(
+            BigDecimal("1650.00"),
+            FinanceEngine.calculateNetWorth(accounts, assets, debts, "LYD", savings)
+        )
     }
 
     @Test

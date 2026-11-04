@@ -95,41 +95,48 @@ fun DashboardScreen(
     val bills by viewModel.bills.collectAsState()
     val savingsGoals by viewModel.savingsGoals.collectAsState()
 
-    // Mirror the web dashboard currency rule: prefer LYD, otherwise the first
-    // currency present in account, transaction, or asset records.
+    // Prefer LYD, otherwise include every financial section when resolving
+    // the dashboard currency so debt/bill/budget/savings-only data is visible.
     val availableCurrencies = (accounts.map { it.currency } +
-        transactions.map { it.currency } + assets.map { it.currency })
+        transactions.map { it.currency } + assets.map { it.currency } +
+        budgets.map { it.currency } + debts.map { it.currency } +
+        bills.map { it.currency } + savingsGoals.map { it.currency })
         .map { it.trim().uppercase(Locale.ROOT) }
         .filter { it.isNotBlank() }
         .distinct()
     val currency = if ("LYD" in availableCurrencies) "LYD" else availableCurrencies.firstOrNull() ?: "LYD"
 
     val currencyAccounts = accounts.filter { it.currency.equals(currency, ignoreCase = true) }
+    val activeCurrencyAccounts = currencyAccounts.filter { !it.isArchived }
     val completedTransactions = transactions.filter {
         it.currency.equals(currency, ignoreCase = true) && it.status == TransactionStatus.COMPLETED
     }
     val currencyAssets = assets.filter { it.currency.equals(currency, ignoreCase = true) }
     val currencyBudgets = budgets.filter { it.currency.equals(currency, ignoreCase = true) }
     val currencyDebts = debts.filter { it.currency.equals(currency, ignoreCase = true) && it.remaining > 0.0 }
+    val liabilities = currencyDebts.filter { it.direction != "owed_to_me" }
+    val receivables = currencyDebts.filter { it.direction == "owed_to_me" }
     val currencyBills = bills.filter { it.currency.equals(currency, ignoreCase = true) }
+    val unpaidCurrencyBills = currencyBills.filter { !it.isPaid }
     val currencyGoals = savingsGoals.filter { it.currency.equals(currency, ignoreCase = true) }
 
-    val availableBalance = currencyAccounts.sumOf { it.balance }
+    // Archived accounts remain in history but must not inflate spendable cash.
+    val availableBalance = activeCurrencyAccounts.sumOf { it.balance }
     val recordedIncome = completedTransactions
-        .filter { it.type == TransactionType.INCOME }
+        .filter { it.type == TransactionType.INCOME || it.type == TransactionType.REFUND }
         .sumOf { it.amount }
     val recordedExpenses = completedTransactions
         .filter { it.type == TransactionType.EXPENSE }
         .sumOf { it.amount }
     val assetValue = currencyAssets.sumOf { it.value }
     val budgetTotal = currencyBudgets.sumOf { it.limitAmount }
-    val debtRemaining = currencyDebts.sumOf { it.remaining }
-    val billsDue = currencyBills.sumOf { it.amount }
+    val debtRemaining = liabilities.sumOf { it.remaining }
+    val receivableRemaining = receivables.sumOf { it.remaining }
+    val billsDue = unpaidCurrencyBills.sumOf { it.amount }
     val goalProgress = currencyGoals.sumOf { it.currentAmount }
     val goalTarget = currencyGoals.sumOf { it.targetAmount }
     val goalPercent = if (goalTarget > 0.0) (goalProgress / goalTarget * 100.0).toInt().coerceIn(0, 100) else 0
-    val activeDebts = debts.filter { it.remaining > 0.0 }
-    val outstandingDebtCount = activeDebts.size
+    val outstandingDebtCount = currencyDebts.size
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -165,7 +172,7 @@ fun DashboardScreen(
             DashboardMetric(
                 label = WebI18n.tr("الرصيد المتاح", "Available balance", lang) + " · $currency",
                 value = TextContent.money(availableBalance, currency, lang),
-                detail = "${TextContent.number(accounts.size, lang, 0)} " + WebI18n.tr("حساب نشط", "active accounts", lang)
+                detail = "${TextContent.number(activeCurrencyAccounts.size, lang, 0)} " + WebI18n.tr("حساب نشط", "active accounts", lang)
             )
         }
         item {
@@ -186,7 +193,7 @@ fun DashboardScreen(
             DashboardMetric(
                 label = WebI18n.tr("قيمة الأصول", "Asset value", lang) + " · $currency",
                 value = TextContent.money(assetValue, currency, lang),
-                detail = "${TextContent.number(assets.size, lang, 0)} " + WebI18n.tr("أصل", "assets", lang)
+                detail = "${TextContent.number(currencyAssets.size, lang, 0)} " + WebI18n.tr("أصل", "assets", lang)
             )
         }
 
@@ -251,7 +258,7 @@ fun DashboardScreen(
             DashboardPanel(
                 eyebrow = WebI18n.tr("التخطيط", "Planning", lang),
                 title = WebI18n.tr("الميزانيات", "Budgets", lang),
-                count = TextContent.number(budgets.size, lang, 0)
+                count = TextContent.number(currencyBudgets.size, lang, 0)
             ) {
                 DashboardLine(
                     label = WebI18n.tr("إجمالي المخصص النشط", "Total active allocation", lang) + " · $currency",
@@ -260,12 +267,12 @@ fun DashboardScreen(
                     valueColor = ByeProTheme.colors.goldPrimary,
                     showDivider = currencyBudgets.isNotEmpty()
                 )
-                budgets.take(4).forEachIndexed { index, budget ->
+                currencyBudgets.take(4).forEachIndexed { index, budget ->
                     DashboardLine(
                         label = budget.name,
                         detail = budgetPeriodLabel(budget.period, lang),
                         value = TextContent.money(budget.limitAmount, budget.currency, lang),
-                        showDivider = index != budgets.take(4).lastIndex
+                        showDivider = index != currencyBudgets.take(4).lastIndex
                     )
                 }
                 if (currencyBudgets.isEmpty()) DashboardEmpty(WebI18n.tr("لا توجد ميزانيات بهذه العملة.", "No budgets in this currency.", lang))
@@ -276,7 +283,7 @@ fun DashboardScreen(
             DashboardPanel(
                 eyebrow = WebI18n.tr("الأهداف", "Goals", lang),
                 title = WebI18n.tr("الادخار", "Savings", lang),
-                count = TextContent.number(savingsGoals.size, lang, 0)
+                count = TextContent.number(currencyGoals.size, lang, 0)
             ) {
                 Box(
                     modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape)
@@ -305,19 +312,26 @@ fun DashboardScreen(
                 count = TextContent.number(outstandingDebtCount, lang, 0)
             ) {
                 DashboardLine(
-                    label = WebI18n.tr("إجمالي المتبقي", "Total remaining", lang) + " · $currency",
+                    label = WebI18n.tr("ديون عليك", "You owe", lang) + " · $currency",
                     detail = "",
                     value = TextContent.money(debtRemaining, currency, lang),
                     valueColor = ByeProTheme.colors.financialRed,
+                    showDivider = true
+                )
+                DashboardLine(
+                    label = WebI18n.tr("مبالغ لك", "Owed to you", lang) + " · $currency",
+                    detail = "",
+                    value = TextContent.money(receivableRemaining, currency, lang),
+                    valueColor = ByeProTheme.colors.financialGreen,
                     showDivider = currencyDebts.isNotEmpty()
                 )
-                activeDebts.take(3).forEachIndexed { index, debt ->
+                currencyDebts.take(3).forEachIndexed { index, debt ->
                     DashboardLine(
                         label = debt.name,
                         detail = if (debt.direction == "owed_to_me") WebI18n.tr("لي عنده", "Owed to me", lang)
                             else WebI18n.tr("عليّ له", "I owe", lang),
                         value = TextContent.money(debt.remaining, debt.currency, lang),
-                        showDivider = index != activeDebts.take(3).lastIndex
+                        showDivider = index != currencyDebts.take(3).lastIndex
                     )
                 }
                 if (currencyDebts.isEmpty()) DashboardEmpty(WebI18n.tr("لا توجد ديون قائمة بهذه العملة.", "No outstanding debts in this currency.", lang))
@@ -335,7 +349,7 @@ fun DashboardScreen(
                     DashboardQuickStat(TextContent.number(transactions.size, lang, 0), WebI18n.tr("معاملات", "Transactions", lang), Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    DashboardQuickStat(TextContent.number(bills.size, lang, 0), WebI18n.tr("الفواتير", "Bills", lang), Modifier.weight(1f))
+                    DashboardQuickStat(TextContent.number(unpaidCurrencyBills.size, lang, 0), WebI18n.tr("فواتير غير مدفوعة", "Unpaid bills", lang), Modifier.weight(1f))
                     DashboardQuickStat(TextContent.number(outstandingDebtCount, lang, 0), WebI18n.tr("الديون", "Debts", lang), Modifier.weight(1f))
                 }
                 Text(

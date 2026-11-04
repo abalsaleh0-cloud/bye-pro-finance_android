@@ -102,6 +102,7 @@ import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.SmartScanScreen
 import com.example.ui.screens.TransactionsScreen
 import com.example.ui.screens.TransfersScreen
+import com.example.ui.screens.WorkScreen
 import kotlinx.coroutines.launch
 
 data class HubMenuItem(
@@ -134,6 +135,7 @@ fun MainAppScaffold(
     }
 
     val hubMenuItems = listOf(
+        HubMenuItem("work", "nav_work", Icons.Default.AccountBalance, ByeProTheme.colors.goldPrimary),
         HubMenuItem("transfers", "nav_transfers", Icons.Default.SwapHoriz, ByeProTheme.colors.goldPrimary),
         HubMenuItem("debts", "nav_debts", Icons.Default.MoneyOff, ByeProTheme.colors.financialRed),
         HubMenuItem("bills", "nav_bills", Icons.Default.ReceiptLong, ByeProTheme.colors.financialRed),
@@ -319,6 +321,7 @@ fun MainAppScaffold(
                     .background(MaterialTheme.colorScheme.background)
             ) {
                 when (currentScreen) {
+                    "work" -> WorkScreen(viewModel = viewModel)
                     "dashboard" -> DashboardScreen(
                         viewModel = viewModel,
                         onNavigate = { viewModel.setScreen(it) },

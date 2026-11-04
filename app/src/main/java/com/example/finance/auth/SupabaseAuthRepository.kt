@@ -26,6 +26,12 @@ class SupabaseAuthRepository(context: Context) {
         return !token.isNullOrBlank() && expiry > System.currentTimeMillis() / 1000L + 60L
     }
 
+    // A saved refresh token allows local startup while the network is unavailable.
+    // Cloud requests still require a refreshed, valid access token.
+    fun hasPersistedSession(): Boolean =
+        hasValidSession() || !preferences.getString(KEY_REFRESH_TOKEN, null).isNullOrBlank()
+
+
     /**
      * Restores an existing Supabase session after process death. Access tokens
      * are refreshed before expiry so a returning user is not sent to login

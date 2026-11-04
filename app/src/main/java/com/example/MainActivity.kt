@@ -48,7 +48,9 @@ class MainActivity : ComponentActivity() {
             var isAuthenticated by remember { mutableStateOf(false) }
 
             LaunchedEffect(Unit) {
-                isAuthenticated = SupabaseAuthRepository(applicationContext).restoreSession()
+                val authRepository = SupabaseAuthRepository(applicationContext)
+                val restoredOnlineSession = authRepository.restoreSession()
+                isAuthenticated = restoredOnlineSession || authRepository.hasPersistedSession()
                 authReady = true
             }
 

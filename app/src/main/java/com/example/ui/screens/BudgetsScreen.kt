@@ -38,17 +38,25 @@ import com.example.finance.model.BudgetPeriod
 import com.example.finance.ui.FinanceViewModel
 import com.example.ui.theme.ByeProTheme
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
 private val budgetCurrencies = listOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD")
 private val budgetPeriods = listOf(BudgetPeriod.WEEKLY, BudgetPeriod.MONTHLY, BudgetPeriod.QUARTERLY, BudgetPeriod.YEARLY, BudgetPeriod.CUSTOM)
+private val budgetCategories = listOf("All", "Groceries", "Dining", "Utilities", "Shopping", "Health", "Transport", "Other")
 
 private fun budgetDate(value: Long): String =
     SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(value))
 
-private fun parseBudgetDate(value: String): Long? = runCatching {
-    SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(value)?.time
+private fun parseBudgetDate(value: String, endOfDay: Boolean = false): Long? = runCatching {
+    val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(value)?.time
+        ?: return@runCatching null
+    if (!endOfDay) parsed else Calendar.getInstance().apply {
+        timeInMillis = parsed
+        add(Calendar.DAY_OF_MONTH, 1)
+        add(Calendar.MILLISECOND, -1)
+    }.timeInMillis
 }.getOrNull()
 
 private fun periodLabel(period: BudgetPeriod, lang: AppLanguage): String = when (period) {
@@ -57,6 +65,17 @@ private fun periodLabel(period: BudgetPeriod, lang: AppLanguage): String = when 
     BudgetPeriod.QUARTERLY -> WebI18n.tr("ربع سنوية", "Quarterly", lang)
     BudgetPeriod.YEARLY -> WebI18n.tr("سنوية", "Yearly", lang)
     BudgetPeriod.CUSTOM -> WebI18n.tr("مخصصة", "Custom", lang)
+}
+
+private fun budgetCategoryLabel(category: String, lang: AppLanguage): String = when (category) {
+    "All" -> WebI18n.tr("كل الفئات", "All categories", lang)
+    "Groceries" -> WebI18n.tr("البقالة", "Groceries", lang)
+    "Dining" -> WebI18n.tr("المطاعم", "Dining", lang)
+    "Utilities" -> WebI18n.tr("الفواتير والخدمات", "Utilities", lang)
+    "Shopping" -> WebI18n.tr("التسوق", "Shopping", lang)
+    "Health" -> WebI18n.tr("الصحة", "Health", lang)
+    "Transport" -> WebI18n.tr("النقل", "Transport", lang)
+    else -> WebI18n.tr("أخرى", "Other", lang)
 }
 
 @Composable
@@ -232,6 +251,7 @@ private fun BudgetFormDialog(
     var error by remember { mutableStateOf("") }
     var currencyMenu by remember { mutableStateOf(false) }
     var periodMenu by remember { mutableStateOf(false) }
+    var categoryMenu by remember { mutableStateOf(false) }
 
     FinanceAlertDialog(
         onDismissRequest = onDismiss,
@@ -260,6 +280,17 @@ private fun BudgetFormDialog(
                             onClick = { period = option; periodMenu = false }) }
                     }
                 }
+                Box {
+                    FinanceTextField(budgetCategoryLabel(category, lang), {}, label = { Text(WebI18n.tr("الفئة", "Category", lang)) },
+                        modifier = Modifier.fillMaxWidth().testTag("budget_category_input"), readOnly = true)
+                    Box(Modifier.matchParentSize().clickable { categoryMenu = true })
+                    DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
+                        budgetCategories.forEach { option -> DropdownMenuItem(
+                            text = { Text(budgetCategoryLabel(option, lang)) },
+                            onClick = { category = option; categoryMenu = false }
+                        ) }
+                    }
+                }
                 FinanceTextField(startDate, { startDate = it; error = "" }, label = { Text(WebI18n.tr("تاريخ البداية (YYYY-MM-DD)", "Start date (YYYY-MM-DD)", lang)) },
                     modifier = Modifier.fillMaxWidth().testTag("budget_start_date_input"), singleLine = true)
                 FinanceTextField(endDate, { endDate = it; error = "" }, label = { Text(WebI18n.tr("تاريخ النهاية (YYYY-MM-DD)", "End date (YYYY-MM-DD)", lang)) },
@@ -271,7 +302,7 @@ private fun BudgetFormDialog(
             FinanceTextButton(onClick = {
                 val parsedAmount = amount.toDoubleOrNull()
                 val start = parseBudgetDate(startDate)
-                val end = parseBudgetDate(endDate)
+                val end = parseBudgetDate(endDate, endOfDay = true)
                 error = when {
                     name.isBlank() -> WebI18n.tr("أدخل اسم الميزانية.", "Enter a budget name.", lang)
                     parsedAmount == null || !parsedAmount.isFinite() || parsedAmount <= 0.0 -> WebI18n.tr("أدخل مبلغاً أكبر من الصفر.", "Enter an amount greater than zero.", lang)

@@ -86,8 +86,9 @@ fun SavingsAssetsScreen(
     var editingGoal by remember { mutableStateOf<SavingsGoalEntity?>(null) }
     var editingAsset by remember { mutableStateOf<AssetEntity?>(null) }
     var goalToContribute by remember { mutableStateOf<SavingsGoalEntity?>(null) }
+    var contributionFailed by remember { mutableStateOf(false) }
 
-    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, primaryCurrency)
+    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, primaryCurrency, savingsGoals)
 
     Scaffold(
         floatingActionButton = {
@@ -237,11 +238,13 @@ fun SavingsAssetsScreen(
         var contributeAmountStr by remember { mutableStateOf("") }
 
         FinanceAlertDialog(
-            onDismissRequest = { goalToContribute = null },
+            onDismissRequest = { goalToContribute = null; contributionFailed = false },
             title = { Text(WebI18n.tr("إيداع في الهدف:", "Contribute to goal:", lang) + " ${target.name}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(WebI18n.tr("المبلغ الحالي:", "Current amount:", lang) + " ${TextContent.money(target.currentAmount, target.currency, lang)}")
+                    Text(WebI18n.tr("المتبقي للوصول للهدف:", "Remaining to target:", lang) + " ${TextContent.money((target.targetAmount - target.currentAmount).coerceAtLeast(0.0), target.currency, lang)}")
+                    if (contributionFailed) Text(WebI18n.tr("تعذّر الإيداع. تحقق من المبلغ والعملة والرصيد والحساب المحدد.", "Contribution failed. Check the amount, currency, available balance and selected account.", lang), color = MaterialTheme.colorScheme.error)
                     FinanceTextField(
                         value = contributeAmountStr,
                         onValueChange = { contributeAmountStr = it },
@@ -254,18 +257,19 @@ fun SavingsAssetsScreen(
                 FinanceButton(
                     onClick = {
                         val amt = contributeAmountStr.toDoubleOrNull() ?: 0.0
-                        if (amt > 0.0) {
-                            val defaultAcc = accounts.firstOrNull()?.id ?: 1L
-                            viewModel.contributeToSavings(target.id, amt, defaultAcc)
-                            goalToContribute = null
-                        }
+                        val defaultAcc = accounts.firstOrNull { it.currency.equals(target.currency, true) && it.balance >= amt }?.id
+                        if (amt > 0.0 && defaultAcc != null) {
+                            viewModel.contributeToSavings(target.id, amt, defaultAcc) { success ->
+                                if (success) { goalToContribute = null; contributionFailed = false } else contributionFailed = true
+                            }
+                        } else contributionFailed = true
                     }
                 ) {
                     Text(Strings.get("confirm", lang))
                 }
             },
             dismissButton = {
-                FinanceOutlinedButton(onClick = { goalToContribute = null }) {
+                FinanceOutlinedButton(onClick = { goalToContribute = null; contributionFailed = false }) {
                     Text(Strings.get("cancel", lang))
                 }
             }
