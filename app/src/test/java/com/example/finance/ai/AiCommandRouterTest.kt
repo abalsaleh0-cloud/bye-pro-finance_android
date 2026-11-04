@@ -36,5 +36,9 @@ class AiCommandRouterTest {
     fun mapsArabicSectionNavigation() {
         assertEquals("debts", AiCommandRouter.parseSectionNavigation("افتح قسم الديون"))
         assertEquals("accounts", AiCommandRouter.parseSectionNavigation("اذهب إلى حساباتي"))
+        assertEquals("work", AiCommandRouter.parseSectionNavigation("افتح قسم العمل"))
+        assertEquals("admin", AiCommandRouter.parseSectionNavigation("افتح لوحة الإدارة"))
+        assertEquals("smart_scan", AiCommandRouter.parseSectionNavigation("افتح المسح الذكي"))
+        assertEquals("import_export", AiCommandRouter.parseSectionNavigation("افتح الاستيراد والتصدير"))
     }
 }
