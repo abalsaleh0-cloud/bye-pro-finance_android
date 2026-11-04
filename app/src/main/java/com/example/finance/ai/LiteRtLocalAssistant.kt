@@ -151,8 +151,12 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
                 val contents = imageFiles.map { file ->
                     Content.ImageFile(file.absolutePath)
                 } + Content.Text(
-                    "User request: $message\nAnalyze the supplied image(s) directly. " +
-                        "Describe only visible evidence, distinguish uncertainty, and do not invent details."
+                    "User request: $message\nAnalyze the supplied image(s) and fulfill the user's request. " +
+                        "If the user explicitly asks to register, create, update, pay, transfer, or delete something based on the image, " +
+                        "use the connected local app tools: read/list first when IDs or current records are needed, then call only the matching propose tool. " +
+                        "All writes must remain preview-only and require the user's explicit in-app confirmation; never execute or claim a write yourself. " +
+                        "Extract only legible values, preserve dates, amounts and currencies exactly, and ask one concise question for missing or ambiguous required fields. " +
+                        "Never invent details or send image contents or local records to a network service."
                 )
                 val output = StringBuilder()
                 activeConversation.sendMessageAsync(Contents.of(*contents.toTypedArray())).collect { chunk ->
