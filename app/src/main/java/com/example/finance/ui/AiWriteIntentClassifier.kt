@@ -29,7 +29,7 @@ internal object AiWriteIntentClassifier {
         // Use Unicode letter classes: Java's default \\w does not consume Arabic
         // letters, so valid Arabic inflections were rejected by the old gate.
         val explicitRecordCommand = Regex(
-            """(?:^|\s)(?:سجل|سجّل)\s+(?:مصروف\p{L}*|إيراد\p{L}*|ايراد\p{L}*|معاملة\p{L}*|دين\p{L}*|فاتور\p{L}*|دفعة\p{L}*|تحويل\p{L}*|حساب\p{L}*|ميزاني\p{L}*|أصل\p{L}*|اصل\p{L}*|هدف\s+ادخار\p{L}*|ادخار\p{L}*|مستند\p{L}*|وثيق\p{L}*|راتب\p{L}*|أجر\p{L}*|اجر\p{L}*|مصدر\s+عمل\p{L}*|حركة\s+عمل\p{L}*|عضو\s+(?:أسرة|اسرة|عائلة)\p{L}*|مصروف\s+(?:أسرة|اسرة|عائلة)\p{L}*)(?=\s|$)"""
+            """(?:^|\s)(?:سجل|سجّل)\s+(?:ال)?(?:مصروف\p{L}*|إيراد\p{L}*|ايراد\p{L}*|معاملة\p{L}*|دين\p{L}*|فاتور\p{L}*|دفعة\p{L}*|تحويل\p{L}*|حساب\p{L}*|ميزاني\p{L}*|أصل\p{L}*|اصل\p{L}*|هدف\s+ادخار\p{L}*|ادخار\p{L}*|مستند\p{L}*|وثيق\p{L}*|راتب\p{L}*|أجر\p{L}*|اجر\p{L}*|مصدر\s+عمل\p{L}*|حركة\s+عمل\p{L}*|عضو\s+(?:أسرة|اسرة|عائلة|عائل)\p{L}*|مصروف\s+(?:أسرة|اسرة|عائلة|عائل)\p{L}*)(?=\s|$)"""
         ).containsMatchIn(normalized) || Regex(
             """(?:^|\s)record\s+(?:(?:an?|the)\s+)?(?:[\p{L}-]+\s+){0,2}(?:expense|income|transaction|debt|bill|payment|transfer|account|budget|asset|savings?\s+goal|document|salary|work\s+(?:source|record)|household\s+(?:member|expense))(?=\s|$)"""
         ).containsMatchIn(normalized)
