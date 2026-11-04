@@ -13,7 +13,7 @@ internal object AiWriteIntentClassifier {
         val normalized = query.trim().lowercase(Locale.ROOT)
             .replace(Regex("[\\u064B-\\u065F\\u0670]"), "")
             .replace(Regex("[؟?!،,.؛:]+"), " ")
-            .replace(Regex("\\s+"), " ")
+            .replace(Regex("\s+"), " ")
             .trim()
         if (normalized.isBlank()) return false
 
@@ -27,9 +27,9 @@ internal object AiWriteIntentClassifier {
         if (readPhrases.any(normalized::contains)) return false
 
         val explicitRecordCommand = Regex(
-            """(?:^|\\s)(?:سجل|سجّل)\\s+(?:مصروف|مصروفا|إيراد|ايراد|معاملة|دين|فاتورة|دفعة|تحويل)(?=\\s|$)"""
+            """(?:^|\s)(?:سجل|سجّل)\s+(?:مصروف|مصروفا|إيراد|ايراد|معاملة|دين|فاتورة|دفعة|تحويل)(?=\s|$)"""
         ).containsMatchIn(normalized) || Regex(
-            """(?:^|\\s)record\\s+(?:an?\\s+)?(?:expense|income|transaction|debt|bill|payment|transfer)(?=\\s|$)"""
+            """(?:^|\s)record\s+(?:an?\s+)?(?:expense|income|transaction|debt|bill|payment|transfer)(?=\s|$)"""
         ).containsMatchIn(normalized)
 
         val explicitWriteTerms = listOf(
