@@ -205,14 +205,13 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val result = runCatching {
                 val cash = com.example.finance.engine.WorkLedgerCalculator.isCashMovement(record.type)
-                val account = if (cash) {
-                    val id = accountId ?: throw IllegalArgumentException("Select a personal account")
-                    accounts.value.firstOrNull { it.id == id } ?: throw IllegalArgumentException("Account not found")
+                val account = if (cash && accountId != null) {
+                    accounts.value.firstOrNull { it.id == accountId } ?: throw IllegalArgumentException("Account not found")
                 } else null
                 if (account != null) require(account.currency.equals(record.currency, true))
                 val transaction = account?.let {
                     val type = when (record.type) {
-                        WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT -> TransactionType.INCOME
+                        WorkRecordType.WORK_INCOME, WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT -> TransactionType.INCOME
                         WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.WORK_EXPENSE -> TransactionType.EXPENSE
                         WorkRecordType.WORK_TRANSFER_IN -> TransactionType.TRANSFER
                         WorkRecordType.WORK_TRANSFER_OUT -> TransactionType.ADJUSTMENT
