@@ -107,11 +107,17 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
         (filter == null || tx.type == filter) &&
             (q.isBlank() || tx.description.contains(q, true) || accountName.contains(q, true))
     }
-    val summary = visible.filter { it.status != TransactionStatus.CANCELLED }.groupBy { it.currency }.mapValues { (_, rows) ->
-        val income = rows.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-        val expense = rows.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-        Triple(income, expense, rows.size)
-    }
+    // Match dashboard and reports: pending/cancelled rows are not posted
+    // financial activity. Refunds are included in income like FinanceEngine.
+    val summary = visible.filter { it.status == TransactionStatus.COMPLETED }
+        .groupBy { it.currency }
+        .mapValues { (_, rows) ->
+            val income = rows.filter {
+                it.type == TransactionType.INCOME || it.type == TransactionType.REFUND
+            }.sumOf { it.amount }
+            val expense = rows.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+            Triple(income, expense, rows.size)
+        }
 
     Scaffold(
         floatingActionButton = {
