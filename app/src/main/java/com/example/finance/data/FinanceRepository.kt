@@ -80,7 +80,7 @@ class FinanceRepository(
         if (transfer) require(record.sourceId == null && record.relatedRecordId == null) else {
             require(source != null && source.isActive)
             val employment = record.type in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
-            require((source.type == WorkSourceType.EMPLOYMENT) == employment)
+            if (record.type != WorkRecordType.WORK_EXPENSE) require((source.type == WorkSourceType.EMPLOYMENT) == employment)
             require(source.currency.equals(record.currency, true))
         }
         if (record.type == WorkRecordType.FREELANCE_PAYMENT) {

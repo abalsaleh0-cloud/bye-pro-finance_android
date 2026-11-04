@@ -208,7 +208,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 val transaction = account?.let {
                     val type = when (record.type) {
                         WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT -> TransactionType.INCOME
-                        WorkRecordType.FREELANCE_EXPENSE -> TransactionType.EXPENSE
+                        WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.WORK_EXPENSE -> TransactionType.EXPENSE
                         WorkRecordType.WORK_TRANSFER_IN -> TransactionType.TRANSFER
                         WorkRecordType.WORK_TRANSFER_OUT -> TransactionType.ADJUSTMENT
                         else -> throw IllegalArgumentException("Not a cash movement")

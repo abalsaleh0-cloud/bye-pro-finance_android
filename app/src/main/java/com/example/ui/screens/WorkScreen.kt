@@ -38,7 +38,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         }
     }
     val received = periodRows.filter { it.type in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT) }.sumOf { it.amount }
-    val expenses = periodRows.filter { it.type == WorkRecordType.FREELANCE_EXPENSE }.sumOf { it.amount }
+    val expenses = periodRows.filter { it.type == WorkRecordType.FREELANCE_EXPENSE || it.type == WorkRecordType.WORK_EXPENSE }.sumOf { it.amount }
     val netProfit = received - expenses
     val balance = WorkLedgerCalculator.cashBalance(records, currency).toDouble()
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -116,7 +116,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     var sourceId by remember(sources) { mutableStateOf(sources.firstOrNull()?.id) }; val source = sources.firstOrNull { it.id == sourceId }
     var type by remember(source) { mutableStateOf(if (source?.type == WorkSourceType.FREELANCE) WorkRecordType.FREELANCE_INCOME else WorkRecordType.SALARY_ADVANCE) }
     var amount by remember { mutableStateOf("") }; var note by remember { mutableStateOf("") }; var related by remember { mutableStateOf<Long?>(null) }
-    val options = if (source?.type == WorkSourceType.EMPLOYMENT) listOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT) else listOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.FREELANCE_EXPENSE)
+    val options = if (source?.type == WorkSourceType.EMPLOYMENT) listOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT, WorkRecordType.WORK_EXPENSE) else listOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.WORK_EXPENSE)
     val cash = WorkLedgerCalculator.isCashMovement(type); val matching = accounts.filter { it.currency.equals(source?.currency ?: currency, true) }
     var accountId by remember(sourceId, matching) { mutableStateOf(matching.firstOrNull()?.id) }
     val receivables = records.filter { it.type == WorkRecordType.FREELANCE_INCOME && it.sourceId == sourceId && WorkLedgerCalculator.freelanceOutstanding(it, records).toDouble() > 0.000001 }
@@ -161,6 +161,7 @@ private fun workRecordLabel(type: WorkRecordType, ar: Boolean): String = when (t
     WorkRecordType.FREELANCE_INCOME -> if (ar) "دخل عمل حر مستحق" else "Freelance receivable"
     WorkRecordType.FREELANCE_PAYMENT -> if (ar) "دفعة عمل حر مستلمة" else "Freelance payment received"
     WorkRecordType.FREELANCE_EXPENSE -> if (ar) "مصروف عمل حر" else "Freelance expense"
+    WorkRecordType.WORK_EXPENSE -> if (ar) "مصروف عمل" else "Work expense"
     WorkRecordType.WORK_TRANSFER_IN -> if (ar) "تحويل إلى رصيد العمل" else "Transfer into work"
     WorkRecordType.WORK_TRANSFER_OUT -> if (ar) "تحويل إلى الحساب الشخصي" else "Transfer to personal"
 }

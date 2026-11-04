@@ -18,7 +18,7 @@ class WorkLedgerCalculatorTest {
         assertEquals(500.0, WorkLedgerCalculator.freelanceOutstanding(income, rows).toDouble(), 0.001)
     }
     @Test fun internalTransfersAffectWorkCashButRemainSeparateFromIncomeAndExpenses() {
-        val rows = listOf(WorkRecordEntity(type = WorkRecordType.WORK_TRANSFER_IN, amount = 500.0), WorkRecordEntity(type = WorkRecordType.FREELANCE_PAYMENT, amount = 300.0), WorkRecordEntity(type = WorkRecordType.FREELANCE_EXPENSE, amount = 100.0), WorkRecordEntity(type = WorkRecordType.WORK_TRANSFER_OUT, amount = 50.0))
+        val rows = listOf(WorkRecordEntity(type = WorkRecordType.WORK_TRANSFER_IN, amount = 500.0), WorkRecordEntity(type = WorkRecordType.FREELANCE_PAYMENT, amount = 300.0), WorkRecordEntity(type = WorkRecordType.WORK_EXPENSE, amount = 100.0), WorkRecordEntity(type = WorkRecordType.WORK_TRANSFER_OUT, amount = 50.0))
         assertEquals(650.0, WorkLedgerCalculator.cashBalance(rows, "LYD").toDouble(), 0.001)
     }
 }
