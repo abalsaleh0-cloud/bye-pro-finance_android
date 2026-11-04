@@ -107,6 +107,7 @@ fun DashboardScreen(
     val currency = if ("LYD" in availableCurrencies) "LYD" else availableCurrencies.firstOrNull() ?: "LYD"
 
     val currencyAccounts = accounts.filter { it.currency.equals(currency, ignoreCase = true) }
+    val activeCurrencyAccounts = currencyAccounts.filter { !it.isArchived }
     val completedTransactions = transactions.filter {
         it.currency.equals(currency, ignoreCase = true) && it.status == TransactionStatus.COMPLETED
     }
@@ -119,7 +120,8 @@ fun DashboardScreen(
     val unpaidCurrencyBills = currencyBills.filter { !it.isPaid }
     val currencyGoals = savingsGoals.filter { it.currency.equals(currency, ignoreCase = true) }
 
-    val availableBalance = currencyAccounts.sumOf { it.balance }
+    // Archived accounts remain in history but must not inflate spendable cash.
+    val availableBalance = activeCurrencyAccounts.sumOf { it.balance }
     val recordedIncome = completedTransactions
         .filter { it.type == TransactionType.INCOME }
         .sumOf { it.amount }
@@ -170,7 +172,7 @@ fun DashboardScreen(
             DashboardMetric(
                 label = WebI18n.tr("الرصيد المتاح", "Available balance", lang) + " · $currency",
                 value = TextContent.money(availableBalance, currency, lang),
-                detail = "${TextContent.number(accounts.size, lang, 0)} " + WebI18n.tr("حساب نشط", "active accounts", lang)
+                detail = "${TextContent.number(activeCurrencyAccounts.size, lang, 0)} " + WebI18n.tr("حساب نشط", "active accounts", lang)
             )
         }
         item {
@@ -191,7 +193,7 @@ fun DashboardScreen(
             DashboardMetric(
                 label = WebI18n.tr("قيمة الأصول", "Asset value", lang) + " · $currency",
                 value = TextContent.money(assetValue, currency, lang),
-                detail = "${TextContent.number(assets.size, lang, 0)} " + WebI18n.tr("أصل", "assets", lang)
+                detail = "${TextContent.number(currencyAssets.size, lang, 0)} " + WebI18n.tr("أصل", "assets", lang)
             )
         }
 
