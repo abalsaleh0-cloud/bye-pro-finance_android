@@ -850,7 +850,8 @@ class AiAppToolSet(
                         ToolParam::class.java.getMethod("description").invoke(param)?.toString()
                     }
                 }.getOrNull()?.toString().orEmpty()
-                "$index:${parameter.type.simpleName}" + if (parameterDescription.isBlank()) "" else " ($parameterDescription)"
+                val parameterName = parameter.name.takeUnless { it.startsWith("arg") } ?: "arg$index"
+                "$parameterName:${parameter.type.simpleName}" + if (parameterDescription.isBlank()) "" else " ($parameterDescription)"
             }.joinToString(", ")
             "${method.name}($parameters): $description"
         }
