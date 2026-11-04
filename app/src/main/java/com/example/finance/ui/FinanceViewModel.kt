@@ -703,25 +703,29 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                     require(savedModel.isFile && savedModel.canRead() && isGemma3nVisionModel(savedModel)) {
                         "ملف نموذج الصور غير موجود أو ليس حزمة Gemma 3n LiteRT-LM صالحة؛ أعد استيراده من إعدادات النماذج."
                     }
-                    _localModelLoading.value = true
+                    var imageFiles: List<File> = emptyList()
                     try {
-                        // Avoid holding the text runtime in memory while the multimodal model is active.
-                        localLlm.unload()
-                        ggufLlm.unload()
-                        _localModelReady.value = false
-                        visionLlm.load(savedModel)
-                    } finally {
-                        _localModelLoading.value = false
-                    }
-                    val imageFiles = prepareLocalImageFiles(attachments)
-                    try {
+                        _localModelLoading.value = true
+                        try {
+                            // Avoid holding the text runtime in memory while the multimodal model is active.
+                            localLlm.unload()
+                            ggufLlm.unload()
+                            _localModelReady.value = false
+                            visionLlm.load(savedModel)
+                        } finally {
+                            _localModelLoading.value = false
+                        }
+                        // Keep model cleanup outside image preparation too: invalid or inaccessible
+                        // attachments must not leave the multi-GB vision runtime resident in RAM.
+                        imageFiles = prepareLocalImageFiles(attachments)
                         val imagePrompt = trimmedQuery.ifBlank {
                             WebI18n.tr("حلّل الصور المرفقة واشرح ما يظهر فيها بدقة.", "Analyze the attached images and explain what is visible.", _appLanguage.value)
                         }
                         visionLlm.sendMessageWithImages(imagePrompt, imageFiles)
                     } finally {
                         imageFiles.forEach { it.delete() }
-                        visionLlm.unload()
+                        runCatching { visionLlm.unload() }
+                            .onFailure { Log.w("BYE_PRO_LOCAL_VISION", "Vision runtime cleanup failed.", it) }
                         _localModelReady.value = false
                     }
                 }.getOrElse { error ->
