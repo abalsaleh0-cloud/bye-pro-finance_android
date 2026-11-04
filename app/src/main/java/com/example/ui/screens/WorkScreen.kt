@@ -24,6 +24,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     var sourceDialog by remember { mutableStateOf(false) }
     var editingSource by remember { mutableStateOf<WorkSourceEntity?>(null) }
     var recordDialog by remember { mutableStateOf(false) }
+    var editingRecord by remember { mutableStateOf<WorkRecordEntity?>(null) }
     var transferDialog by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
     var deleteRecordId by remember { mutableStateOf<Long?>(null) }
@@ -81,7 +82,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Button(onClick = { editingSource = null; sourceDialog = true }) { Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "إضافة جهة عمل" else "إضافة نشاط / عميل") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Add employer" else "Add activity / client")) }
-            Button(onClick = { recordDialog = true }) { Text(if (ar) "تسجيل حركة" else "Add record") }
+            Button(onClick = { editingRecord = null; recordDialog = true }) { Text(if (ar) "تسجيل حركة" else "Add record") }
             TextButton(onClick = { transferDialog = true }) { Text(if (ar) "تحويل" else "Transfer") }
         }
         if (error) Text(if (ar) "تعذر الحفظ. تحقق من صحة البيانات." else "Could not save. Check the entered details.", color = MaterialTheme.colorScheme.error)
@@ -110,6 +111,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                 val name = sources.firstOrNull { it.id == row.sourceId }?.name ?: (if (row.type == WorkRecordType.WORK_TRANSFER_IN || row.type == WorkRecordType.WORK_TRANSFER_OUT) (if (ar) "تحويل داخلي" else "Internal transfer") else (if (ar) "عمل عام" else "General work"))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(name + " · " + workRecordLabel(row.type, ar) + " · " + money.format(row.amount) + " " + row.currency, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { editingRecord = row; recordDialog = true }) { Text(if (ar) "تعديل" else "Edit") }
                     TextButton(onClick = { deleteRecordId = row.id }) { Text(if (ar) "حذف" else "Delete") }
                 }
             }
@@ -140,8 +142,10 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             viewModel.updateWorkSource(existing.copy(name = name, monthlySalary = salary, currency = currency)) { if (it) { sourceDialog = false; editingSource = null; error = false } else error = true }
         }
     }
-    if (recordDialog) WorkRecordDialog(ar, currency, selectedScope, visibleSources, visibleRecords, accounts, { recordDialog = false }) { row, accountId ->
-        viewModel.addWorkRecord(row, accountId) { if (it) { recordDialog = false; error = false } else error = true }
+    if (recordDialog) WorkRecordDialog(ar, currency, selectedScope, visibleSources, visibleRecords, accounts, editingRecord, { recordDialog = false; editingRecord = null }) { row, accountId ->
+        val existing = editingRecord
+        if (existing == null) viewModel.addWorkRecord(row, accountId) { if (it) { recordDialog = false; error = false } else error = true }
+        else viewModel.updateWorkRecord(row.copy(id = existing.id, date = existing.date, period = existing.period), accountId) { if (it) { recordDialog = false; editingRecord = null; error = false } else error = true }
     }
     if (transferDialog) WorkTransferDialog(ar, currency, selectedScope, accounts, { transferDialog = false }) { type, amount, note, accountId ->
         viewModel.addWorkRecord(WorkRecordEntity(type = type, amount = amount, currency = currency, notes = note, scope = selectedScope), accountId) { if (it) { transferDialog = false; error = false } else error = true }
@@ -164,14 +168,14 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         Button(onClick = { if (name.isNotBlank() && amount >= 0) save(name.trim(), type, amount) }, enabled = name.isNotBlank() && amount >= 0) { Text(if (ar) "حفظ" else "Save") }
     }, dismissButton = { TextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
 }
-@Composable private fun WorkRecordDialog(ar: Boolean, currency: String, scope: WorkSourceType, sources: List<WorkSourceEntity>, records: List<WorkRecordEntity>, accounts: List<AccountEntity>, dismiss: () -> Unit, save: (WorkRecordEntity, Long?) -> Unit) {
-    var sourceId by remember { mutableStateOf<Long?>(null) }
+@Composable private fun WorkRecordDialog(ar: Boolean, currency: String, scope: WorkSourceType, sources: List<WorkSourceEntity>, records: List<WorkRecordEntity>, accounts: List<AccountEntity>, existing: WorkRecordEntity?, dismiss: () -> Unit, save: (WorkRecordEntity, Long?) -> Unit) {
+    var sourceId by remember(existing?.id, scope) { mutableStateOf(existing?.sourceId) }
     val source = sources.firstOrNull { it.id == sourceId }
-    var type by remember(scope) { mutableStateOf(if (scope == WorkSourceType.EMPLOYMENT) WorkRecordType.WORK_INCOME else WorkRecordType.WORK_INCOME) }
-    var amount by remember { mutableStateOf("") }
-    var note by remember { mutableStateOf("") }
-    var related by remember { mutableStateOf<Long?>(null) }
-    var currencyCode by remember(sourceId, currency) { mutableStateOf(source?.currency ?: currency) }
+    var type by remember(existing?.id, scope) { mutableStateOf(existing?.type ?: WorkRecordType.WORK_INCOME) }
+    var amount by remember(existing?.id) { mutableStateOf(existing?.amount?.toString().orEmpty()) }
+    var note by remember(existing?.id) { mutableStateOf(existing?.notes.orEmpty()) }
+    var related by remember(existing?.id) { mutableStateOf(existing?.relatedRecordId) }
+    var currencyCode by remember(existing?.id, sourceId, currency) { mutableStateOf(source?.currency ?: existing?.currency ?: currency) }
     val options = buildList {
         add(WorkRecordType.WORK_INCOME)
         add(WorkRecordType.WORK_EXPENSE)
@@ -186,12 +190,12 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     val cash = WorkLedgerCalculator.isCashMovement(type)
     val selectedCurrency = (source?.currency ?: currencyCode).trim().uppercase()
     val matching = accounts.filter { it.currency.equals(selectedCurrency, true) }
-    var accountId by remember(selectedCurrency) { mutableStateOf<Long?>(null) }
+    var accountId by remember(selectedCurrency, existing?.id) { mutableStateOf(existing?.linkedAccountId) }
     val receivables = records.filter {
         it.type == WorkRecordType.FREELANCE_INCOME && it.sourceId == sourceId &&
             WorkLedgerCalculator.freelanceOutstanding(it, records).toDouble() > 0.000001
     }
-    AlertDialog(onDismissRequest = dismiss, title = { Text(if (ar) "تسجيل حركة عمل" else "Add work record") }, text = {
+    AlertDialog(onDismissRequest = dismiss, title = { Text(if (existing == null) (if (ar) "تسجيل حركة عمل" else "Add work record") else (if (ar) "تعديل حركة العمل" else "Edit work record")) }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(if (ar) "المصدر (اختياري)" else "Source (optional)")
             TextButton(onClick = { sourceId = null; type = WorkRecordType.WORK_INCOME; related = null; accountId = null }) {
@@ -255,13 +259,15 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                     (type != WorkRecordType.FREELANCE_PAYMENT || related != null)) {
                     save(
                         WorkRecordEntity(
+                            id = existing?.id ?: 0L,
                             sourceId = sourceId,
                             scope = scope,
                             relatedRecordId = related,
                             type = type,
                             amount = value,
                             currency = selectedCurrency,
-                            period = java.time.YearMonth.now().toString(),
+                            date = existing?.date ?: System.currentTimeMillis(),
+                            period = existing?.period ?: java.time.YearMonth.now().toString(),
                             notes = note.trim()
                         ),
                         if (cash) accountId else null
