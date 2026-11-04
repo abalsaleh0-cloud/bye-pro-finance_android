@@ -214,7 +214,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             TextButton(onClick = { sourceId = null; type = WorkRecordType.WORK_INCOME; related = null; accountId = null; currencyCode = currency }) {
                 Text((if (sourceId == null) "✓ " else "") + if (ar) "تسجيل عام بدون مصدر" else "General record without source")
             }
-            sources.filter { it.isActive }.forEach { item ->
+            sources.filter { it.isActive || it.id == existing?.sourceId }.forEach { item ->
                 TextButton(onClick = {
                     sourceId = item.id
                     currencyCode = item.currency
