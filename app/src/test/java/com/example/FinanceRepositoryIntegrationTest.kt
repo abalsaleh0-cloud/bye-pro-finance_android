@@ -716,4 +716,39 @@ class FinanceRepositoryIntegrationTest {
         assertTrue(repository.transactions.first().isEmpty())
     }
 
+
+    @Test
+    fun editingCompletedTransactionReconcilesAccountBalanceAtomically() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Edit account", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val transactionId = repository.addTransaction(
+            TransactionEntity(
+                accountId = accountId,
+                type = TransactionType.INCOME,
+                amount = 200.0,
+                currency = "LYD",
+                category = "Salary",
+                description = "Original income"
+            )
+        )
+        assertEquals(1200.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+
+        val original = db.financeDao().getTransactionById(transactionId)!!
+        repository.updateTransaction(
+            original.copy(
+                type = TransactionType.EXPENSE,
+                amount = 75.0,
+                category = "Other",
+                description = "Corrected expense"
+            )
+        )
+
+        val updated = db.financeDao().getTransactionById(transactionId)!!
+        assertEquals(TransactionType.EXPENSE, updated.type)
+        assertEquals(75.0, updated.amount, 0.001)
+        assertEquals("Corrected expense", updated.description)
+        assertEquals(925.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+    }
+
 }
