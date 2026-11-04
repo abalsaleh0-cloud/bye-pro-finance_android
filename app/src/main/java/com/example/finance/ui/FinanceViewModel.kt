@@ -700,6 +700,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                     "documents" -> "المستندات"
                     "notifications" -> "الإشعارات"
                     "settings" -> "الإعدادات"
+                    "work" -> "العمل"
+                    "smart_scan" -> "المسح الذكي"
+                    "import_export" -> "الاستيراد والتصدير"
+                    "admin" -> "الإدارة"
                     else -> "المساعد الذكي"
                 }
                 return "تم فتح قسم $sectionName."
