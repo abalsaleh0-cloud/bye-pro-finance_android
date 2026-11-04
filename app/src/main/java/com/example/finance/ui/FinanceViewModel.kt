@@ -201,6 +201,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun addWorkSource(source: WorkSourceEntity, onComplete: (Boolean) -> Unit = {}) {
         viewModelScope.launch { onComplete(runCatching { repository.addWorkSource(source) }.isSuccess) }
     }
+
+    fun updateWorkSource(source: WorkSourceEntity, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch { onComplete(runCatching { repository.updateWorkSource(source) }.isSuccess) }
+    }
     fun addWorkRecord(record: WorkRecordEntity, accountId: Long? = null, onComplete: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             val result = runCatching {
