@@ -206,7 +206,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     var accountId by remember(selectedCurrency, existing?.id) { mutableStateOf(existing?.linkedAccountId) }
     val receivables = records.filter {
         it.type == WorkRecordType.FREELANCE_INCOME && it.sourceId == sourceId &&
-            WorkLedgerCalculator.freelanceOutstanding(it, records).toDouble() > 0.000001
+            (WorkLedgerCalculator.freelanceOutstanding(it, records).toDouble() > 0.000001 || it.id == existing?.relatedRecordId)
     }
     AlertDialog(onDismissRequest = dismiss, title = { Text(if (existing == null) (if (ar) "تسجيل حركة عمل" else "Add work record") else (if (ar) "تعديل حركة العمل" else "Edit work record")) }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
