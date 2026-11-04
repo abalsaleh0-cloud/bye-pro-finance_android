@@ -160,7 +160,7 @@ class AiAppToolSet(
             scope = runCatching { WorkSourceType.valueOf(scope.trim().uppercase()) }.getOrDefault(WorkSourceType.EMPLOYMENT)
         )
         val isTransfer = parsedType == WorkRecordType.WORK_TRANSFER_IN || parsedType == WorkRecordType.WORK_TRANSFER_OUT
-        val employmentRecord = parsedType in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
+        val employmentRecord = parsedType in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_ALLOWANCE, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
         val freelanceRecord = parsedType in setOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT)
         if (isTransfer && record.sourceId != null) return@runBlocking mapOf("success" to false, "error" to "Internal work transfers must not reference a work source.")
         if ((employmentRecord || freelanceRecord) && record.sourceId == null) return@runBlocking mapOf("success" to false, "error" to "Choose a matching work source for this record type.")
