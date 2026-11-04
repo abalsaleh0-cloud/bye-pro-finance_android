@@ -172,7 +172,13 @@ class FinanceRepository(
             val parent = record.relatedRecordId?.let { dao.getWorkRecordById(it) } ?: throw IllegalArgumentException("Select the receivable being paid")
             require(parent.type == WorkRecordType.FREELANCE_INCOME && parent.sourceId == record.sourceId && parent.scope == record.scope)
             require(parent.id != record.id)
+            val alreadyPaid = dao.getWorkRecordsSnapshot().filter { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == parent.id && it.id != record.id }.sumOf { it.amount }
+            require(record.amount <= parent.amount - alreadyPaid + 0.000001) { "Payment exceeds the remaining freelance receivable" }
         } else require(record.relatedRecordId == null)
+        if (record.type == WorkRecordType.FREELANCE_INCOME) {
+            val alreadyPaid = dao.getWorkRecordsSnapshot().filter { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == record.id }.sumOf { it.amount }
+            require(record.amount + 0.000001 >= alreadyPaid) { "Receivable amount cannot be lower than payments already received" }
+        }
         val cash = WorkLedgerCalculator.isCashMovement(record.type)
         require(transaction == null || cash) { "Accrued records cannot post a personal cash transaction" }
         if (transaction != null) {
@@ -206,7 +212,7 @@ class FinanceRepository(
             }
             var newTxId: Long? = null
             if (transaction != null) {
-                val updatedTx = transaction.copy(id = oldTx?.id ?: transaction.id)
+                val updatedTx = transaction.copy(id = oldTx?.id ?: 0L)
                 if (oldTx == null) newTxId = dao.insertTransaction(updatedTx) else {
                     dao.updateTransaction(updatedTx)
                     newTxId = updatedTx.id
