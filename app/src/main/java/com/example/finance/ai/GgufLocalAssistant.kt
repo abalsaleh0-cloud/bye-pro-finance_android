@@ -3,6 +3,8 @@ package com.example.finance.ai
 import dev.ffmpegkit.llama.Llama
 import dev.ffmpegkit.llama.LlamaConfig
 import dev.ffmpegkit.llama.LlamaModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
@@ -18,7 +20,7 @@ class GgufLocalAssistant(private val appTools: AiAppToolSet) {
     private var loadedModelPath: String? = null
     private val history = ArrayDeque<Pair<String, String>>()
 
-    suspend fun load(modelFile: File) = mutex.withLock {
+    suspend fun load(modelFile: File) = withContext(Dispatchers.IO) { mutex.withLock {
         require(modelFile.isFile && modelFile.canRead() && modelFile.length() > 0L) {
             "ملف GGUF غير موجود أو لا يمكن قراءته."
         }
@@ -38,9 +40,9 @@ class GgufLocalAssistant(private val appTools: AiAppToolSet) {
         model = candidate
         loadedModelPath = path
         history.clear()
-    }
+    } }
 
-    suspend fun sendMessage(message: String, financialContext: String): String = mutex.withLock {
+    suspend fun sendMessage(message: String, financialContext: String): String = withContext(Dispatchers.IO) { mutex.withLock {
         val activeModel = checkNotNull(model?.takeIf { it.isLoaded }) {
             "لم يتم تحميل نموذج GGUF محلياً بعد."
         }
@@ -93,7 +95,7 @@ class GgufLocalAssistant(private val appTools: AiAppToolSet) {
         history.addLast(message to answer)
         while (history.size > 4) history.removeFirst()
         answer
-    }
+    } }
 
     private fun extractToolCall(text: String): Pair<String, String>? {
         val start = text.indexOf('{')
@@ -106,7 +108,7 @@ class GgufLocalAssistant(private val appTools: AiAppToolSet) {
             if (inString) {
                 if (escaped) escaped = false
                 else if (char == '\\') escaped = true
-                else if (char == '\\') escaped = true
+                else if (char == '"') inString = false
             } else {
                 when (char) {
                     '"' -> inString = true
@@ -129,7 +131,7 @@ class GgufLocalAssistant(private val appTools: AiAppToolSet) {
         return null
     }
 
-    suspend fun unload() = mutex.withLock { releaseLoadedModel() }
+    suspend fun unload() = withContext(Dispatchers.IO) { mutex.withLock { releaseLoadedModel() } }
 
     private fun releaseLoadedModel() {
         model?.let { runCatching { Llama.releaseModel(it) } }
