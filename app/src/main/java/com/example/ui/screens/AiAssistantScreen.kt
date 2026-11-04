@@ -522,6 +522,7 @@ fun AiAssistantScreen(
                 localModelStatus = localModelStatus,
                 onLoadModelFile = viewModel::loadLocalModelFile,
                 onImportAndLoadModel = viewModel::importAndLoadLocalModel,
+                onDownloadRecommendedModel = viewModel::downloadRecommendedGemma3n,
                 onAutoSpeakRepliesChange = { enabled ->
                     autoSpeakReplies = enabled
                     context.getSharedPreferences("bye_pro_ai_settings", 0)
