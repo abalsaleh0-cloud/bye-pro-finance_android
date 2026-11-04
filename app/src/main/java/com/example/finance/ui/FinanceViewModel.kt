@@ -48,6 +48,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 
 data class AccountActionFeedback(val operation: String, val succeeded: Boolean)
 data class ChatMessage(val sender: String, val text: String, val timestamp: Long = System.currentTimeMillis(), val attachments: List<String> = emptyList())
@@ -308,6 +310,104 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             } finally {
                 _localModelLoading.value = false
             }
+        }
+    }
+
+    /** Downloads the recommended Gemma 3n E2B Q4_K_M GGUF into app-private storage. */
+    fun downloadRecommendedGemma3n() {
+        if (_localModelLoading.value) return
+        viewModelScope.launch {
+            _localModelLoading.value = true
+            _localModelProgress.value = 0f
+            _localModelStatus.value = "جارٍ تنزيل Gemma 3n E2B Q4_K_M (حوالي 2.79 GB)..."
+            try {
+                val modelFile = downloadRecommendedGemma3nFile()
+                _localModelStatus.value = "اكتمل التنزيل. جارٍ فحص النموذج وتجهيزه للتشغيل..."
+                loadLocalModelIntoRuntime(modelFile)
+            } catch (error: Throwable) {
+                _localModelReady.value = false
+                _localModelStatus.value = "تعذر تنزيل النموذج أو تشغيله: " + (error.message ?: "خطأ غير معروف")
+                Log.e("BYE_PRO_LOCAL_AI", "Recommended Gemma 3n download/load failed", error)
+            } finally {
+                _localModelLoading.value = false
+            }
+        }
+    }
+
+    private suspend fun downloadRecommendedGemma3nFile(): File = withContext(Dispatchers.IO) {
+        val directory = File(getApplication<Application>().filesDir, "ai-models")
+        check(directory.exists() || directory.mkdirs()) { "تعذر إنشاء مجلد النماذج." }
+        val destination = File(directory, "gemma-3n-E2B-it-Q4_K_M.gguf")
+        if (destination.isFile && destination.length() > 0L) {
+            val existingMetadata = destination.inputStream().use(GgufMetadataInspector::inspect)
+            if (existingMetadata.architecture == "gemma3n") return@withContext destination
+            check(destination.delete()) { "ملف النموذج المحلي الموجود غير صالح وتعذر استبداله." }
+        }
+
+        val downloadUrl = URL(
+            "https://huggingface.co/second-state/gemma-3n-E2B-it-GGUF/resolve/main/gemma-3n-E2B-it-Q4_K_M.gguf"
+        )
+        val connection = (downloadUrl.openConnection() as HttpURLConnection).apply {
+            connectTimeout = 30_000
+            readTimeout = 90_000
+            instanceFollowRedirects = true
+            requestMethod = "GET"
+            setRequestProperty("User-Agent", "BYE-PRO-FINANCE-Android")
+        }
+        val temporary = File(directory, destination.name + ".part")
+        try {
+            val responseCode = connection.responseCode
+            check(responseCode == HttpURLConnection.HTTP_OK) {
+                "خادم تنزيل النموذج أعاد HTTP $responseCode."
+            }
+            val expectedBytes = connection.contentLengthLong
+            check(expectedBytes > 0L) { "تعذر تحديد حجم ملف النموذج من خادم التنزيل." }
+            val requiredBytes = expectedBytes + 512L * 1024L * 1024L
+            check(StatFs(directory.absolutePath).availableBytes >= requiredBytes) {
+                "المساحة الحرة غير كافية. يلزم تنزيل النموذج مع 512MB مساحة إضافية على الأقل."
+            }
+
+            var downloadedBytes = 0L
+            connection.inputStream.use { input ->
+                FileOutputStream(temporary).buffered(1024 * 1024).use { output ->
+                    val buffer = ByteArray(1024 * 1024)
+                    while (true) {
+                        currentCoroutineContext().ensureActive()
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        output.write(buffer, 0, count)
+                        downloadedBytes += count
+                        _localModelProgress.value =
+                            (downloadedBytes.toFloat() / expectedBytes.toFloat()).coerceIn(0f, 1f)
+                    }
+                    output.flush()
+                }
+            }
+            check(downloadedBytes == expectedBytes && temporary.length() == expectedBytes) {
+                "التنزيل غير مكتمل؛ لن يتم اعتماد الملف."
+            }
+            val metadata = temporary.inputStream().use(GgufMetadataInspector::inspect)
+            require(metadata.architecture == "gemma3n") {
+                "الملف الذي تم تنزيله ليس نموذج Gemma 3n GGUF المتوقع."
+            }
+
+            val backup = File(directory, destination.name + ".previous")
+            if (backup.exists()) check(backup.delete()) { "تعذر تنظيف نسخة النموذج السابقة." }
+            if (destination.exists()) check(destination.renameTo(backup)) {
+                "تعذر تجهيز النموذج السابق للاستبدال."
+            }
+            if (!temporary.renameTo(destination)) {
+                if (backup.exists()) backup.renameTo(destination)
+                error("تعذر تثبيت ملف النموذج بعد اكتمال التنزيل.")
+            }
+            backup.delete()
+            _localModelProgress.value = 1f
+            destination
+        } catch (error: Throwable) {
+            temporary.delete()
+            throw error
+        } finally {
+            connection.disconnect()
         }
     }
 
