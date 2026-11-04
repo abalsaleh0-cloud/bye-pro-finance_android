@@ -35,7 +35,11 @@ internal object AiCommandRouter {
             "documents" to listOf("المستندات", "الوثائق", "documents"),
             "notifications" to listOf("الإشعارات", "التنبيهات", "notifications"),
             "settings" to listOf("الإعدادات", "settings"),
-            "ai_assistant" to listOf("المساعد الذكي", "ai assistant")
+            "ai_assistant" to listOf("المساعد الذكي", "ai assistant"),
+            "work" to listOf("العمل", "الرواتب", "العمل الحر", "work"),
+            "smart_scan" to listOf("المسح الذكي", "المسح", "smart scan"),
+            "import_export" to listOf("الاستيراد والتصدير", "الاستيراد", "التصدير", "import export"),
+            "admin" to listOf("الإدارة", "لوحة الإدارة", "admin")
         )
         return targets.firstOrNull { (_, aliases) -> aliases.any(text::contains) }?.first
     }
