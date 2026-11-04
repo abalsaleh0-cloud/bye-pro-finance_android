@@ -768,10 +768,11 @@ class FinanceRepositoryIntegrationTest {
                 category = "WORK_INCOME", description = "Work income to delete", status = TransactionStatus.COMPLETED)
         )
         assertEquals(1080.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        val linkedTransactionId = db.financeDao().getWorkRecordById(id)!!.linkedTransactionId!!
         repository.deleteWorkRecord(id)
         assertEquals(1000.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
-        assertTrue(repository.workRecords.first().isEmpty())
-        assertTrue(repository.transactions.first().isEmpty())
+        assertEquals(null, db.financeDao().getWorkRecordById(id))
+        assertEquals(null, db.financeDao().getTransactionById(linkedTransactionId))
     }
 
     @Test
