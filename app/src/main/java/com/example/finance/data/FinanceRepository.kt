@@ -82,8 +82,7 @@ class FinanceRepository(
             WorkRecordType.SALARY_PAYMENT
         )
         val freelanceRecord = record.type in setOf(
-            WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT,
-            WorkRecordType.FREELANCE_EXPENSE
+            WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT
         )
         val source = record.sourceId?.let { dao.getWorkSourceById(it) }
         if (transfer) {
@@ -96,7 +95,7 @@ class FinanceRepository(
         if (source != null) {
             require(source.currency.equals(record.currency, true)) { "Record currency must match the selected source currency" }
             if (salaryRecord) require(source.type == WorkSourceType.EMPLOYMENT) { "Salary records require an employment source" }
-            if (freelanceRecord) require(source.type == WorkSourceType.FREELANCE) { "Freelance records require a freelance source" }
+            if (freelanceRecord || record.type == WorkRecordType.FREELANCE_EXPENSE) require(source.type == WorkSourceType.FREELANCE) { "Freelance records require a freelance source" }
         }
         if (record.type == WorkRecordType.FREELANCE_PAYMENT) {
             val parentId = record.relatedRecordId ?: throw IllegalArgumentException("Select the receivable being paid")
