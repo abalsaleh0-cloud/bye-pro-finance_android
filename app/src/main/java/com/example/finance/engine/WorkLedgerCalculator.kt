@@ -9,7 +9,7 @@ object WorkLedgerCalculator {
     private fun sum(rows: List<WorkRecordEntity>, types: Set<WorkRecordType>): BigDecimal = rows.asSequence().filter { it.type in types && it.amount.isFinite() }.fold(BigDecimal.ZERO) { a, r -> a.add(BigDecimal.valueOf(r.amount)) }
     fun salaryDue(source: WorkSourceEntity, records: List<WorkRecordEntity>, period: String): BigDecimal {
         val rows = records.filter { it.sourceId == source.id && it.period == period && it.currency.equals(source.currency, true) }
-        return BigDecimal.valueOf(source.monthlySalary).add(sum(rows, setOf(WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME))).subtract(sum(rows, setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_PAYMENT))).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_EVEN)
+        return BigDecimal.valueOf(source.monthlySalary).add(sum(rows, setOf(WorkRecordType.SALARY_ALLOWANCE, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME))).subtract(sum(rows, setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_PAYMENT))).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_EVEN)
     }
     fun freelanceOutstanding(income: WorkRecordEntity, records: List<WorkRecordEntity>): BigDecimal {
         val paid = records.filter { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == income.id }.fold(BigDecimal.ZERO) { a, r -> a.add(BigDecimal.valueOf(r.amount)) }
