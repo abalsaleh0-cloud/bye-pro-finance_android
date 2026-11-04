@@ -581,7 +581,7 @@ class AiAppToolSet(
         val row = repository.transactions.first().firstOrNull { it.id == id }
             ?: return@runBlocking mapOf("success" to false, "error" to "Transaction not found.")
         val account = repository.accounts.first().firstOrNull { it.id == row.accountId }
-        stageUpdate("تأكيد حذف معاملة", "المعاملة #$id\n\${row.description}\n\${row.amount} \${row.currency}\nالحساب: \${account?.name ?: "غير معروف"}\nالحالة: \${row.status}\nسيُعكس أثرها على رصيد الحساب إذا كانت مرحلة.", suspend {
+        stageUpdate("تأكيد حذف معاملة", "المعاملة #$id\n${row.description}\n${row.amount} ${row.currency}\nالحساب: ${account?.name ?: "غير معروف"}\nالحالة: ${row.status}\nسيُعكس أثرها على رصيد الحساب إذا كانت مرحلة.", suspend {
             repository.deleteTransaction(row)
             "تم حذف المعاملة وعكس أثرها المحاسبي بعد تأكيدك."
         })
@@ -591,7 +591,7 @@ class AiAppToolSet(
     fun proposeDeleteBudget(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val row = repository.budgets.first().firstOrNull { it.id == id }
             ?: return@runBlocking mapOf("success" to false, "error" to "Budget not found.")
-        stageUpdate("تأكيد حذف ميزانية", "الميزانية #$id\n\${row.name}\n\${row.category}\nالحد: \${row.limitAmount} \${row.currency}", suspend {
+        stageUpdate("تأكيد حذف ميزانية", "الميزانية #$id\n${row.name}\n${row.category}\nالحد: ${row.limitAmount} ${row.currency}", suspend {
             repository.deleteBudget(row)
             "تم حذف الميزانية بعد تأكيدك."
         })
@@ -601,7 +601,7 @@ class AiAppToolSet(
     fun proposeDeleteDebt(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val row = repository.debts.first().firstOrNull { it.id == id }
             ?: return@runBlocking mapOf("success" to false, "error" to "Debt not found.")
-        stageUpdate("تأكيد حذف دين", "الدين #$id\n\${row.name}\nالمتبقي: \${row.remaining} \${row.currency}\nالاتجاه: \${row.direction}", suspend {
+        stageUpdate("تأكيد حذف دين", "الدين #$id\n${row.name}\nالمتبقي: ${row.remaining} ${row.currency}\nالاتجاه: ${row.direction}", suspend {
             repository.deleteDebt(row)
             "تم حذف سجل الدين بعد تأكيدك؛ لم تُسجل دفعة مالية."
         })
@@ -611,7 +611,7 @@ class AiAppToolSet(
     fun proposeDeleteBill(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val row = repository.bills.first().firstOrNull { it.id == id }
             ?: return@runBlocking mapOf("success" to false, "error" to "Bill not found.")
-        stageUpdate("تأكيد حذف فاتورة", "الفاتورة #$id\n\${row.name}\n\${row.amount} \${row.currency}\nالحالة: \${if (row.isPaid) "مدفوعة" else "غير مدفوعة"}", suspend {
+        stageUpdate("تأكيد حذف فاتورة", "الفاتورة #$id\n${row.name}\n${row.amount} ${row.currency}\nالحالة: ${if (row.isPaid) "مدفوعة" else "غير مدفوعة"}", suspend {
             repository.deleteBill(row)
             "تم حذف سجل الفاتورة بعد تأكيدك؛ لم يتم عكس أي دفعة سابقة."
         })
@@ -621,7 +621,7 @@ class AiAppToolSet(
     fun proposeDeleteSavingsGoal(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val row = repository.savingsGoals.first().firstOrNull { it.id == id }
             ?: return@runBlocking mapOf("success" to false, "error" to "Savings goal not found.")
-        stageUpdate("تأكيد حذف هدف ادخار", "الهدف #$id\n\${row.name}\nالمحقق: \${row.currentAmount} من \${row.targetAmount} \${row.currency}", suspend {
+        stageUpdate("تأكيد حذف هدف ادخار", "الهدف #$id\n${row.name}\nالمحقق: ${row.currentAmount} من ${row.targetAmount} ${row.currency}", suspend {
             repository.deleteSavingsGoal(row)
             "تم حذف هدف الادخار بعد تأكيدك."
         })
@@ -631,7 +631,7 @@ class AiAppToolSet(
     fun proposeDeleteAsset(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val row = repository.assets.first().firstOrNull { it.id == id }
             ?: return@runBlocking mapOf("success" to false, "error" to "Asset not found.")
-        stageUpdate("تأكيد حذف أصل", "الأصل #$id\n\${row.name}\nالقيمة: \${row.value} \${row.currency}", suspend {
+        stageUpdate("تأكيد حذف أصل", "الأصل #$id\n${row.name}\nالقيمة: ${row.value} ${row.currency}", suspend {
             repository.deleteAsset(row)
             "تم حذف سجل الأصل بعد تأكيدك."
         })
@@ -641,7 +641,7 @@ class AiAppToolSet(
     fun proposeDeleteHouseholdExpense(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val row = repository.householdExpenses.first().firstOrNull { it.id == id }
             ?: return@runBlocking mapOf("success" to false, "error" to "Household expense not found.")
-        stageUpdate("تأكيد حذف مصروف أسري", "المصروف #$id\n\${row.title}\n\${row.amount} \${row.currency}", suspend {
+        stageUpdate("تأكيد حذف مصروف أسري", "المصروف #$id\n${row.title}\n${row.amount} ${row.currency}", suspend {
             repository.deleteHouseholdExpense(row)
             "تم حذف المصروف الأسري بعد تأكيدك."
         })
@@ -654,7 +654,7 @@ class AiAppToolSet(
         if (repository.householdExpenses.first().any { it.payerMemberId == id }) {
             return@runBlocking mapOf("success" to false, "error" to "This member has recorded expenses. Reassign or remove those expenses first.")
         }
-        stageUpdate("تأكيد حذف فرد الأسرة", "العضو #$id\n\${row.name}\nالدور: \${row.role}", suspend {
+        stageUpdate("تأكيد حذف فرد الأسرة", "العضو #$id\n${row.name}\nالدور: ${row.role}", suspend {
             repository.deleteHouseholdMember(row)
             "تم حذف فرد الأسرة بعد تأكيدك."
         })
