@@ -113,7 +113,10 @@ fun DashboardScreen(
     val currencyAssets = assets.filter { it.currency.equals(currency, ignoreCase = true) }
     val currencyBudgets = budgets.filter { it.currency.equals(currency, ignoreCase = true) }
     val currencyDebts = debts.filter { it.currency.equals(currency, ignoreCase = true) && it.remaining > 0.0 }
+    val liabilities = currencyDebts.filter { it.direction != "owed_to_me" }
+    val receivables = currencyDebts.filter { it.direction == "owed_to_me" }
     val currencyBills = bills.filter { it.currency.equals(currency, ignoreCase = true) }
+    val unpaidCurrencyBills = currencyBills.filter { !it.isPaid }
     val currencyGoals = savingsGoals.filter { it.currency.equals(currency, ignoreCase = true) }
 
     val availableBalance = currencyAccounts.sumOf { it.balance }
@@ -125,8 +128,9 @@ fun DashboardScreen(
         .sumOf { it.amount }
     val assetValue = currencyAssets.sumOf { it.value }
     val budgetTotal = currencyBudgets.sumOf { it.limitAmount }
-    val debtRemaining = currencyDebts.sumOf { it.remaining }
-    val billsDue = currencyBills.sumOf { it.amount }
+    val debtRemaining = liabilities.sumOf { it.remaining }
+    val receivableRemaining = receivables.sumOf { it.remaining }
+    val billsDue = unpaidCurrencyBills.sumOf { it.amount }
     val goalProgress = currencyGoals.sumOf { it.currentAmount }
     val goalTarget = currencyGoals.sumOf { it.targetAmount }
     val goalPercent = if (goalTarget > 0.0) (goalProgress / goalTarget * 100.0).toInt().coerceIn(0, 100) else 0
@@ -306,10 +310,17 @@ fun DashboardScreen(
                 count = TextContent.number(outstandingDebtCount, lang, 0)
             ) {
                 DashboardLine(
-                    label = WebI18n.tr("إجمالي المتبقي", "Total remaining", lang) + " · $currency",
+                    label = WebI18n.tr("ديون عليك", "You owe", lang) + " · $currency",
                     detail = "",
                     value = TextContent.money(debtRemaining, currency, lang),
                     valueColor = ByeProTheme.colors.financialRed,
+                    showDivider = true
+                )
+                DashboardLine(
+                    label = WebI18n.tr("مبالغ لك", "Owed to you", lang) + " · $currency",
+                    detail = "",
+                    value = TextContent.money(receivableRemaining, currency, lang),
+                    valueColor = ByeProTheme.colors.financialGreen,
                     showDivider = currencyDebts.isNotEmpty()
                 )
                 currencyDebts.take(3).forEachIndexed { index, debt ->
@@ -336,7 +347,7 @@ fun DashboardScreen(
                     DashboardQuickStat(TextContent.number(transactions.size, lang, 0), WebI18n.tr("معاملات", "Transactions", lang), Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    DashboardQuickStat(TextContent.number(bills.size, lang, 0), WebI18n.tr("الفواتير", "Bills", lang), Modifier.weight(1f))
+                    DashboardQuickStat(TextContent.number(unpaidCurrencyBills.size, lang, 0), WebI18n.tr("فواتير غير مدفوعة", "Unpaid bills", lang), Modifier.weight(1f))
                     DashboardQuickStat(TextContent.number(outstandingDebtCount, lang, 0), WebI18n.tr("الديون", "Debts", lang), Modifier.weight(1f))
                 }
                 Text(
