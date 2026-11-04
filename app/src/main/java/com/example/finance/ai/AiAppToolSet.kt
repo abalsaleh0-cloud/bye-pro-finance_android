@@ -13,6 +13,11 @@ import com.example.finance.model.BillEntity
 import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.AssetEntity
 import com.example.finance.model.AssetType
+import com.example.finance.model.WorkSourceEntity
+import com.example.finance.model.WorkSourceType
+import com.example.finance.model.WorkRecordEntity
+import com.example.finance.model.WorkRecordType
+import com.example.finance.engine.WorkLedgerCalculator
 import com.google.ai.edge.litertlm.Tool
 import com.google.ai.edge.litertlm.ToolParam
 import com.google.ai.edge.litertlm.ToolSet
@@ -58,6 +63,8 @@ class AiAppToolSet(
         data class Bill(val value: BillEntity) : PendingPayload
         data class SavingsGoal(val value: SavingsGoalEntity) : PendingPayload
         data class Asset(val value: AssetEntity) : PendingPayload
+        data class WorkSource(val value: WorkSourceEntity) : PendingPayload
+        data class WorkRecord(val value: WorkRecordEntity, val transaction: TransactionEntity?) : PendingPayload
         data class Transfer(val fromId: Long, val toId: Long, val amount: Double, val fee: Double, val currency: String, val description: String, val reference: String) : PendingPayload
         data class HouseholdMember(val name: String, val email: String, val role: String, val percent: Double) : PendingPayload
         data class HouseholdExpense(val title: String, val amount: Double, val payerId: Long, val category: String, val currency: String) : PendingPayload
@@ -79,6 +86,80 @@ class AiAppToolSet(
         if (target !in allowed) return mapOf("success" to false, "error" to "Section is not available.")
         navigate(target)
         return mapOf("success" to true, "section" to target)
+    }
+
+
+    @Tool(description = "Read the user's work ledger: employment and freelance sources, recent work records, salary amounts, receivables and work cash balances.")
+    fun getWorkLedgerOverview(): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val sources = repository.workSources.first()
+        val records = repository.workRecords.first()
+        mapOf(
+            "sources" to sources.take(50).map { mapOf("id" to it.id, "name" to it.name, "type" to it.type.name, "monthlySalary" to it.monthlySalary, "currency" to it.currency, "active" to it.isActive) },
+            "records" to records.take(100).map { mapOf("id" to it.id, "sourceId" to it.sourceId, "relatedRecordId" to it.relatedRecordId, "type" to it.type.name, "amount" to it.amount, "currency" to it.currency, "period" to it.period, "date" to it.date, "notes" to it.notes) },
+            "cashBalances" to records.map { it.currency.uppercase() }.distinct().associateWith { currency -> WorkLedgerCalculator.cashBalance(records, currency).toPlainString() }
+        )
+    }
+
+    @Tool(description = "Prepare a new employment or freelance income source in Work. type must be EMPLOYMENT or FREELANCE; freelance monthlySalary must be zero. Saved only after confirmation.")
+    fun proposeCreateWorkSource(name: String, type: String, monthlySalary: Double, currency: String): Map<String, Any> {
+        val cleanName = name.trim()
+        val parsedType = runCatching { WorkSourceType.valueOf(type.trim().uppercase()) }.getOrNull()
+            ?: return mapOf("success" to false, "error" to "type must be EMPLOYMENT or FREELANCE.")
+        val cleanCurrency = currency.trim().uppercase()
+        if (cleanName.length !in 2..100 || !monthlySalary.isFinite() || monthlySalary < 0.0 ||
+            !cleanCurrency.matches(Regex("[A-Z]{3}")) ||
+            (parsedType == WorkSourceType.FREELANCE && monthlySalary != 0.0)
+        ) return mapOf("success" to false, "error" to "Work source details are invalid.")
+        val value = WorkSourceEntity(name = cleanName, type = parsedType, monthlySalary = monthlySalary, currency = cleanCurrency)
+        return stageAction("مراجعة إضافة مصدر عمل", "الاسم: $cleanName\nالنوع: $parsedType\nالراتب الشهري: $monthlySalary $cleanCurrency", PendingPayload.WorkSource(value))
+    }
+
+    @Tool(description = "Prepare a work ledger record. type must exactly match WorkRecordType. For cash movements accountId is required to link the personal account. FREELANCE_PAYMENT requires relatedRecordId. Saved only after confirmation.")
+    fun proposeCreateWorkRecord(sourceId: Long, type: String, amount: Double, currency: String, period: String, notes: String, accountId: Long, relatedRecordId: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val parsedType = runCatching { WorkRecordType.valueOf(type.trim().uppercase()) }.getOrNull()
+            ?: return@runBlocking mapOf("success" to false, "error" to "Unknown work record type.")
+        val cleanCurrency = currency.trim().uppercase()
+        val cleanPeriod = period.trim().ifBlank { java.time.YearMonth.now().toString() }
+        if (!amount.isFinite() || amount <= 0.0 || !cleanCurrency.matches(Regex("[A-Z]{3}")) ||
+            !cleanPeriod.matches(Regex("\\d{4}-\\d{2}"))
+        ) return@runBlocking mapOf("success" to false, "error" to "Work record amount, currency or period is invalid.")
+        val cash = WorkLedgerCalculator.isCashMovement(parsedType)
+        val account = if (cash) {
+            if (accountId <= 0L) return@runBlocking mapOf("success" to false, "error" to "A personal account is required for this cash movement.")
+            repository.accounts.first().firstOrNull { it.id == accountId }
+                ?: return@runBlocking mapOf("success" to false, "error" to "Personal account not found.")
+        } else null
+        if (account != null && !account.currency.equals(cleanCurrency, true)) return@runBlocking mapOf("success" to false, "error" to "Personal account currency does not match.")
+        if (!cash && accountId > 0L) return@runBlocking mapOf("success" to false, "error" to "Do not link an account to an accrued work record.")
+        if (parsedType == WorkRecordType.FREELANCE_PAYMENT && relatedRecordId <= 0L) return@runBlocking mapOf("success" to false, "error" to "Select the freelance receivable.")
+        if (parsedType != WorkRecordType.FREELANCE_PAYMENT && relatedRecordId > 0L) return@runBlocking mapOf("success" to false, "error" to "relatedRecordId is only valid for FREELANCE_PAYMENT.")
+        val txType = when (parsedType) {
+            WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT -> TransactionType.INCOME
+            WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.WORK_EXPENSE -> TransactionType.EXPENSE
+            WorkRecordType.WORK_TRANSFER_IN -> TransactionType.TRANSFER
+            WorkRecordType.WORK_TRANSFER_OUT -> TransactionType.ADJUSTMENT
+            else -> null
+        }
+        val tx = if (account != null && txType != null) TransactionEntity(
+            accountId = account.id, type = txType, amount = amount, currency = account.currency,
+            category = when (txType) {
+                TransactionType.INCOME -> "WORK_INCOME"
+                TransactionType.EXPENSE -> "WORK_EXPENSE"
+                else -> "WORK_TRANSFER"
+            },
+            description = notes.trim().ifBlank { parsedType.name }, status = TransactionStatus.COMPLETED
+        ) else null
+        val record = WorkRecordEntity(
+            sourceId = sourceId.takeIf { it > 0L }, relatedRecordId = relatedRecordId.takeIf { it > 0L },
+            type = parsedType, amount = amount, currency = cleanCurrency, period = cleanPeriod, notes = notes.trim()
+        )
+        val sourceName = record.sourceId?.let { id -> repository.workSources.first().firstOrNull { it.id == id }?.name }
+        if (record.sourceId != null && sourceName == null) return@runBlocking mapOf("success" to false, "error" to "Work source not found.")
+        stageAction(
+            "مراجعة تسجيل حركة عمل",
+            "المصدر: " + (sourceName ?: "تحويل رصيد العمل") + "\nالنوع: " + parsedType + "\nالمبلغ: " + amount + " " + cleanCurrency + "\nالفترة: " + cleanPeriod + "\n" + notes.trim(),
+            PendingPayload.WorkRecord(record, tx)
+        )
     }
 
     @Tool(description = "Read a compact overview of the user's local accounts, budgets, debts and savings goals. Use only to answer a question about the user's own finance data.")
@@ -576,6 +657,8 @@ class AiAppToolSet(
             is PendingPayload.Bill -> { repository.addBill(payload.value); "تمت إضافة الفاتورة بعد تأكيدك." }
             is PendingPayload.SavingsGoal -> { repository.addSavingsGoal(payload.value); "تمت إضافة هدف الادخار بعد تأكيدك." }
             is PendingPayload.Asset -> { repository.addAsset(payload.value); "تمت إضافة الأصل بعد تأكيدك." }
+            is PendingPayload.WorkSource -> { repository.addWorkSource(payload.value); "تمت إضافة مصدر العمل «${payload.value.name}» بعد تأكيدك." }
+            is PendingPayload.WorkRecord -> { repository.addWorkRecord(payload.value, payload.transaction); "تم تسجيل حركة العمل «${payload.value.type.name}» فعلياً بعد تأكيدك." }
             is PendingPayload.Transfer -> {
                 val completed = repository.executeTransfer(payload.fromId,payload.toId,payload.amount,payload.fee,payload.currency,payload.description,payload.reference)
                 check(completed) { "تعذر تنفيذ التحويل؛ تحقق من الحسابات والعملة وحالة الحساب." }
