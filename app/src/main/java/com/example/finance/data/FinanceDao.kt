@@ -226,7 +226,7 @@ interface FinanceDao {
     suspend fun insertAuditLog(log: AuditLogEntity): Long
 
     // --- Work ledger ---
-    @Query("SELECT * FROM work_sources WHERE isActive = 1 ORDER BY createdAt DESC, id DESC")
+    @Query("SELECT * FROM work_sources ORDER BY createdAt DESC, id DESC")
     fun getWorkSources(): Flow<List<WorkSourceEntity>>
     @Query("SELECT * FROM work_sources WHERE id = :id LIMIT 1")
     suspend fun getWorkSourceById(id: Long): WorkSourceEntity?
