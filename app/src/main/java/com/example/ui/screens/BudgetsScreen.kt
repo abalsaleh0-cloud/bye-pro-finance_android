@@ -43,6 +43,7 @@ import java.util.Locale
 
 private val budgetCurrencies = listOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD")
 private val budgetPeriods = listOf(BudgetPeriod.WEEKLY, BudgetPeriod.MONTHLY, BudgetPeriod.QUARTERLY, BudgetPeriod.YEARLY, BudgetPeriod.CUSTOM)
+private val budgetCategories = listOf("All", "Groceries", "Dining", "Utilities", "Shopping", "Health", "Transport", "Other")
 
 private fun budgetDate(value: Long): String =
     SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(value))
@@ -57,6 +58,17 @@ private fun periodLabel(period: BudgetPeriod, lang: AppLanguage): String = when 
     BudgetPeriod.QUARTERLY -> WebI18n.tr("ربع سنوية", "Quarterly", lang)
     BudgetPeriod.YEARLY -> WebI18n.tr("سنوية", "Yearly", lang)
     BudgetPeriod.CUSTOM -> WebI18n.tr("مخصصة", "Custom", lang)
+}
+
+private fun budgetCategoryLabel(category: String, lang: AppLanguage): String = when (category) {
+    "All" -> WebI18n.tr("كل الفئات", "All categories", lang)
+    "Groceries" -> WebI18n.tr("البقالة", "Groceries", lang)
+    "Dining" -> WebI18n.tr("المطاعم", "Dining", lang)
+    "Utilities" -> WebI18n.tr("الفواتير والخدمات", "Utilities", lang)
+    "Shopping" -> WebI18n.tr("التسوق", "Shopping", lang)
+    "Health" -> WebI18n.tr("الصحة", "Health", lang)
+    "Transport" -> WebI18n.tr("النقل", "Transport", lang)
+    else -> WebI18n.tr("أخرى", "Other", lang)
 }
 
 @Composable
@@ -232,6 +244,7 @@ private fun BudgetFormDialog(
     var error by remember { mutableStateOf("") }
     var currencyMenu by remember { mutableStateOf(false) }
     var periodMenu by remember { mutableStateOf(false) }
+    var categoryMenu by remember { mutableStateOf(false) }
 
     FinanceAlertDialog(
         onDismissRequest = onDismiss,
@@ -258,6 +271,17 @@ private fun BudgetFormDialog(
                     DropdownMenu(expanded = periodMenu, onDismissRequest = { periodMenu = false }) {
                         budgetPeriods.forEach { option -> DropdownMenuItem(text = { Text(periodLabel(option, lang)) },
                             onClick = { period = option; periodMenu = false }) }
+                    }
+                }
+                Box {
+                    FinanceTextField(budgetCategoryLabel(category, lang), {}, label = { Text(WebI18n.tr("الفئة", "Category", lang)) },
+                        modifier = Modifier.fillMaxWidth().testTag("budget_category_input"), readOnly = true)
+                    Box(Modifier.matchParentSize().clickable { categoryMenu = true })
+                    DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
+                        budgetCategories.forEach { option -> DropdownMenuItem(
+                            text = { Text(budgetCategoryLabel(option, lang)) },
+                            onClick = { category = option; categoryMenu = false }
+                        ) }
                     }
                 }
                 FinanceTextField(startDate, { startDate = it; error = "" }, label = { Text(WebI18n.tr("تاريخ البداية (YYYY-MM-DD)", "Start date (YYYY-MM-DD)", lang)) },
