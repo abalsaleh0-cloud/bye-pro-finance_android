@@ -24,11 +24,19 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     var recordDialog by remember { mutableStateOf(false) }
     var transferDialog by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
+    var reportPeriod by remember { mutableStateOf("month") }
     val period = java.time.YearMonth.now().toString()
+    val currentDate = java.time.LocalDate.now()
     val money = remember(lang) { NumberFormat.getNumberInstance(if (ar) Locale("ar") else Locale.ENGLISH) }
     val salaryDue = sources.filter { it.type == WorkSourceType.EMPLOYMENT && it.currency.equals(currency, true) }.sumOf { WorkLedgerCalculator.salaryDue(it, records, period).toDouble() }
     val freelanceDue = records.filter { it.type == WorkRecordType.FREELANCE_INCOME && it.currency.equals(currency, true) }.sumOf { WorkLedgerCalculator.freelanceOutstanding(it, records).toDouble() }
-    val periodRows = records.filter { it.period == period && it.currency.equals(currency, true) }
+    val periodRows = records.filter { row ->
+        row.currency.equals(currency, true) && when (reportPeriod) {
+            "day" -> java.time.Instant.ofEpochMilli(row.date).atZone(java.time.ZoneId.systemDefault()).toLocalDate() == currentDate
+            "year" -> java.time.Instant.ofEpochMilli(row.date).atZone(java.time.ZoneId.systemDefault()).year == currentDate.year
+            else -> row.period == period
+        }
+    }
     val received = periodRows.filter { it.type in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT) }.sumOf { it.amount }
     val expenses = periodRows.filter { it.type == WorkRecordType.FREELANCE_EXPENSE }.sumOf { it.amount }
     val balance = WorkLedgerCalculator.cashBalance(records, currency).toDouble()
@@ -44,6 +52,11 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             WorkSummary(if (ar) "المصروفات" else "Expenses", expenses, currency, Modifier.weight(1f), money)
         }
         WorkSummary(if (ar) "رصيد العمل" else "Work cash balance", balance, currency, Modifier.fillMaxWidth(), money)
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            TextButton(onClick = { reportPeriod = "day" }) { Text((if (reportPeriod == "day") "✓ " else "") + (if (ar) "يومي" else "Daily")) }
+            TextButton(onClick = { reportPeriod = "month" }) { Text((if (reportPeriod == "month") "✓ " else "") + (if (ar) "شهري" else "Monthly")) }
+            TextButton(onClick = { reportPeriod = "year" }) { Text((if (reportPeriod == "year") "✓ " else "") + (if (ar) "سنوي" else "Yearly")) }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Button(onClick = { sourceDialog = true }) { Text(if (ar) "إضافة مصدر" else "Add source") }
             Button(onClick = { recordDialog = true }, enabled = sources.isNotEmpty()) { Text(if (ar) "تسجيل حركة" else "Add record") }
