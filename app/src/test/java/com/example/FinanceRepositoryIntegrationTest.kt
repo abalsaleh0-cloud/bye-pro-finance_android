@@ -838,4 +838,28 @@ class FinanceRepositoryIntegrationTest {
         assertEquals(1000.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
     }
 
+    @Test
+    fun editingCompletedTransactionMovesPostingBetweenAccountsAtomically() = runBlocking {
+        val sourceId = repository.addAccount(
+            AccountEntity(name = "Edit source account", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val destinationId = repository.addAccount(
+            AccountEntity(name = "Edit destination account", type = AccountType.BANK, balance = 300.0, currency = "LYD")
+        )
+        val id = repository.addTransaction(
+            TransactionEntity(accountId = sourceId, type = TransactionType.INCOME, amount = 50.0,
+                currency = "LYD", category = "Income", description = "Move this posting",
+                status = TransactionStatus.COMPLETED)
+        )
+        assertEquals(1050.0, db.financeDao().getAccountById(sourceId)?.balance ?: 0.0, 0.001)
+        repository.updateTransaction(
+            db.financeDao().getTransactionById(id)!!.copy(
+                accountId = destinationId, type = TransactionType.EXPENSE, amount = 20.0,
+                description = "Moved and corrected"
+            )
+        )
+        assertEquals(1000.0, db.financeDao().getAccountById(sourceId)?.balance ?: 0.0, 0.001)
+        assertEquals(280.0, db.financeDao().getAccountById(destinationId)?.balance ?: 0.0, 0.001)
+    }
+
 }
