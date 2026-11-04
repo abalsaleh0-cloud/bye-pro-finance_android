@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.finance.ai.AiAppToolSet
+import com.example.finance.ai.LiteRtVisionToolSet
 import com.example.finance.ai.AiProjectWorkspace
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceRepository
@@ -18,10 +19,33 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import com.google.ai.edge.litertlm.Tool
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class AiAppToolSetTest {
+
+    @Test
+    fun visionToolSchemaUsesOnlyLiteRtSupportedParameterTypes() {
+        val allowed = setOf(
+            String::class.java,
+            java.lang.Integer.TYPE,
+            java.lang.Double.TYPE,
+            java.lang.Boolean.TYPE,
+            java.lang.Float.TYPE
+        )
+        val exposed = LiteRtVisionToolSet::class.java.declaredMethods
+            .filter { it.isAnnotationPresent(Tool::class.java) }
+        assertTrue("Vision tool adapter must expose tools", exposed.isNotEmpty())
+        exposed.forEach { method ->
+            method.parameterTypes.forEach { parameterType ->
+                assertTrue(
+                    "Unsupported LiteRT vision tool parameter ${parameterType.name} in ${method.name}",
+                    parameterType in allowed
+                )
+            }
+        }
+    }
 
     @Test
     fun structuredManifestExposesAllAnnotatedToolsAndArgumentNames() = runBlocking {
