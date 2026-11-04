@@ -22,6 +22,7 @@ import com.google.ai.edge.litertlm.Tool
 import com.google.ai.edge.litertlm.ToolParam
 import com.google.ai.edge.litertlm.ToolSet
 import org.json.JSONArray
+import org.json.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -832,6 +833,65 @@ class AiAppToolSet(
         } catch (error: Throwable) {
             synchronized(pendingLock) { confirmingActionId = null }
             throw error
+        }
+    }
+
+    fun structuredToolManifest(): String = javaClass.methods
+        .filter { it.isAnnotationPresent(Tool::class.java) }
+        .sortedBy { it.name }
+        .joinToString("\n") { method ->
+            val annotation = method.getAnnotation(Tool::class.java)
+            val description = runCatching {
+                Tool::class.java.getMethod("description").invoke(annotation)?.toString().orEmpty()
+            }.getOrDefault("")
+            val parameters = method.parameters.mapIndexed { index, parameter ->
+                val parameterDescription = runCatching {
+                    parameter.getAnnotation(ToolParam::class.java)?.let { param ->
+                        ToolParam::class.java.getMethod("description").invoke(param)?.toString()
+                    }
+                }.getOrNull()?.toString().orEmpty()
+                "$index:\${parameter.type.simpleName}" + if (parameterDescription.isBlank()) "" else " ($parameterDescription)"
+            }.joinToString(", ")
+            "\${method.name}($parameters): $description"
+        }
+
+    fun invokeStructuredToolCall(toolName: String, argumentsJson: String): Map<String, Any> {
+        return try {
+            val method = javaClass.methods.firstOrNull { candidate ->
+                candidate.name == toolName && candidate.isAnnotationPresent(Tool::class.java)
+            } ?: return mapOf("success" to false, "error" to "Unknown or unavailable app tool.")
+            val arguments = JSONArray(argumentsJson)
+            if (arguments.length() != method.parameterTypes.size) {
+                return mapOf("success" to false, "error" to "Tool argument count mismatch; expected \${method.parameterTypes.size}.")
+            }
+            val values = Array(method.parameterTypes.size) { index ->
+                val raw = arguments.get(index)
+                val target = method.parameterTypes[index]
+                when {
+                    raw == JSONObject.NULL -> null
+                    target == String::class.java -> raw.toString()
+                    target == java.lang.Long.TYPE || target == java.lang.Long::class.java -> (raw as? Number)?.toLong() ?: raw.toString().toLong()
+                    target == java.lang.Integer.TYPE || target == java.lang.Integer::class.java -> (raw as? Number)?.toInt() ?: raw.toString().toInt()
+                    target == java.lang.Double.TYPE || target == java.lang.Double::class.java -> (raw as? Number)?.toDouble() ?: raw.toString().toDouble()
+                    target == java.lang.Float.TYPE || target == java.lang.Float::class.java -> (raw as? Number)?.toFloat() ?: raw.toString().toFloat()
+                    target == java.lang.Boolean.TYPE || target == java.lang.Boolean::class.java -> raw as? Boolean ?: raw.toString().toBooleanStrict()
+                    else -> error("Unsupported app-tool argument type: \${target.simpleName}")
+                }
+            }
+            if (values.indices.any { values[it] == null && method.parameterTypes[it].isPrimitive }) {
+                return mapOf("success" to false, "error" to "A required tool argument is missing.")
+            }
+            val result = method.invoke(this, *values)
+            when (result) {
+                is Map<*, *> -> result.entries.associate { (key, value) -> key.toString() to (value ?: JSONObject.NULL) }
+                is List<*> -> mapOf("success" to true, "data" to result)
+                null -> mapOf("success" to true)
+                else -> mapOf("success" to true, "data" to result)
+            }
+        } catch (error: java.lang.reflect.InvocationTargetException) {
+            mapOf("success" to false, "error" to (error.targetException.message ?: "App tool failed."))
+        } catch (error: Throwable) {
+            mapOf("success" to false, "error" to (error.message ?: "Invalid app-tool call."))
         }
     }
 
