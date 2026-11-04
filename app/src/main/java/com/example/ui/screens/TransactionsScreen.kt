@@ -98,8 +98,10 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
     val accounts by viewModel.accounts.collectAsState()
     var search by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf<TransactionType?>(null) }
+    var statusFilter by remember { mutableStateOf<TransactionStatus?>(null) }
     var showForm by remember { mutableStateOf(initialAddOpen) }
     var deleteTarget by remember { mutableStateOf<TransactionEntity?>(null) }
+    var cancelTarget by remember { mutableStateOf<TransactionEntity?>(null) }
     var editTarget by remember { mutableStateOf<TransactionEntity?>(null) }
 
     val activeAccounts = accounts.filter { !it.isArchived }
@@ -107,7 +109,8 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
         val accountName = accounts.firstOrNull { it.id == tx.accountId }?.name.orEmpty()
         val q = search.trim()
         (filter == null || tx.type == filter) &&
-            (q.isBlank() || tx.description.contains(q, true) || accountName.contains(q, true))
+            (statusFilter == null || tx.status == statusFilter) &&
+            (q.isBlank() || tx.description.contains(q, true) || accountName.contains(q, true) || tx.category.contains(q, true) || tx.currency.contains(q, true))
     }
     // Match dashboard and reports: pending/cancelled rows are not posted
     // financial activity. Refunds are included in income like FinanceEngine.
@@ -158,6 +161,12 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
                         FilterChip(selected = filter == type, onClick = { filter = type }, label = { Text(txTypeLabel(type, lang)) })
                     }
                 }
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = statusFilter == null, onClick = { statusFilter = null }, label = { Text(WebI18n.tr("كل الحالات", "All statuses", lang)) }, modifier = Modifier.testTag("transaction_status_all"))
+                    listOf(TransactionStatus.PENDING, TransactionStatus.COMPLETED, TransactionStatus.CANCELLED).forEach { status ->
+                        FilterChip(selected = statusFilter == status, onClick = { statusFilter = status }, label = { Text(statusLabel(status, lang)) }, modifier = Modifier.testTag("transaction_status_${status.name.lowercase()}"))
+                    }
+                }
             }
 
             if (summary.isNotEmpty()) {
@@ -205,11 +214,21 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
                 }
             } else {
                 items(visible, key = { it.id }) { tx ->
-                    TransactionItemCard(transaction = tx, account = accounts.firstOrNull { it.id == tx.accountId }, lang = lang, onEdit = { editTarget = tx; showForm = true }, onDelete = { deleteTarget = tx }, onToggleStatus = { viewModel.updateTransactionStatus(tx, if (tx.status == TransactionStatus.COMPLETED) TransactionStatus.PENDING else TransactionStatus.COMPLETED) })
+                    TransactionItemCard(transaction = tx, account = accounts.firstOrNull { it.id == tx.accountId }, lang = lang, onEdit = { editTarget = tx; showForm = true }, onDelete = { deleteTarget = tx }, onCancel = { cancelTarget = tx }, onToggleStatus = { viewModel.updateTransactionStatus(tx, if (tx.status == TransactionStatus.COMPLETED) TransactionStatus.PENDING else TransactionStatus.COMPLETED) })
                 }
             }
             item { Spacer(Modifier.height(72.dp)) }
         }
+    }
+
+    cancelTarget?.let { target ->
+        FinanceAlertDialog(
+            onDismissRequest = { cancelTarget = null },
+            title = { Text(WebI18n.tr("إلغاء المعاملة", "Cancel transaction", lang)) },
+            text = { Text(WebI18n.tr("سيتم إلغاء المعاملة وعكس أثرها من رصيد الحساب إذا كانت مكتملة. هل تريد المتابعة؟", "Cancel this transaction and reverse its account posting if it is completed?", lang)) },
+            confirmButton = { FinanceButton(onClick = { viewModel.updateTransactionStatus(target, TransactionStatus.CANCELLED); cancelTarget = null }) { Text(WebI18n.tr("تأكيد الإلغاء", "Confirm cancellation", lang)) } },
+            dismissButton = { FinanceOutlinedButton(onClick = { cancelTarget = null }) { Text(WebI18n.tr("رجوع", "Back", lang)) } }
+        )
     }
 
     deleteTarget?.let { target ->
@@ -292,7 +311,7 @@ fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCance
 }
 
 @Composable
-fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?, lang: AppLanguage, onDelete: () -> Unit, onToggleStatus: () -> Unit, onEdit: () -> Unit = {}) {
+fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?, lang: AppLanguage, onDelete: () -> Unit, onToggleStatus: () -> Unit, onEdit: () -> Unit = {}, onCancel: () -> Unit = {}) {
     val incomeLike = transaction.type == TransactionType.INCOME || transaction.type == TransactionType.REFUND || transaction.type == TransactionType.ADJUSTMENT
     val workManaged = transaction.category.equals("WORK_INCOME", ignoreCase = true) || transaction.category.equals("WORK_EXPENSE", ignoreCase = true) || transaction.category.equals("WORK_TRANSFER", ignoreCase = true)
     val transferManaged = transaction.category.equals("Transfer", ignoreCase = true) || transaction.category.equals("Transfer Fee", ignoreCase = true)
@@ -317,6 +336,7 @@ fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?,
                     Text(WebI18n.tr("مرتبط بسجل التحويل", "Managed by transfer", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else if (transaction.status != TransactionStatus.CANCELLED) {
                     Text(if (transaction.status == TransactionStatus.COMPLETED) WebI18n.tr("تعليق", "Set pending", lang) else WebI18n.tr("إكمال", "Complete", lang), style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary, modifier = Modifier.testTag("toggle_tx_status_${transaction.id}").clip(RoundedCornerShape(6.dp)).background(ByeProTheme.colors.goldPrimary.copy(alpha = .08f)).clickable(onClick = onToggleStatus).padding(4.dp))
+                    Text(WebI18n.tr("إلغاء", "Cancel", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("cancel_tx_${transaction.id}").clickable(onClick = onCancel).padding(4.dp))
                 }
             }
             if (!ledgerManaged) {
