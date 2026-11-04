@@ -615,18 +615,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }.getOrNull()
     }
 
-    private fun isAppWriteIntent(query: String): Boolean {
-        val normalized = query.trim().lowercase(Locale.ROOT)
-            .replace(Regex("[\\u064B-\\u065F\\u0670]"), "")
-        return listOf(
-            "سجل", "تسجيل", "اسجل", "إضافة", "اضافة", "أضيف", "اضيف", "اضاف",
-            "أدخل", "ادخل", "إدخال", "ادخال", "أنشئ", "انشئ", "إنشاء", "انشاء",
-            "عدّل", "عدل", "تعديل", "حدّث", "حدث", "تحديث", "احذف", "حذف", "مسح",
-            "ادفع", "دفع", "سدد", "سدّد", "سداد", "تسديد", "حوّل", "حول", "تحويل",
-            "افتح حساب", "فتح حساب", "create", "add", "record", "register", "insert",
-            "update", "edit", "delete", "remove", "pay", "settle", "transfer"
-        ).any(normalized::contains)
-    }
+    private fun isAppWriteIntent(query: String): Boolean =
+        AiWriteIntentClassifier.isWriteIntent(query)
 
     private fun isFinancialQuestion(query: String): Boolean {
         val q = query.lowercase(Locale.ROOT)
