@@ -67,4 +67,34 @@ class AiWriteIntentClassifierTest {
             assertTrue("Expected write intent: $command", AiWriteIntentClassifier.isWriteIntent(command))
         }
     }
+
+    @Test
+    fun arabicInflectionsAndEnglishModifiersRemainWriteIntents() {
+        listOf(
+            "سجل ميزانيتي الشهرية",
+            "سجل المصروفات العائلية",
+            "سجل عضو عائلتي"
+        ).forEach { command ->
+            assertTrue("Expected write intent: $command", AiWriteIntentClassifier.isWriteIntent(command))
+        }
+        listOf(
+            "record a new account",
+            "record a monthly budget",
+            "record a household member"
+        ).forEach { command ->
+            assertTrue("Expected write intent: $command", AiWriteIntentClassifier.isWriteIntent(command))
+        }
+    }
+
+    @Test
+    fun historyRequestsStayReadOnlyAfterUnicodeMatchingChange() {
+        listOf(
+            "اعرض سجل المصروفات",
+            "أريد سجل الديون",
+            "show expense history",
+            "list history"
+        ).forEach { request ->
+            assertFalse("Expected read intent: $request", AiWriteIntentClassifier.isWriteIntent(request))
+        }
+    }
 }
