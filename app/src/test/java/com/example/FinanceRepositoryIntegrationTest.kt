@@ -25,6 +25,10 @@ import com.example.finance.model.NotificationEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
 import com.example.finance.model.TransactionStatus
+import com.example.finance.model.WorkSourceEntity
+import com.example.finance.model.WorkSourceType
+import com.example.finance.model.WorkRecordEntity
+import com.example.finance.model.WorkRecordType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -675,4 +679,41 @@ class FinanceRepositoryIntegrationTest {
         assertEquals(500.0, db.financeDao().getAccountById(usdAccountId)?.balance ?: 0.0, 0.001)
         assertEquals(100.0, repository.debts.first().single().remaining, 0.001)
     }
+ 
+    @Test
+    fun workRecordRejectsMismatchedPersonalLedgerTransactionWithoutChangingBalances() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Work account", type = AccountType.CASH, balance = 500.0, currency = "LYD")
+        )
+        val sourceId = repository.addWorkSource(
+            WorkSourceEntity(name = "Main job", type = WorkSourceType.EMPLOYMENT, monthlySalary = 2000.0, currency = "LYD")
+        )
+
+        try {
+            repository.addWorkRecord(
+                WorkRecordEntity(
+                    sourceId = sourceId,
+                    type = WorkRecordType.SALARY_ADVANCE,
+                    amount = 100.0,
+                    currency = "LYD",
+                    period = "2026-11"
+                ),
+                TransactionEntity(
+                    accountId = accountId,
+                    type = TransactionType.EXPENSE,
+                    amount = 100.0,
+                    currency = "LYD",
+                    category = "WORK_EXPENSE",
+                    description = "Mismatched work transaction",
+                    status = TransactionStatus.COMPLETED
+                )
+            )
+            fail("Salary cash receipt must not be recorded as a personal expense")
+        } catch (_: IllegalArgumentException) { }
+
+        assertEquals(500.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertTrue(repository.workRecords.first().isEmpty())
+        assertTrue(repository.transactions.first().isEmpty())
+    }
+
 }

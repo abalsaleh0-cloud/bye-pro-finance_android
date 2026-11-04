@@ -93,8 +93,25 @@ class FinanceRepository(
         val cash = WorkLedgerCalculator.isCashMovement(record.type)
         require((transaction != null) == cash) { "Actual cash movements must link one personal account; accrued items must not post cash" }
         if (transaction != null) {
+            val expectedType = when (record.type) {
+                WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT -> TransactionType.INCOME
+                WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.WORK_EXPENSE -> TransactionType.EXPENSE
+                WorkRecordType.WORK_TRANSFER_IN -> TransactionType.TRANSFER
+                WorkRecordType.WORK_TRANSFER_OUT -> TransactionType.ADJUSTMENT
+                else -> throw IllegalArgumentException("This work record cannot create a cash transaction")
+            }
+            val expectedCategory = when (expectedType) {
+                TransactionType.INCOME -> "WORK_INCOME"
+                TransactionType.EXPENSE -> "WORK_EXPENSE"
+                else -> "WORK_TRANSFER"
+            }
             require(transaction.amount == record.amount && transaction.currency.equals(record.currency, true))
-            require(transaction.category in setOf("WORK_INCOME", "WORK_EXPENSE", "WORK_TRANSFER"))
+            require(transaction.type == expectedType && transaction.category == expectedCategory) {
+                "Work record and personal ledger transaction types must match"
+            }
+            require(transaction.status == TransactionStatus.COMPLETED) {
+                "Work cash movements must be posted as completed transactions"
+            }
         }
         val existing = dao.getWorkRecordsSnapshot()
         if (record.type == WorkRecordType.WORK_TRANSFER_OUT) require(WorkLedgerCalculator.cashBalance(existing, record.currency).toDouble() + 0.000001 >= record.amount) { "Insufficient work cash balance" }
