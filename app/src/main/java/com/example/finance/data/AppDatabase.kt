@@ -90,6 +90,7 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE work_records ADD COLUMN scope TEXT NOT NULL DEFAULT 'EMPLOYMENT'")
                 database.execSQL("UPDATE work_records SET scope = (SELECT type FROM work_sources WHERE work_sources.id = work_records.sourceId) WHERE sourceId IS NOT NULL AND EXISTS (SELECT 1 FROM work_sources WHERE work_sources.id = work_records.sourceId)")
+                database.execSQL("UPDATE work_records SET scope = 'FREELANCE' WHERE type IN ('FREELANCE_INCOME', 'FREELANCE_PAYMENT', 'FREELANCE_EXPENSE')")
             }
         }
 
