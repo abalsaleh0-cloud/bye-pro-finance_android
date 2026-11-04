@@ -2,6 +2,7 @@ package com.example.finance.engine
 import com.example.finance.model.WorkRecordEntity
 import com.example.finance.model.WorkRecordType
 import com.example.finance.model.WorkSourceEntity
+import com.example.finance.model.WorkSourceType
 import java.math.BigDecimal
 import java.math.RoundingMode
 object WorkLedgerCalculator {
@@ -14,8 +15,8 @@ object WorkLedgerCalculator {
         val paid = records.filter { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == income.id }.fold(BigDecimal.ZERO) { a, r -> a.add(BigDecimal.valueOf(r.amount)) }
         return BigDecimal.valueOf(income.amount).subtract(paid).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_EVEN)
     }
-    fun cashBalance(records: List<WorkRecordEntity>, currency: String): BigDecimal {
-        val rows = records.filter { it.currency.equals(currency, true) }
+    fun cashBalance(records: List<WorkRecordEntity>, currency: String, scope: WorkSourceType? = null): BigDecimal {
+        val rows = records.filter { it.currency.equals(currency, true) && (scope == null || it.scope == scope) }
         val incoming = sum(rows, setOf(WorkRecordType.WORK_INCOME, WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.WORK_TRANSFER_IN))
         val outgoing = sum(rows, setOf(WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.WORK_EXPENSE, WorkRecordType.WORK_TRANSFER_OUT))
         return incoming.subtract(outgoing).setScale(2, RoundingMode.HALF_EVEN)
