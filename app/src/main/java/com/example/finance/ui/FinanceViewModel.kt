@@ -66,6 +66,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private val aiAppTools = AiAppToolSet(repository, aiProjectWorkspace) { section -> setScreen(section) }
     val pendingAiAction = aiAppTools.pendingAction
     private val localLlm = LiteRtLocalAssistant(application.cacheDir, aiAppTools)
+    // Vision has its own LiteRT runtime and preference so importing a vision model never replaces the chat model.
+    private val visionLlm = LiteRtLocalAssistant(application.cacheDir, aiAppTools)
     private val ggufLlm = GgufLocalAssistant(aiAppTools)
     val accounts: StateFlow<List<AccountEntity>> = repository.accounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val archivedAccounts: StateFlow<List<AccountEntity>> = repository.archivedAccounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -425,6 +427,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 }
                 // Release any previous local runtime before estimating memory for GGUF.
                 localLlm.unload()
+                visionLlm.unload()
                 ggufLlm.unload()
                 val manager = getApplication<Application>().getSystemService(ActivityManager::class.java)
                 val memory = ActivityManager.MemoryInfo()
@@ -447,21 +450,40 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 _localModelStatus.value = "محرك llama.cpp جاهز. نموذج GGUF يعمل محلياً على الهاتف."
             }
             "litertlm" -> {
-                ggufLlm.unload()
-                _localModelStatus.value = "جارٍ تحميل حزمة LiteRT-LM على المعالج..."
-                localLlm.load(modelFile)
-                aiModelPreferences.edit()
-                    .putString("active_model_path", modelFile.absolutePath)
-                    .putString("active_model_format", "LITERTLM")
-                    .remove("active_model_architecture")
-                    .putBoolean("active_model_supports_vision", modelFile.name.contains("gemma-3n", ignoreCase = true))
-                    .apply()
-                _localModelReady.value = true
-                _localModelStatus.value = "محرك LiteRT-LM جاهز. النموذج يعمل محلياً على الهاتف."
+                if (isGemma3nVisionModel(modelFile)) {
+                    // Keep the selected text model path intact; only its runtime is released to control RAM use.
+                    localLlm.unload()
+                    ggufLlm.unload()
+                    _localModelReady.value = false
+                    _localModelStatus.value = "جارٍ تحميل نموذج الصور Gemma 3n LiteRT-LM..."
+                    visionLlm.load(modelFile)
+                    aiModelPreferences.edit()
+                        .putString("vision_model_path", modelFile.absolutePath)
+                        .putBoolean("vision_model_available", true)
+                        .apply()
+                    _localModelStatus.value = "نموذج الصور Gemma 3n جاهز. نموذج المحادثة النصية محفوظ ولم يتم استبداله."
+                } else {
+                    visionLlm.unload()
+                    ggufLlm.unload()
+                    _localModelStatus.value = "جارٍ تحميل حزمة LiteRT-LM للمحادثة..."
+                    localLlm.load(modelFile)
+                    aiModelPreferences.edit()
+                        .putString("active_model_path", modelFile.absolutePath)
+                        .putString("active_model_format", "LITERTLM")
+                        .remove("active_model_architecture")
+                        .putBoolean("active_model_supports_vision", false)
+                        .apply()
+                    _localModelReady.value = true
+                    _localModelStatus.value = "محرك LiteRT-LM جاهز. النموذج يعمل محلياً على الهاتف."
+                }
             }
             else -> error("صيغة النموذج غير مدعومة. اختر ملف .gguf أو .litertlm.")
         }
     }
+
+    private fun isGemma3nVisionModel(file: File): Boolean =
+        file.extension.equals("litertlm", ignoreCase = true) &&
+            file.name.contains("gemma-3n", ignoreCase = true)
 
     private suspend fun copyLocalModelIntoApp(uri: Uri): File = withContext(Dispatchers.IO) {
         var displayName = "selected-model.gguf"
@@ -676,33 +698,32 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             val response = if (attachments.isNotEmpty()) {
                 runCatching {
                     require(attachments.size <= 4) { "يمكن تحليل أربع صور كحد أقصى في الرسالة الواحدة." }
-                    require(
-                        aiModelPreferences.getString("active_model_format", "LITERTLM") != "GGUF" &&
-                            aiModelPreferences.getBoolean("active_model_supports_vision", false)
-                    ) {
-                        "تحليل الصور يحتاج نموذج Gemma 3n متوافقاً بصيغة .litertlm؛ محرك GGUF الحالي مخصص للمحادثة النصية."
-                    }
-                    val savedPath = aiModelPreferences.getString("active_model_path", null)
-                        ?: error("لم يتم تثبيت نموذج محلي يدعم الصور بعد.")
+                    val savedPath = aiModelPreferences.getString("vision_model_path", null)
+                        ?: error("لم يتم تثبيت نموذج الصور بعد. استورد ملف Gemma 3n بصيغة .litertlm من إعدادات النماذج.")
                     val savedModel = File(savedPath)
-                    require(savedModel.isFile) { "ملف النموذج المحلي غير موجود؛ أعد اختياره من إعدادات النماذج." }
-                    if (!_localModelReady.value) {
-                        _localModelLoading.value = true
-                        try {
-                            localLlm.load(savedModel)
-                            _localModelReady.value = true
-                        } finally {
-                            _localModelLoading.value = false
-                        }
+                    require(savedModel.isFile && savedModel.canRead() && isGemma3nVisionModel(savedModel)) {
+                        "ملف نموذج الصور غير موجود أو ليس حزمة Gemma 3n LiteRT-LM صالحة؛ أعد استيراده من إعدادات النماذج."
+                    }
+                    _localModelLoading.value = true
+                    try {
+                        // Avoid holding the text runtime in memory while the multimodal model is active.
+                        localLlm.unload()
+                        ggufLlm.unload()
+                        _localModelReady.value = false
+                        visionLlm.load(savedModel)
+                    } finally {
+                        _localModelLoading.value = false
                     }
                     val imageFiles = prepareLocalImageFiles(attachments)
                     try {
                         val imagePrompt = trimmedQuery.ifBlank {
                             WebI18n.tr("حلّل الصور المرفقة واشرح ما يظهر فيها بدقة.", "Analyze the attached images and explain what is visible.", _appLanguage.value)
                         }
-                        localLlm.sendMessageWithImages(imagePrompt, imageFiles)
+                        visionLlm.sendMessageWithImages(imagePrompt, imageFiles)
                     } finally {
                         imageFiles.forEach { it.delete() }
+                        visionLlm.unload()
+                        _localModelReady.value = false
                     }
                 }.getOrElse { error ->
                     Log.e("BYE_PRO_LOCAL_VISION", "On-device image analysis failed.", error)
@@ -883,6 +904,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     override fun onCleared() {
         localLlm.shutdown()
+        visionLlm.shutdown()
         ggufLlm.shutdown()
         super.onCleared()
     }
