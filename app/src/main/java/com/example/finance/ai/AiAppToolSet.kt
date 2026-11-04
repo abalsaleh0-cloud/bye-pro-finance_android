@@ -160,14 +160,14 @@ class AiAppToolSet(
         )
         val isTransfer = parsedType == WorkRecordType.WORK_TRANSFER_IN || parsedType == WorkRecordType.WORK_TRANSFER_OUT
         val employmentRecord = parsedType in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
-        val freelanceRecord = parsedType in setOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.FREELANCE_EXPENSE)
+        val freelanceRecord = parsedType in setOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT)
         if (isTransfer && record.sourceId != null) return@runBlocking mapOf("success" to false, "error" to "Internal work transfers must not reference a work source.")
         if ((employmentRecord || freelanceRecord) && record.sourceId == null) return@runBlocking mapOf("success" to false, "error" to "Choose a matching work source for this record type.")
         val sources = repository.workSources.first()
         val source = record.sourceId?.let { id -> sources.firstOrNull { it.id == id } }
         if (record.sourceId != null && (source == null || !source.isActive)) return@runBlocking mapOf("success" to false, "error" to "Active work source not found.")
         if (source != null && employmentRecord && source.type != WorkSourceType.EMPLOYMENT) return@runBlocking mapOf("success" to false, "error" to "Salary records require an employment source.")
-        if (source != null && freelanceRecord && source.type != WorkSourceType.FREELANCE) return@runBlocking mapOf("success" to false, "error" to "Freelance records require a freelance source.")
+        if (source != null && (freelanceRecord || parsedType == WorkRecordType.FREELANCE_EXPENSE) && source.type != WorkSourceType.FREELANCE) return@runBlocking mapOf("success" to false, "error" to "Freelance records require a freelance source.")
         if (source != null && !source.currency.equals(cleanCurrency, true)) return@runBlocking mapOf("success" to false, "error" to "Work source currency does not match the record.")
         if (parsedType == WorkRecordType.FREELANCE_PAYMENT) {
             val receivable = repository.workRecords.first().firstOrNull { it.id == relatedRecordId }
