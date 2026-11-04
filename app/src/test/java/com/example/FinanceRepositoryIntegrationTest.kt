@@ -774,4 +774,18 @@ class FinanceRepositoryIntegrationTest {
         assertTrue(repository.transactions.first().isEmpty())
     }
 
+    @Test
+    fun editingEmploymentExpenseCannotMoveItIntoFreelanceTypeWithoutChangingScope() = runBlocking {
+        val id = repository.addWorkRecord(
+            WorkRecordEntity(type = WorkRecordType.WORK_EXPENSE, amount = 40.0, currency = "LYD", period = "2026-11", scope = WorkSourceType.EMPLOYMENT)
+        )
+        try {
+            repository.updateWorkRecord(
+                db.financeDao().getWorkRecordById(id)!!.copy(type = WorkRecordType.FREELANCE_EXPENSE)
+            )
+            fail("Freelance expense must remain inside the freelance ledger")
+        } catch (_: IllegalArgumentException) { }
+        assertEquals(WorkRecordType.WORK_EXPENSE, db.financeDao().getWorkRecordById(id)!!.type)
+    }
+
 }
