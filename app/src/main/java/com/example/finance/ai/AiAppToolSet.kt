@@ -601,6 +601,9 @@ class AiAppToolSet(
     fun proposeDeleteDebt(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val row = repository.debts.first().firstOrNull { it.id == id }
             ?: return@runBlocking mapOf("success" to false, "error" to "Debt not found.")
+        if (repository.debtPayments(id).first().isNotEmpty()) {
+            return@runBlocking mapOf("success" to false, "error" to "This debt has a payment history. Keep the debt record so its linked payments and audit trail remain intact.")
+        }
         stageUpdate("تأكيد حذف دين", "الدين #$id\n${row.name}\nالمتبقي: ${row.remaining} ${row.currency}\nالاتجاه: ${row.direction}", suspend {
             repository.deleteDebt(row)
             "تم حذف سجل الدين بعد تأكيدك؛ لم تُسجل دفعة مالية."
