@@ -230,7 +230,7 @@ class FinanceRepository(
                 val reversed = FinanceEngine.toBigDecimal(oldAccount.balance).subtract(delta(existing))
                 dao.updateAccountBalance(oldAccount.id, reversed.toDouble())
             }
-            val updated = tx.copy(id = existing.id, currency = destination.currency)
+            val updated = tx.copy(id = existing.id, status = existing.status, currency = destination.currency)
             if (updated.status == TransactionStatus.COMPLETED) {
                 val refreshed = dao.getAccountById(destination.id)
                     ?: throw IllegalStateException("Selected account is missing")
@@ -244,33 +244,33 @@ class FinanceRepository(
     }
 
     suspend fun updateTransactionStatus(tx: TransactionEntity, newStatus: TransactionStatus) = withContext(Dispatchers.IO) {
-        if (tx.status == newStatus) return@withContext
-        require(!tx.isTransferLedgerEntry()) {
-            "Transfer ledger entries are managed by the original transfer and cannot be changed independently"
-        }
         val operation: suspend () -> Unit = {
-            val account = dao.getAccountById(tx.accountId)
-            if (account != null) {
-                if (tx.status == TransactionStatus.COMPLETED && newStatus != TransactionStatus.COMPLETED) {
-                    val current = FinanceEngine.toBigDecimal(account.balance)
-                    val amount = FinanceEngine.toBigDecimal(tx.amount)
-                    val reversed = when (tx.type) {
-                        TransactionType.INCOME, TransactionType.REFUND, TransactionType.ADJUSTMENT -> current.subtract(amount)
-                        TransactionType.EXPENSE, TransactionType.TRANSFER -> current.add(amount)
-                    }
-                    dao.updateAccountBalance(account.id, reversed.toDouble())
-                } else if (tx.status != TransactionStatus.COMPLETED && newStatus == TransactionStatus.COMPLETED) {
-                    val current = FinanceEngine.toBigDecimal(account.balance)
-                    val amount = FinanceEngine.toBigDecimal(tx.amount)
-                    val posted = when (tx.type) {
-                        TransactionType.INCOME, TransactionType.REFUND, TransactionType.ADJUSTMENT -> current.add(amount)
-                        TransactionType.EXPENSE, TransactionType.TRANSFER -> current.subtract(amount)
-                    }
-                    dao.updateAccountBalance(account.id, posted.toDouble())
-                }
+            val existing = dao.getTransactionById(tx.id)
+                ?: throw IllegalArgumentException("Transaction not found: ${tx.id}")
+            require(!existing.isTransferLedgerEntry()) {
+                "Transfer ledger entries are managed by the original transfer and cannot be changed independently"
             }
-            dao.updateTransaction(tx.copy(status = newStatus))
-            logAudit("STATUS", "Transaction", "Transaction #${tx.id} status: ${tx.status} -> $newStatus")
+            if (existing.status != newStatus) {
+                val crossesPostedBoundary = (existing.status == TransactionStatus.COMPLETED) != (newStatus == TransactionStatus.COMPLETED)
+                if (crossesPostedBoundary) {
+                    val account = dao.getAccountById(existing.accountId)
+                        ?: throw IllegalStateException("Transaction account is missing")
+                    val current = FinanceEngine.toBigDecimal(account.balance)
+                    val amount = FinanceEngine.toBigDecimal(existing.amount)
+                    val signedDelta = when (existing.type) {
+                        TransactionType.INCOME, TransactionType.REFUND, TransactionType.ADJUSTMENT -> amount
+                        TransactionType.EXPENSE, TransactionType.TRANSFER -> amount.negate()
+                    }
+                    val updatedBalance = if (newStatus == TransactionStatus.COMPLETED) {
+                        current.add(signedDelta)
+                    } else {
+                        current.subtract(signedDelta)
+                    }
+                    dao.updateAccountBalance(account.id, updatedBalance.toDouble())
+                }
+                dao.updateTransaction(existing.copy(status = newStatus))
+                logAudit("STATUS", "Transaction", "Transaction #${existing.id} status: ${existing.status} -> $newStatus")
+            }
         }
         if (db != null) db.withTransaction { operation() } else operation()
     }
@@ -312,24 +312,25 @@ class FinanceRepository(
     }
 
     suspend fun deleteTransaction(tx: TransactionEntity) = withContext(Dispatchers.IO) {
-        require(!tx.isTransferLedgerEntry()) {
-            "Transfer ledger entries are managed by the original transfer and cannot be deleted independently"
-        }
         val operation: suspend () -> Unit = {
-            val account = dao.getAccountById(tx.accountId)
-            if (account != null && tx.status == TransactionStatus.COMPLETED) {
-                val currentBal = FinanceEngine.toBigDecimal(account.balance)
-                val txAmount = FinanceEngine.toBigDecimal(tx.amount)
-                // Reverse only posted rows; adjustments are additive deltas.
-                val newBal = when (tx.type) {
-                    TransactionType.INCOME, TransactionType.REFUND -> currentBal.subtract(txAmount)
-                    TransactionType.EXPENSE, TransactionType.TRANSFER -> currentBal.add(txAmount)
-                    TransactionType.ADJUSTMENT -> currentBal.subtract(txAmount)
-                }
-                dao.updateAccountBalance(account.id, newBal.toDouble())
+            val existing = dao.getTransactionById(tx.id)
+                ?: throw IllegalArgumentException("Transaction not found: ${tx.id}")
+            require(!existing.isTransferLedgerEntry()) {
+                "Transfer ledger entries are managed by their source records and cannot be deleted independently"
             }
-            dao.deleteTransaction(tx)
-            logAudit("DELETE", "Transaction", "Deleted transaction #${tx.id}: ${tx.description}")
+            if (existing.status == TransactionStatus.COMPLETED) {
+                val account = dao.getAccountById(existing.accountId)
+                    ?: throw IllegalStateException("Transaction account is missing; refusing to delete an unbalanced ledger row")
+                val current = FinanceEngine.toBigDecimal(account.balance)
+                val amount = FinanceEngine.toBigDecimal(existing.amount)
+                val reversed = when (existing.type) {
+                    TransactionType.INCOME, TransactionType.REFUND, TransactionType.ADJUSTMENT -> current.subtract(amount)
+                    TransactionType.EXPENSE, TransactionType.TRANSFER -> current.add(amount)
+                }
+                dao.updateAccountBalance(account.id, reversed.toDouble())
+            }
+            dao.deleteTransaction(existing)
+            logAudit("DELETE", "Transaction", "Deleted transaction #${existing.id}: ${existing.description}")
         }
         if (db != null) db.withTransaction { operation() } else operation()
     }
