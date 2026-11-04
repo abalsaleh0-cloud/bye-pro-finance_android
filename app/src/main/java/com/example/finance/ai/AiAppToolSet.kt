@@ -73,7 +73,7 @@ class AiAppToolSet(
     private data class Pending(val preview: AiActionPreview, val payload: PendingPayload)
     @Volatile private var pending: Pending? = null
 
-    @Tool(description = "Navigate to an existing section of the BYE PRO FINANCE app. Allowed sections: dashboard, accounts, transactions, budgets, debts, bills, savings, assets, transfers, reports, household, documents, notifications, settings, ai_assistant.")
+    @Tool(description = "Navigate to an existing section of the BYE PRO FINANCE app. Allowed sections: dashboard, accounts, transactions, budgets, debts, bills, savings, assets, transfers, reports, household, documents, notifications, settings, ai_assistant, work, smart_scan, import_export, admin.")
     fun navigateToAppSection(
         @ToolParam(description = "One exact allowed section identifier.") section: String
     ): Map<String, Any> {
