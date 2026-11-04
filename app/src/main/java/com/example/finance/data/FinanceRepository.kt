@@ -26,6 +26,11 @@ import com.example.finance.model.TransactionType
 import com.example.finance.model.TransferEntity
 import com.example.finance.model.UserEntity
 import com.example.finance.model.UserRole
+import com.example.finance.model.WorkSourceEntity
+import com.example.finance.model.WorkSourceType
+import com.example.finance.model.WorkRecordEntity
+import com.example.finance.model.WorkRecordType
+import com.example.finance.engine.WorkLedgerCalculator
 import androidx.room.withTransaction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +60,53 @@ class FinanceRepository(
     val notifications: Flow<List<NotificationEntity>> = dao.getAllNotifications()
     val auditLogs: Flow<List<AuditLogEntity>> = dao.getAllAuditLogs()
     val currentUser: Flow<UserEntity?> = dao.getCurrentUser()
+    val workSources: Flow<List<WorkSourceEntity>> = dao.getWorkSources()
+    val workRecords: Flow<List<WorkRecordEntity>> = dao.getWorkRecords()
+
+    suspend fun addWorkSource(source: WorkSourceEntity): Long = withContext(Dispatchers.IO) {
+        require(source.name.isNotBlank() && source.currency.isNotBlank())
+        require(source.monthlySalary.isFinite() && source.monthlySalary >= 0.0)
+        require(source.type != WorkSourceType.FREELANCE || source.monthlySalary == 0.0)
+        val id = dao.insertWorkSource(source.copy(name = source.name.trim(), currency = source.currency.trim().uppercase()))
+        logAudit("CREATE", "WorkSource", "Created source " + source.name)
+        id
+    }
+
+    suspend fun addWorkRecord(record: WorkRecordEntity, transaction: TransactionEntity? = null): Long = withContext(Dispatchers.IO) {
+        require(record.amount.isFinite() && record.amount > 0.0)
+        require(record.currency.isNotBlank() && record.period.matches(Regex("\\d{4}-\\d{2}")))
+        val transfer = record.type == WorkRecordType.WORK_TRANSFER_IN || record.type == WorkRecordType.WORK_TRANSFER_OUT
+        val source = record.sourceId?.let { dao.getWorkSourceById(it) }
+        if (transfer) require(record.sourceId == null && record.relatedRecordId == null) else {
+            require(source != null && source.isActive)
+            val employment = record.type in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
+            require((source.type == WorkSourceType.EMPLOYMENT) == employment)
+            require(source.currency.equals(record.currency, true))
+        }
+        if (record.type == WorkRecordType.FREELANCE_PAYMENT) {
+            val parentId = record.relatedRecordId ?: throw IllegalArgumentException("Select the receivable being paid")
+            val parent = dao.getWorkRecordById(parentId) ?: throw IllegalArgumentException("Receivable not found")
+            require(parent.type == WorkRecordType.FREELANCE_INCOME && parent.sourceId == record.sourceId)
+            val paid = dao.getWorkRecordsSnapshot().filter { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == parentId }.sumOf { it.amount }
+            require(record.amount <= parent.amount - paid + 0.000001) { "Payment exceeds outstanding amount" }
+        } else require(record.relatedRecordId == null)
+        val cash = WorkLedgerCalculator.isCashMovement(record.type)
+        require((transaction != null) == cash) { "Actual cash movements must link one personal account; accrued items must not post cash" }
+        if (transaction != null) {
+            require(transaction.amount == record.amount && transaction.currency.equals(record.currency, true))
+            require(transaction.category in setOf("WORK_INCOME", "WORK_EXPENSE", "WORK_TRANSFER"))
+        }
+        val existing = dao.getWorkRecordsSnapshot()
+        if (record.type == WorkRecordType.WORK_TRANSFER_OUT) require(WorkLedgerCalculator.cashBalance(existing, record.currency).toDouble() + 0.000001 >= record.amount) { "Insufficient work cash balance" }
+        val operation: suspend () -> Long = {
+            val txId = transaction?.let { addTransaction(it) }
+            val linked = record.copy(currency = record.currency.trim().uppercase(), linkedAccountId = transaction?.accountId, linkedTransactionId = txId)
+            val id = dao.insertWorkRecord(linked)
+            logAudit("CREATE", "WorkRecord", "Recorded " + linked.type.name + ": " + linked.amount + " " + linked.currency)
+            id
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
+    }
 
     suspend fun logAudit(action: String, resource: String, details: String) {
         dao.insertAuditLog(

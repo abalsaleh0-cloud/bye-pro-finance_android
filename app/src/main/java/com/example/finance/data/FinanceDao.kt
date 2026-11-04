@@ -21,6 +21,8 @@ import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransferEntity
 import com.example.finance.model.UserEntity
+import com.example.finance.model.WorkSourceEntity
+import com.example.finance.model.WorkRecordEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -220,6 +222,22 @@ interface FinanceDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAuditLog(log: AuditLogEntity): Long
+
+    // --- Work ledger ---
+    @Query("SELECT * FROM work_sources WHERE isActive = 1 ORDER BY createdAt DESC, id DESC")
+    fun getWorkSources(): Flow<List<WorkSourceEntity>>
+    @Query("SELECT * FROM work_sources WHERE id = :id LIMIT 1")
+    suspend fun getWorkSourceById(id: Long): WorkSourceEntity?
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWorkSource(source: WorkSourceEntity): Long
+    @Query("SELECT * FROM work_records ORDER BY date DESC, id DESC")
+    fun getWorkRecords(): Flow<List<WorkRecordEntity>>
+    @Query("SELECT * FROM work_records ORDER BY date DESC, id DESC")
+    suspend fun getWorkRecordsSnapshot(): List<WorkRecordEntity>
+    @Query("SELECT * FROM work_records WHERE id = :id LIMIT 1")
+    suspend fun getWorkRecordById(id: Long): WorkRecordEntity?
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWorkRecord(record: WorkRecordEntity): Long
 
     // --- User / Auth ---
     @Query("SELECT * FROM users LIMIT 1")

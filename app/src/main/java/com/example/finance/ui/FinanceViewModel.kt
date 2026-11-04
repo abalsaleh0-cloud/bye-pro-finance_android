@@ -83,6 +83,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val notifications: StateFlow<List<NotificationEntity>> = repository.notifications.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val auditLogs: StateFlow<List<AuditLogEntity>> = repository.auditLogs.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val currentUser: StateFlow<UserEntity?> = repository.currentUser.withStartupFallback(null).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val workSources: StateFlow<List<WorkSourceEntity>> = repository.workSources.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val workRecords: StateFlow<List<WorkRecordEntity>> = repository.workRecords.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val _appLanguage = MutableStateFlow(WebI18n.read(application))
     val appLanguage: StateFlow<AppLanguage> = _appLanguage.asStateFlow()
     private val preferences = application.getSharedPreferences("bye_pro_finance_preferences", Application.MODE_PRIVATE)
@@ -191,6 +193,36 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     private fun resetWelcomeMessage() { _chatMessages.value = listOf(ChatMessage("AI", WebI18n.tr("مرحباً بك! أنا AI Bye Pro، مساعدك الذكي. تحدث معي بشكل طبيعي عن أي موضوع؛ أستطيع مساعدتك في المعرفة والكتابة والترجمة والتخطيط والتحليل، وكذلك شؤونك المالية عند طلبك.", "Welcome! I am AI Bye Pro, your general-purpose AI assistant. Talk to me naturally about any topic: knowledge, writing, translation, planning, analysis, and your finances whenever you ask.", _appLanguage.value))) }
     fun setScreen(screen: String) { _currentScreen.value = screen }
+    fun addWorkSource(source: WorkSourceEntity, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch { onComplete(runCatching { repository.addWorkSource(source) }.isSuccess) }
+    }
+    fun addWorkRecord(record: WorkRecordEntity, accountId: Long? = null, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = runCatching {
+                val cash = com.example.finance.engine.WorkLedgerCalculator.isCashMovement(record.type)
+                val account = if (cash) {
+                    val id = accountId ?: throw IllegalArgumentException("Select a personal account")
+                    accounts.value.firstOrNull { it.id == id } ?: throw IllegalArgumentException("Account not found")
+                } else null
+                if (account != null) require(account.currency.equals(record.currency, true))
+                val transaction = account?.let {
+                    val type = when (record.type) {
+                        WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT -> TransactionType.INCOME
+                        WorkRecordType.FREELANCE_EXPENSE -> TransactionType.EXPENSE
+                        WorkRecordType.WORK_TRANSFER_IN -> TransactionType.TRANSFER
+                        WorkRecordType.WORK_TRANSFER_OUT -> TransactionType.ADJUSTMENT
+                        else -> throw IllegalArgumentException("Not a cash movement")
+                    }
+                    TransactionEntity(accountId = it.id, type = type, amount = record.amount, currency = it.currency,
+                        category = if (type == TransactionType.TRANSFER || type == TransactionType.ADJUSTMENT) "WORK_TRANSFER" else if (type == TransactionType.EXPENSE) "WORK_EXPENSE" else "WORK_INCOME",
+                        description = record.notes.ifBlank { record.type.name }, status = TransactionStatus.COMPLETED)
+                }
+                repository.addWorkRecord(record.copy(currency = account?.currency ?: record.currency, period = record.period.ifBlank { java.time.YearMonth.now().toString() }), transaction)
+            }
+            onComplete(result.isSuccess)
+            result.exceptionOrNull()?.let { Log.w("BYE_PRO_FINANCE", "Work record rejected", it) }
+        }
+    }
     fun toggleLanguage() { setLanguage(if (_appLanguage.value == AppLanguage.AR) AppLanguage.EN else AppLanguage.AR) }
     fun setLanguage(lang: AppLanguage) { if (_appLanguage.value == lang) return; _appLanguage.value = lang; WebI18n.write(getApplication(), lang); if (_chatMessages.value.size <= 1) resetWelcomeMessage(); scheduleUserSettingsSync() }
     fun setDarkMode(dark: Boolean) { _isDarkMode.value = dark; WebI18n.writeDarkMode(getApplication(), dark); scheduleUserSettingsSync() }
