@@ -19,8 +19,6 @@ internal object AiWriteIntentClassifier {
 
         val readPhrases = listOf(
             "اعرض سجل", "عرض سجل", "اظهر سجل", "أظهر سجل", "اريد سجل", "أريد سجل",
-            "سجل المصروفات", "سجل الايرادات", "سجل الإيرادات", "سجل الديون",
-            "سجل المعاملات", "سجل التحويلات", "سجل الفواتير", "سجل المدفوعات",
             "history", "show history", "list history", "transaction history",
             "expense history", "income history", "debt history"
         )
