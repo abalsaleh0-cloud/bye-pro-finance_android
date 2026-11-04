@@ -16,7 +16,9 @@ object WorkLedgerCalculator {
     }
     fun cashBalance(records: List<WorkRecordEntity>, currency: String): BigDecimal {
         val rows = records.filter { it.currency.equals(currency, true) }
-        return sum(rows, setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.WORK_TRANSFER_IN)).subtract(sum(rows, setOf(WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.WORK_TRANSFER_OUT)).setScale(2, RoundingMode.HALF_EVEN)
+        val incoming = sum(rows, setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.WORK_TRANSFER_IN))
+        val outgoing = sum(rows, setOf(WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.WORK_TRANSFER_OUT))
+        return incoming.subtract(outgoing).setScale(2, RoundingMode.HALF_EVEN)
     }
     fun isCashMovement(type: WorkRecordType) = type in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.WORK_TRANSFER_IN, WorkRecordType.WORK_TRANSFER_OUT)
 }
