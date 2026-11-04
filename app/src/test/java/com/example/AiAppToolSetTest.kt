@@ -137,4 +137,47 @@ class AiAppToolSetTest {
             database.close()
         }
     }
+
+    @Test
+    fun structuredManifestCoversEverySupportedAppSectionOperation() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            val repository = FinanceRepository(database.financeDao(), database)
+            val tools = AiAppToolSet(
+                repository,
+                AiProjectWorkspace(File(context.cacheDir, "ai-tools-full-manifest-test.properties"))
+            ) { }
+            val manifest = tools.structuredToolManifest()
+            val requiredTools = listOf(
+                "navigateToAppSection", "getFinancialOverview", "getRecentTransactions",
+                "listAccounts", "listTransfers", "listBudgets", "listDebts", "listBills",
+                "listSavingsGoals", "listAssets", "listHouseholdMembers", "listHouseholdExpenses",
+                "listDocuments", "listNotifications", "listAuditActivity",
+                "proposeCreateAccount", "proposeCreateTransaction", "proposeCreateBudget",
+                "proposeCreateDebt", "proposeCreateBill", "proposeCreateSavingsGoal",
+                "proposeCreateAsset", "proposeTransfer", "proposeCreateHouseholdMember",
+                "proposeCreateHouseholdExpense", "proposeRecordDebtPayment", "proposeMarkBillPaid",
+                "proposeUpdateAccount", "proposeUpdateTransactionStatus", "proposeUpdateBudget",
+                "proposeUpdateDebt", "proposeUpdateBill", "proposeUpdateSavingsGoal",
+                "proposeUpdateAsset", "proposeUpdateHouseholdMember", "proposeUpdateHouseholdExpense",
+                "proposeDeleteTransaction", "proposeDeleteBudget", "proposeDeleteDebt",
+                "proposeDeleteBill", "proposeDeleteSavingsGoal", "proposeDeleteAsset",
+                "proposeDeleteHouseholdExpense", "proposeDeleteHouseholdMember",
+                "proposeMarkNotificationRead", "proposeMarkAllNotificationsRead",
+                "proposeDeleteNotification", "proposeClearNotifications",
+                "getWorkLedgerOverview", "proposeCreateWorkSource", "proposeCreateWorkRecord",
+                "listProjectPlans", "proposeCreateProjectPlan", "listProjectFiles",
+                "readProjectFile", "proposeWriteProjectFile", "proposeWriteProjectFiles",
+                "proposeCreateDocument", "proposeDeleteDocument"
+            )
+            requiredTools.forEach { name ->
+                assertTrue("Missing app operation from model manifest: $name", manifest.contains("$name("))
+            }
+        } finally {
+            database.close()
+        }
+    }
 }
