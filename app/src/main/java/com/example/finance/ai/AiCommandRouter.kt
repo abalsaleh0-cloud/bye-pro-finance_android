@@ -58,7 +58,7 @@ internal object AiCommandRouter {
         ).any(text::contains)
         if (expenseVerb == incomeVerb) return null
 
-        val amountMatch = Regex("""(?<![\\p{L}])([0-9]+(?:[.,][0-9]{1,2})?)""").find(text) ?: return null
+        val amountMatch = Regex("""([0-9]+(?:[.,][0-9]{1,2})?)""").find(text) ?: return null
         val amount = amountMatch.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
         if (!amount.isFinite() || amount <= 0.0) return null
 
