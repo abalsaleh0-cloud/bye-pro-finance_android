@@ -88,7 +88,7 @@ class FinanceRepository(
         val transfer = record.type == WorkRecordType.WORK_TRANSFER_IN || record.type == WorkRecordType.WORK_TRANSFER_OUT
         val salaryRecord = record.type in setOf(
             WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION,
-            WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME,
+            WorkRecordType.SALARY_ALLOWANCE, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME,
             WorkRecordType.SALARY_PAYMENT
         )
         val freelanceRecord = record.type in setOf(
@@ -164,7 +164,7 @@ class FinanceRepository(
             require(source.type == record.scope) { "Work record scope must match its source type" }
             require(source.currency.equals(record.currency, true)) { "Record currency must match the selected source currency" }
         }
-        val salaryRecord = record.type in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
+        val salaryRecord = record.type in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_ALLOWANCE, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
         val freelanceRecord = record.type in setOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.FREELANCE_EXPENSE)
         if (salaryRecord) require(record.scope == WorkSourceType.EMPLOYMENT && source?.type == WorkSourceType.EMPLOYMENT)
         if (record.type in setOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT)) require(record.scope == WorkSourceType.FREELANCE && source?.type == WorkSourceType.FREELANCE)
