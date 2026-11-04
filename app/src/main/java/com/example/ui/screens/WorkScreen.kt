@@ -101,14 +101,14 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     }
 }
 @Composable private fun WorkSourceDialog(ar: Boolean, currency: String, dismiss: () -> Unit, save: (String, WorkSourceType, Double) -> Unit) {
-    var name by remember { mutableStateOf("") }; var salary by remember { mutableStateOf("") }; var type by remember { mutableStateOf(WorkSourceType.EMPLOYMENT) }
+    var name by remember { mutableStateOf("") }; var salary by remember { mutableStateOf("0") }; var type by remember { mutableStateOf(WorkSourceType.EMPLOYMENT) }
     AlertDialog(onDismissRequest = dismiss, title = { Text(if (ar) "مصدر دخل جديد" else "New income source") }, text = {
         Column { OutlinedTextField(name, { name = it }, label = { Text(if (ar) "اسم الوظيفة أو النشاط" else "Job or activity name") })
             Row { TextButton(onClick = { type = WorkSourceType.EMPLOYMENT }) { Text(if (ar) "وظيفة" else "Employment") }; TextButton(onClick = { type = WorkSourceType.FREELANCE }) { Text(if (ar) "عمل حر" else "Freelance") } }
-            if (type == WorkSourceType.EMPLOYMENT) OutlinedTextField(salary, { salary = it }, label = { Text(if (ar) "الراتب الشهري" else "Monthly salary") })
+            if (type == WorkSourceType.EMPLOYMENT) OutlinedTextField(salary, { salary = it }, label = { Text(if (ar) "الراتب الشهري (اختياري)" else "Monthly salary (optional)") })
         }
     }, confirmButton = {
-        val amount = if (type == WorkSourceType.FREELANCE) 0.0 else salary.toDoubleOrNull() ?: -1.0
+        val amount = if (type == WorkSourceType.FREELANCE || salary.isBlank()) 0.0 else salary.toDoubleOrNull() ?: -1.0
         Button(onClick = { if (name.isNotBlank() && amount >= 0) save(name.trim(), type, amount) }, enabled = name.isNotBlank() && amount >= 0) { Text(if (ar) "حفظ" else "Save") }
     }, dismissButton = { TextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
 }
