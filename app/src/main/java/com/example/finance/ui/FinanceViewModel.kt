@@ -680,7 +680,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
      * Executes only deterministic, unambiguous app commands before invoking a
      * conversational provider. All financial writes remain confirmation-gated.
      */
-    private fun prepareDeterministicAiCommand(query: String): String? {
+    private suspend fun prepareDeterministicAiCommand(query: String): String? {
         val targetSection = AiCommandRouter.parseSectionNavigation(query)
         if (targetSection != null) {
             val result = aiAppTools.navigateToAppSection(targetSection)
@@ -715,7 +715,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             return "لديك عملية تنتظر التأكيد أو الإلغاء. أكملها أولاً قبل تجهيز عملية جديدة."
         }
 
-        val matchingAccounts = aiAppTools.listAccounts()
+        val matchingAccounts = withContext(Dispatchers.IO) { aiAppTools.listAccounts() }
             .filter { (it["currency"] as? String).equals(command.currency, ignoreCase = true) }
         if (matchingAccounts.isEmpty()) {
             return "لم أجد حساباً نشطاً بعملة ${command.currency}. افتح قسم الحسابات وأنشئ حساباً بهذه العملة أولاً."
