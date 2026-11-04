@@ -742,4 +742,19 @@ class FinanceRepositoryIntegrationTest {
         assertEquals(original.linkedTransactionId, saved.linkedTransactionId)
     }
 
+    @Test
+    fun workRecordsCannotCrossEmploymentAndFreelanceScopes() = runBlocking {
+        val employmentId = repository.addWorkSource(
+            WorkSourceEntity(name = "Employment scope", type = WorkSourceType.EMPLOYMENT, monthlySalary = 1200.0, currency = "LYD")
+        )
+        try {
+            repository.addWorkRecord(
+                WorkRecordEntity(sourceId = employmentId, scope = WorkSourceType.FREELANCE,
+                    type = WorkRecordType.WORK_INCOME, amount = 50.0, currency = "LYD", period = "2026-11")
+            )
+            fail("An employment source must not accept a freelance-scoped record")
+        } catch (_: IllegalArgumentException) { }
+        assertTrue(repository.workRecords.first().isEmpty())
+    }
+
 }
