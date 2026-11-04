@@ -5,6 +5,7 @@ import com.example.finance.model.WorkRecordType
 import com.example.finance.model.WorkSourceEntity
 import com.example.finance.model.WorkSourceType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 class WorkLedgerCalculatorTest {
     @Test fun salaryDueSubtractsAdvancesDeductionsAndPartialPayments() {
@@ -16,6 +17,13 @@ class WorkLedgerCalculatorTest {
         val income = WorkRecordEntity(id = 10, sourceId = 2, type = WorkRecordType.FREELANCE_INCOME, amount = 900.0)
         val rows = listOf(income, WorkRecordEntity(sourceId = 2, relatedRecordId = 10, type = WorkRecordType.FREELANCE_PAYMENT, amount = 250.0), WorkRecordEntity(sourceId = 2, relatedRecordId = 10, type = WorkRecordType.FREELANCE_PAYMENT, amount = 150.0))
         assertEquals(500.0, WorkLedgerCalculator.freelanceOutstanding(income, rows).toDouble(), 0.001)
+    }
+    @Test fun generalWorkIncomeAndExpensesCanBeRecordedWithoutAWorkSource() {
+        val income = WorkRecordEntity(type = WorkRecordType.WORK_INCOME, amount = 750.0, currency = "EUR")
+        val expense = WorkRecordEntity(type = WorkRecordType.WORK_EXPENSE, amount = 125.0, currency = "EUR")
+        assertTrue(WorkLedgerCalculator.isCashMovement(income.type))
+        assertTrue(WorkLedgerCalculator.isCashMovement(expense.type))
+        assertEquals(625.0, WorkLedgerCalculator.cashBalance(listOf(income, expense), "EUR").toDouble(), 0.001)
     }
     @Test fun internalTransfersAffectWorkCashButRemainSeparateFromIncomeAndExpenses() {
         val rows = listOf(WorkRecordEntity(type = WorkRecordType.WORK_TRANSFER_IN, amount = 500.0), WorkRecordEntity(type = WorkRecordType.FREELANCE_PAYMENT, amount = 300.0), WorkRecordEntity(type = WorkRecordType.WORK_EXPENSE, amount = 100.0), WorkRecordEntity(type = WorkRecordType.WORK_TRANSFER_OUT, amount = 50.0))
