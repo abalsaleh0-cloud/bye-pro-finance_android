@@ -186,6 +186,8 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     var amount by remember(existing?.id) { mutableStateOf(existing?.amount?.toString().orEmpty()) }
     var note by remember(existing?.id) { mutableStateOf(existing?.notes.orEmpty()) }
     var period by remember(existing?.id) { mutableStateOf(existing?.period ?: java.time.YearMonth.now().toString()) }
+    var dateText by remember(existing?.id) { mutableStateOf(java.time.Instant.ofEpochMilli(existing?.date ?: System.currentTimeMillis()).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()) }
+    val recordDate = runCatching { java.time.LocalDate.parse(dateText.trim()).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() }.getOrNull()
     var related by remember(existing?.id) { mutableStateOf(existing?.relatedRecordId) }
     var currencyCode by remember(existing?.id, sourceId, currency) { mutableStateOf(source?.currency ?: existing?.currency ?: currency) }
     val options = buildList {
@@ -243,6 +245,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                 }
             }
             OutlinedTextField(amount, { amount = it }, label = { Text(if (ar) "المبلغ" else "Amount") }, singleLine = true)
+            OutlinedTextField(dateText, { dateText = it.take(10) }, label = { Text(if (ar) "التاريخ (YYYY-MM-DD)" else "Date (YYYY-MM-DD)") }, singleLine = true)
             OutlinedTextField(period, { period = it.take(7) }, label = { Text(if (ar) "الفترة (YYYY-MM)" else "Period (YYYY-MM)") }, singleLine = true)
             OutlinedTextField(note, { note = it }, label = { Text(if (ar) "الوصف / الملاحظات" else "Description / notes") })
             if (cash) {
@@ -280,7 +283,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                             type = type,
                             amount = value,
                             currency = selectedCurrency,
-                            date = existing?.date ?: System.currentTimeMillis(),
+                            date = recordDate ?: existing?.date ?: System.currentTimeMillis(),
                             period = period.trim(),
                             notes = note.trim()
                         ),
@@ -288,7 +291,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                     )
                 }
             },
-            enabled = value != null && value.isFinite() && value > 0 && currencyCode.isNotBlank() &&
+            enabled = value != null && value.isFinite() && value > 0 && recordDate != null && currencyCode.isNotBlank() &&
                 period.trim().matches(Regex("\\d{4}-\\d{2}")) && (!needsSource || source != null) && (type != WorkRecordType.FREELANCE_PAYMENT || related != null)
         ) { Text(if (ar) "حفظ" else "Save") }
     }, dismissButton = { TextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
