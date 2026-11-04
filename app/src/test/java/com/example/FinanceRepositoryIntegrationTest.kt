@@ -716,4 +716,30 @@ class FinanceRepositoryIntegrationTest {
         assertTrue(repository.transactions.first().isEmpty())
     }
 
+    @Test
+    fun editingWorkRecordReconcilesLinkedAccountBalanceAtomically() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Work edit account", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addWorkRecord(
+            WorkRecordEntity(type = WorkRecordType.WORK_INCOME, amount = 100.0, currency = "LYD", period = "2026-11", scope = WorkSourceType.EMPLOYMENT),
+            TransactionEntity(accountId = accountId, type = TransactionType.INCOME, amount = 100.0, currency = "LYD",
+                category = "WORK_INCOME", description = "Original work income", status = TransactionStatus.COMPLETED)
+        )
+        assertEquals(1100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        val original = db.financeDao().getWorkRecordById(id)!!
+        val updated = original.copy(type = WorkRecordType.WORK_EXPENSE, amount = 25.0, notes = "Corrected work expense")
+        repository.updateWorkRecord(
+            updated,
+            TransactionEntity(id = original.linkedTransactionId!!, accountId = accountId, type = TransactionType.EXPENSE,
+                amount = 25.0, currency = "LYD", category = "WORK_EXPENSE", description = "Corrected work expense",
+                status = TransactionStatus.COMPLETED)
+        )
+        assertEquals(975.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        val saved = db.financeDao().getWorkRecordById(id)!!
+        assertEquals(WorkRecordType.WORK_EXPENSE, saved.type)
+        assertEquals(25.0, saved.amount, 0.001)
+        assertEquals(original.linkedTransactionId, saved.linkedTransactionId)
+    }
+
 }
