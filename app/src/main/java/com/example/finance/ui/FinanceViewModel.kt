@@ -66,7 +66,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private val aiAppTools = AiAppToolSet(repository, aiProjectWorkspace) { section -> setScreen(section) }
     val pendingAiAction = aiAppTools.pendingAction
     private val localLlm = LiteRtLocalAssistant(application.cacheDir, aiAppTools)
-    private val ggufLlm = GgufLocalAssistant()
+    private val ggufLlm = GgufLocalAssistant(aiAppTools)
     val accounts: StateFlow<List<AccountEntity>> = repository.accounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val archivedAccounts: StateFlow<List<AccountEntity>> = repository.archivedAccounts.withStartupFallback(emptyList()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val _accountsLoading = MutableStateFlow(true)
