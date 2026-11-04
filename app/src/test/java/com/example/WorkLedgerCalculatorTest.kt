@@ -29,4 +29,14 @@ class WorkLedgerCalculatorTest {
         val rows = listOf(WorkRecordEntity(type = WorkRecordType.WORK_TRANSFER_IN, amount = 500.0), WorkRecordEntity(type = WorkRecordType.FREELANCE_PAYMENT, amount = 300.0), WorkRecordEntity(type = WorkRecordType.WORK_EXPENSE, amount = 100.0), WorkRecordEntity(type = WorkRecordType.WORK_TRANSFER_OUT, amount = 50.0))
         assertEquals(650.0, WorkLedgerCalculator.cashBalance(rows, "LYD").toDouble(), 0.001)
     }
+    @Test fun employmentAndFreelanceCashBalancesAreIndependent() {
+        val employment = WorkRecordEntity(type = WorkRecordType.WORK_INCOME, amount = 800.0, scope = WorkSourceType.EMPLOYMENT)
+        val freelanceIncome = WorkRecordEntity(type = WorkRecordType.WORK_INCOME, amount = 500.0, scope = WorkSourceType.FREELANCE)
+        val freelanceExpense = WorkRecordEntity(type = WorkRecordType.WORK_EXPENSE, amount = 125.0, scope = WorkSourceType.FREELANCE)
+        val rows = listOf(employment, freelanceIncome, freelanceExpense)
+        assertEquals(800.0, WorkLedgerCalculator.cashBalance(rows, "LYD", WorkSourceType.EMPLOYMENT).toDouble(), 0.001)
+        assertEquals(375.0, WorkLedgerCalculator.cashBalance(rows, "LYD", WorkSourceType.FREELANCE).toDouble(), 0.001)
+        assertEquals(1175.0, WorkLedgerCalculator.cashBalance(rows, "LYD").toDouble(), 0.001)
+    }
+
 }
