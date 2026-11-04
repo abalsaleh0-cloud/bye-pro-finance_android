@@ -120,7 +120,7 @@ class AiAppToolSet(
         return stageAction("مراجعة إضافة مصدر عمل", "الاسم: $cleanName\nالنوع: $parsedType\nالراتب الشهري: $monthlySalary $cleanCurrency", PendingPayload.WorkSource(value))
     }
 
-    @Tool(description = "Prepare a work ledger record. type must exactly match WorkRecordType. For cash movements accountId is required to link the personal account. FREELANCE_PAYMENT requires relatedRecordId. Saved only after confirmation.")
+    @Tool(description = "Prepare a work ledger record. type must exactly match WorkRecordType. sourceId=0 means a general record without a work source; accountId=0 means save in the work ledger without linking a personal account. Salary and freelance-specific record types require a matching source. FREELANCE_PAYMENT requires relatedRecordId. Saved only after confirmation.")
     fun proposeCreateWorkRecord(sourceId: Long, type: String, amount: Double, currency: String, period: String, notes: String, accountId: Long, relatedRecordId: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val parsedType = runCatching { WorkRecordType.valueOf(type.trim().uppercase()) }.getOrNull()
             ?: return@runBlocking mapOf("success" to false, "error" to "Unknown work record type.")
@@ -130,8 +130,7 @@ class AiAppToolSet(
             !cleanPeriod.matches(Regex("\\d{4}-\\d{2}"))
         ) return@runBlocking mapOf("success" to false, "error" to "Work record amount, currency or period is invalid.")
         val cash = WorkLedgerCalculator.isCashMovement(parsedType)
-        val account = if (cash) {
-            if (accountId <= 0L) return@runBlocking mapOf("success" to false, "error" to "A personal account is required for this cash movement.")
+        val account = if (cash && accountId > 0L) {
             repository.accounts.first().firstOrNull { it.id == accountId }
                 ?: return@runBlocking mapOf("success" to false, "error" to "Personal account not found.")
         } else null
@@ -140,7 +139,7 @@ class AiAppToolSet(
         if (parsedType == WorkRecordType.FREELANCE_PAYMENT && relatedRecordId <= 0L) return@runBlocking mapOf("success" to false, "error" to "Select the freelance receivable.")
         if (parsedType != WorkRecordType.FREELANCE_PAYMENT && relatedRecordId > 0L) return@runBlocking mapOf("success" to false, "error" to "relatedRecordId is only valid for FREELANCE_PAYMENT.")
         val txType = when (parsedType) {
-            WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT -> TransactionType.INCOME
+            WorkRecordType.WORK_INCOME, WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT -> TransactionType.INCOME
             WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.WORK_EXPENSE -> TransactionType.EXPENSE
             WorkRecordType.WORK_TRANSFER_IN -> TransactionType.TRANSFER
             WorkRecordType.WORK_TRANSFER_OUT -> TransactionType.ADJUSTMENT
@@ -160,15 +159,15 @@ class AiAppToolSet(
             type = parsedType, amount = amount, currency = cleanCurrency, period = cleanPeriod, notes = notes.trim()
         )
         val isTransfer = parsedType == WorkRecordType.WORK_TRANSFER_IN || parsedType == WorkRecordType.WORK_TRANSFER_OUT
-        if (isTransfer && record.sourceId != null) return@runBlocking mapOf("success" to false, "error" to "Internal work transfers must not reference an employment source.")
-        if (!isTransfer && record.sourceId == null) return@runBlocking mapOf("success" to false, "error" to "Choose an existing work source for this record.")
+        val employmentRecord = parsedType in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
+        val freelanceRecord = parsedType in setOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.FREELANCE_EXPENSE)
+        if (isTransfer && record.sourceId != null) return@runBlocking mapOf("success" to false, "error" to "Internal work transfers must not reference a work source.")
+        if ((employmentRecord || freelanceRecord) && record.sourceId == null) return@runBlocking mapOf("success" to false, "error" to "Choose a matching work source for this record type.")
         val sources = repository.workSources.first()
         val source = record.sourceId?.let { id -> sources.firstOrNull { it.id == id } }
         if (record.sourceId != null && (source == null || !source.isActive)) return@runBlocking mapOf("success" to false, "error" to "Active work source not found.")
-        val employmentRecord = parsedType in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
-        if (source != null && parsedType != WorkRecordType.WORK_EXPENSE &&
-            ((source.type == WorkSourceType.EMPLOYMENT) != employmentRecord)
-        ) return@runBlocking mapOf("success" to false, "error" to "This work record type does not match the selected source type.")
+        if (source != null && employmentRecord && source.type != WorkSourceType.EMPLOYMENT) return@runBlocking mapOf("success" to false, "error" to "Salary records require an employment source.")
+        if (source != null && freelanceRecord && source.type != WorkSourceType.FREELANCE) return@runBlocking mapOf("success" to false, "error" to "Freelance records require a freelance source.")
         if (source != null && !source.currency.equals(cleanCurrency, true)) return@runBlocking mapOf("success" to false, "error" to "Work source currency does not match the record.")
         if (parsedType == WorkRecordType.FREELANCE_PAYMENT) {
             val receivable = repository.workRecords.first().firstOrNull { it.id == relatedRecordId }
@@ -180,7 +179,7 @@ class AiAppToolSet(
         val sourceName = source?.name
         stageAction(
             "مراجعة تسجيل حركة عمل",
-            "المصدر: " + (sourceName ?: "تحويل رصيد العمل") + "\nالنوع: " + parsedType + "\nالمبلغ: " + amount + " " + cleanCurrency + "\nالفترة: " + cleanPeriod + "\n" + notes.trim(),
+            "المصدر: " + (sourceName ?: if (isTransfer) "تحويل رصيد العمل" else "عمل عام") + "\nالنوع: " + parsedType + "\nالمبلغ: " + amount + " " + cleanCurrency + "\nالفترة: " + cleanPeriod + "\n" + notes.trim(),
             PendingPayload.WorkRecord(record, tx)
         )
     }
