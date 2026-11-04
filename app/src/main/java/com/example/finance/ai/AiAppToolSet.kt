@@ -1036,7 +1036,12 @@ class AiAppToolSet(
             "proposeUpdateAsset" to listOf("id", "name", "value", "notes"),
             "proposeUpdateHouseholdMember" to listOf("id", "name", "role", "contributionPercent"),
             "proposeUpdateHouseholdExpense" to listOf("id", "title", "amount", "payerMemberId", "category"),
-            "proposeMarkNotificationRead" to listOf("id")
+            "proposeMarkNotificationRead" to listOf("id"),
+            "proposeCreateDocument" to listOf("title", "type", "merchant", "totalAmount", "taxAmount", "currency", "date", "notes", "linkedTransactionId"),
+            "proposeDeleteDocument" to listOf("id"),
+            "proposeMarkAllNotificationsRead" to listOf(),
+            "proposeDeleteNotification" to listOf("id"),
+            "proposeClearNotifications" to listOf()
         )
         const val MAX_PROJECT_FILE_BYTES = 1024 * 1024
         const val MAX_TOOL_FILE_READ_CHARS = 20_000
