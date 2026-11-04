@@ -10,6 +10,8 @@ import com.example.finance.model.TransactionType
 import com.example.finance.model.TransactionStatus
 import com.example.finance.model.DebtEntity
 import com.example.finance.model.BillEntity
+import com.example.finance.model.DocumentEntity
+import com.example.finance.model.DocumentType
 import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.AssetEntity
 import com.example.finance.model.AssetType
@@ -62,6 +64,7 @@ class AiAppToolSet(
         data class Transaction(val value: TransactionEntity) : PendingPayload
         data class Debt(val value: DebtEntity) : PendingPayload
         data class Bill(val value: BillEntity) : PendingPayload
+        data class Document(val value: DocumentEntity) : PendingPayload
         data class SavingsGoal(val value: SavingsGoalEntity) : PendingPayload
         data class Asset(val value: AssetEntity) : PendingPayload
         data class WorkSource(val value: WorkSourceEntity) : PendingPayload
@@ -435,6 +438,57 @@ class AiAppToolSet(
         repository.documents.first().take(50).map { mapOf("id" to it.id, "title" to it.title, "type" to it.type.name, "merchant" to it.merchant, "totalAmount" to it.totalAmount, "taxAmount" to it.taxAmount, "currency" to it.currency, "date" to it.date) }
     }
 
+    @Tool(description = "Prepare a document-register entry from known metadata. This records metadata only and does not upload or attach a file. Requires confirmation.")
+    fun proposeCreateDocument(
+        title: String,
+        type: String,
+        merchant: String,
+        totalAmount: Double,
+        taxAmount: Double,
+        currency: String,
+        date: Long,
+        notes: String,
+        linkedTransactionId: Long
+    ): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val cleanTitle = title.trim()
+        val cleanCurrency = currency.trim().uppercase()
+        val parsedType = runCatching { DocumentType.valueOf(type.trim().uppercase()) }.getOrNull()
+            ?: return@runBlocking mapOf("success" to false, "error" to "Document type must be RECEIPT, INVOICE, STATEMENT, CONTRACT or OTHER.")
+        if (cleanTitle.isBlank() || !totalAmount.isFinite() || totalAmount < 0.0 ||
+            !taxAmount.isFinite() || taxAmount < 0.0 || taxAmount > totalAmount ||
+            !cleanCurrency.matches(Regex("[A-Z]{3}")) || date <= 0L
+        ) return@runBlocking mapOf("success" to false, "error" to "Document metadata is invalid.")
+        if (linkedTransactionId > 0L && repository.transactions.first().none { it.id == linkedTransactionId }) {
+            return@runBlocking mapOf("success" to false, "error" to "Linked transaction was not found.")
+        }
+        val value = DocumentEntity(
+            title = cleanTitle,
+            type = parsedType,
+            merchant = merchant.trim(),
+            totalAmount = totalAmount,
+            taxAmount = taxAmount,
+            currency = cleanCurrency,
+            date = date,
+            notes = notes.trim(),
+            linkedTransactionId = linkedTransactionId.takeIf { it > 0L }
+        )
+        stageAction(
+            "مراجعة تسجيل مستند",
+            "العنوان: $cleanTitle\\nالنوع: $parsedType\\nالتاجر: ${merchant.trim()}\\nالإجمالي: $totalAmount $cleanCurrency\\nالضريبة: $taxAmount $cleanCurrency\\nسيُسجل كبيانات وصفية فقط دون إرفاق ملف.",
+            PendingPayload.Document(value)
+        )
+    }
+
+    @Tool(description = "Prepare deletion of a document-register entry. This removes only the metadata record; it does not delete any external file. Requires confirmation.")
+    fun proposeDeleteDocument(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val row = repository.documents.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Document not found.")
+        stageUpdate("تأكيد حذف سجل مستند", "المستند #$id\\n${row.title}\\nالنوع: ${row.type}\\nالتاجر: ${row.merchant}\\nسيُحذف سجل البيانات فقط، ولن يُحذف ملف خارجي.", suspend {
+            repository.deleteDocument(row)
+            "تم حذف سجل المستند بعد تأكيدك؛ لم يتم حذف ملف خارجي."
+        })
+    }
+
     @Tool(description = "Read recent in-app notifications.")
     fun listNotifications(): List<Map<String, Any>> = runBlocking(Dispatchers.IO) {
         repository.notifications.first().take(30).map { mapOf("id" to it.id, "title" to it.title, "message" to it.message, "type" to it.type.name, "timestamp" to it.timestamp, "read" to it.isRead) }
@@ -766,6 +820,36 @@ class AiAppToolSet(
         })
     }
 
+    @Tool(description = "Prepare marking all unread notifications as read. Shows the affected count and requires confirmation.")
+    fun proposeMarkAllNotificationsRead(): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val unread = repository.notifications.first().filterNot { it.isRead }
+        if (unread.isEmpty()) return@runBlocking mapOf("success" to true, "message" to "All notifications are already read.")
+        stageUpdate("مراجعة قراءة جميع الإشعارات", "سيتم وضع ${unread.size} إشعار كمقروء.", suspend {
+            repository.markAllNotificationsRead()
+            "تم وضع جميع الإشعارات كمقروءة بعد تأكيدك."
+        })
+    }
+
+    @Tool(description = "Prepare deletion of one notification. Requires explicit confirmation.")
+    fun proposeDeleteNotification(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val current = repository.notifications.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Notification not found.")
+        stageUpdate("تأكيد حذف إشعار", "الإشعار #$id\\n${current.title}\\n${current.message}", suspend {
+            repository.deleteNotification(id)
+            "تم حذف الإشعار بعد تأكيدك."
+        })
+    }
+
+    @Tool(description = "Prepare clearing all notifications. Shows the exact count and requires explicit confirmation.")
+    fun proposeClearNotifications(): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val current = repository.notifications.first()
+        if (current.isEmpty()) return@runBlocking mapOf("success" to true, "message" to "There are no notifications to clear.")
+        stageUpdate("تأكيد حذف جميع الإشعارات", "سيتم حذف جميع الإشعارات وعددها ${current.size}.", suspend {
+            repository.clearNotifications()
+            "تم حذف جميع الإشعارات بعد تأكيدك."
+        })
+    }
+
     private fun stageAction(title: String, description: String, payload: PendingPayload): Map<String, Any> = synchronized(pendingLock) {
         if (pending != null || confirmingActionId != null) {
             return@synchronized mapOf(
@@ -809,6 +893,7 @@ class AiAppToolSet(
             is PendingPayload.Transaction -> { repository.addTransaction(payload.value); "تم تسجيل المعاملة بعد تأكيدك." }
             is PendingPayload.Debt -> { repository.addDebt(payload.value); "تمت إضافة الدين بعد تأكيدك." }
             is PendingPayload.Bill -> { repository.addBill(payload.value); "تمت إضافة الفاتورة بعد تأكيدك." }
+            is PendingPayload.Document -> { repository.addDocument(payload.value); "تم تسجيل بيانات المستند في سجل المستندات بعد تأكيدك. لم يتم إرفاق ملف جديد." }
             is PendingPayload.SavingsGoal -> { repository.addSavingsGoal(payload.value); "تمت إضافة هدف الادخار بعد تأكيدك." }
             is PendingPayload.Asset -> { repository.addAsset(payload.value); "تمت إضافة الأصل بعد تأكيدك." }
             is PendingPayload.WorkSource -> { repository.addWorkSource(payload.value); "تمت إضافة مصدر العمل «${payload.value.name}» بعد تأكيدك." }
