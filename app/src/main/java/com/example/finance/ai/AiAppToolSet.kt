@@ -294,7 +294,7 @@ class AiAppToolSet(
         val preview = AiActionPreview(
             id = UUID.randomUUID().toString(),
             title = "مراجعة كتابة ملف مشروع",
-            description = "المشروع: " + projectId + "\\nالمسار: " + path + "\\nالحجم: " + content.toByteArray(Charsets.UTF_8).size + " bytes\\nلن يُكتب الملف قبل تأكيدك."
+            description = "المشروع: " + projectId + "\nالمسار: " + path + "\nالحجم: " + content.toByteArray(Charsets.UTF_8).size + " bytes\nلن يُكتب الملف قبل تأكيدك."
         )
         pending = Pending(preview, PendingPayload.ProjectFile(projectId, path, content))
         _pendingAction.value = preview
@@ -664,7 +664,7 @@ class AiAppToolSet(
     }
 
     private fun stageUpdate(title: String, description: String, execute: suspend () -> String): Map<String, Any> {
-        val preview = AiActionPreview(UUID.randomUUID().toString(), title, description + "\\nلن يُحفظ التعديل قبل تأكيدك.")
+        val preview = AiActionPreview(UUID.randomUUID().toString(), title, description + "\nلن يُحفظ التعديل قبل تأكيدك.")
         pending = Pending(preview, PendingPayload.Update(execute))
         _pendingAction.value = preview
         return mapOf("success" to true, "requires_user_confirmation" to true, "preview_id" to preview.id,
@@ -676,7 +676,7 @@ class AiAppToolSet(
         val current = repository.accounts.first().firstOrNull { it.id == id } ?: return@runBlocking mapOf("success" to false, "error" to "Active account not found.")
         val n = name.trim()
         if (n.length !in 2..80) return@runBlocking mapOf("success" to false, "error" to "Account name is invalid.")
-        stageUpdate("مراجعة تعديل حساب", "الحساب #" + id + "\\nالاسم: " + n + "\\nالمؤسسة: " + institution.trim(), suspend {
+        stageUpdate("مراجعة تعديل حساب", "الحساب #" + id + "\nالاسم: " + n + "\nالمؤسسة: " + institution.trim(), suspend {
             repository.updateAccount(current.copy(name = n, institution = institution.trim(), notes = notes.trim()))
             "تم تحديث بيانات الحساب بعد تأكيدك."
         })
@@ -686,7 +686,7 @@ class AiAppToolSet(
     fun proposeUpdateTransactionStatus(id: Long, newStatus: String): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val current = repository.transactions.first().firstOrNull { it.id == id } ?: return@runBlocking mapOf("success" to false, "error" to "Transaction not found.")
         val status = runCatching { TransactionStatus.valueOf(newStatus.trim().uppercase()) }.getOrNull() ?: return@runBlocking mapOf("success" to false, "error" to "Unsupported transaction status.")
-        stageUpdate("مراجعة حالة معاملة", "المعاملة #" + id + "\\n" + current.status + " ← " + status + "\\n" + current.amount + " " + current.currency, suspend {
+        stageUpdate("مراجعة حالة معاملة", "المعاملة #" + id + "\n" + current.status + " ← " + status + "\n" + current.amount + " " + current.currency, suspend {
             repository.updateTransactionStatus(current, status)
             "تم تحديث حالة المعاملة بعد تأكيدك."
         })
@@ -697,7 +697,7 @@ class AiAppToolSet(
         val current = repository.budgets.first().firstOrNull { it.id == id } ?: return@runBlocking mapOf("success" to false, "error" to "Budget not found.")
         val n = name.trim(); val cat = category.trim()
         if (n.length !in 2..80 || cat.length !in 2..60 || !limitAmount.isFinite() || limitAmount <= 0.0) return@runBlocking mapOf("success" to false, "error" to "Budget values are invalid.")
-        stageUpdate("مراجعة تعديل ميزانية", "الميزانية #" + id + "\\n" + n + " — " + cat + "\\nالحد الجديد: " + limitAmount + " " + current.currency, suspend {
+        stageUpdate("مراجعة تعديل ميزانية", "الميزانية #" + id + "\n" + n + " — " + cat + "\nالحد الجديد: " + limitAmount + " " + current.currency, suspend {
             repository.updateBudget(current.copy(name = n, category = cat, limitAmount = limitAmount))
             "تم تحديث الميزانية بعد تأكيدك."
         })
@@ -708,7 +708,7 @@ class AiAppToolSet(
         val current = repository.debts.first().firstOrNull { it.id == id } ?: return@runBlocking mapOf("success" to false, "error" to "Debt not found.")
         val n = name.trim()
         if (n.length !in 2..100 || !principal.isFinite() || principal <= 0.0 || !remaining.isFinite() || remaining !in 0.0..principal) return@runBlocking mapOf("success" to false, "error" to "Debt values are invalid.")
-        stageUpdate("مراجعة تعديل دين", "الدين #" + id + "\\n" + n + "\\nالأصل: " + principal + " — المتبقي: " + remaining + " " + current.currency, suspend {
+        stageUpdate("مراجعة تعديل دين", "الدين #" + id + "\n" + n + "\nالأصل: " + principal + " — المتبقي: " + remaining + " " + current.currency, suspend {
             repository.updateDebt(current.copy(name = n, principal = principal, remaining = remaining))
             "تم تحديث الدين بعد تأكيدك."
         })
@@ -719,7 +719,7 @@ class AiAppToolSet(
         val current = repository.bills.first().firstOrNull { it.id == id } ?: return@runBlocking mapOf("success" to false, "error" to "Bill not found.")
         val n = name.trim(); val cat = category.trim()
         if (n.isBlank() || cat.isBlank() || !amount.isFinite() || amount <= 0.0 || dueDate <= 0L) return@runBlocking mapOf("success" to false, "error" to "Bill values are invalid.")
-        stageUpdate("مراجعة تعديل فاتورة", "الفاتورة #" + id + "\\n" + n + " — " + cat + "\\n" + amount + " " + current.currency, suspend {
+        stageUpdate("مراجعة تعديل فاتورة", "الفاتورة #" + id + "\n" + n + " — " + cat + "\n" + amount + " " + current.currency, suspend {
             repository.updateBill(current.copy(name = n, category = cat, amount = amount, dueDate = dueDate))
             "تم تحديث الفاتورة بعد تأكيدك."
         })
@@ -730,7 +730,7 @@ class AiAppToolSet(
         val current = repository.savingsGoals.first().firstOrNull { it.id == id } ?: return@runBlocking mapOf("success" to false, "error" to "Savings goal not found.")
         val n = name.trim()
         if (n.isBlank() || !targetAmount.isFinite() || targetAmount <= 0.0 || !currentAmount.isFinite() || currentAmount !in 0.0..targetAmount || deadline <= 0L) return@runBlocking mapOf("success" to false, "error" to "Savings goal values are invalid.")
-        stageUpdate("مراجعة تعديل هدف ادخار", "الهدف #" + id + "\\n" + n + "\\nالمستهدف: " + targetAmount + " — المحقق: " + currentAmount + " " + current.currency, suspend {
+        stageUpdate("مراجعة تعديل هدف ادخار", "الهدف #" + id + "\n" + n + "\nالمستهدف: " + targetAmount + " — المحقق: " + currentAmount + " " + current.currency, suspend {
             repository.updateSavingsGoal(current.copy(name = n, targetAmount = targetAmount, currentAmount = currentAmount, deadline = deadline))
             "تم تحديث هدف الادخار بعد تأكيدك."
         })
@@ -741,7 +741,7 @@ class AiAppToolSet(
         val current = repository.assets.first().firstOrNull { it.id == id } ?: return@runBlocking mapOf("success" to false, "error" to "Asset not found.")
         val n = name.trim()
         if (n.isBlank() || !value.isFinite() || value < 0.0) return@runBlocking mapOf("success" to false, "error" to "Asset values are invalid.")
-        stageUpdate("مراجعة تعديل أصل", "الأصل #" + id + "\\n" + n + "\\nالقيمة: " + value + " " + current.currency, suspend {
+        stageUpdate("مراجعة تعديل أصل", "الأصل #" + id + "\n" + n + "\nالقيمة: " + value + " " + current.currency, suspend {
             repository.updateAsset(current.copy(name = n, value = value, notes = notes.trim()))
             "تم تحديث الأصل بعد تأكيدك."
         })
@@ -752,7 +752,7 @@ class AiAppToolSet(
         val current = repository.householdMembers.first().firstOrNull { it.id == id } ?: return@runBlocking mapOf("success" to false, "error" to "Household member not found.")
         val n = name.trim(); val r = role.trim()
         if (n.isBlank() || r.isBlank() || !contributionPercent.isFinite() || contributionPercent !in 0.0..100.0) return@runBlocking mapOf("success" to false, "error" to "Household member values are invalid.")
-        stageUpdate("مراجعة تعديل فرد الأسرة", "العضو #" + id + "\\n" + n + " — " + r + "\\nالمساهمة: " + contributionPercent + "%", suspend {
+        stageUpdate("مراجعة تعديل فرد الأسرة", "العضو #" + id + "\n" + n + " — " + r + "\nالمساهمة: " + contributionPercent + "%", suspend {
             repository.updateHouseholdMember(current.copy(name = n, role = r, contributionPercent = contributionPercent))
             "تم تحديث بيانات فرد الأسرة بعد تأكيدك."
         })
@@ -763,7 +763,7 @@ class AiAppToolSet(
         val current = repository.householdExpenses.first().firstOrNull { it.id == id } ?: return@runBlocking mapOf("success" to false, "error" to "Household expense not found.")
         val t = title.trim(); val cat = category.trim()
         if (t.isBlank() || cat.isBlank() || !amount.isFinite() || amount <= 0.0 || payerMemberId <= 0L) return@runBlocking mapOf("success" to false, "error" to "Household expense values are invalid.")
-        stageUpdate("مراجعة تعديل مصروف أسري", "المصروف #" + id + "\\n" + t + "\\n" + amount + " " + current.currency, suspend {
+        stageUpdate("مراجعة تعديل مصروف أسري", "المصروف #" + id + "\n" + t + "\n" + amount + " " + current.currency, suspend {
             repository.updateHouseholdExpense(current.copy(title = t, amount = amount, payerMemberId = payerMemberId, category = cat))
             "تم تحديث المصروف الأسري بعد تأكيدك."
         })
@@ -773,7 +773,7 @@ class AiAppToolSet(
     fun proposeMarkNotificationRead(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val current = repository.notifications.first().firstOrNull { it.id == id } ?: return@runBlocking mapOf("success" to false, "error" to "Notification not found.")
         if (current.isRead) return@runBlocking mapOf("success" to true, "message" to "Notification is already read.")
-        stageUpdate("مراجعة قراءة إشعار", "الإشعار #" + id + "\\n" + current.title, suspend {
+        stageUpdate("مراجعة قراءة إشعار", "الإشعار #" + id + "\n" + current.title, suspend {
             repository.markNotificationRead(id)
             "تم وضع الإشعار كمقروء بعد تأكيدك."
         })
