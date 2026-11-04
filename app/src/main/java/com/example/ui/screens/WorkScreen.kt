@@ -37,7 +37,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             else -> row.period == period
         }
     }
-    val received = periodRows.filter { it.type in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT) }.sumOf { it.amount }
+    val received = periodRows.filter { it.type in setOf(WorkRecordType.WORK_INCOME, WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT) }.sumOf { it.amount }
     val expenses = periodRows.filter { it.type == WorkRecordType.FREELANCE_EXPENSE || it.type == WorkRecordType.WORK_EXPENSE }.sumOf { it.amount }
     val netProfit = received - expenses
     val balance = WorkLedgerCalculator.cashBalance(records, currency).toDouble()
@@ -61,10 +61,10 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Button(onClick = { sourceDialog = true }) { Text(if (ar) "إضافة مصدر" else "Add source") }
-            Button(onClick = { recordDialog = true }, enabled = sources.isNotEmpty()) { Text(if (ar) "تسجيل حركة" else "Add record") }
+            Button(onClick = { recordDialog = true }) { Text(if (ar) "تسجيل حركة" else "Add record") }
             TextButton(onClick = { transferDialog = true }) { Text(if (ar) "تحويل" else "Transfer") }
         }
-        if (error) Text(if (ar) "تعذر الحفظ. تحقق من المبلغ والحساب والمستحق المتبقي." else "Save failed. Check amount, account and remaining balance.", color = MaterialTheme.colorScheme.error)
+        if (error) Text(if (ar) "تعذر الحفظ. تحقق من صحة البيانات." else "Could not save. Check the entered details.", color = MaterialTheme.colorScheme.error)
         Text(if (ar) "مصادر الدخل" else "Income sources", style = MaterialTheme.typography.titleMedium)
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(sources, key = { "source" + it.id }) { source ->
@@ -80,7 +80,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             }
             item { Text(if (ar) "آخر الحركات" else "Recent records", style = MaterialTheme.typography.titleMedium) }
             items(records.take(25), key = { "record" + it.id }) { row ->
-                val name = sources.firstOrNull { it.id == row.sourceId }?.name ?: (if (ar) "تحويل داخلي" else "Internal transfer")
+                val name = sources.firstOrNull { it.id == row.sourceId }?.name ?: (if (row.type == WorkRecordType.WORK_TRANSFER_IN || row.type == WorkRecordType.WORK_TRANSFER_OUT) (if (ar) "تحويل داخلي" else "Internal transfer") else (if (ar) "عمل عام" else "General work"))
                 Text(name + " · " + workRecordLabel(row.type, ar) + " · " + money.format(row.amount) + " " + row.currency)
             }
         }
@@ -113,46 +113,135 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     }, dismissButton = { TextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
 }
 @Composable private fun WorkRecordDialog(ar: Boolean, currency: String, sources: List<WorkSourceEntity>, records: List<WorkRecordEntity>, accounts: List<AccountEntity>, dismiss: () -> Unit, save: (WorkRecordEntity, Long?) -> Unit) {
-    var sourceId by remember(sources) { mutableStateOf(sources.firstOrNull()?.id) }; val source = sources.firstOrNull { it.id == sourceId }
-    var type by remember(source) { mutableStateOf(if (source?.type == WorkSourceType.FREELANCE) WorkRecordType.FREELANCE_INCOME else WorkRecordType.SALARY_ADVANCE) }
-    var amount by remember { mutableStateOf("") }; var note by remember { mutableStateOf("") }; var related by remember { mutableStateOf<Long?>(null) }
-    val options = if (source?.type == WorkSourceType.EMPLOYMENT) listOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT, WorkRecordType.WORK_EXPENSE) else listOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.WORK_EXPENSE)
-    val cash = WorkLedgerCalculator.isCashMovement(type); val matching = accounts.filter { it.currency.equals(source?.currency ?: currency, true) }
-    var accountId by remember(sourceId, matching) { mutableStateOf(matching.firstOrNull()?.id) }
-    val receivables = records.filter { it.type == WorkRecordType.FREELANCE_INCOME && it.sourceId == sourceId && WorkLedgerCalculator.freelanceOutstanding(it, records).toDouble() > 0.000001 }
+    var sourceId by remember { mutableStateOf<Long?>(null) }
+    val source = sources.firstOrNull { it.id == sourceId }
+    var type by remember { mutableStateOf(WorkRecordType.WORK_INCOME) }
+    var amount by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf("") }
+    var related by remember { mutableStateOf<Long?>(null) }
+    var currencyCode by remember(sourceId, currency) { mutableStateOf(source?.currency ?: currency) }
+    val options = buildList {
+        add(WorkRecordType.WORK_INCOME)
+        add(WorkRecordType.WORK_EXPENSE)
+        if (source?.type == WorkSourceType.EMPLOYMENT) {
+            addAll(listOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT))
+        }
+        if (source?.type == WorkSourceType.FREELANCE) {
+            addAll(listOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.FREELANCE_EXPENSE))
+        }
+    }
+    val cash = WorkLedgerCalculator.isCashMovement(type)
+    val selectedCurrency = (source?.currency ?: currencyCode).trim().uppercase()
+    val matching = accounts.filter { it.currency.equals(selectedCurrency, true) }
+    var accountId by remember(selectedCurrency) { mutableStateOf<Long?>(null) }
+    val receivables = records.filter {
+        it.type == WorkRecordType.FREELANCE_INCOME && it.sourceId == sourceId &&
+            WorkLedgerCalculator.freelanceOutstanding(it, records).toDouble() > 0.000001
+    }
     AlertDialog(onDismissRequest = dismiss, title = { Text(if (ar) "تسجيل حركة عمل" else "Add work record") }, text = {
-        Column {
-            sources.forEach { item -> TextButton(onClick = { sourceId = item.id; type = if (item.type == WorkSourceType.EMPLOYMENT) WorkRecordType.SALARY_ADVANCE else WorkRecordType.FREELANCE_INCOME; related = null }) { Text((if (sourceId == item.id) "✓ " else "") + item.name) } }
-            options.forEach { option -> TextButton(onClick = { type = option; related = null }) { Text(workRecordLabel(option, ar)) } }
-            if (type == WorkRecordType.FREELANCE_PAYMENT) {
-                Text(if (ar) "المستحق المراد تحصيله" else "Receivable to collect")
-                receivables.forEach { row -> TextButton(onClick = { related = row.id }) { Text((if (related == row.id) "✓ " else "") + NumberFormat.getNumberInstance().format(WorkLedgerCalculator.freelanceOutstanding(row, records).toDouble()) + " · " + row.notes) } }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(if (ar) "المصدر (اختياري)" else "Source (optional)")
+            TextButton(onClick = { sourceId = null; type = WorkRecordType.WORK_INCOME; related = null; accountId = null }) {
+                Text((if (sourceId == null) "✓ " else "") + if (ar) "تسجيل عام بدون مصدر" else "General record without source")
             }
-            OutlinedTextField(amount, { amount = it }, label = { Text(if (ar) "المبلغ" else "Amount") })
-            OutlinedTextField(note, { note = it }, label = { Text(if (ar) "ملاحظات" else "Notes") })
-            if (cash) { Text(if (ar) "الحساب الشخصي للاستلام أو الدفع" else "Personal account for receipt or payment")
-                matching.forEach { row -> TextButton(onClick = { accountId = row.id }) { Text((if (accountId == row.id) "✓ " else "") + row.name + " · " + row.currency) } }
-            } else Text(if (ar) "قيد مستحق فقط؛ لا يتغير رصيد الحساب حتى الاستلام." else "Accrued only; personal balance changes only when received.")
+            sources.filter { it.isActive }.forEach { item ->
+                TextButton(onClick = {
+                    sourceId = item.id
+                    currencyCode = item.currency
+                    type = if (item.type == WorkSourceType.EMPLOYMENT) WorkRecordType.SALARY_ADVANCE else WorkRecordType.FREELANCE_INCOME
+                    related = null
+                    accountId = null
+                }) {
+                    Text((if (sourceId == item.id) "✓ " else "") + item.name)
+                }
+            }
+            Text(if (ar) "نوع الحركة" else "Record type")
+            options.forEach { option ->
+                TextButton(onClick = { type = option; related = null }) {
+                    Text((if (type == option) "✓ " else "") + workRecordLabel(option, ar))
+                }
+            }
+            if (source == null) {
+                OutlinedTextField(currencyCode, { currencyCode = it.uppercase().take(8) }, label = { Text(if (ar) "رمز العملة" else "Currency code") }, singleLine = true)
+            }
+            if (type == WorkRecordType.FREELANCE_PAYMENT) {
+                Text(if (ar) "المستحق المرتبط بالدفعة" else "Receivable linked to this payment")
+                receivables.forEach { row ->
+                    TextButton(onClick = { related = row.id }) {
+                        Text((if (related == row.id) "✓ " else "") + NumberFormat.getNumberInstance().format(WorkLedgerCalculator.freelanceOutstanding(row, records).toDouble()) + " · " + row.notes)
+                    }
+                }
+            }
+            OutlinedTextField(amount, { amount = it }, label = { Text(if (ar) "المبلغ" else "Amount") }, singleLine = true)
+            OutlinedTextField(note, { note = it }, label = { Text(if (ar) "الوصف / الملاحظات" else "Description / notes") })
+            if (cash) {
+                Text(if (ar) "ربط اختياري بحساب شخصي" else "Optional link to a personal account")
+                TextButton(onClick = { accountId = null }) {
+                    Text((if (accountId == null) "✓ " else "") + if (ar) "حفظ في سجل العمل فقط" else "Save only in work ledger")
+                }
+                matching.forEach { row ->
+                    TextButton(onClick = { accountId = row.id }) {
+                        Text((if (accountId == row.id) "✓ " else "") + row.name + " · " + row.currency)
+                    }
+                }
+            } else {
+                Text(if (ar) "سيُسجل كمستحق دون تغيير رصيد الحساب." else "Saved as an amount due; personal account balance is unchanged.")
+            }
         }
     }, confirmButton = {
         val value = amount.toDoubleOrNull()
-        Button(onClick = { if (value != null && value > 0 && source != null) save(WorkRecordEntity(sourceId = sourceId, relatedRecordId = related, type = type, amount = value, currency = source.currency, period = java.time.YearMonth.now().toString(), notes = note.trim()), if (cash) accountId else null) },
-            enabled = value != null && value > 0 && source != null && (!cash || accountId != null) && (type != WorkRecordType.FREELANCE_PAYMENT || related != null)) { Text(if (ar) "حفظ" else "Save") }
+        val needsSource = type in setOf(
+            WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION,
+            WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME,
+            WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_INCOME,
+            WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.FREELANCE_EXPENSE
+        )
+        Button(
+            onClick = {
+                if (value != null && value > 0 && (!needsSource || source != null) &&
+                    (type != WorkRecordType.FREELANCE_PAYMENT || related != null)) {
+                    save(
+                        WorkRecordEntity(
+                            sourceId = sourceId,
+                            relatedRecordId = related,
+                            type = type,
+                            amount = value,
+                            currency = selectedCurrency,
+                            period = java.time.YearMonth.now().toString(),
+                            notes = note.trim()
+                        ),
+                        if (cash) accountId else null
+                    )
+                }
+            },
+            enabled = value != null && value > 0 && currencyCode.isNotBlank() &&
+                (!needsSource || source != null) && (type != WorkRecordType.FREELANCE_PAYMENT || related != null)
+        ) { Text(if (ar) "حفظ" else "Save") }
     }, dismissButton = { TextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
 }
 @Composable private fun WorkTransferDialog(ar: Boolean, currency: String, accounts: List<AccountEntity>, dismiss: () -> Unit, save: (WorkRecordType, Double, String, Long?) -> Unit) {
-    var type by remember { mutableStateOf(WorkRecordType.WORK_TRANSFER_IN) }; var amount by remember { mutableStateOf("") }; var note by remember { mutableStateOf("") }
-    val matching = accounts.filter { it.currency.equals(currency, true) }; var accountId by remember(matching) { mutableStateOf(matching.firstOrNull()?.id) }
+    var type by remember { mutableStateOf(WorkRecordType.WORK_TRANSFER_IN) }
+    var amount by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf("") }
+    val matching = accounts.filter { it.currency.equals(currency, true) }
+    var accountId by remember { mutableStateOf<Long?>(null) }
     AlertDialog(onDismissRequest = dismiss, title = { Text(if (ar) "تحويل بين الشخصي والعمل" else "Personal ↔ Work transfer") }, text = {
         Column {
             TextButton(onClick = { type = WorkRecordType.WORK_TRANSFER_IN }) { Text((if (type == WorkRecordType.WORK_TRANSFER_IN) "✓ " else "") + (if (ar) "من الشخصي إلى العمل" else "Personal to work")) }
             TextButton(onClick = { type = WorkRecordType.WORK_TRANSFER_OUT }) { Text((if (type == WorkRecordType.WORK_TRANSFER_OUT) "✓ " else "") + (if (ar) "من العمل إلى الشخصي" else "Work to personal")) }
-            OutlinedTextField(amount, { amount = it }, label = { Text(if (ar) "المبلغ" else "Amount") }); OutlinedTextField(note, { note = it }, label = { Text(if (ar) "ملاحظات" else "Notes") })
+            OutlinedTextField(amount, { amount = it }, label = { Text(if (ar) "المبلغ" else "Amount") }, singleLine = true)
+            OutlinedTextField(note, { note = it }, label = { Text(if (ar) "ملاحظات" else "Notes") })
+            TextButton(onClick = { accountId = null }) { Text((if (accountId == null) "✓ " else "") + if (ar) "بدون ربط بحساب شخصي" else "No personal account link") }
             matching.forEach { row -> TextButton(onClick = { accountId = row.id }) { Text((if (accountId == row.id) "✓ " else "") + row.name) } }
         }
-    }, confirmButton = { val value = amount.toDoubleOrNull(); Button(onClick = { if (value != null && value > 0) save(type, value, note, accountId) }, enabled = value != null && value > 0 && accountId != null) { Text(if (ar) "تأكيد" else "Confirm") } }, dismissButton = { TextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
+    }, confirmButton = {
+        val value = amount.toDoubleOrNull()
+        Button(onClick = { if (value != null && value > 0) save(type, value, note, accountId) }, enabled = value != null && value > 0) { Text(if (ar) "تأكيد" else "Confirm") }
+    }, dismissButton = { TextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
 }
+
 private fun workRecordLabel(type: WorkRecordType, ar: Boolean): String = when (type) {
+    WorkRecordType.WORK_INCOME -> if (ar) "دخل عمل مباشر" else "Direct work income"
     WorkRecordType.SALARY_ADVANCE -> if (ar) "سلفة راتب مستلمة" else "Salary advance received"
     WorkRecordType.SALARY_DEDUCTION -> if (ar) "خصم راتب" else "Salary deduction"
     WorkRecordType.SALARY_BONUS -> if (ar) "مكافأة مستحقة" else "Bonus accrued"
