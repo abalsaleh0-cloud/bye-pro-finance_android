@@ -73,7 +73,7 @@ class AiAppToolSet(
         val allowed = setOf(
             "dashboard", "accounts", "transactions", "budgets", "debts", "bills",
             "savings", "assets", "transfers", "reports", "household", "documents",
-            "notifications", "settings", "ai_assistant"
+            "notifications", "settings", "ai_assistant", "work", "smart_scan", "import_export", "admin"
         )
         val target = section.trim().lowercase()
         if (target !in allowed) return mapOf("success" to false, "error" to "Section is not available.")
