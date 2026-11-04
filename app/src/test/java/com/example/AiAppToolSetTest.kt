@@ -40,6 +40,16 @@ class AiAppToolSetTest {
             assertTrue(manifest.contains("proposeCreateTransaction(accountId:"))
             assertTrue(manifest.contains("proposeCreateDocument(title:"))
             assertTrue(manifest.contains("proposeClearNotifications()"))
+            val exposedMethods = tools.javaClass.methods.filter { method ->
+                manifest.lineSequence().any { it.startsWith("${method.name}(") }
+            }
+            assertEquals(59, exposedMethods.size)
+            exposedMethods.forEach { method ->
+                val signature = manifest.lineSequence().first { it.startsWith("${method.name}(") }
+                val argumentText = signature.substringAfter("(").substringBefore("):").trim()
+                val manifestArgumentCount = if (argumentText.isBlank()) 0 else argumentText.split(", ").size
+                assertEquals("Argument order/count mismatch for ${method.name}", method.parameterCount, manifestArgumentCount)
+            }
         } finally {
             database.close()
         }
@@ -79,6 +89,33 @@ class AiAppToolSetTest {
             tools.confirmPendingAction(checkNotNull(previewId))
             assertEquals("Primary wallet", repository.accounts.first().single().name)
             assertTrue(repository.budgets.first().isEmpty())
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun documentRegisterMetadataIsPersistedOnlyAfterConfirmation() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            val repository = FinanceRepository(database.financeDao(), database)
+            val tools = AiAppToolSet(
+                repository,
+                AiProjectWorkspace(File(context.cacheDir, "ai-tools-document-test.properties"))
+            ) { }
+            val preview = tools.proposeCreateDocument(
+                "Purchase receipt", "RECEIPT", "Local shop",
+                25.0, 0.0, "LYD", System.currentTimeMillis(), "", 0L
+            )
+            assertTrue(preview["success"] == true)
+            assertTrue(preview["requires_user_confirmation"] == true)
+            assertTrue(repository.documents.first().isEmpty())
+
+            tools.confirmPendingAction(checkNotNull(preview["preview_id"] as? String))
+            assertEquals("Purchase receipt", repository.documents.first().single().title)
         } finally {
             database.close()
         }
