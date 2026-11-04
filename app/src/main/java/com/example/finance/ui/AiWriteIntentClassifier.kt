@@ -26,10 +26,13 @@ internal object AiWriteIntentClassifier {
         )
         if (readPhrases.any(normalized::contains)) return false
 
+        // "سجل + item" is an explicit write command across every supported
+        // finance/work section, not just transactions. Keep history/list phrases
+        // above this gate so they remain read-only.
         val explicitRecordCommand = Regex(
-            """(?:^|\s)(?:سجل|سجّل)\s+(?:مصروف|مصروفا|إيراد|ايراد|معاملة|دين|فاتورة|دفعة|تحويل)(?=\s|$)"""
+            """(?:^|\s)(?:سجل|سجّل)\s+(?:مصروف\w*|إيراد\w*|ايراد\w*|معاملة\w*|دين\w*|فاتور\w*|دفعة\w*|تحويل\w*|حساب\w*|ميزاني\w*|أصل\w*|اصل\w*|هدف\s+ادخار\w*|ادخار\w*|مستند\w*|وثيق\w*|راتب\w*|أجر\w*|اجر\w*|مصدر\s+عمل\w*|حركة\s+عمل\w*|عضو\s+(?:أسرة|اسرة|عائلة)\w*|مصروف\s+(?:أسرة|اسرة|عائلة)\w*)(?=\s|$)"""
         ).containsMatchIn(normalized) || Regex(
-            """(?:^|\s)record\s+(?:an?\s+)?(?:expense|income|transaction|debt|bill|payment|transfer)(?=\s|$)"""
+            """(?:^|\s)record\s+(?:an?\s+)?(?:expense|income|transaction|debt|bill|payment|transfer|account|budget|asset|savings?\s+goal|document|salary|work\s+(?:source|record)|household\s+(?:member|expense))(?=\s|$)"""
         ).containsMatchIn(normalized)
 
         val explicitWriteTerms = listOf(
