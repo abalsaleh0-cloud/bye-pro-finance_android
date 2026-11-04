@@ -26,13 +26,12 @@ internal object AiWriteIntentClassifier {
         )
         if (readPhrases.any(normalized::contains)) return false
 
-        // "سجل + item" is an explicit write command across every supported
-        // finance/work section, not just transactions. Keep history/list phrases
-        // above this gate so they remain read-only.
+        // Use Unicode letter classes: Java's default \\w does not consume Arabic
+        // letters, so valid Arabic inflections were rejected by the old gate.
         val explicitRecordCommand = Regex(
-            """(?:^|\s)(?:سجل|سجّل)\s+(?:مصروف\w*|إيراد\w*|ايراد\w*|معاملة\w*|دين\w*|فاتور\w*|دفعة\w*|تحويل\w*|حساب\w*|ميزاني\w*|أصل\w*|اصل\w*|هدف\s+ادخار\w*|ادخار\w*|مستند\w*|وثيق\w*|راتب\w*|أجر\w*|اجر\w*|مصدر\s+عمل\w*|حركة\s+عمل\w*|عضو\s+(?:أسرة|اسرة|عائلة)\w*|مصروف\s+(?:أسرة|اسرة|عائلة)\w*)(?=\s|$)"""
+            """(?:^|\s)(?:سجل|سجّل)\s+(?:مصروف\p{L}*|إيراد\p{L}*|ايراد\p{L}*|معاملة\p{L}*|دين\p{L}*|فاتور\p{L}*|دفعة\p{L}*|تحويل\p{L}*|حساب\p{L}*|ميزاني\p{L}*|أصل\p{L}*|اصل\p{L}*|هدف\s+ادخار\p{L}*|ادخار\p{L}*|مستند\p{L}*|وثيق\p{L}*|راتب\p{L}*|أجر\p{L}*|اجر\p{L}*|مصدر\s+عمل\p{L}*|حركة\s+عمل\p{L}*|عضو\s+(?:أسرة|اسرة|عائلة)\p{L}*|مصروف\s+(?:أسرة|اسرة|عائلة)\p{L}*)(?=\s|$)"""
         ).containsMatchIn(normalized) || Regex(
-            """(?:^|\s)record\s+(?:an?\s+)?(?:expense|income|transaction|debt|bill|payment|transfer|account|budget|asset|savings?\s+goal|document|salary|work\s+(?:source|record)|household\s+(?:member|expense))(?=\s|$)"""
+            """(?:^|\s)record\s+(?:(?:an?|the)\s+)?(?:[\p{L}-]+\s+){0,2}(?:expense|income|transaction|debt|bill|payment|transfer|account|budget|asset|savings?\s+goal|document|salary|work\s+(?:source|record)|household\s+(?:member|expense))(?=\s|$)"""
         ).containsMatchIn(normalized)
 
         val explicitWriteTerms = listOf(
