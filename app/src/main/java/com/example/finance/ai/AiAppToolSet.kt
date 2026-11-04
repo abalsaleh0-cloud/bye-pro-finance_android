@@ -850,7 +850,7 @@ class AiAppToolSet(
                         ToolParam::class.java.getMethod("description").invoke(param)?.toString()
                     }
                 }.getOrNull()?.toString().orEmpty()
-                val parameterName = parameter.name.takeUnless { it.startsWith("arg") } ?: "arg$index"
+                val parameterName = STRUCTURED_TOOL_PARAMETER_NAMES[method.name]?.getOrNull(index) ?: "arg$index"
                 "$parameterName:${parameter.type.simpleName}" + if (parameterDescription.isBlank()) "" else " ($parameterDescription)"
             }.joinToString(", ")
             "${method.name}($parameters): $description"
@@ -897,6 +897,62 @@ class AiAppToolSet(
     }
 
     private companion object {
+        private val STRUCTURED_TOOL_PARAMETER_NAMES = mapOf(
+            "navigateToAppSection" to listOf("section"),
+            "getWorkLedgerOverview" to listOf(),
+            "proposeCreateWorkSource" to listOf("name", "type", "monthlySalary", "currency"),
+            "proposeCreateWorkRecord" to listOf("sourceId", "type", "amount", "currency", "period", "notes", "accountId", "relatedRecordId"),
+            "getFinancialOverview" to listOf(),
+            "listProjectPlans" to listOf(),
+            "proposeCreateProjectPlan" to listOf("title", "objective", "technologyStack", "milestones", "tasks"),
+            "listProjectFiles" to listOf("projectId"),
+            "readProjectFile" to listOf("projectId", "path"),
+            "proposeWriteProjectFile" to listOf("projectId", "path", "content"),
+            "proposeWriteProjectFiles" to listOf("projectId", "filesJson"),
+            "getRecentTransactions" to listOf("limit"),
+            "proposeCreateBudget" to listOf("name", "category", "limitAmount", "currency"),
+            "listAccounts" to listOf("includeArchived"),
+            "listTransfers" to listOf(),
+            "listBudgets" to listOf(),
+            "listDebts" to listOf(),
+            "listBills" to listOf(),
+            "listSavingsGoals" to listOf(),
+            "listAssets" to listOf(),
+            "listHouseholdMembers" to listOf(),
+            "listHouseholdExpenses" to listOf(),
+            "listDocuments" to listOf(),
+            "listNotifications" to listOf(),
+            "listAuditActivity" to listOf(),
+            "proposeCreateAccount" to listOf("name", "type", "currency", "openingBalance"),
+            "proposeCreateTransaction" to listOf("accountId", "type", "amount", "category", "description", "currency", "status"),
+            "proposeCreateDebt" to listOf("name", "principal", "remaining", "direction", "currency"),
+            "proposeCreateBill" to listOf("name", "category", "amount", "dueDate", "currency", "recurring"),
+            "proposeCreateSavingsGoal" to listOf("name", "targetAmount", "currentAmount", "currency", "deadline"),
+            "proposeCreateAsset" to listOf("name", "type", "value", "currency", "notes"),
+            "proposeTransfer" to listOf("fromAccountId", "toAccountId", "amount", "fee", "currency", "description"),
+            "proposeCreateHouseholdMember" to listOf("name", "role", "contributionPercent", "email"),
+            "proposeCreateHouseholdExpense" to listOf("title", "amount", "payerMemberId", "category", "currency"),
+            "proposeRecordDebtPayment" to listOf("debtId", "accountId", "amount", "notes", "paymentDate"),
+            "proposeMarkBillPaid" to listOf("billId", "accountId"),
+            "proposeDeleteTransaction" to listOf("id"),
+            "proposeDeleteBudget" to listOf("id"),
+            "proposeDeleteDebt" to listOf("id"),
+            "proposeDeleteBill" to listOf("id"),
+            "proposeDeleteSavingsGoal" to listOf("id"),
+            "proposeDeleteAsset" to listOf("id"),
+            "proposeDeleteHouseholdExpense" to listOf("id"),
+            "proposeDeleteHouseholdMember" to listOf("id"),
+            "proposeUpdateAccount" to listOf("id", "name", "institution", "notes"),
+            "proposeUpdateTransactionStatus" to listOf("id", "newStatus"),
+            "proposeUpdateBudget" to listOf("id", "name", "category", "limitAmount"),
+            "proposeUpdateDebt" to listOf("id", "name", "principal", "remaining"),
+            "proposeUpdateBill" to listOf("id", "name", "category", "amount", "dueDate"),
+            "proposeUpdateSavingsGoal" to listOf("id", "name", "targetAmount", "currentAmount", "deadline"),
+            "proposeUpdateAsset" to listOf("id", "name", "value", "notes"),
+            "proposeUpdateHouseholdMember" to listOf("id", "name", "role", "contributionPercent"),
+            "proposeUpdateHouseholdExpense" to listOf("id", "title", "amount", "payerMemberId", "category"),
+            "proposeMarkNotificationRead" to listOf("id")
+        )
         const val MAX_PROJECT_FILE_BYTES = 1024 * 1024
         const val MAX_TOOL_FILE_READ_CHARS = 20_000
     }
