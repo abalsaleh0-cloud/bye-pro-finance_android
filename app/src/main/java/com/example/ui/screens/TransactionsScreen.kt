@@ -283,7 +283,7 @@ fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCance
                         else -> ""
                     }
                     if (error.isBlank() && account != null && numeric != null && parsedDate != null) {
-                        onSave((initialTransaction ?: TransactionEntity()).copy(accountId = account.id, type = type, amount = numeric, currency = account.currency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }, status = initialTransaction?.status ?: TransactionStatus.COMPLETED))
+                        onSave(initialTransaction?.copy(accountId = account.id, type = type, amount = numeric, currency = account.currency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }) ?: TransactionEntity(accountId = account.id, type = type, amount = numeric, currency = account.currency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }, status = TransactionStatus.COMPLETED))
                     }
                 }, modifier = Modifier.weight(1f).testTag("submit_transaction_btn")) { Text(if (initialTransaction == null) WebI18n.tr("حفظ المعاملة", "Save transaction", lang) else WebI18n.tr("حفظ التعديلات", "Save changes", lang)) }
             }
