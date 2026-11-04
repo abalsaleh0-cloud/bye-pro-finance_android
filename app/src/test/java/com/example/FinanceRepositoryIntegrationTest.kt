@@ -809,4 +809,33 @@ class FinanceRepositoryIntegrationTest {
         assertEquals("Edited after completion", saved.description)
     }
 
+    @Test
+    fun deletingAdjustmentReversesItsPositiveAccountDelta() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Adjustment deletion", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addTransaction(
+            TransactionEntity(accountId = accountId, type = TransactionType.ADJUSTMENT, amount = 45.0,
+                currency = "LYD", category = "Adjustment", description = "Positive adjustment",
+                status = TransactionStatus.COMPLETED)
+        )
+        assertEquals(1045.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        repository.deleteTransaction(db.financeDao().getTransactionById(id)!!)
+        assertEquals(1000.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun deletingPendingTransactionDoesNotChangeAccountBalance() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Pending deletion", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addTransaction(
+            TransactionEntity(accountId = accountId, type = TransactionType.EXPENSE, amount = 65.0,
+                currency = "LYD", category = "Other", description = "Pending expense",
+                status = TransactionStatus.PENDING)
+        )
+        repository.deleteTransaction(db.financeDao().getTransactionById(id)!!)
+        assertEquals(1000.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+    }
+
 }
