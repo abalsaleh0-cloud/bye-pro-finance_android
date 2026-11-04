@@ -136,7 +136,8 @@ fun AiModelsSettingsScreen(
     localModelProgress: Float,
     localModelStatus: String,
     onLoadModelFile: (File) -> Unit,
-    onImportAndLoadModel: (Uri) -> Unit
+    onImportAndLoadModel: (Uri) -> Unit,
+    onDownloadRecommendedModel: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -228,6 +229,51 @@ fun AiModelsSettingsScreen(
                     Text(WebI18n.tr("إدارة النماذج المحلية والهجينة، حالة التشغيل، الصوت والخصوصية من مساحة موحدة.", "Manage local and hybrid models, runtime status, voice and privacy in one workspace.", lang), style = MaterialTheme.typography.bodySmall, color = ByeProTheme.colors.textSecondary)
                 }
             }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        WebI18n.tr("النموذج الموصى به لهذا الهاتف", "Recommended model for this phone", lang),
+                        fontWeight = FontWeight.SemiBold,
+                        color = ByeProTheme.colors.textPrimary
+                    )
+                    Text(
+                        "Gemma 3n E2B Instruct · GGUF · Q4_K_M · ≈ 2.79 GB",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = ByeProTheme.colors.goldPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        WebI18n.tr(
+                            "يمكن تنزيله مباشرة إلى مساحة التطبيق الخاصة. يتطلب اتصال إنترنت ومساحة تخزين كافية، وقد يحتاج إغلاق التطبيقات الأخرى قبل التحميل بسبب الذاكرة المطلوبة للتشغيل.",
+                            "Download directly into the app's private storage. Internet and sufficient free storage are required; closing other apps may be necessary before loading due to runtime memory needs.",
+                            lang
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedButton(
+                        onClick = onDownloadRecommendedModel,
+                        enabled = !localModelLoading,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            if (localModelLoading) WebI18n.tr("جارٍ تجهيز النموذج...", "Preparing model...", lang)
+                            else WebI18n.tr("تنزيل Gemma 3n داخل التطبيق", "Download Gemma 3n in app", lang)
+                        )
+                    }
+                    Text(
+                        WebI18n.tr(
+                            "النموذج يُنزّل من Hugging Face وفق ترخيص Gemma. لا يُرسل ملف النموذج أو المحادثات إلى خادم BYE PRO.",
+                            "The model is downloaded from Hugging Face under the Gemma license. The model file and conversations are not sent to BYE PRO servers.",
+                            lang
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
             Text(
                 WebI18n.tr("إدارة ملفات النماذج المحلية المحفوظة على هاتفك والتحقق من وجودها.", "Manage local model files stored on your phone and verify their availability.", lang),
                 style = MaterialTheme.typography.bodySmall,
