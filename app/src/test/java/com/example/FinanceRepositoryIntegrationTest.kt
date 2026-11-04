@@ -751,4 +751,62 @@ class FinanceRepositoryIntegrationTest {
         assertEquals(925.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
     }
 
+    @Test
+    fun deletingTransactionUsesPersistedRowAndCannotReverseBalanceTwice() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Delete persisted row", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addTransaction(
+            TransactionEntity(accountId = accountId, type = TransactionType.INCOME, amount = 80.0,
+                currency = "LYD", category = "Income", description = "Persisted transaction",
+                status = TransactionStatus.COMPLETED)
+        )
+        val persisted = db.financeDao().getTransactionById(id)!!
+        assertEquals(1080.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        repository.deleteTransaction(persisted.copy(accountId = accountId + 9999, amount = 900.0))
+        assertEquals(1000.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertEquals(null, db.financeDao().getTransactionById(id))
+        try {
+            repository.deleteTransaction(persisted)
+            fail("A deleted transaction must not be reversed again")
+        } catch (_: IllegalArgumentException) { }
+        assertEquals(1000.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun staleStatusUpdateCannotPostTheSameTransactionTwice() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Stale status row", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addTransaction(
+            TransactionEntity(accountId = accountId, type = TransactionType.EXPENSE, amount = 25.0,
+                currency = "LYD", category = "Other", description = "Stale status test",
+                status = TransactionStatus.PENDING)
+        )
+        val stale = db.financeDao().getTransactionById(id)!!
+        repository.updateTransactionStatus(stale, TransactionStatus.COMPLETED)
+        assertEquals(975.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        repository.updateTransactionStatus(stale, TransactionStatus.COMPLETED)
+        assertEquals(975.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun editingWithStaleFormCannotTurnCompletedTransactionBackToPending() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Stale edit status", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addTransaction(
+            TransactionEntity(accountId = accountId, type = TransactionType.EXPENSE, amount = 30.0,
+                currency = "LYD", category = "Other", description = "Before edit",
+                status = TransactionStatus.PENDING)
+        )
+        val staleForm = db.financeDao().getTransactionById(id)!!
+        repository.updateTransactionStatus(staleForm, TransactionStatus.COMPLETED)
+        repository.updateTransaction(staleForm.copy(description = "Edited after completion"))
+        assertEquals(970.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        val saved = db.financeDao().getTransactionById(id)!!
+        assertEquals(TransactionStatus.COMPLETED, saved.status)
+        assertEquals("Edited after completion", saved.description)
+    }
+
 }
