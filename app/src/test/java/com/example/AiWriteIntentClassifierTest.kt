@@ -35,4 +35,36 @@ class AiWriteIntentClassifierTest {
     fun englishHistoryRequestIsReadIntent() {
         assertFalse(AiWriteIntentClassifier.isWriteIntent("show expense history"))
     }
+
+    @Test
+    fun arabicCommandsForEveryFinanceSectionAreWriteIntents() {
+        listOf(
+            "سجل أصل بقيمة 2000 دينار",
+            "سجل حساب نقدي",
+            "سجل ميزانية شهرية",
+            "سجل هدف ادخار جديد",
+            "سجل راتب هذا الشهر",
+            "سجل مستند فاتورة",
+            "سجل حركة عمل",
+            "سجل عضو أسرة",
+            "سجل مصروف أسرة"
+        ).forEach { command ->
+            assertTrue("Expected write intent: $command", AiWriteIntentClassifier.isWriteIntent(command))
+        }
+    }
+
+    @Test
+    fun englishCommandsForOtherFinanceSectionsAreWriteIntents() {
+        listOf(
+            "record an asset worth 2000",
+            "record a new account",
+            "record a monthly budget",
+            "record a savings goal",
+            "record salary",
+            "record a work record",
+            "record a household member"
+        ).forEach { command ->
+            assertTrue("Expected write intent: $command", AiWriteIntentClassifier.isWriteIntent(command))
+        }
+    }
 }
