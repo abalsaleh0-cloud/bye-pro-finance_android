@@ -177,7 +177,10 @@ class FinanceRepository(
 
     private fun TransactionEntity.isTransferLedgerEntry(): Boolean =
         category.equals("Transfer", ignoreCase = true) ||
-            category.equals("Transfer Fee", ignoreCase = true)
+            category.equals("Transfer Fee", ignoreCase = true) ||
+            category.equals("WORK_INCOME", ignoreCase = true) ||
+            category.equals("WORK_EXPENSE", ignoreCase = true) ||
+            category.equals("WORK_TRANSFER", ignoreCase = true)
 
     suspend fun updateTransactionStatus(tx: TransactionEntity, newStatus: TransactionStatus) = withContext(Dispatchers.IO) {
         if (tx.status == newStatus) return@withContext

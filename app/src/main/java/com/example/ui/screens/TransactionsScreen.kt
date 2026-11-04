@@ -281,7 +281,7 @@ fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCance
 @Composable
 fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?, lang: AppLanguage, onDelete: () -> Unit, onToggleStatus: () -> Unit) {
     val incomeLike = transaction.type == TransactionType.INCOME || transaction.type == TransactionType.REFUND || transaction.type == TransactionType.ADJUSTMENT
-    val transferManaged = transaction.category.equals("Transfer", ignoreCase = true) || transaction.category.equals("Transfer Fee", ignoreCase = true)
+    val transferManaged = transaction.category.equals("Transfer", ignoreCase = true) || transaction.category.equals("Transfer Fee", ignoreCase = true) || transaction.category.equals("WORK_INCOME", ignoreCase = true) || transaction.category.equals("WORK_EXPENSE", ignoreCase = true) || transaction.category.equals("WORK_TRANSFER", ignoreCase = true)
     val color = if (transaction.type == TransactionType.EXPENSE) ByeProTheme.colors.financialRed else ByeProTheme.colors.financialGreen
     val sign = if (transaction.type == TransactionType.EXPENSE) "−" else "+"
     val dateText = runCatching { SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(Date(transaction.date)) }.getOrDefault("")
