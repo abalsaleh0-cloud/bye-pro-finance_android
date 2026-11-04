@@ -168,6 +168,7 @@ class FinanceRepository(
         val freelanceRecord = record.type in setOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.FREELANCE_EXPENSE)
         if (salaryRecord) require(record.scope == WorkSourceType.EMPLOYMENT && source?.type == WorkSourceType.EMPLOYMENT)
         if (record.type in setOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT)) require(record.scope == WorkSourceType.FREELANCE && source?.type == WorkSourceType.FREELANCE)
+        if (record.type == WorkRecordType.FREELANCE_EXPENSE) require(record.scope == WorkSourceType.FREELANCE) { "Freelance expenses belong to the freelance ledger" }
         if (record.type == WorkRecordType.FREELANCE_PAYMENT) {
             val parent = record.relatedRecordId?.let { dao.getWorkRecordById(it) } ?: throw IllegalArgumentException("Select the receivable being paid")
             require(parent.type == WorkRecordType.FREELANCE_INCOME && parent.sourceId == record.sourceId && parent.scope == record.scope)
