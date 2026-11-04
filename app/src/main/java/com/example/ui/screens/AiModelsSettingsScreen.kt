@@ -345,10 +345,13 @@ fun AiModelsSettingsScreen(
                             )
                         }
                         Text(
-                            if (model.detectedFormat == "GGUF") {
-                                WebI18n.tr("سيتم نسخ GGUF إلى مساحة التطبيق الخاصة ثم تحميله عبر llama.cpp. هذا الإصدار يدعم المحادثة النصية؛ الصور والصوت غير مفعّلين عبر هذا المحرك.", "GGUF will be copied into app-private storage and loaded with llama.cpp. This release supports text chat; image and audio input are not enabled through this engine.", lang)
-                            } else {
-                                WebI18n.tr("حزم LiteRT-LM المتوافقة تُنسخ إلى مساحة التطبيق الخاصة ثم تُحمّل محلياً. لا يتم إرسال ملف النموذج إلى الإنترنت.", "Compatible LiteRT-LM packages are copied into app-private storage and loaded locally. Model files are never sent to the internet.", lang)
+                            when {
+                                model.detectedFormat == "GGUF" ->
+                                    WebI18n.tr("سيتم نسخ GGUF إلى مساحة التطبيق الخاصة وتشغيله للمحادثة النصية فقط. لا يدعم هذا المحرك تحليل الصور.", "GGUF is copied into app-private storage and used for text chat only. This engine does not analyze images.", lang)
+                                model.name.endsWith(".litertlm", ignoreCase = true) && model.name.contains("gemma-3n", ignoreCase = true) ->
+                                    WebI18n.tr("هذا نموذج الصور Gemma 3n. سيُحفظ في مسار مستقل لتحليل الصور، ولن يستبدل نموذج المحادثة النصية أو إعداداته.", "This is the Gemma 3n vision model. It is saved separately for image analysis and will not replace your text chat model or its settings.", lang)
+                                else ->
+                                    WebI18n.tr("حزمة LiteRT-LM متوافقة للمحادثة المحلية. تُنسخ إلى مساحة التطبيق الخاصة ولا يتم إرسالها إلى الإنترنت.", "A compatible LiteRT-LM package for local chat. It is copied into app-private storage and is never sent to the internet.", lang)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = ByeProTheme.colors.goldPrimary
@@ -361,7 +364,14 @@ fun AiModelsSettingsScreen(
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(if (localModelLoading) WebI18n.tr("جارٍ تجهيز النموذج...", "Preparing model...", lang) else WebI18n.tr("نسخ النموذج وتشغيله محلياً", "Copy and run model locally", lang))
+                            Text(
+                                when {
+                                    localModelLoading -> WebI18n.tr("جارٍ تجهيز النموذج...", "Preparing model...", lang)
+                                    model.name.endsWith(".litertlm", ignoreCase = true) && model.name.contains("gemma-3n", ignoreCase = true) ->
+                                        WebI18n.tr("حفظ نموذج الصور بشكل مستقل", "Save vision model separately", lang)
+                                    else -> WebI18n.tr("نسخ النموذج وتشغيله محلياً", "Copy and run model locally", lang)
+                                }
+                            )
                         }
                     }
                     if (localModelLoading) {
@@ -458,7 +468,7 @@ fun AiModelsSettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        WebI18n.tr("يعمل محرك LiteRT-LM على المعالج CPU. لا تُحذف الملفات الأصلية؛ عند اختيار ملف من مجلد التنزيلات تُنشأ نسخة خاصة داخل التطبيق لتشغيلها. دعم الصور والصوت داخل النموذج يحتاج تكاملاً منفصلاً.", "LiteRT-LM currently runs on CPU. Original files are not deleted; selecting a Downloads file creates a private app copy for execution. In-model image and audio support requires separate integration.", lang),
+                        WebI18n.tr("يعمل محرك LiteRT-LM محلياً مع محاولة استخدام GPU ثم الرجوع إلى CPU عند عدم التوافق. لا تُحذف الملفات الأصلية؛ عند اختيار ملف من التنزيلات تُنشأ نسخة داخل التطبيق. تحليل الصور يستخدم نموذج Gemma 3n LiteRT-LM منفصلاً؛ دعم الصوت غير مفعّل بعد.", "LiteRT-LM runs locally, preferring GPU and falling back to CPU when unsupported. Original files are not deleted; selecting a Downloads file creates an app-private copy. Image analysis uses a separate Gemma 3n LiteRT-LM model; audio input is not enabled yet.", lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
