@@ -142,8 +142,8 @@ class FinanceRepository(
     }
 
     suspend fun deleteWorkRecord(recordId: Long) = withContext(Dispatchers.IO) {
+        val record = dao.getWorkRecordById(recordId) ?: return@withContext
         val operation: suspend () -> Unit = {
-            val record = dao.getWorkRecordById(recordId) ?: return@withContext
             val linkedTransactionId = record.linkedTransactionId
             if (linkedTransactionId != null) {
                 val tx = dao.getTransactionById(linkedTransactionId)
