@@ -123,7 +123,7 @@ fun DashboardScreen(
     // Archived accounts remain in history but must not inflate spendable cash.
     val availableBalance = activeCurrencyAccounts.sumOf { it.balance }
     val recordedIncome = completedTransactions
-        .filter { it.type == TransactionType.INCOME }
+        .filter { it.type == TransactionType.INCOME || it.type == TransactionType.REFUND }
         .sumOf { it.amount }
     val recordedExpenses = completedTransactions
         .filter { it.type == TransactionType.EXPENSE }
