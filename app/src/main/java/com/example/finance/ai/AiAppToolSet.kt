@@ -850,9 +850,9 @@ class AiAppToolSet(
                         ToolParam::class.java.getMethod("description").invoke(param)?.toString()
                     }
                 }.getOrNull()?.toString().orEmpty()
-                "$index:\${parameter.type.simpleName}" + if (parameterDescription.isBlank()) "" else " ($parameterDescription)"
+                "$index:${parameter.type.simpleName}" + if (parameterDescription.isBlank()) "" else " ($parameterDescription)"
             }.joinToString(", ")
-            "\${method.name}($parameters): $description"
+            "${method.name}($parameters): $description"
         }
 
     fun invokeStructuredToolCall(toolName: String, argumentsJson: String): Map<String, Any> {
@@ -862,7 +862,7 @@ class AiAppToolSet(
             } ?: return mapOf("success" to false, "error" to "Unknown or unavailable app tool.")
             val arguments = JSONArray(argumentsJson)
             if (arguments.length() != method.parameterTypes.size) {
-                return mapOf("success" to false, "error" to "Tool argument count mismatch; expected \${method.parameterTypes.size}.")
+                return mapOf("success" to false, "error" to "Tool argument count mismatch; expected ${method.parameterTypes.size}.")
             }
             val values = Array(method.parameterTypes.size) { index ->
                 val raw = arguments.get(index)
@@ -875,7 +875,7 @@ class AiAppToolSet(
                     target == java.lang.Double.TYPE || target == java.lang.Double::class.java -> (raw as? Number)?.toDouble() ?: raw.toString().toDouble()
                     target == java.lang.Float.TYPE || target == java.lang.Float::class.java -> (raw as? Number)?.toFloat() ?: raw.toString().toFloat()
                     target == java.lang.Boolean.TYPE || target == java.lang.Boolean::class.java -> raw as? Boolean ?: raw.toString().toBooleanStrict()
-                    else -> error("Unsupported app-tool argument type: \${target.simpleName}")
+                    else -> error("Unsupported app-tool argument type: ${target.simpleName}")
                 }
             }
             if (values.indices.any { values[it] == null && method.parameterTypes[it].isPrimitive }) {
