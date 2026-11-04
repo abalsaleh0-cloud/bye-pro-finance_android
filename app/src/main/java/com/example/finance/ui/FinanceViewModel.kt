@@ -619,10 +619,12 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         val normalized = query.trim().lowercase(Locale.ROOT)
             .replace(Regex("[\\u064B-\\u065F\\u0670]"), "")
         return listOf(
-            "سجل مصروف", "سجل دخل", "سجل إيراد", "سجل دين", "سجل فاتورة", "سجل مستند",
-            "أضف", "اضف", "ضيف", "أنشئ", "انشئ", "عدّل", "عدل", "حدّث", "حدث",
-            "احذف", "حذف", "ادفع", "سدد", "سدّد", "حوّل", "حول", "سجّل",
-            "add ", "create ", "record ", "update ", "edit ", "delete ", "pay ", "transfer "
+            "سجل", "تسجيل", "اسجل", "إضافة", "اضافة", "أضيف", "اضيف", "اضاف",
+            "أدخل", "ادخل", "إدخال", "ادخال", "أنشئ", "انشئ", "إنشاء", "انشاء",
+            "عدّل", "عدل", "تعديل", "حدّث", "حدث", "تحديث", "احذف", "حذف", "مسح",
+            "ادفع", "دفع", "سدد", "سدّد", "سداد", "تسديد", "حوّل", "حول", "تحويل",
+            "افتح حساب", "فتح حساب", "create", "add", "record", "register", "insert",
+            "update", "edit", "delete", "remove", "pay", "settle", "transfer"
         ).any(normalized::contains)
     }
 
