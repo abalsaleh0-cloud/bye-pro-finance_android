@@ -263,7 +263,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         val value = amount.toDoubleOrNull()
         val needsSource = type in setOf(
             WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION,
-            WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME,
+            WorkRecordType.SALARY_ALLOWANCE, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME,
             WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_INCOME,
             WorkRecordType.FREELANCE_PAYMENT
         )
