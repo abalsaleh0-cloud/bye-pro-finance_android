@@ -253,14 +253,7 @@ class AiAppToolSet(
                 append("المهام: ${taskItems.size}")
             }
         )
-        pending = Pending(preview, PendingPayload.Project(plan))
-        _pendingAction.value = preview
-        return mapOf(
-            "success" to true,
-            "requires_user_confirmation" to true,
-            "preview_id" to preview.id,
-            "message" to "A project plan preview is visible. Wait for user confirmation before saving."
-        )
+        return stageAction(preview.title, preview.description, PendingPayload.Project(plan))
     }
 
     @Tool(description = "List files saved inside an existing AI project workspace.")
@@ -298,10 +291,7 @@ class AiAppToolSet(
             title = "مراجعة كتابة ملف مشروع",
             description = "المشروع: " + projectId + "\nالمسار: " + path + "\nالحجم: " + content.toByteArray(Charsets.UTF_8).size + " bytes\nلن يُكتب الملف قبل تأكيدك."
         )
-        pending = Pending(preview, PendingPayload.ProjectFile(projectId, path, content))
-        _pendingAction.value = preview
-        return mapOf("success" to true, "requires_user_confirmation" to true, "preview_id" to preview.id,
-            "message" to "A project file write preview is visible. Wait for user confirmation.")
+        return stageAction(preview.title, preview.description, PendingPayload.ProjectFile(projectId, path, content))
     }
     @Tool(description = "Prepare multiple UTF-8 source or project files in one reviewable change. Pass a JSON array of objects with path and content. Limits: 20 files, 1 MiB per file, 5 MiB total. No file is written until the user confirms the preview.")
     fun proposeWriteProjectFiles(
@@ -339,10 +329,7 @@ class AiAppToolSet(
                 append("لن تتغير الملفات قبل تأكيدك.")
             }
         )
-        pending = Pending(preview, PendingPayload.ProjectFiles(projectId, writes))
-        _pendingAction.value = preview
-        return mapOf("success" to true, "requires_user_confirmation" to true, "preview_id" to preview.id,
-            "message" to "A multi-file project change preview is visible. Wait for explicit confirmation.")
+        return stageAction(preview.title, preview.description, PendingPayload.ProjectFiles(projectId, writes))
     }
     @Tool(description = "Read the most recent transactions from the local database. Never infer or invent missing transaction fields.")
     fun getRecentTransactions(
@@ -383,19 +370,16 @@ class AiAppToolSet(
             title = "مراجعة إنشاء ميزانية",
             description = "الاسم: $cleanName\nالفئة: $cleanCategory\nالحد: $limitAmount $cleanCurrency\nالمدة: شهرية"
         )
-        pending = Pending(preview, PendingPayload.Budget(BudgetEntity(
-            name = cleanName,
-            category = cleanCategory,
-            period = BudgetPeriod.MONTHLY,
-            limitAmount = limitAmount,
-            currency = cleanCurrency
-        )))
-        _pendingAction.value = preview
-        return mapOf(
-            "success" to true,
-            "requires_user_confirmation" to true,
-            "preview_id" to preview.id,
-            "message" to "A preview is shown to the user. Wait for confirmation; no data has been changed."
+        return stageAction(
+            preview.title,
+            preview.description,
+            PendingPayload.Budget(BudgetEntity(
+                name = cleanName,
+                category = cleanCategory,
+                period = BudgetPeriod.MONTHLY,
+                limitAmount = limitAmount,
+                currency = cleanCurrency
+            ))
         )
     }
 
