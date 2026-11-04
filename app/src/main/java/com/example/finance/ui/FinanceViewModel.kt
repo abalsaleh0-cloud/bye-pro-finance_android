@@ -231,6 +231,32 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             result.exceptionOrNull()?.let { Log.w("BYE_PRO_FINANCE", "Work record rejected", it) }
         }
     }
+    fun updateWorkRecord(record: WorkRecordEntity, accountId: Long? = null, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = runCatching {
+                val cash = com.example.finance.engine.WorkLedgerCalculator.isCashMovement(record.type)
+                val account = if (cash && accountId != null) accounts.value.firstOrNull { it.id == accountId }
+                    ?: throw IllegalArgumentException("Account not found") else null
+                if (account != null) require(account.currency.equals(record.currency, true))
+                val transaction = account?.let {
+                    val txType = when (record.type) {
+                        WorkRecordType.WORK_INCOME, WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT -> TransactionType.INCOME
+                        WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.WORK_EXPENSE -> TransactionType.EXPENSE
+                        WorkRecordType.WORK_TRANSFER_IN -> TransactionType.TRANSFER
+                        WorkRecordType.WORK_TRANSFER_OUT -> TransactionType.ADJUSTMENT
+                        else -> throw IllegalArgumentException("Not a cash movement")
+                    }
+                    TransactionEntity(id = record.linkedTransactionId ?: 0L, accountId = it.id, type = txType,
+                        amount = record.amount, currency = it.currency,
+                        category = if (txType == TransactionType.TRANSFER || txType == TransactionType.ADJUSTMENT) "WORK_TRANSFER" else if (txType == TransactionType.EXPENSE) "WORK_EXPENSE" else "WORK_INCOME",
+                        date = record.date, description = record.notes.ifBlank { record.type.name }, status = TransactionStatus.COMPLETED)
+                }
+                repository.updateWorkRecord(record.copy(currency = account?.currency ?: record.currency), transaction)
+            }
+            onComplete(result.isSuccess)
+            result.exceptionOrNull()?.let { Log.w("BYE_PRO_FINANCE", "Work record update failed", it) }
+        }
+    }
     fun deleteWorkRecord(recordId: Long, onComplete: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             val result = runCatching { repository.deleteWorkRecord(recordId) }
