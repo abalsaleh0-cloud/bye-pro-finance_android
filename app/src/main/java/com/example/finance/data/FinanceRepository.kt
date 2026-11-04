@@ -72,6 +72,16 @@ class FinanceRepository(
         id
     }
 
+    suspend fun updateWorkSource(source: WorkSourceEntity) = withContext(Dispatchers.IO) {
+        require(source.id > 0L && source.name.isNotBlank() && source.currency.isNotBlank())
+        require(source.monthlySalary.isFinite() && source.monthlySalary >= 0.0)
+        require(source.type != WorkSourceType.FREELANCE || source.monthlySalary == 0.0)
+        val existing = dao.getWorkSourceById(source.id) ?: throw IllegalArgumentException("Work source not found")
+        require(existing.type == source.type) { "A work source cannot change between employment and freelance after records exist" }
+        dao.insertWorkSource(source.copy(name = source.name.trim(), currency = source.currency.trim().uppercase()))
+        logAudit("UPDATE", "WorkSource", "Updated source " + source.name)
+    }
+
     suspend fun addWorkRecord(record: WorkRecordEntity, transaction: TransactionEntity? = null): Long = withContext(Dispatchers.IO) {
         require(record.amount.isFinite() && record.amount > 0.0)
         require(record.currency.isNotBlank() && record.period.matches(Regex("\\d{4}-\\d{2}")))
