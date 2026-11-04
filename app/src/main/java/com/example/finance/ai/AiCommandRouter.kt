@@ -16,6 +16,30 @@ internal data class ParsedTransactionCommand(
 )
 
 internal object AiCommandRouter {
+    fun parseSectionNavigation(query: String): String? {
+        val text = query.trim().lowercase(Locale.ROOT)
+        val navigationIntent = listOf("افتح", "اذهب إلى", "انتقل إلى", "روح على", "وريني", "اعرض قسم", "open ", "go to ").any(text::contains)
+        if (!navigationIntent) return null
+        val targets = listOf(
+            "dashboard" to listOf("الرئيسية", "لوحة التحكم", "dashboard", "home"),
+            "accounts" to listOf("الحسابات", "حساباتي", "accounts"),
+            "transactions" to listOf("المعاملات", "العمليات", "transactions"),
+            "budgets" to listOf("الميزانيات", "ميزانية", "budgets"),
+            "debts" to listOf("الديون", "الدين", "debts"),
+            "bills" to listOf("الفواتير", "فاتورة", "bills"),
+            "savings" to listOf("الادخار", "التوفير", "savings"),
+            "assets" to listOf("الأصول", "اصول", "assets"),
+            "transfers" to listOf("التحويلات", "تحويل", "transfers"),
+            "reports" to listOf("التقارير", "reports"),
+            "household" to listOf("الأسرة", "العائلة", "household"),
+            "documents" to listOf("المستندات", "الوثائق", "documents"),
+            "notifications" to listOf("الإشعارات", "التنبيهات", "notifications"),
+            "settings" to listOf("الإعدادات", "settings"),
+            "ai_assistant" to listOf("المساعد الذكي", "ai assistant")
+        )
+        return targets.firstOrNull { (_, aliases) -> aliases.any(text::contains) }?.first
+    }
+
     fun parseTransaction(query: String, defaultCurrency: String): ParsedTransactionCommand? {
         val normalized = normalizeDigits(query).trim()
         if (normalized.isBlank()) return null
