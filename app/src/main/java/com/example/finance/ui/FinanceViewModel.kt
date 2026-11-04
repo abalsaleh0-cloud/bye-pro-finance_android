@@ -615,6 +615,17 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }.getOrNull()
     }
 
+    private fun isAppWriteIntent(query: String): Boolean {
+        val normalized = query.trim().lowercase(Locale.ROOT)
+            .replace(Regex("[\\u064B-\\u065F\\u0670]"), "")
+        return listOf(
+            "سجل مصروف", "سجل دخل", "سجل إيراد", "سجل دين", "سجل فاتورة", "سجل مستند",
+            "أضف", "اضف", "ضيف", "أنشئ", "انشئ", "عدّل", "عدل", "حدّث", "حدث",
+            "احذف", "حذف", "ادفع", "سدد", "سدّد", "حوّل", "حول", "سجّل",
+            "add ", "create ", "record ", "update ", "edit ", "delete ", "pay ", "transfer "
+        ).any(normalized::contains)
+    }
+
     private fun isFinancialQuestion(query: String): Boolean {
         val q = query.lowercase(Locale.ROOT)
         return listOf(
@@ -754,10 +765,22 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                             }
                         }
                     } catch (localError: Throwable) {
-                        Log.e("BYE_PRO_LOCAL_AI", "Local assistant failed; trying cloud general assistant.", localError)
+                        Log.e("BYE_PRO_LOCAL_AI", "Local assistant failed.", localError)
                         _streamingAiText.value = ""
-                        askCloudGeneralAssistant(trimmedQuery) ?: financialContext
+                        if (isAppWriteIntent(trimmedQuery)) {
+                            WebI18n.tr(
+                                "تعذر تشغيل النموذج المحلي؛ لذلك لم أرسل طلب التسجيل أو التعديل إلى المساعد السحابي ولم أغيّر أي بيانات. أعد تشغيل النموذج المحلي ثم أعد الطلب.",
+                                "The local model failed, so this create/update request was not sent to the cloud assistant and no data was changed. Reload the local model and try again.",
+                                _appLanguage.value
+                            )
+                        } else askCloudGeneralAssistant(trimmedQuery) ?: financialContext
                     }
+                } else if (isAppWriteIntent(trimmedQuery)) {
+                    WebI18n.tr(
+                        "هذا الطلب يحتاج نموذجاً محلياً متصلاً بأدوات التطبيق حتى يُنفذ بأمان. اختر نموذج GGUF أو LiteRT-LM أولاً؛ لم يتم إرسال الطلب إلى السحابة ولم تُغيّر أي بيانات.",
+                        "This request requires a local model connected to app tools. Select a GGUF or LiteRT-LM model first. The request was not sent to the cloud and no data was changed.",
+                        _appLanguage.value
+                    )
                 } else {
                     askCloudGeneralAssistant(trimmedQuery) ?: financialContext
                 }
