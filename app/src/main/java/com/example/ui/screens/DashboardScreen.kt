@@ -95,10 +95,12 @@ fun DashboardScreen(
     val bills by viewModel.bills.collectAsState()
     val savingsGoals by viewModel.savingsGoals.collectAsState()
 
-    // Mirror the web dashboard currency rule: prefer LYD, otherwise the first
-    // currency present in account, transaction, or asset records.
+    // Prefer LYD, otherwise include every financial section when resolving
+    // the dashboard currency so debt/bill/budget/savings-only data is visible.
     val availableCurrencies = (accounts.map { it.currency } +
-        transactions.map { it.currency } + assets.map { it.currency })
+        transactions.map { it.currency } + assets.map { it.currency } +
+        budgets.map { it.currency } + debts.map { it.currency } +
+        bills.map { it.currency } + savingsGoals.map { it.currency })
         .map { it.trim().uppercase(Locale.ROOT) }
         .filter { it.isNotBlank() }
         .distinct()
@@ -128,8 +130,7 @@ fun DashboardScreen(
     val goalProgress = currencyGoals.sumOf { it.currentAmount }
     val goalTarget = currencyGoals.sumOf { it.targetAmount }
     val goalPercent = if (goalTarget > 0.0) (goalProgress / goalTarget * 100.0).toInt().coerceIn(0, 100) else 0
-    val activeDebts = debts.filter { it.remaining > 0.0 }
-    val outstandingDebtCount = activeDebts.size
+    val outstandingDebtCount = currencyDebts.size
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -251,7 +252,7 @@ fun DashboardScreen(
             DashboardPanel(
                 eyebrow = WebI18n.tr("التخطيط", "Planning", lang),
                 title = WebI18n.tr("الميزانيات", "Budgets", lang),
-                count = TextContent.number(budgets.size, lang, 0)
+                count = TextContent.number(currencyBudgets.size, lang, 0)
             ) {
                 DashboardLine(
                     label = WebI18n.tr("إجمالي المخصص النشط", "Total active allocation", lang) + " · $currency",
@@ -260,12 +261,12 @@ fun DashboardScreen(
                     valueColor = ByeProTheme.colors.goldPrimary,
                     showDivider = currencyBudgets.isNotEmpty()
                 )
-                budgets.take(4).forEachIndexed { index, budget ->
+                currencyBudgets.take(4).forEachIndexed { index, budget ->
                     DashboardLine(
                         label = budget.name,
                         detail = budgetPeriodLabel(budget.period, lang),
                         value = TextContent.money(budget.limitAmount, budget.currency, lang),
-                        showDivider = index != budgets.take(4).lastIndex
+                        showDivider = index != currencyBudgets.take(4).lastIndex
                     )
                 }
                 if (currencyBudgets.isEmpty()) DashboardEmpty(WebI18n.tr("لا توجد ميزانيات بهذه العملة.", "No budgets in this currency.", lang))
@@ -276,7 +277,7 @@ fun DashboardScreen(
             DashboardPanel(
                 eyebrow = WebI18n.tr("الأهداف", "Goals", lang),
                 title = WebI18n.tr("الادخار", "Savings", lang),
-                count = TextContent.number(savingsGoals.size, lang, 0)
+                count = TextContent.number(currencyGoals.size, lang, 0)
             ) {
                 Box(
                     modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape)
@@ -311,13 +312,13 @@ fun DashboardScreen(
                     valueColor = ByeProTheme.colors.financialRed,
                     showDivider = currencyDebts.isNotEmpty()
                 )
-                activeDebts.take(3).forEachIndexed { index, debt ->
+                currencyDebts.take(3).forEachIndexed { index, debt ->
                     DashboardLine(
                         label = debt.name,
                         detail = if (debt.direction == "owed_to_me") WebI18n.tr("لي عنده", "Owed to me", lang)
                             else WebI18n.tr("عليّ له", "I owe", lang),
                         value = TextContent.money(debt.remaining, debt.currency, lang),
-                        showDivider = index != activeDebts.take(3).lastIndex
+                        showDivider = index != currencyDebts.take(3).lastIndex
                     )
                 }
                 if (currencyDebts.isEmpty()) DashboardEmpty(WebI18n.tr("لا توجد ديون قائمة بهذه العملة.", "No outstanding debts in this currency.", lang))
