@@ -187,7 +187,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         if (scope == WorkSourceType.FREELANCE) {
             addAll(listOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT))
         }
-        if (existing?.type == WorkRecordType.WORK_TRANSFER_IN || existing?.type == WorkRecordType.WORK_TRANSFER_OUT) add(existing.type)
+        existing?.type?.takeIf { it == WorkRecordType.WORK_TRANSFER_IN || it == WorkRecordType.WORK_TRANSFER_OUT }?.let { add(it) }
     }
     val cash = WorkLedgerCalculator.isCashMovement(type)
     val selectedCurrency = (source?.currency ?: currencyCode).trim().uppercase()
