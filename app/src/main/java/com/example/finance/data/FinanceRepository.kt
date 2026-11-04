@@ -93,10 +93,13 @@ class FinanceRepository(
             require(source.isActive) { "The selected work source is inactive" }
         }
         if (source != null) {
+            require(source.type == record.scope) { "Work record scope must match its source type" }
             require(source.currency.equals(record.currency, true)) { "Record currency must match the selected source currency" }
             if (salaryRecord) require(source.type == WorkSourceType.EMPLOYMENT) { "Salary records require an employment source" }
             if (freelanceRecord || record.type == WorkRecordType.FREELANCE_EXPENSE) require(source.type == WorkSourceType.FREELANCE) { "Freelance records require a freelance source" }
         }
+        if (salaryRecord) require(record.scope == WorkSourceType.EMPLOYMENT) { "Salary records belong to employment" }
+        if (freelanceRecord || record.type == WorkRecordType.FREELANCE_EXPENSE) require(record.scope == WorkSourceType.FREELANCE) { "Freelance records belong to the freelance ledger" }
         if (record.type == WorkRecordType.FREELANCE_PAYMENT) {
             val parentId = record.relatedRecordId ?: throw IllegalArgumentException("Select the receivable being paid")
             val parent = dao.getWorkRecordById(parentId) ?: throw IllegalArgumentException("Receivable not found")
