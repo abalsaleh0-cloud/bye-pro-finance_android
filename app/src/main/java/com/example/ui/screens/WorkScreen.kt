@@ -22,6 +22,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     val ar = lang == AppLanguage.AR
     var selectedScope by remember { mutableStateOf(WorkSourceType.EMPLOYMENT) }
     var sourceDialog by remember { mutableStateOf(false) }
+    var editingSource by remember { mutableStateOf<WorkSourceEntity?>(null) }
     var recordDialog by remember { mutableStateOf(false) }
     var transferDialog by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
@@ -79,7 +80,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             TextButton(onClick = { reportPeriod = "year" }) { Text((if (reportPeriod == "year") "✓ " else "") + (if (ar) "سنوي" else "Yearly")) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Button(onClick = { sourceDialog = true }) { Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "إضافة جهة عمل" else "إضافة نشاط / عميل") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Add employer" else "Add activity / client")) }
+            Button(onClick = { editingSource = null; sourceDialog = true }) { Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "إضافة جهة عمل" else "إضافة نشاط / عميل") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Add employer" else "Add activity / client")) }
             Button(onClick = { recordDialog = true }) { Text(if (ar) "تسجيل حركة" else "Add record") }
             TextButton(onClick = { transferDialog = true }) { Text(if (ar) "تحويل" else "Transfer") }
         }
@@ -94,6 +95,13 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                         Text(if (source.type == WorkSourceType.EMPLOYMENT) (if (ar) "وظيفة" else "Employment") else (if (ar) "عمل حر" else "Freelance"))
                         if (source.type == WorkSourceType.EMPLOYMENT) Text(money.format(source.monthlySalary) + " " + source.currency)
                         Text((if (ar) "المستحق: " else "Outstanding: ") + money.format(due) + " " + source.currency)
+                        if (!source.isActive) Text(if (ar) "مؤرشف" else "Archived", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = { editingSource = source; sourceDialog = true }) { Text(if (ar) "تعديل" else "Edit") }
+                            TextButton(onClick = { viewModel.updateWorkSource(source.copy(isActive = !source.isActive)) { if (!it) error = true } }) {
+                                Text(if (source.isActive) (if (ar) "أرشفة" else "Archive") else (if (ar) "استعادة" else "Restore"))
+                            }
+                        }
                     }
                 }
             }
@@ -124,8 +132,13 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             dismissButton = { TextButton(onClick = { deleteRecordId = null }) { Text(if (ar) "إلغاء" else "Cancel") } }
         )
     }
-    if (sourceDialog) WorkSourceDialog(ar, currency, selectedScope, { sourceDialog = false }) { name, type, salary ->
-        viewModel.addWorkSource(WorkSourceEntity(name = name, type = type, monthlySalary = salary, currency = currency)) { if (it) sourceDialog = false else error = true }
+    if (sourceDialog) WorkSourceDialog(ar, currency, selectedScope, editingSource, { sourceDialog = false; editingSource = null }) { name, type, salary ->
+        val existing = editingSource
+        if (existing == null) {
+            viewModel.addWorkSource(WorkSourceEntity(name = name, type = type, monthlySalary = salary, currency = currency)) { if (it) { sourceDialog = false; error = false } else error = true }
+        } else {
+            viewModel.updateWorkSource(existing.copy(name = name, monthlySalary = salary, currency = currency)) { if (it) { sourceDialog = false; editingSource = null; error = false } else error = true }
+        }
     }
     if (recordDialog) WorkRecordDialog(ar, currency, selectedScope, visibleSources, visibleRecords, accounts, { recordDialog = false }) { row, accountId ->
         viewModel.addWorkRecord(row, accountId) { if (it) { recordDialog = false; error = false } else error = true }
@@ -139,9 +152,9 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         Column(Modifier.padding(12.dp)) { Text(title, style = MaterialTheme.typography.labelMedium); Text(format.format(value) + " " + currency, style = MaterialTheme.typography.titleMedium) }
     }
 }
-@Composable private fun WorkSourceDialog(ar: Boolean, currency: String, initialType: WorkSourceType, dismiss: () -> Unit, save: (String, WorkSourceType, Double) -> Unit) {
-    var name by remember { mutableStateOf("") }; var salary by remember { mutableStateOf("0") }; val type = initialType
-    AlertDialog(onDismissRequest = dismiss, title = { Text(if (ar) "مصدر دخل جديد" else "New income source") }, text = {
+@Composable private fun WorkSourceDialog(ar: Boolean, currency: String, initialType: WorkSourceType, existing: WorkSourceEntity?, dismiss: () -> Unit, save: (String, WorkSourceType, Double) -> Unit) {
+    var name by remember(existing?.id) { mutableStateOf(existing?.name.orEmpty()) }; var salary by remember(existing?.id) { mutableStateOf(existing?.monthlySalary?.toString() ?: "0") }; val type = existing?.type ?: initialType
+    AlertDialog(onDismissRequest = dismiss, title = { Text(if (existing == null) (if (ar) "مصدر عمل جديد" else "New work source") else (if (ar) "تعديل مصدر العمل" else "Edit work source")) }, text = {
         Column { OutlinedTextField(name, { name = it }, label = { Text(if (ar) "اسم الوظيفة أو النشاط" else "Job or activity name") })
             Text(if (ar) (if (type == WorkSourceType.EMPLOYMENT) "نوع المصدر: جهة عمل" else "نوع المصدر: نشاط عمل حر") else (if (type == WorkSourceType.EMPLOYMENT) "Source type: employer" else "Source type: freelance activity"))
             if (type == WorkSourceType.EMPLOYMENT) OutlinedTextField(salary, { salary = it }, label = { Text(if (ar) "الراتب الشهري (اختياري)" else "Monthly salary (optional)") })
