@@ -440,15 +440,15 @@ class AiAppToolSet(
 
     @Tool(description = "Prepare a document-register entry from known metadata. This records metadata only and does not upload or attach a file. Requires confirmation.")
     fun proposeCreateDocument(
-        title: String,
-        type: String,
-        merchant: String,
-        totalAmount: Double,
-        taxAmount: Double,
-        currency: String,
-        date: Long,
-        notes: String,
-        linkedTransactionId: Long
+        @ToolParam(description = "Document title.") title: String,
+        @ToolParam(description = "One of RECEIPT, INVOICE, STATEMENT, CONTRACT or OTHER.") type: String,
+        @ToolParam(description = "Merchant or issuing organization.") merchant: String,
+        @ToolParam(description = "Total amount; use zero when not applicable.") totalAmount: Double,
+        @ToolParam(description = "Tax amount; cannot exceed total amount.") taxAmount: Double,
+        @ToolParam(description = "Three-letter currency code such as LYD, USD or EUR.") currency: String,
+        @ToolParam(description = "Document date as Unix epoch milliseconds.") date: Long,
+        @ToolParam(description = "Optional notes; use an empty string when none.") notes: String,
+        @ToolParam(description = "Existing linked transaction ID, or zero when there is no link.") linkedTransactionId: Long
     ): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val cleanTitle = title.trim()
         val cleanCurrency = currency.trim().uppercase()
@@ -474,7 +474,7 @@ class AiAppToolSet(
         )
         stageAction(
             "مراجعة تسجيل مستند",
-            "العنوان: $cleanTitle\\nالنوع: $parsedType\\nالتاجر: ${merchant.trim()}\\nالإجمالي: $totalAmount $cleanCurrency\\nالضريبة: $taxAmount $cleanCurrency\\nسيُسجل كبيانات وصفية فقط دون إرفاق ملف.",
+            "العنوان: $cleanTitle\nالنوع: $parsedType\nالتاجر: ${merchant.trim()}\nالإجمالي: $totalAmount $cleanCurrency\nالضريبة: $taxAmount $cleanCurrency\nسيُسجل كبيانات وصفية فقط دون إرفاق ملف.",
             PendingPayload.Document(value)
         )
     }
@@ -483,7 +483,7 @@ class AiAppToolSet(
     fun proposeDeleteDocument(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val row = repository.documents.first().firstOrNull { it.id == id }
             ?: return@runBlocking mapOf("success" to false, "error" to "Document not found.")
-        stageUpdate("تأكيد حذف سجل مستند", "المستند #$id\\n${row.title}\\nالنوع: ${row.type}\\nالتاجر: ${row.merchant}\\nسيُحذف سجل البيانات فقط، ولن يُحذف ملف خارجي.", suspend {
+        stageUpdate("تأكيد حذف سجل مستند", "المستند #$id\n${row.title}\nالنوع: ${row.type}\nالتاجر: ${row.merchant}\nسيُحذف سجل البيانات فقط، ولن يُحذف ملف خارجي.", suspend {
             repository.deleteDocument(row)
             "تم حذف سجل المستند بعد تأكيدك؛ لم يتم حذف ملف خارجي."
         })
