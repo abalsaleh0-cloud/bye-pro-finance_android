@@ -99,6 +99,21 @@ class FinanceRepository(
         val existing = dao.getWorkRecordsSnapshot()
         if (record.type == WorkRecordType.WORK_TRANSFER_OUT) require(WorkLedgerCalculator.cashBalance(existing, record.currency).toDouble() + 0.000001 >= record.amount) { "Insufficient work cash balance" }
         val operation: suspend () -> Long = {
+            val latestRecords = dao.getWorkRecordsSnapshot()
+            if (record.type == WorkRecordType.SALARY_ADVANCE || record.type == WorkRecordType.SALARY_PAYMENT) {
+                val employmentSource = source ?: throw IllegalArgumentException("Employment source not found")
+                val due = WorkLedgerCalculator.salaryDue(employmentSource, latestRecords, record.period).toDouble()
+                require(record.amount <= due + 0.000001) { "Payment exceeds the remaining salary due" }
+            }
+            if (record.type == WorkRecordType.FREELANCE_PAYMENT) {
+                val parentId = record.relatedRecordId ?: throw IllegalArgumentException("Select the receivable being paid")
+                val parent = dao.getWorkRecordById(parentId) ?: throw IllegalArgumentException("Receivable not found")
+                val paid = latestRecords.filter { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == parentId }.sumOf { it.amount }
+                require(record.amount <= parent.amount - paid + 0.000001) { "Payment exceeds outstanding amount" }
+            }
+            if (record.type == WorkRecordType.WORK_TRANSFER_OUT) {
+                require(WorkLedgerCalculator.cashBalance(latestRecords, record.currency).toDouble() + 0.000001 >= record.amount) { "Insufficient work cash balance" }
+            }
             val txId = transaction?.let { addTransaction(it) }
             val linked = record.copy(currency = record.currency.trim().uppercase(), linkedAccountId = transaction?.accountId, linkedTransactionId = txId)
             val id = dao.insertWorkRecord(linked)
