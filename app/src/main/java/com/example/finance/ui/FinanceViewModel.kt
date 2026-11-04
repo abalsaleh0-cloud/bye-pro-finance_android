@@ -748,9 +748,12 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             status = "COMPLETED"
         )
         if (result["success"] != true) {
-            return "لم أتمكن من تجهيز العملية: ${result["error"] ?: "بيانات العملية غير صالحة"}. لم يتم حفظ أي شيء."
+            val errorText = result["error"]?.toString() ?: "بيانات العملية غير صالحة"
+            return "لم أتمكن من تجهيز العملية: $errorText. لم يتم حفظ أي شيء."
         }
-        return "جهزت معاينة ${if (command.type == "EXPENSE") "المصروف" else "الإيراد"} بمبلغ ${command.amount} ${command.currency} في حساب ${selectedAccount["name"]}. راجع نافذة التأكيد واضغط «تأكيد التنفيذ» لحفظها."
+        val operationLabel = if (command.type == "EXPENSE") "المصروف" else "الإيراد"
+        val accountName = selectedAccount["name"]?.toString().orEmpty()
+        return "جهزت معاينة $operationLabel بمبلغ ${command.amount} ${command.currency} في حساب $accountName. راجع نافذة التأكيد واضغط «تأكيد التنفيذ» لحفظها."
     }
 
     fun confirmPendingAiAction(actionId: String) {
