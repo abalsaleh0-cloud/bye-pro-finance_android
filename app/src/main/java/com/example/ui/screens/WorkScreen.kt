@@ -24,6 +24,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     var recordDialog by remember { mutableStateOf(false) }
     var transferDialog by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
+    var deleteRecordId by remember { mutableStateOf<Long?>(null) }
     var reportPeriod by remember { mutableStateOf("month") }
     val period = java.time.YearMonth.now().toString()
     val currentDate = java.time.LocalDate.now()
@@ -81,9 +82,29 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             item { Text(if (ar) "آخر الحركات" else "Recent records", style = MaterialTheme.typography.titleMedium) }
             items(records.take(25), key = { "record" + it.id }) { row ->
                 val name = sources.firstOrNull { it.id == row.sourceId }?.name ?: (if (row.type == WorkRecordType.WORK_TRANSFER_IN || row.type == WorkRecordType.WORK_TRANSFER_OUT) (if (ar) "تحويل داخلي" else "Internal transfer") else (if (ar) "عمل عام" else "General work"))
-                Text(name + " · " + workRecordLabel(row.type, ar) + " · " + money.format(row.amount) + " " + row.currency)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(name + " · " + workRecordLabel(row.type, ar) + " · " + money.format(row.amount) + " " + row.currency, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { deleteRecordId = row.id }) { Text(if (ar) "حذف" else "Delete") }
+                }
             }
         }
+    }
+    if (deleteRecordId != null) {
+        AlertDialog(
+            onDismissRequest = { deleteRecordId = null },
+            title = { Text(if (ar) "حذف حركة العمل؟" else "Delete work record?") },
+            text = { Text(if (ar) "سيتم حذف الحركة المرتبطة بها، وعكس أثرها على الحساب الشخصي إذا كانت مرتبطة به." else "The linked work record will be deleted and its posted effect on the personal account will be reversed.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val id = deleteRecordId ?: return@TextButton
+                    viewModel.deleteWorkRecord(id) { success ->
+                        if (!success) error = true
+                        deleteRecordId = null
+                    }
+                }) { Text(if (ar) "حذف نهائياً" else "Delete") }
+            },
+            dismissButton = { TextButton(onClick = { deleteRecordId = null }) { Text(if (ar) "إلغاء" else "Cancel") } }
+        )
     }
     if (sourceDialog) WorkSourceDialog(ar, currency, { sourceDialog = false }) { name, type, salary ->
         viewModel.addWorkSource(WorkSourceEntity(name = name, type = type, monthlySalary = salary, currency = currency)) { if (it) sourceDialog = false else error = true }
