@@ -29,14 +29,18 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     var error by remember { mutableStateOf(false) }
     var deleteRecordId by remember { mutableStateOf<Long?>(null) }
     var reportPeriod by remember { mutableStateOf("month") }
-    val visibleSources = sources.filter { it.type == selectedScope }
-    val visibleRecords = records.filter { it.scope == selectedScope }
+    var searchQuery by remember { mutableStateOf("") }
+    val scopedSources = sources.filter { it.type == selectedScope }
+    val scopedRecords = records.filter { it.scope == selectedScope }
+    val query = searchQuery.trim()
+    val visibleSources = scopedSources.filter { query.isBlank() || it.name.contains(query, true) }
+    val visibleRecords = scopedRecords.filter { query.isBlank() || it.notes.contains(query, true) || workRecordLabel(it.type, ar).contains(query, true) || it.amount.toString().contains(query) }
     val period = java.time.YearMonth.now().toString()
     val currentDate = java.time.LocalDate.now()
     val money = remember(lang) { NumberFormat.getNumberInstance(if (ar) Locale("ar") else Locale.ENGLISH) }
     val salaryDue = if (selectedScope == WorkSourceType.EMPLOYMENT) visibleSources.filter { it.currency.equals(currency, true) }.sumOf { WorkLedgerCalculator.salaryDue(it, records, period).toDouble() } else 0.0
-    val freelanceDue = if (selectedScope == WorkSourceType.FREELANCE) visibleRecords.filter { it.type == WorkRecordType.FREELANCE_INCOME && it.currency.equals(currency, true) }.sumOf { WorkLedgerCalculator.freelanceOutstanding(it, visibleRecords).toDouble() } else 0.0
-    val periodRows = visibleRecords.filter { row ->
+    val freelanceDue = if (selectedScope == WorkSourceType.FREELANCE) scopedRecords.filter { it.type == WorkRecordType.FREELANCE_INCOME && it.currency.equals(currency, true) }.sumOf { WorkLedgerCalculator.freelanceOutstanding(it, scopedRecords).toDouble() } else 0.0
+    val periodRows = scopedRecords.filter { row ->
         row.currency.equals(currency, true) && when (reportPeriod) {
             "day" -> java.time.Instant.ofEpochMilli(row.date).atZone(java.time.ZoneId.systemDefault()).toLocalDate() == currentDate
             "year" -> java.time.Instant.ofEpochMilli(row.date).atZone(java.time.ZoneId.systemDefault()).year == currentDate.year
@@ -46,7 +50,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     val received = periodRows.filter { it.type in setOf(WorkRecordType.WORK_INCOME, WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT) }.sumOf { it.amount }
     val expenses = periodRows.filter { it.type == WorkRecordType.FREELANCE_EXPENSE || it.type == WorkRecordType.WORK_EXPENSE }.sumOf { it.amount }
     val netProfit = received - expenses
-    val balance = WorkLedgerCalculator.cashBalance(visibleRecords, currency, selectedScope).toDouble()
+    val balance = WorkLedgerCalculator.cashBalance(scopedRecords, currency, selectedScope).toDouble()
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(if (ar) "العمل" else "Work", style = MaterialTheme.typography.headlineSmall)
         Text(if (ar) "اختر نوع العمل لإدارة سجلاته وبياناته بشكل مستقل" else "Choose a work type to manage its records independently", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -80,13 +84,14 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             TextButton(onClick = { reportPeriod = "month" }) { Text((if (reportPeriod == "month") "✓ " else "") + (if (ar) "شهري" else "Monthly")) }
             TextButton(onClick = { reportPeriod = "year" }) { Text((if (reportPeriod == "year") "✓ " else "") + (if (ar) "سنوي" else "Yearly")) }
         }
+        OutlinedTextField(searchQuery, { searchQuery = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text(if (ar) "بحث في السجلات والمصادر" else "Search sources and records") })
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Button(onClick = { editingSource = null; sourceDialog = true }) { Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "إضافة جهة عمل" else "إضافة نشاط / عميل") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Add employer" else "Add activity / client")) }
             Button(onClick = { editingRecord = null; recordDialog = true }) { Text(if (ar) "تسجيل حركة" else "Add record") }
             TextButton(onClick = { transferDialog = true }) { Text(if (ar) "تحويل" else "Transfer") }
         }
         if (error) Text(if (ar) "تعذر الحفظ. تحقق من صحة البيانات." else "Could not save. Check the entered details.", color = MaterialTheme.colorScheme.error)
-        Text(if (ar) "مصادر الدخل" else "Income sources", style = MaterialTheme.typography.titleMedium)
+        Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "جهات العمل" else "العملاء والأنشطة") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Employers" else "Clients and activities"), style = MaterialTheme.typography.titleMedium)
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(visibleSources, key = { "source" + it.id }) { source ->
                 val due = if (source.type == WorkSourceType.EMPLOYMENT) WorkLedgerCalculator.salaryDue(source, records, period).toDouble() else records.filter { it.sourceId == source.id && it.type == WorkRecordType.FREELANCE_INCOME }.sumOf { WorkLedgerCalculator.freelanceOutstanding(it, records).toDouble() }
@@ -142,7 +147,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             viewModel.updateWorkSource(existing.copy(name = name, monthlySalary = salary, currency = currency)) { if (it) { sourceDialog = false; editingSource = null; error = false } else error = true }
         }
     }
-    if (recordDialog) WorkRecordDialog(ar, currency, selectedScope, visibleSources, visibleRecords, accounts, editingRecord, { recordDialog = false; editingRecord = null }) { row, accountId ->
+    if (recordDialog) WorkRecordDialog(ar, currency, selectedScope, scopedSources, scopedRecords, accounts, editingRecord, { recordDialog = false; editingRecord = null }) { row, accountId ->
         val existing = editingRecord
         if (existing == null) viewModel.addWorkRecord(row, accountId) { if (it) { recordDialog = false; error = false } else error = true }
         else viewModel.updateWorkRecord(row.copy(id = existing.id, date = existing.date, period = existing.period), accountId) { if (it) { recordDialog = false; editingRecord = null; error = false } else error = true }
@@ -159,7 +164,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
 @Composable private fun WorkSourceDialog(ar: Boolean, currency: String, initialType: WorkSourceType, existing: WorkSourceEntity?, dismiss: () -> Unit, save: (String, WorkSourceType, Double) -> Unit) {
     var name by remember(existing?.id) { mutableStateOf(existing?.name.orEmpty()) }; var salary by remember(existing?.id) { mutableStateOf(existing?.monthlySalary?.toString() ?: "0") }; val type = existing?.type ?: initialType
     AlertDialog(onDismissRequest = dismiss, title = { Text(if (existing == null) (if (ar) "مصدر عمل جديد" else "New work source") else (if (ar) "تعديل مصدر العمل" else "Edit work source")) }, text = {
-        Column { OutlinedTextField(name, { name = it }, label = { Text(if (ar) "اسم الوظيفة أو النشاط" else "Job or activity name") })
+        Column { OutlinedTextField(name, { name = it }, label = { Text(if (ar) (if (type == WorkSourceType.EMPLOYMENT) "اسم جهة العمل أو الوظيفة" else "اسم العميل أو النشاط") else (if (type == WorkSourceType.EMPLOYMENT) "Employer or job name" else "Client or activity name")) })
             Text(if (ar) (if (type == WorkSourceType.EMPLOYMENT) "نوع المصدر: جهة عمل" else "نوع المصدر: نشاط عمل حر") else (if (type == WorkSourceType.EMPLOYMENT) "Source type: employer" else "Source type: freelance activity"))
             if (type == WorkSourceType.EMPLOYMENT) OutlinedTextField(salary, { salary = it }, label = { Text(if (ar) "الراتب الشهري (اختياري)" else "Monthly salary (optional)") })
         }
@@ -200,7 +205,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     AlertDialog(onDismissRequest = dismiss, title = { Text(if (existing == null) (if (ar) "تسجيل حركة عمل" else "Add work record") else (if (ar) "تعديل حركة العمل" else "Edit work record")) }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(if (ar) "المصدر (اختياري)" else "Source (optional)")
-            TextButton(onClick = { sourceId = null; type = WorkRecordType.WORK_INCOME; related = null; accountId = null }) {
+            TextButton(onClick = { sourceId = null; type = WorkRecordType.WORK_INCOME; related = null; accountId = null; currencyCode = currency }) {
                 Text((if (sourceId == null) "✓ " else "") + if (ar) "تسجيل عام بدون مصدر" else "General record without source")
             }
             sources.filter { it.isActive }.forEach { item ->
