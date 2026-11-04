@@ -148,7 +148,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
                 FinanceTextField(
                     value = search,
                     onValueChange = { search = it },
-                    placeholder = { Text(WebI18n.tr("ابحث في الوصف أو الحساب…", "Search description or account…", lang)) },
+                    placeholder = { Text(WebI18n.tr("ابحث في الوصف أو الحساب أو التصنيف أو العملة…", "Search description, account, category or currency…", lang)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth().testTag("transaction_search_input"),
                     singleLine = true,
