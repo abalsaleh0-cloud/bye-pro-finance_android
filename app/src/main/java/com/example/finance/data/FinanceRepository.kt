@@ -159,7 +159,7 @@ class FinanceRepository(
         require(record.currency.isNotBlank() && record.period.matches(Regex("\\d{4}-\\d{2}")))
         val existing = dao.getWorkRecordById(record.id) ?: throw IllegalArgumentException("Work record not found")
         val source = record.sourceId?.let { dao.getWorkSourceById(it) }
-        require(record.sourceId == null || source?.isActive == true) { "Selected work source is inactive or missing" }
+        require(record.sourceId == null || source != null && (source.isActive || source.id == existing.sourceId)) { "Selected work source is inactive or missing" }
         if (source != null) {
             require(source.type == record.scope) { "Work record scope must match its source type" }
             require(source.currency.equals(record.currency, true)) { "Record currency must match the selected source currency" }
