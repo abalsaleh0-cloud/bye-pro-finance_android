@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.example.ui.theme.ByeProTheme
 
-/** Shared BYE PRO FINANCE field style aligned with the web 10px form radius. */
+/** Shared BYE PRO FINANCE field style aligned with the visual identity. */
 @Composable
 fun FinanceTextField(
     value: String,

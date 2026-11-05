@@ -32,7 +32,7 @@ val Typography = Typography(
         letterSpacing = 0.25.sp,
     ),
     titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = TajawalFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = ByeProDesignTokens.Typography.title,
         lineHeight = 28.sp,
