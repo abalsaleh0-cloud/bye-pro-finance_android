@@ -935,6 +935,51 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             return "لديك عملية تنتظر التأكيد أو الإلغاء. أكملها أولاً قبل تجهيز عملية جديدة."
         }
 
+        val currentMonth = java.time.YearMonth.now()
+        val rentCommand = AiCommandRouter.parseRentCommand(
+            query = query,
+            defaultCurrency = primaryCurrency.value,
+            currentMonth = currentMonth.toString()
+        )
+        if (rentCommand != null) {
+            if (rentCommand.isPayment) {
+                val rentBills = bills.value.filter { bill ->
+                    (bill.category.equals("Rent", true) || bill.name.contains("إيجار") || bill.name.contains("rent", true)) &&
+                        bill.currency.equals(rentCommand.currency, true) &&
+                        kotlin.math.abs(bill.amount - rentCommand.amount) < 0.000001 &&
+                        !bill.isPaid &&
+                        java.time.Instant.ofEpochMilli(bill.dueDate).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString().startsWith(rentCommand.month)
+                }
+                if (rentBills.size > 1) return "وجدت أكثر من قسط إيجار مطابق لهذا الشهر. حدّد الشهر المقصود."
+                val rent = rentBills.singleOrNull()
+                    ?: return "لم أجد قسط إيجار غير مدفوع بالمبلغ والعملة والشهر المذكور. سجّل قسط الشهر في قسم المنزل أولاً، ثم اطلب تسجيل دفعه."
+                val staged = aiAppTools.proposeMarkBillPaid(billId = rent.id)
+                if (staged["success"] != true) return "تعذر تجهيز دفع الإيجار: ${staged["error"] ?: "خطأ غير معروف"}."
+                return "جهزت تسجيل دفع إيجار المنزل لشهر ${rentCommand.month} بمبلغ ${TextContent.money(rentCommand.amount, rentCommand.currency, _appLanguage.value)} دون ربطه برصيد أي حساب. راجع المعاينة وأكد التنفيذ."
+            } else {
+                val dueDate = runCatching {
+                    java.time.YearMonth.parse(rentCommand.month).atDay(1)
+                        .atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                }.getOrNull() ?: return "صيغة شهر الإيجار غير صحيحة."
+                val alreadyExists = bills.value.any { bill ->
+                    (bill.category.equals("Rent", true) || bill.name.contains("إيجار") || bill.name.contains("rent", true)) &&
+                        bill.currency.equals(rentCommand.currency, true) &&
+                        java.time.Instant.ofEpochMilli(bill.dueDate).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString().startsWith(rentCommand.month)
+                }
+                if (alreadyExists) return "قسط إيجار شهر ${rentCommand.month} موجود بالفعل. يمكنك فتح قسم المنزل لمراجعته أو تسجيل دفعه."
+                val staged = aiAppTools.proposeCreateBill(
+                    name = "إيجار المنزل - ${rentCommand.month}",
+                    category = "Rent",
+                    amount = rentCommand.amount,
+                    dueDate = dueDate,
+                    currency = rentCommand.currency,
+                    recurring = false
+                )
+                if (staged["success"] != true) return "تعذر تجهيز قسط الإيجار: ${staged["error"] ?: "بيانات غير صالحة"}."
+                return "جهزت قسط إيجار المنزل لشهر ${rentCommand.month} بقيمة ${TextContent.money(rentCommand.amount, rentCommand.currency, _appLanguage.value)} بحالة غير مدفوع. راجع المعاينة وأكد التسجيل."
+            }
+        }
+
         val debtPayment = AiCommandRouter.parseDebtPayment(query)
         if (debtPayment != null) {
             val candidates = debts.value.filter { debt ->
