@@ -438,13 +438,13 @@ class FinanceRepository(
                 // Stable entity equality prevents importing the same export twice and double-posting balances.
                 if (!existing.add(tx)) return@forEach
                 require(tx.amount.isFinite() && tx.amount > 0.0) { "Imported transaction amount must be finite and positive" }
-                val account = dao.getAccountById(tx.accountId)
-                    ?: throw IllegalArgumentException("Imported transaction references a missing account: ${tx.accountId}")
-                require(tx.currency.equals(account.currency, ignoreCase = true)) {
+                val account = if (tx.accountId > 0L) dao.getAccountById(tx.accountId)
+                    ?: throw IllegalArgumentException("Imported transaction references a missing account: ${tx.accountId}") else null
+                if (account != null) require(tx.currency.equals(account.currency, ignoreCase = true)) {
                     "Imported transaction currency does not match account ${account.id}"
                 }
-                dao.insertTransaction(tx)
-                if (tx.status == TransactionStatus.COMPLETED) {
+                dao.insertTransaction(tx.copy(currency = account?.currency ?: tx.currency.trim().uppercase()))
+                if (tx.status == TransactionStatus.COMPLETED && account != null) {
                     val current = FinanceEngine.toBigDecimal(account.balance)
                     val amount = FinanceEngine.toBigDecimal(tx.amount)
                     val updated = when (tx.type) {
