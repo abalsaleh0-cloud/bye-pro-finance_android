@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceLinearProgressIndicator
+
 import com.example.ui.components.FinanceCard
 
 import com.example.ui.components.FinanceDropdownMenuItem
@@ -221,7 +223,7 @@ private fun BudgetItemCard(
             Text("${WebI18n.tr("من", "From", lang)}: ${budgetDate(budget.startDate)}   •   ${WebI18n.tr("إلى", "To", lang)}: ${budgetDate(budget.endDate)}",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(12.dp))
-            LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
+            FinanceLinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
                 color = progressColor, trackColor = MaterialTheme.colorScheme.surface)
             Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

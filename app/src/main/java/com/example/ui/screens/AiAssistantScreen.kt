@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import com.example.ui.components.FinanceCard
+import com.example.ui.components.FinanceCircularProgressIndicator
 
 import com.example.ui.components.FinanceDropdownMenuItem
 
@@ -310,7 +311,7 @@ fun AiAssistantScreen(
                                 modifier = Modifier.padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                CircularProgressIndicator(
+                                FinanceCircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
                                     color = ByeProTheme.colors.goldPrimary,
                                     strokeWidth = 2.dp

@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceLinearProgressIndicator
+
 import com.example.ui.components.FinanceSwitch
 
 import androidx.compose.foundation.border
@@ -375,7 +377,7 @@ fun AiModelsSettingsScreen(
                         }
                     }
                     if (localModelLoading) {
-                        androidx.compose.material3.LinearProgressIndicator(
+                        FinanceLinearProgressIndicator(
                             progress = { localModelProgress },
                             modifier = Modifier.fillMaxWidth()
                         )

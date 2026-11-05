@@ -15,6 +15,8 @@ import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenu
@@ -334,5 +336,32 @@ fun FinanceDropdownMenuItem(
             leadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
             trailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    )
+}
+
+
+/** Shared indeterminate progress indicator using the active BYE PRO accent. */
+@Composable
+fun FinanceCircularProgressIndicator(
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.primary,
+    strokeWidth: androidx.compose.ui.unit.Dp = 4.dp
+) {
+    CircularProgressIndicator(modifier = modifier, color = color, strokeWidth = strokeWidth)
+}
+
+/** Shared determinate progress indicator with a theme-derived track. */
+@Composable
+fun FinanceLinearProgressIndicator(
+    progress: () -> Float,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.primary,
+    trackColor: Color = MaterialTheme.colorScheme.surfaceVariant
+) {
+    LinearProgressIndicator(
+        progress = progress,
+        modifier = modifier,
+        color = color,
+        trackColor = trackColor
     )
 }

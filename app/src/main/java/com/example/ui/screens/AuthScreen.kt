@@ -1,4 +1,6 @@
 package com.example.ui.screens
+
+import com.example.ui.components.FinanceCircularProgressIndicator
 import com.example.ui.components.FinanceCard
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceTextButton
@@ -125,7 +127,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
                             enabled = !loading,
                             modifier = Modifier.fillMaxWidth().height(50.dp).testTag("auth_submit")
                         ) {
-                            if (loading) CircularProgressIndicator(Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                            if (loading) FinanceCircularProgressIndicator(Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
                             else Text(tr(if (signup) "إنشاء الحساب" else "تسجيل الدخول", if (signup) "Create account" else "Sign in"))
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {

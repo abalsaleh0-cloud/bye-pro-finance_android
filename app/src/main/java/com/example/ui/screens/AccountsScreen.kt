@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import com.example.ui.components.FinanceCard
+import com.example.ui.components.FinanceCircularProgressIndicator
 
 import com.example.ui.components.FinanceDropdownMenuItem
 
@@ -181,7 +182,7 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        CircularProgressIndicator()
+                        FinanceCircularProgressIndicator()
                         Text(WebI18n.tr("جارٍ تحميل الحسابات…", "Loading accounts…", lang))
                     }
                 }
