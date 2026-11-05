@@ -62,6 +62,14 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(if (ar) "العمل" else "Work", style = MaterialTheme.typography.headlineSmall)
         Text(if (ar) "اختر نوع العمل لإدارة سجلاته وبياناته بشكل مستقل" else "Choose a work type to manage its records independently", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { editingSource = null; sourceDialog = true }, modifier = Modifier.weight(1f)) {
+                Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "إضافة جهة عمل" else "إضافة عميل / نشاط") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Add employer" else "Add client / activity"))
+            }
+            Button(onClick = { editingRecord = null; recordDialog = true }, modifier = Modifier.weight(1f)) {
+                Text(if (ar) "تسجيل حركة" else "Add record")
+            }
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = { selectedScope = WorkSourceType.EMPLOYMENT }, modifier = Modifier.weight(1f), enabled = selectedScope != WorkSourceType.EMPLOYMENT) {
                 Text(if (ar) "العمل الوظيفي" else "Employment")
@@ -94,8 +102,6 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         }
         OutlinedTextField(searchQuery, { searchQuery = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text(if (ar) "بحث في السجلات والمصادر" else "Search sources and records") })
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Button(onClick = { editingSource = null; sourceDialog = true }) { Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "إضافة جهة عمل" else "إضافة نشاط / عميل") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Add employer" else "Add activity / client")) }
-            Button(onClick = { editingRecord = null; recordDialog = true }) { Text(if (ar) "تسجيل حركة" else "Add record") }
             TextButton(onClick = { transferDialog = true }) { Text(if (ar) "تحويل" else "Transfer") }
         }
         if (error) Text(if (ar) "تعذر الحفظ. تحقق من صحة البيانات." else "Could not save. Check the entered details.", color = MaterialTheme.colorScheme.error)
