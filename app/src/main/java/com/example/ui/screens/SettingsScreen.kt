@@ -69,6 +69,7 @@ fun SettingsScreen(
     val timeZone by viewModel.timeZone.collectAsState()
     val dateFormat by viewModel.dateFormat.collectAsState()
     val numberFormat by viewModel.numberFormat.collectAsState()
+    val westernDigits by viewModel.westernDigits.collectAsState()
     val emailNotifications by viewModel.emailNotifications.collectAsState()
     val transactionAlerts by viewModel.transactionAlerts.collectAsState()
     val billReminders by viewModel.billReminders.collectAsState()
@@ -306,6 +307,7 @@ fun SettingsScreen(
                     SettingsChoiceRow(WebI18n.tr("المنطقة الزمنية", "Time zone", lang), timeZone, listOf("Africa/Tripoli", "Asia/Damascus", "Asia/Amman", "Europe/Istanbul", "Europe/London", "UTC"), viewModel::setTimeZone)
                     SettingsChoiceRow(WebI18n.tr("تنسيق التاريخ", "Date format", lang), dateFormat, listOf("YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY"), viewModel::setDateFormat)
                     SettingsChoiceRow(WebI18n.tr("تنسيق الأرقام", "Number format", lang), numberFormat, listOf("1,234.56", "1.234,56", "1 234,56"), viewModel::setNumberFormat)
+                    SettingsSwitchRow(WebI18n.tr("استخدام الأرقام 0 1 2 بدلاً من ٠ ١ ٢", "Use 0 1 2 instead of ٠ ١ ٢", lang), westernDigits, viewModel::setWesternDigits)
                 }
             }
         }
