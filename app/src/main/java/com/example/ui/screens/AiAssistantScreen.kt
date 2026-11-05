@@ -21,6 +21,7 @@ import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceTextButton
 import com.example.ui.components.FinanceIconButton
 import com.example.ui.components.FinanceFloatingActionButton
 
@@ -50,8 +51,6 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -535,17 +534,17 @@ fun AiAssistantScreen(
     }
 
     pendingAiAction?.let { action ->
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { viewModel.cancelPendingAiAction(action.id) },
             title = { Text(action.title) },
             text = { Text(action.description) },
             confirmButton = {
-                TextButton(onClick = { viewModel.confirmPendingAiAction(action.id) }) {
+                FinanceTextButton(onClick = { viewModel.confirmPendingAiAction(action.id) }) {
                     Text(WebI18n.tr("تأكيد التنفيذ", "Confirm", lang))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.cancelPendingAiAction(action.id) }) {
+                FinanceTextButton(onClick = { viewModel.cancelPendingAiAction(action.id) }) {
                     Text(WebI18n.tr("إلغاء", "Cancel", lang))
                 }
             }
