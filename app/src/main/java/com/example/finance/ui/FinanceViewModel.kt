@@ -931,11 +931,79 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             }
         }
 
-        val command = AiCommandRouter.parseTransaction(query, primaryCurrency.value) ?: return null
         if (pendingAiAction.value != null) {
             return "لديك عملية تنتظر التأكيد أو الإلغاء. أكملها أولاً قبل تجهيز عملية جديدة."
         }
 
+        val debtPayment = AiCommandRouter.parseDebtPayment(query)
+        if (debtPayment != null) {
+            val candidates = debts.value.filter { debt ->
+                debt.status != DebtStatus.PAID &&
+                    (debt.name.contains(debtPayment.personName, true) ||
+                        debt.creditor.contains(debtPayment.personName, true))
+            }.filter { debt -> debtPayment.currency == null || debt.currency.equals(debtPayment.currency, true) }
+            if (candidates.size > 1) {
+                return "وجدت أكثر من دين مرتبط بالاسم «${debtPayment.personName}». حدّد الدين المقصود حتى لا أسجل الدفعة على شخص آخر."
+            }
+            val debt = candidates.singleOrNull()
+                ?: return "لم أجد ديناً مفتوحاً باسم «${debtPayment.personName}». افتح قسم الديون وسجّل اسم الشخص أولاً."
+            if (debtPayment.amount > debt.remaining) {
+                return "المبلغ أكبر من المتبقي على الدين (${TextContent.money(debt.remaining, debt.currency, _appLanguage.value)}). لم يتم تسجيل أي عملية."
+            }
+            val staged = aiAppTools.proposeRecordDebtPayment(
+                debtId = debt.id,
+                amount = debtPayment.amount,
+                notes = debtPayment.description,
+                paymentDate = System.currentTimeMillis()
+            )
+            if (staged["success"] != true) {
+                return "لم أتمكن من تجهيز دفعة الدين: ${staged["error"] ?: "بيانات غير صالحة"}. لم يتم حفظ أي شيء."
+            }
+            return "جهزت دفعة بقيمة ${TextContent.money(debtPayment.amount, debt.currency, _appLanguage.value)} للدين المرتبط بـ«${debt.name}»، دون ربطها برصيد أي حساب. راجع المعاينة وأكد التنفيذ."
+        }
+
+        val workCommand = AiCommandRouter.parseWorkRecord(query, primaryCurrency.value)
+        if (workCommand != null) {
+            val activeSources = workSources.value.filter { it.isActive && it.type == WorkSourceType.EMPLOYMENT }
+            val source = when {
+                workCommand.sourceName != null -> activeSources.firstOrNull { it.name.contains(workCommand.sourceName, true) || workCommand.sourceName.contains(it.name, true) }
+                activeSources.size == 1 -> activeSources.single()
+                else -> null
+            }
+            if (source == null) {
+                return if (activeSources.isEmpty()) {
+                    "حتى أسجل الراتب أو السلفة بدقة، أضف جهة العمل واسمها في قسم العمل أولاً، ثم أعد الطلب."
+                } else {
+                    "لديك أكثر من جهة عمل. اذكر اسم جهة العمل مع الراتب أو السلفة حتى أربط الحركة بالمصدر الصحيح."
+                }
+            }
+            if (!source.currency.equals(workCommand.currency, true)) {
+                return "عملة جهة العمل «${source.name}» هي ${source.currency}، بينما العملة المذكورة هي ${workCommand.currency}. لم أسجل العملية."
+            }
+            val staged = aiAppTools.proposeCreateWorkRecord(
+                sourceId = source.id,
+                type = workCommand.type,
+                amount = workCommand.amount,
+                currency = source.currency,
+                period = java.time.YearMonth.now().toString(),
+                notes = workCommand.description,
+                scope = "EMPLOYMENT"
+            )
+            if (staged["success"] != true) {
+                return "لم أتمكن من تجهيز حركة العمل: ${staged["error"] ?: "بيانات غير صالحة"}. لم يتم حفظ أي شيء."
+            }
+            val label = when (workCommand.type) {
+                "SALARY_ADVANCE" -> "سلفة راتب"
+                "SALARY_PAYMENT" -> "دفعة راتب"
+                "SALARY_ALLOWANCE" -> "بدل وظيفي"
+                "SALARY_BONUS" -> "مكافأة"
+                "SALARY_OVERTIME" -> "عمل إضافي"
+                else -> "خصم راتب"
+            }
+            return "جهزت تسجيل $label بقيمة ${TextContent.money(workCommand.amount, source.currency, _appLanguage.value)} لدى «${source.name}»، دون ربطه برصيد حساب شخصي. راجع المعاينة وأكد التنفيذ."
+        }
+
+        val command = AiCommandRouter.parseTransaction(query, primaryCurrency.value) ?: return null
         val matchingAccounts = withContext(Dispatchers.IO) { aiAppTools.listAccounts() }
             .filter { (it["currency"] as? String).equals(command.currency, ignoreCase = true) }
         val mentionedAccounts = matchingAccounts.filter { account ->
