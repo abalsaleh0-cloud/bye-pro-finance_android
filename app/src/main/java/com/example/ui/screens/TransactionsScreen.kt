@@ -96,6 +96,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
     val lang by viewModel.appLanguage.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
+    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
     var search by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf<TransactionType?>(null) }
     var statusFilter by remember { mutableStateOf<TransactionStatus?>(null) }
@@ -191,6 +192,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
                     AddTransactionForm(
                         accounts = activeAccounts,
                         lang = lang,
+                        defaultCurrency = primaryCurrency,
                         initialTransaction = editTarget,
                         onCancel = { showForm = false; editTarget = null },
                         onSave = { transaction ->
@@ -243,15 +245,17 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
 }
 
 @Composable
-fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCancel: () -> Unit, onSave: (TransactionEntity) -> Unit, initialTransaction: TransactionEntity? = null) {
+fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCancel: () -> Unit, onSave: (TransactionEntity) -> Unit, initialTransaction: TransactionEntity? = null, defaultCurrency: String = "LYD") {
     var type by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.type ?: TransactionType.EXPENSE) }
     var accountId by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.accountId ?: 0L) }
+    var currency by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.currency ?: defaultCurrency) }
     var category by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.category.orEmpty()) }
     var amount by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.amount?.toString().orEmpty()) }
     var date by remember(initialTransaction?.id) { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(initialTransaction?.date ?: System.currentTimeMillis()))) }
     var description by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.description.orEmpty()) }
     var accountMenu by remember { mutableStateOf(false) }
     var categoryMenu by remember { mutableStateOf(false) }
+    var currencyMenu by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     val account = accounts.firstOrNull { it.id == accountId }
     val categories = webCategories[type].orEmpty()
@@ -272,10 +276,24 @@ fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCance
                 }
             }
 
-            Text(WebI18n.tr("الحساب", "Account", lang), style = MaterialTheme.typography.labelMedium)
+            Text(WebI18n.tr("ربط بحساب شخصي (اختياري)", "Link a personal account (optional)", lang), style = MaterialTheme.typography.labelMedium)
             Box(Modifier.fillMaxWidth()) {
-                FinanceOutlinedButton(onClick = { accountMenu = true }, enabled = accounts.isNotEmpty(), modifier = Modifier.fillMaxWidth().testTag("transaction_account_input")) { Text(account?.let { "${it.name} · ${it.currency}" } ?: WebI18n.tr("اختر حساباً", "Select an account", lang)) }
-                DropdownMenu(expanded = accountMenu, onDismissRequest = { accountMenu = false }) { accounts.forEach { item -> DropdownMenuItem(text = { Text("${item.name} · ${item.currency}") }, onClick = { accountId = item.id; accountMenu = false }) } }
+                FinanceOutlinedButton(onClick = { accountMenu = true }, modifier = Modifier.fillMaxWidth().testTag("transaction_account_input")) { Text(account?.let { "${it.name} · ${it.currency}" } ?: WebI18n.tr("تسجيل دون ربط بحساب", "Record without linking an account", lang)) }
+                DropdownMenu(expanded = accountMenu, onDismissRequest = { accountMenu = false }) {
+                    DropdownMenuItem(text = { Text(WebI18n.tr("دون ربط بحساب", "No account link", lang)) }, onClick = { accountId = 0L; accountMenu = false })
+                    accounts.forEach { item -> DropdownMenuItem(text = { Text("${item.name} · ${item.currency}") }, onClick = { accountId = item.id; currency = item.currency; accountMenu = false }) }
+                }
+            }
+            if (account == null) {
+                Text(WebI18n.tr("العملة", "Currency", lang), style = MaterialTheme.typography.labelMedium)
+                Box(Modifier.fillMaxWidth()) {
+                    FinanceOutlinedButton(onClick = { currencyMenu = true }, modifier = Modifier.fillMaxWidth().testTag("transaction_currency_input")) { Text(currency) }
+                    DropdownMenu(expanded = currencyMenu, onDismissRequest = { currencyMenu = false }) {
+                        listOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD").forEach { code ->
+                            DropdownMenuItem(text = { Text(code) }, onClick = { currency = code; currencyMenu = false })
+                        }
+                    }
+                }
             }
 
             Text(WebI18n.tr("التصنيف", "Category", lang), style = MaterialTheme.typography.labelMedium)
@@ -296,13 +314,14 @@ fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCance
                     val numeric = amount.toDoubleOrNull()
                     val parsedDate = runCatching { SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(date)?.time }.getOrNull()
                     error = when {
-                        account == null -> WebI18n.tr("أضف حساباً نشطاً أولاً من قسم الحسابات.", "Add an active account in Accounts first.", lang)
                         numeric == null || !numeric.isFinite() || numeric <= 0.0 -> WebI18n.tr("أدخل مبلغاً أكبر من الصفر.", "Enter an amount greater than zero.", lang)
                         parsedDate == null -> WebI18n.tr("أدخل تاريخاً صحيحاً بصيغة YYYY-MM-DD.", "Enter a valid date in YYYY-MM-DD format.", lang)
+                        account == null && currency !in setOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD") -> WebI18n.tr("اختر عملة صحيحة.", "Select a valid currency.", lang)
                         else -> ""
                     }
-                    if (error.isBlank() && account != null && numeric != null && parsedDate != null) {
-                        onSave(initialTransaction?.copy(accountId = account.id, type = type, amount = numeric, currency = account.currency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }) ?: TransactionEntity(accountId = account.id, type = type, amount = numeric, currency = account.currency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }, status = TransactionStatus.COMPLETED))
+                    if (error.isBlank() && numeric != null && parsedDate != null) {
+                        val selectedCurrency = account?.currency ?: currency
+                        onSave(initialTransaction?.copy(accountId = account?.id ?: 0L, type = type, amount = numeric, currency = selectedCurrency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }) ?: TransactionEntity(accountId = account?.id ?: 0L, type = type, amount = numeric, currency = selectedCurrency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }, status = TransactionStatus.COMPLETED))
                     }
                 }, modifier = Modifier.weight(1f).testTag("submit_transaction_btn")) { Text(if (initialTransaction == null) WebI18n.tr("حفظ المعاملة", "Save transaction", lang) else WebI18n.tr("حفظ التعديلات", "Save changes", lang)) }
             }
