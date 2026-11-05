@@ -245,7 +245,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
 @Composable
 fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCancel: () -> Unit, onSave: (TransactionEntity) -> Unit, initialTransaction: TransactionEntity? = null) {
     var type by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.type ?: TransactionType.EXPENSE) }
-    var accountId by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.accountId ?: accounts.firstOrNull()?.id ?: 0L) }
+    var accountId by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.accountId ?: 0L) }
     var category by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.category.orEmpty()) }
     var amount by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.amount?.toString().orEmpty()) }
     var date by remember(initialTransaction?.id) { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(initialTransaction?.date ?: System.currentTimeMillis()))) }
