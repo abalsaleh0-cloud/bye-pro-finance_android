@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import com.example.ui.theme.ByeProTheme
+import com.example.ui.components.FinanceCard
 import com.example.finance.i18n.LocalAppLanguage
 import com.example.finance.i18n.WebI18n
 import androidx.compose.animation.core.animateFloatAsState
@@ -21,8 +22,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -55,12 +54,7 @@ fun FinancialMetricCard(
     accentColor: Color = ByeProTheme.colors.goldPrimary,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(16.dp)
-    ) {
+    FinanceCard(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -126,14 +120,7 @@ fun HealthScoreCard(
     )
     val healthColors = ByeProTheme.colors
 
-    Card(
-        modifier = modifier
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(18.dp)),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        shape = RoundedCornerShape(18.dp)
-    ) {
+    FinanceCard(modifier = modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -290,12 +277,7 @@ fun InteractiveCashFlowChart(
     val incomePercent = (income / total).toFloat()
     val expensePercent = (expense / total).toFloat()
 
-    Card(
-        modifier = modifier
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(16.dp)
-    ) {
+    FinanceCard(modifier = modifier) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = WebI18n.tr("التدفق والمقارنة الشهرية (Cash Flow Comparison)", "Cash Flow Comparison", lang),
