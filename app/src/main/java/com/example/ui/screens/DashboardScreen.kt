@@ -3,6 +3,7 @@ package com.example.ui.screens
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceCard
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
@@ -46,8 +47,6 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -367,11 +366,8 @@ fun DashboardScreen(
 
 @Composable
 private fun DashboardMetric(label: String, value: String, detail: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth().heightIn(min = 132.dp),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    FinanceCard(
+        modifier = Modifier.fillMaxWidth().heightIn(min = 132.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -388,11 +384,8 @@ private fun DashboardPanel(
     count: String,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    FinanceCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -456,13 +449,10 @@ private fun budgetPeriodLabel(period: BudgetPeriod, lang: com.example.finance.mo
 
 @Composable
 fun AccountCardMini(account: AccountEntity, lang: com.example.finance.model.AppLanguage, onClick: () -> Unit) {
-    Card(
+    FinanceCard(
         modifier = Modifier
             .width(200.dp)
             .clickable(onClick = onClick)
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(14.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(14.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
