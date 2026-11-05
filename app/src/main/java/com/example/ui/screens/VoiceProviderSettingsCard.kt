@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -28,6 +26,7 @@ import com.example.finance.ai.ElevenLabsConnectionResult
 import com.example.finance.ai.ElevenLabsSpeechProvider
 import com.example.finance.ai.SecureVoiceSettings
 import com.example.ui.theme.ByeProTheme
+import com.example.ui.components.FinanceCard
 import com.example.finance.model.AppLanguage
 import com.example.finance.i18n.WebI18n
 import kotlinx.coroutines.launch
@@ -81,7 +80,7 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
             WebI18n.tr("تعذر إكمال اختبار الاتصال. حاول مرة أخرى.", "The connection test could not be completed. Try again.", lang)
     }
 
-    Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
+    FinanceCard {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
