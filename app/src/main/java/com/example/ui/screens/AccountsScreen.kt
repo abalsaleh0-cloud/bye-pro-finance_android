@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Wallet
@@ -55,6 +56,7 @@ import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
 import com.example.finance.model.AppLanguage
 import com.example.finance.ui.FinanceViewModel
+import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceFloatingActionButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -80,6 +82,7 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
     val actionFeedback by viewModel.accountActionFeedback.collectAsState()
     val accounts = (activeAccounts + archivedAccounts).sortedByDescending { it.createdAt }
     var showAddDialog by remember { mutableStateOf(false) }
+    var deleteAccountTarget by remember { mutableStateOf<AccountEntity?>(null) }
     var actionNotice by remember { mutableStateOf("") }
 
     LaunchedEffect(actionFeedback) {
@@ -89,6 +92,8 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                     else WebI18n.tr("تعذرت إضافة الحساب. حاول مرة أخرى.", "Could not add the account. Please try again.", lang)
                 "activate" -> if (feedback.succeeded) WebI18n.tr("تم تفعيل الحساب.", "Account activated.", lang)
                     else WebI18n.tr("تعذر تفعيل الحساب.", "Could not activate the account.", lang)
+                "delete" -> if (feedback.succeeded) WebI18n.tr("تم حذف الحساب.", "Account deleted.", lang)
+                    else WebI18n.tr("لا يمكن حذف حساب مرتبط بسجل عمليات؛ أوقفه بدلاً من حذف تاريخه.", "This account has linked records; archive it instead to preserve its history.", lang)
                 else -> if (feedback.succeeded) WebI18n.tr("تم إيقاف الحساب.", "Account deactivated.", lang)
                     else WebI18n.tr("تعذر إيقاف الحساب.", "Could not deactivate the account.", lang)
             }
@@ -206,7 +211,8 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                     AccountDetailedCard(
                         account = account,
                         lang = lang,
-                        onToggleActive = { viewModel.archiveAccount(account.id, !account.isArchived) }
+                        onToggleActive = { viewModel.archiveAccount(account.id, !account.isArchived) },
+                        onDelete = { deleteAccountTarget = account }
                     )
                 }
             }
@@ -214,13 +220,30 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
         }
     }
 
+    deleteAccountTarget?.let { target ->
+        FinanceAlertDialog(
+            onDismissRequest = { deleteAccountTarget = null },
+            title = { Text(WebI18n.tr("حذف الحساب نهائياً؟", "Delete account permanently?", lang)) },
+            text = { Text(WebI18n.tr("سيُحذف الحساب فقط إذا لم يكن مرتبطاً بمعاملات أو تحويلات أو سجلات عمل. إذا كان له تاريخ مالي، يمكنك إيقافه بدلاً من فقدان السجل.", "The account can only be deleted when it has no linked transactions, transfers, or work records. If it has financial history, archive it to preserve the ledger.", lang)) },
+            confirmButton = {
+                FinanceButton(onClick = {
+                    viewModel.deleteAccount(target)
+                    deleteAccountTarget = null
+                }) { Text(WebI18n.tr("حذف الحساب", "Delete account", lang)) }
+            },
+            dismissButton = {
+                FinanceOutlinedButton(onClick = { deleteAccountTarget = null }) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) }
+            }
+        )
+    }
 }
 
 @Composable
 fun AccountDetailedCard(
     account: AccountEntity,
     lang: AppLanguage,
-    onToggleActive: () -> Unit
+    onToggleActive: () -> Unit,
+    onDelete: () -> Unit
 ) {
     val icon = when (account.type) {
         AccountType.CASH -> Icons.Default.Payments
@@ -266,11 +289,16 @@ fun AccountDetailedCard(
                     Text(WebI18n.tr("الرصيد الحالي", "Current balance", lang), style = MaterialTheme.typography.labelSmall)
                     Text(TextContent.money(account.balance, account.currency, lang), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
                 }
-                FinanceOutlinedButton(onClick = onToggleActive, modifier = Modifier.testTag("toggle_account_${account.id}")) {
-                    Text(
-                        if (account.isArchived) WebI18n.tr("تفعيل الحساب", "Activate account", lang)
-                        else WebI18n.tr("إيقاف الحساب", "Deactivate account", lang)
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    FinanceOutlinedButton(onClick = onToggleActive, modifier = Modifier.testTag("toggle_account_${account.id}")) {
+                        Text(
+                            if (account.isArchived) WebI18n.tr("تفعيل", "Activate", lang)
+                            else WebI18n.tr("إيقاف", "Archive", lang)
+                        )
+                    }
+                    FinanceOutlinedButton(onClick = onDelete, modifier = Modifier.testTag("delete_account_${account.id}")) {
+                        Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف الحساب", "Delete account", lang), tint = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }
