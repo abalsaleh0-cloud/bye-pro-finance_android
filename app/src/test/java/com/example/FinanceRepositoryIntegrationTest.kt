@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceRepository
 import com.example.finance.engine.FinanceEngine
+import com.example.finance.engine.WorkLedgerCalculator
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
 import com.example.finance.model.BudgetEntity
@@ -714,6 +715,123 @@ class FinanceRepositoryIntegrationTest {
         assertEquals(500.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
         assertTrue(repository.workRecords.first().isEmpty())
         assertTrue(repository.transactions.first().isEmpty())
+    }
+
+    @Test
+    fun freelancePartialPaymentsCannotExceedReceivableAndReceivableCannotBeDeletedOrReducedBelowPaid() = runBlocking {
+        val sourceId = repository.addWorkSource(
+            WorkSourceEntity(name = "Freelance client", type = WorkSourceType.FREELANCE, currency = "LYD")
+        )
+        val receivableId = repository.addWorkRecord(
+            WorkRecordEntity(sourceId = sourceId, scope = WorkSourceType.FREELANCE,
+                type = WorkRecordType.FREELANCE_INCOME, amount = 100.0, currency = "LYD", period = "2026-11")
+        )
+        val paymentId = repository.addWorkRecord(
+            WorkRecordEntity(sourceId = sourceId, relatedRecordId = receivableId, scope = WorkSourceType.FREELANCE,
+                type = WorkRecordType.FREELANCE_PAYMENT, amount = 60.0, currency = "LYD", period = "2026-11")
+        )
+        try {
+            repository.addWorkRecord(
+                WorkRecordEntity(sourceId = sourceId, relatedRecordId = receivableId, scope = WorkSourceType.FREELANCE,
+                    type = WorkRecordType.FREELANCE_PAYMENT, amount = 50.0, currency = "LYD", period = "2026-11")
+            )
+            fail("Partial payments must not exceed the receivable")
+        } catch (_: IllegalArgumentException) { }
+        try {
+            repository.updateWorkRecord(
+                db.financeDao().getWorkRecordById(paymentId)!!.copy(amount = 101.0)
+            )
+            fail("An edited payment must not exceed the outstanding receivable")
+        } catch (_: IllegalArgumentException) { }
+        try {
+            repository.updateWorkRecord(
+                db.financeDao().getWorkRecordById(receivableId)!!.copy(amount = 50.0)
+            )
+            fail("A receivable cannot be reduced below payments already received")
+        } catch (_: IllegalArgumentException) { }
+        try {
+            repository.deleteWorkRecord(receivableId)
+            fail("A receivable with linked payments cannot be deleted")
+        } catch (_: IllegalArgumentException) { }
+        assertEquals(100.0, db.financeDao().getWorkRecordById(receivableId)!!.amount, 0.001)
+        assertEquals(60.0, db.financeDao().getWorkRecordById(paymentId)!!.amount, 0.001)
+        assertEquals(40.0, WorkLedgerCalculator.freelanceOutstanding(
+            db.financeDao().getWorkRecordById(receivableId)!!,
+            repository.workRecords.first()
+        ).toDouble(), 0.001)
+    }
+
+    @Test
+    fun editingWorkRecordReconcilesLinkedAccountBalanceAtomically() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Work edit account", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addWorkRecord(
+            WorkRecordEntity(type = WorkRecordType.WORK_INCOME, amount = 100.0, currency = "LYD", period = "2026-11", scope = WorkSourceType.EMPLOYMENT),
+            TransactionEntity(accountId = accountId, type = TransactionType.INCOME, amount = 100.0, currency = "LYD",
+                category = "WORK_INCOME", description = "Original work income", status = TransactionStatus.COMPLETED)
+        )
+        assertEquals(1100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        val original = db.financeDao().getWorkRecordById(id)!!
+        val updated = original.copy(type = WorkRecordType.WORK_EXPENSE, amount = 25.0, notes = "Corrected work expense")
+        repository.updateWorkRecord(
+            updated,
+            TransactionEntity(id = original.linkedTransactionId!!, accountId = accountId, type = TransactionType.EXPENSE,
+                amount = 25.0, currency = "LYD", category = "WORK_EXPENSE", description = "Corrected work expense",
+                status = TransactionStatus.COMPLETED)
+        )
+        assertEquals(975.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        val saved = db.financeDao().getWorkRecordById(id)!!
+        assertEquals(WorkRecordType.WORK_EXPENSE, saved.type)
+        assertEquals(25.0, saved.amount, 0.001)
+        assertEquals(original.linkedTransactionId, saved.linkedTransactionId)
+    }
+
+    @Test
+    fun workRecordsCannotCrossEmploymentAndFreelanceScopes() = runBlocking {
+        val employmentId = repository.addWorkSource(
+            WorkSourceEntity(name = "Employment scope", type = WorkSourceType.EMPLOYMENT, monthlySalary = 1200.0, currency = "LYD")
+        )
+        try {
+            repository.addWorkRecord(
+                WorkRecordEntity(sourceId = employmentId, scope = WorkSourceType.FREELANCE,
+                    type = WorkRecordType.WORK_INCOME, amount = 50.0, currency = "LYD", period = "2026-11")
+            )
+            fail("An employment source must not accept a freelance-scoped record")
+        } catch (_: IllegalArgumentException) { }
+        assertTrue(repository.workRecords.first().isEmpty())
+    }
+
+    @Test
+    fun deletingWorkRecordReversesLinkedPersonalLedgerPostingAtomically() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Work delete account", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addWorkRecord(
+            WorkRecordEntity(type = WorkRecordType.WORK_INCOME, amount = 80.0, currency = "LYD", period = "2026-11", scope = WorkSourceType.FREELANCE),
+            TransactionEntity(accountId = accountId, type = TransactionType.INCOME, amount = 80.0, currency = "LYD",
+                category = "WORK_INCOME", description = "Work income to delete", status = TransactionStatus.COMPLETED)
+        )
+        assertEquals(1080.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        val linkedTransactionId = db.financeDao().getWorkRecordById(id)!!.linkedTransactionId!!
+        repository.deleteWorkRecord(id)
+        assertEquals(1000.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertEquals(null, db.financeDao().getWorkRecordById(id))
+        assertEquals(null, db.financeDao().getTransactionById(linkedTransactionId))
+    }
+
+    @Test
+    fun editingEmploymentExpenseCannotMoveItIntoFreelanceTypeWithoutChangingScope() = runBlocking {
+        val id = repository.addWorkRecord(
+            WorkRecordEntity(type = WorkRecordType.WORK_EXPENSE, amount = 40.0, currency = "LYD", period = "2026-11", scope = WorkSourceType.EMPLOYMENT)
+        )
+        try {
+            repository.updateWorkRecord(
+                db.financeDao().getWorkRecordById(id)!!.copy(type = WorkRecordType.FREELANCE_EXPENSE)
+            )
+            fail("Freelance expense must remain inside the freelance ledger")
+        } catch (_: IllegalArgumentException) { }
+        assertEquals(WorkRecordType.WORK_EXPENSE, db.financeDao().getWorkRecordById(id)!!.type)
     }
 
 }

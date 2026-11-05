@@ -45,7 +45,7 @@ import com.example.finance.model.WorkRecordEntity
         WorkSourceEntity::class,
         WorkRecordEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -86,6 +86,14 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL("CREATE TABLE IF NOT EXISTS work_records (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, sourceId INTEGER, relatedRecordId INTEGER, type TEXT NOT NULL, amount REAL NOT NULL, currency TEXT NOT NULL, date INTEGER NOT NULL, period TEXT NOT NULL, notes TEXT NOT NULL, linkedAccountId INTEGER, linkedTransactionId INTEGER)")
             }
         }
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE work_records ADD COLUMN scope TEXT NOT NULL DEFAULT 'EMPLOYMENT'")
+                database.execSQL("UPDATE work_records SET scope = (SELECT type FROM work_sources WHERE work_sources.id = work_records.sourceId) WHERE sourceId IS NOT NULL AND EXISTS (SELECT 1 FROM work_sources WHERE work_sources.id = work_records.sourceId)")
+                database.execSQL("UPDATE work_records SET scope = 'FREELANCE' WHERE type IN ('FREELANCE_INCOME', 'FREELANCE_PAYMENT', 'FREELANCE_EXPENSE')")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -95,7 +103,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "bye_pro_finance.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build()
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).build()
                 INSTANCE = instance
                 instance
             }

@@ -72,29 +72,60 @@ class FinanceRepository(
         id
     }
 
+    suspend fun updateWorkSource(source: WorkSourceEntity) = withContext(Dispatchers.IO) {
+        require(source.id > 0L && source.name.isNotBlank() && source.currency.isNotBlank())
+        require(source.monthlySalary.isFinite() && source.monthlySalary >= 0.0)
+        require(source.type != WorkSourceType.FREELANCE || source.monthlySalary == 0.0)
+        val existing = dao.getWorkSourceById(source.id) ?: throw IllegalArgumentException("Work source not found")
+        require(existing.type == source.type) { "A work source cannot change between employment and freelance after records exist" }
+        dao.insertWorkSource(source.copy(name = source.name.trim(), currency = source.currency.trim().uppercase()))
+        logAudit("UPDATE", "WorkSource", "Updated source " + source.name)
+    }
+
     suspend fun addWorkRecord(record: WorkRecordEntity, transaction: TransactionEntity? = null): Long = withContext(Dispatchers.IO) {
         require(record.amount.isFinite() && record.amount > 0.0)
         require(record.currency.isNotBlank() && record.period.matches(Regex("\\d{4}-\\d{2}")))
         val transfer = record.type == WorkRecordType.WORK_TRANSFER_IN || record.type == WorkRecordType.WORK_TRANSFER_OUT
+        val salaryRecord = record.type in setOf(
+            WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION,
+            WorkRecordType.SALARY_ALLOWANCE, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME,
+            WorkRecordType.SALARY_PAYMENT
+        )
+        val freelanceRecord = record.type in setOf(
+            WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT
+        )
         val source = record.sourceId?.let { dao.getWorkSourceById(it) }
-        if (transfer) require(record.sourceId == null && record.relatedRecordId == null) else {
-            require(source != null && source.isActive)
-            val employment = record.type in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
-            if (record.type != WorkRecordType.WORK_EXPENSE) require((source.type == WorkSourceType.EMPLOYMENT) == employment)
-            require(source.currency.equals(record.currency, true))
+        if (transfer) {
+            require(record.sourceId == null && record.relatedRecordId == null)
+        } else if (salaryRecord || freelanceRecord) {
+            require(source != null && source.isActive) { "Select an active source for salary or freelance records" }
+        } else if (source != null) {
+            require(source.isActive) { "The selected work source is inactive" }
         }
+        if (source != null) {
+            require(source.type == record.scope) { "Work record scope must match its source type" }
+            require(source.currency.equals(record.currency, true)) { "Record currency must match the selected source currency" }
+            if (salaryRecord) require(source.type == WorkSourceType.EMPLOYMENT) { "Salary records require an employment source" }
+            if (freelanceRecord || record.type == WorkRecordType.FREELANCE_EXPENSE) require(source.type == WorkSourceType.FREELANCE) { "Freelance records require a freelance source" }
+        }
+        if (salaryRecord) require(record.scope == WorkSourceType.EMPLOYMENT) { "Salary records belong to employment" }
+        if (freelanceRecord || record.type == WorkRecordType.FREELANCE_EXPENSE) require(record.scope == WorkSourceType.FREELANCE) { "Freelance records belong to the freelance ledger" }
         if (record.type == WorkRecordType.FREELANCE_PAYMENT) {
             val parentId = record.relatedRecordId ?: throw IllegalArgumentException("Select the receivable being paid")
             val parent = dao.getWorkRecordById(parentId) ?: throw IllegalArgumentException("Receivable not found")
-            require(parent.type == WorkRecordType.FREELANCE_INCOME && parent.sourceId == record.sourceId)
-            val paid = dao.getWorkRecordsSnapshot().filter { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == parentId }.sumOf { it.amount }
-            require(record.amount <= parent.amount - paid + 0.000001) { "Payment exceeds outstanding amount" }
+            require(parent.type == WorkRecordType.FREELANCE_INCOME && parent.sourceId == record.sourceId && parent.scope == record.scope && parent.currency.equals(record.currency, true))
+            val alreadyPaid = dao.getWorkRecordsSnapshot()
+                .filter { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == parentId }
+                .sumOf { it.amount }
+            require(record.amount <= parent.amount - alreadyPaid + 0.000001) { "Payment exceeds outstanding receivable" }
         } else require(record.relatedRecordId == null)
+
         val cash = WorkLedgerCalculator.isCashMovement(record.type)
-        require((transaction != null) == cash) { "Actual cash movements must link one personal account; accrued items must not post cash" }
+        require(transaction == null || cash) { "Accrued records cannot post a personal cash transaction" }
         if (transaction != null) {
             val expectedType = when (record.type) {
-                WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT -> TransactionType.INCOME
+                WorkRecordType.WORK_INCOME, WorkRecordType.SALARY_ADVANCE,
+                WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT -> TransactionType.INCOME
                 WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.WORK_EXPENSE -> TransactionType.EXPENSE
                 WorkRecordType.WORK_TRANSFER_IN -> TransactionType.TRANSFER
                 WorkRecordType.WORK_TRANSFER_OUT -> TransactionType.ADJUSTMENT
@@ -113,29 +144,142 @@ class FinanceRepository(
                 "Work cash movements must be posted as completed transactions"
             }
         }
-        val existing = dao.getWorkRecordsSnapshot()
-        if (record.type == WorkRecordType.WORK_TRANSFER_OUT) require(WorkLedgerCalculator.cashBalance(existing, record.currency).toDouble() + 0.000001 >= record.amount) { "Insufficient work cash balance" }
         val operation: suspend () -> Long = {
-            val latestRecords = dao.getWorkRecordsSnapshot()
-            if (record.type == WorkRecordType.SALARY_ADVANCE || record.type == WorkRecordType.SALARY_PAYMENT) {
-                val employmentSource = source ?: throw IllegalArgumentException("Employment source not found")
-                val due = WorkLedgerCalculator.salaryDue(employmentSource, latestRecords, record.period).toDouble()
-                require(record.amount <= due + 0.000001) { "Payment exceeds the remaining salary due" }
-            }
-            if (record.type == WorkRecordType.FREELANCE_PAYMENT) {
-                val parentId = record.relatedRecordId ?: throw IllegalArgumentException("Select the receivable being paid")
-                val parent = dao.getWorkRecordById(parentId) ?: throw IllegalArgumentException("Receivable not found")
-                val paid = latestRecords.filter { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == parentId }.sumOf { it.amount }
-                require(record.amount <= parent.amount - paid + 0.000001) { "Payment exceeds outstanding amount" }
-            }
-            if (record.type == WorkRecordType.WORK_TRANSFER_OUT) {
-                require(WorkLedgerCalculator.cashBalance(latestRecords, record.currency).toDouble() + 0.000001 >= record.amount) { "Insufficient work cash balance" }
-            }
             val txId = transaction?.let { addTransaction(it) }
-            val linked = record.copy(currency = record.currency.trim().uppercase(), linkedAccountId = transaction?.accountId, linkedTransactionId = txId)
+            val linked = record.copy(
+                currency = record.currency.trim().uppercase(),
+                linkedAccountId = transaction?.accountId,
+                linkedTransactionId = txId
+            )
             val id = dao.insertWorkRecord(linked)
             logAudit("CREATE", "WorkRecord", "Recorded " + linked.type.name + ": " + linked.amount + " " + linked.currency)
             id
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
+    }
+
+    suspend fun updateWorkRecord(record: WorkRecordEntity, transaction: TransactionEntity? = null) = withContext(Dispatchers.IO) {
+        require(record.id > 0L && record.amount.isFinite() && record.amount > 0.0)
+        require(record.currency.isNotBlank() && record.period.matches(Regex("\\d{4}-\\d{2}")))
+        val existing = dao.getWorkRecordById(record.id) ?: throw IllegalArgumentException("Work record not found")
+        val source = record.sourceId?.let { dao.getWorkSourceById(it) }
+        require(record.sourceId == null || source != null && (source.isActive || source.id == existing.sourceId)) { "Selected work source is inactive or missing" }
+        if (source != null) {
+            require(source.type == record.scope) { "Work record scope must match its source type" }
+            require(source.currency.equals(record.currency, true)) { "Record currency must match the selected source currency" }
+        }
+        val salaryRecord = record.type in setOf(WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_DEDUCTION, WorkRecordType.SALARY_ALLOWANCE, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.SALARY_PAYMENT)
+        val freelanceRecord = record.type in setOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT, WorkRecordType.FREELANCE_EXPENSE)
+        if (salaryRecord) require(record.scope == WorkSourceType.EMPLOYMENT && source?.type == WorkSourceType.EMPLOYMENT)
+        if (record.type in setOf(WorkRecordType.FREELANCE_INCOME, WorkRecordType.FREELANCE_PAYMENT)) require(record.scope == WorkSourceType.FREELANCE && source?.type == WorkSourceType.FREELANCE)
+        if (record.type == WorkRecordType.FREELANCE_EXPENSE) require(record.scope == WorkSourceType.FREELANCE) { "Freelance expenses belong to the freelance ledger" }
+        if (record.type == WorkRecordType.FREELANCE_PAYMENT) {
+            val parent = record.relatedRecordId?.let { dao.getWorkRecordById(it) } ?: throw IllegalArgumentException("Select the receivable being paid")
+            require(parent.type == WorkRecordType.FREELANCE_INCOME && parent.sourceId == record.sourceId && parent.scope == record.scope && parent.currency.equals(record.currency, true))
+            require(parent.id != record.id)
+            val alreadyPaid = dao.getWorkRecordsSnapshot()
+                .filter { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == parent.id && it.id != record.id }
+                .sumOf { it.amount }
+            require(record.amount <= parent.amount - alreadyPaid + 0.000001) { "Payment exceeds outstanding receivable" }
+        } else require(record.relatedRecordId == null)
+        if (existing.type == WorkRecordType.FREELANCE_INCOME) {
+            val linkedPayments = dao.getWorkRecordsSnapshot().filter {
+                it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == existing.id
+            }
+            if (linkedPayments.isNotEmpty()) {
+                require(record.sourceId == existing.sourceId && record.scope == existing.scope && record.currency.equals(existing.currency, true)) {
+                    "A receivable with linked payments cannot change source, scope or currency"
+                }
+                require(linkedPayments.sumOf { it.amount } <= record.amount + 0.000001) {
+                    "Receivable amount cannot be lower than payments already received"
+                }
+            }
+        }
+        val cash = WorkLedgerCalculator.isCashMovement(record.type)
+        require(transaction == null || cash) { "Accrued records cannot post a personal cash transaction" }
+        if (transaction != null) {
+            val expectedType = when (record.type) {
+                WorkRecordType.WORK_INCOME, WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT -> TransactionType.INCOME
+                WorkRecordType.FREELANCE_EXPENSE, WorkRecordType.WORK_EXPENSE -> TransactionType.EXPENSE
+                WorkRecordType.WORK_TRANSFER_IN -> TransactionType.TRANSFER
+                WorkRecordType.WORK_TRANSFER_OUT -> TransactionType.ADJUSTMENT
+                else -> throw IllegalArgumentException("This work record cannot create a cash transaction")
+            }
+            require(transaction.amount == record.amount && transaction.currency.equals(record.currency, true))
+            require(transaction.type == expectedType && transaction.status == TransactionStatus.COMPLETED)
+            val account = dao.getAccountById(transaction.accountId) ?: throw IllegalArgumentException("Account not found")
+            require(account.currency.equals(record.currency, true)) { "Account currency must match work record currency" }
+        }
+        val operation: suspend () -> Unit = {
+            val oldTx = existing.linkedTransactionId?.let { dao.getTransactionById(it) }
+            fun signed(tx: TransactionEntity): BigDecimal {
+                val amount = FinanceEngine.toBigDecimal(tx.amount)
+                return when (tx.type) {
+                    TransactionType.INCOME, TransactionType.REFUND, TransactionType.ADJUSTMENT -> amount
+                    TransactionType.EXPENSE, TransactionType.TRANSFER -> amount.negate()
+                }
+            }
+            if (oldTx != null && oldTx.status == TransactionStatus.COMPLETED) {
+                val oldAccount = dao.getAccountById(oldTx.accountId)
+                if (oldAccount != null) {
+                    val reversed = FinanceEngine.toBigDecimal(oldAccount.balance).subtract(signed(oldTx))
+                    dao.updateAccountBalance(oldAccount.id, reversed.toDouble())
+                }
+            }
+            var newTxId: Long? = null
+            if (transaction != null) {
+                val updatedTx = transaction.copy(id = oldTx?.id ?: 0L)
+                if (oldTx == null) newTxId = dao.insertTransaction(updatedTx) else {
+                    dao.updateTransaction(updatedTx)
+                    newTxId = updatedTx.id
+                }
+                if (updatedTx.status == TransactionStatus.COMPLETED) {
+                    val newAccount = dao.getAccountById(updatedTx.accountId) ?: throw IllegalArgumentException("Account not found")
+                    val posted = FinanceEngine.toBigDecimal(newAccount.balance).add(signed(updatedTx))
+                    dao.updateAccountBalance(newAccount.id, posted.toDouble())
+                }
+            } else if (oldTx != null) {
+                dao.deleteTransaction(oldTx)
+            }
+            val saved = record.copy(
+                currency = record.currency.trim().uppercase(),
+                linkedAccountId = transaction?.accountId,
+                linkedTransactionId = newTxId
+            )
+            dao.insertWorkRecord(saved)
+            logAudit("UPDATE", "WorkRecord", "Updated work record #${saved.id}: ${saved.type} ${saved.amount} ${saved.currency}")
+        }
+        if (db != null) db.withTransaction { operation() } else operation()
+    }
+
+    suspend fun deleteWorkRecord(recordId: Long) = withContext(Dispatchers.IO) {
+        val record = dao.getWorkRecordById(recordId) ?: return@withContext
+        if (record.type == WorkRecordType.FREELANCE_INCOME) {
+            val hasPayments = dao.getWorkRecordsSnapshot().any {
+                it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == record.id
+            }
+            require(!hasPayments) { "Remove or reassign linked partial payments before deleting this receivable" }
+        }
+        val operation: suspend () -> Unit = {
+            val linkedTransactionId = record.linkedTransactionId
+            if (linkedTransactionId != null) {
+                val tx = dao.getTransactionById(linkedTransactionId)
+                if (tx != null) {
+                    val account = dao.getAccountById(tx.accountId)
+                    if (account != null && tx.status == TransactionStatus.COMPLETED) {
+                        val current = FinanceEngine.toBigDecimal(account.balance)
+                        val amount = FinanceEngine.toBigDecimal(tx.amount)
+                        val reversed = when (tx.type) {
+                            TransactionType.INCOME, TransactionType.REFUND, TransactionType.ADJUSTMENT -> current.subtract(amount)
+                            TransactionType.EXPENSE, TransactionType.TRANSFER -> current.add(amount)
+                        }
+                        dao.updateAccountBalance(account.id, reversed.toDouble())
+                    }
+                    dao.deleteTransaction(tx)
+                }
+            }
+            dao.deleteWorkRecord(record)
+            logAudit("DELETE", "WorkRecord", "Deleted work record #${record.id}: ${record.type} ${record.amount} ${record.currency}")
         }
         if (db != null) db.withTransaction { operation() } else operation()
     }
