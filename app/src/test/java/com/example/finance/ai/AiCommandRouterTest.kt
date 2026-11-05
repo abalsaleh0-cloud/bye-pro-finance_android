@@ -43,6 +43,37 @@ class AiCommandRouterTest {
     }
 
     @Test
+    fun parsesColloquialDebtPaymentWithoutRequiringAccount() {
+        val command = AiCommandRouter.parseDebtPayment("دفعت ٢٠ دينار لأحمد")
+        assertEquals(20.0, command?.amount ?: 0.0, 0.0)
+        assertEquals("أحمد", command?.personName)
+        assertEquals("LYD", command?.currency)
+    }
+
+    @Test
+    fun parsesSalaryAdvanceAndSalaryPaymentAsWorkRecords() {
+        val advance = AiCommandRouter.parseWorkRecord("أخذت سلفة ٣٠٠ دينار من الشركة", "LYD")
+        assertEquals("SALARY_ADVANCE", advance?.type)
+        assertEquals(300.0, advance?.amount ?: 0.0, 0.0)
+        assertEquals("الشركة", advance?.sourceName)
+
+        val salary = AiCommandRouter.parseWorkRecord("استلمت الراتب ٢٠٠٠ دينار", "LYD")
+        assertEquals("SALARY_PAYMENT", salary?.type)
+        assertEquals(2000.0, salary?.amount ?: 0.0, 0.0)
+    }
+
+    @Test
+    fun parsesMonthlyRentInstallmentAndPayment() {
+        val unpaid = AiCommandRouter.parseRentCommand("سجل إيجار المنزل ٥٠٠ دينار لشهر 2026-11", "LYD", "2026-11")
+        assertEquals(false, unpaid?.isPayment)
+        assertEquals("2026-11", unpaid?.month)
+        assertEquals(500.0, unpaid?.amount ?: 0.0, 0.0)
+
+        val paid = AiCommandRouter.parseRentCommand("دفعت إيجار المنزل ٥٠٠ دينار", "LYD", "2026-11")
+        assertEquals(true, paid?.isPayment)
+    }
+
+    @Test
     fun mapsArabicSectionNavigation() {
         assertEquals("debts", AiCommandRouter.parseSectionNavigation("افتح قسم الديون"))
         assertEquals("accounts", AiCommandRouter.parseSectionNavigation("اذهب إلى حساباتي"))
