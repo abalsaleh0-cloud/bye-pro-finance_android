@@ -61,7 +61,7 @@ import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
+
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -179,7 +179,8 @@ fun AiAssistantScreen(
     Column(
         modifier = Modifier.fillMaxSize().background(ByeProTheme.colors.bgMain)
     ) {
-        Card(
+        FinanceCard(
+                border = null,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)
                 .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.42f), RoundedCornerShape(20.dp)),
             shape = RoundedCornerShape(20.dp),
@@ -261,7 +262,8 @@ fun AiAssistantScreen(
                 ) {
                     if (messages.isEmpty()) {
                         item {
-                            Card(
+                            FinanceCard(
+                border = null,
                                 modifier = Modifier.fillMaxWidth()
                                     .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.38f), RoundedCornerShape(24.dp)),
                                 shape = RoundedCornerShape(24.dp),
@@ -328,7 +330,8 @@ fun AiAssistantScreen(
                 }
 
                 // Compact WhatsApp-style composer with every action inside the input bar.
-                Card(
+                FinanceCard(
+                border = null,
                     modifier = Modifier.fillMaxWidth().border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.32f), RoundedCornerShape(28.dp)),
                     shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)
@@ -383,7 +386,8 @@ fun AiAssistantScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 item {
-                    Card(
+                    FinanceCard(
+                border = null,
                         modifier = Modifier.fillMaxWidth()
                             .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.38f), RoundedCornerShape(20.dp)),
                         shape = RoundedCornerShape(20.dp),
@@ -428,7 +432,8 @@ fun AiAssistantScreen(
                 }
 
                 items(insights) { insight ->
-                    Card(
+                    FinanceCard(
+                border = null,
                         modifier = Modifier
                             .fillMaxWidth()
                             .border(
@@ -548,7 +553,8 @@ fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean =
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
-        Card(
+        FinanceCard(
+                border = null,
             shape = RoundedCornerShape(
                 topStart = 16.dp,
                 topEnd = 16.dp,
