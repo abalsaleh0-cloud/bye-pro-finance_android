@@ -30,7 +30,36 @@ internal data class ParsedDebtPaymentCommand(
     val description: String
 )
 
+internal data class ParsedRentCommand(
+    val amount: Double,
+    val currency: String,
+    val isPayment: Boolean,
+    val month: String,
+    val description: String
+)
+
 internal object AiCommandRouter {
+    fun parseRentCommand(query: String, defaultCurrency: String, currentMonth: String): ParsedRentCommand? {
+        val normalized = normalizeDigits(query).trim()
+        val text = normalized.lowercase(Locale.ROOT)
+        if (!listOf("إيجار", "ايجار", "rent").any(text::contains)) return null
+        val amountMatch = Regex("""([0-9]+(?:[.,][0-9]{1,2})?)""").find(text) ?: return null
+        val amount = amountMatch.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
+        if (!amount.isFinite() || amount <= 0.0) return null
+        val explicitMonth = Regex("""(20[0-9]{2})[-/]([0-9]{1,2})""").find(text)?.let {
+            val month = it.groupValues[2].toIntOrNull() ?: return@let null
+            if (month in 1..12) "${it.groupValues[1]}-${month.toString().padStart(2, '0')}" else null
+        }
+        val currency = when {
+            text.contains("usd") || text.contains("دولار") || text.contains("$") -> "USD"
+            text.contains("eur") || text.contains("يورو") || text.contains("€") -> "EUR"
+            text.contains("syp") || text.contains("ليرة") -> "SYP"
+            text.contains("lyd") || text.contains("دينار") || text.contains("د.ل") -> "LYD"
+            else -> defaultCurrency.trim().uppercase(Locale.ROOT).takeIf { it.matches(Regex("[A-Z]{3}")) } ?: return null
+        }
+        val isPayment = listOf("دفعت", "سددت", "سدّدت", "paid", "pay rent").any(text::contains)
+        return ParsedRentCommand(amount, currency, isPayment, explicitMonth ?: currentMonth, normalized)
+    }
     fun parseDebtPayment(query: String): ParsedDebtPaymentCommand? {
         val normalized = normalizeDigits(query).trim()
         val text = normalized.lowercase(Locale.ROOT)
