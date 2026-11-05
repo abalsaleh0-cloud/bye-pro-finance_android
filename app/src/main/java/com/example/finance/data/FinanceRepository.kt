@@ -307,6 +307,16 @@ class FinanceRepository(
     }
 
     suspend fun deleteAccount(account: AccountEntity) = withContext(Dispatchers.IO) {
+        val transactions = dao.getTransactionsByAccount(account.id).firstOrNull().orEmpty()
+        val transfers = dao.getAllTransfers().firstOrNull().orEmpty()
+        val workRecords = dao.getWorkRecords().firstOrNull().orEmpty()
+        require(transactions.isEmpty()) { "Account has transaction history; archive it to preserve the ledger" }
+        require(transfers.none { it.fromAccountId == account.id || it.toAccountId == account.id }) {
+            "Account is referenced by a transfer; archive it to preserve the ledger"
+        }
+        require(workRecords.none { it.linkedAccountId == account.id }) {
+            "Account is linked to work records; archive it to preserve the ledger"
+        }
         dao.deleteAccount(account)
         logAudit("DELETE", "Account", "Deleted account ${account.name}")
     }
