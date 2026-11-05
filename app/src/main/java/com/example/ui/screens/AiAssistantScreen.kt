@@ -57,8 +57,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -348,10 +346,10 @@ fun AiAssistantScreen(
                                 IconButton(onClick = { attachmentMenuExpanded = true }, enabled = !isAiLoading, modifier = Modifier.size(40.dp).testTag("ai_assistant_attach_menu")) {
                                     Icon(Icons.Default.AttachFile, contentDescription = WebI18n.tr("المرفقات", "Attachments", lang), tint = ByeProTheme.colors.goldPrimary)
                                 }
-                                DropdownMenu(expanded = attachmentMenuExpanded, onDismissRequest = { attachmentMenuExpanded = false }) {
-                                    DropdownMenuItem(text = { Text(WebI18n.tr("الكاميرا", "Camera", lang)) }, leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) }, onClick = { attachmentMenuExpanded = false; cameraLauncher.launch(null) })
-                                    DropdownMenuItem(text = { Text(WebI18n.tr("استوديو الصور", "Photo gallery", lang)) }, leadingIcon = { Icon(Icons.Default.PhotoLibrary, contentDescription = null) }, onClick = { attachmentMenuExpanded = false; imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) })
-                                    DropdownMenuItem(text = { Text(WebI18n.tr("الملفات النصية", "Text files", lang)) }, leadingIcon = { Icon(Icons.Default.AttachFile, contentDescription = null) }, onClick = { attachmentMenuExpanded = false; textFilePicker.launch(arrayOf("text/plain", "text/markdown", "text/csv")) })
+                                FinanceDropdownMenu(expanded = attachmentMenuExpanded, onDismissRequest = { attachmentMenuExpanded = false }) {
+                                    FinanceDropdownMenuItem(text = { Text(WebI18n.tr("الكاميرا", "Camera", lang)) }, leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) }, onClick = { attachmentMenuExpanded = false; cameraLauncher.launch(null) })
+                                    FinanceDropdownMenuItem(text = { Text(WebI18n.tr("استوديو الصور", "Photo gallery", lang)) }, leadingIcon = { Icon(Icons.Default.PhotoLibrary, contentDescription = null) }, onClick = { attachmentMenuExpanded = false; imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) })
+                                    FinanceDropdownMenuItem(text = { Text(WebI18n.tr("الملفات النصية", "Text files", lang)) }, leadingIcon = { Icon(Icons.Default.AttachFile, contentDescription = null) }, onClick = { attachmentMenuExpanded = false; textFilePicker.launch(arrayOf("text/plain", "text/markdown", "text/csv")) })
                                 }
                             }
                             IconButton(onClick = {

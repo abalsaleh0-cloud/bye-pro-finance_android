@@ -21,8 +21,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -448,7 +446,7 @@ fun AiModelsSettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Switch(checked = autoSpeakReplies, onCheckedChange = onAutoSpeakRepliesChange, colors = SwitchDefaults.colors(checkedThumbColor = ByeProTheme.colors.goldPrimary, checkedTrackColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.28f)))
+                        FinanceSwitch(checked = autoSpeakReplies, onCheckedChange = onAutoSpeakRepliesChange)
                     }
                     Text(
                         WebI18n.tr("لغة الرد: تتبع لغة التطبيق حالياً.", "Reply language currently follows the app language.", lang),
