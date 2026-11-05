@@ -1,4 +1,8 @@
 package com.example.ui.screens
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceTextButton
+import com.example.ui.components.FinanceTextField
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -63,18 +67,18 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         Text(if (ar) "العمل" else "Work", style = MaterialTheme.typography.headlineSmall)
         Text(if (ar) "اختر نوع العمل لإدارة سجلاته وبياناته بشكل مستقل" else "Choose a work type to manage its records independently", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { editingSource = null; sourceDialog = true }, modifier = Modifier.weight(1f)) {
+            FinanceButton(onClick = { editingSource = null; sourceDialog = true }, modifier = Modifier.weight(1f)) {
                 Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "إضافة جهة عمل" else "إضافة عميل / نشاط") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Add employer" else "Add client / activity"))
             }
-            Button(onClick = { editingRecord = null; recordDialog = true }, modifier = Modifier.weight(1f)) {
+            FinanceButton(onClick = { editingRecord = null; recordDialog = true }, modifier = Modifier.weight(1f)) {
                 Text(if (ar) "تسجيل حركة" else "Add record")
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { selectedScope = WorkSourceType.EMPLOYMENT }, modifier = Modifier.weight(1f), enabled = selectedScope != WorkSourceType.EMPLOYMENT) {
+            FinanceButton(onClick = { selectedScope = WorkSourceType.EMPLOYMENT }, modifier = Modifier.weight(1f), enabled = selectedScope != WorkSourceType.EMPLOYMENT) {
                 Text(if (ar) "العمل الوظيفي" else "Employment")
             }
-            Button(onClick = { selectedScope = WorkSourceType.FREELANCE }, modifier = Modifier.weight(1f), enabled = selectedScope != WorkSourceType.FREELANCE) {
+            FinanceButton(onClick = { selectedScope = WorkSourceType.FREELANCE }, modifier = Modifier.weight(1f), enabled = selectedScope != WorkSourceType.FREELANCE) {
                 Text(if (ar) "العمل الحر" else "Freelance")
             }
         }
@@ -96,13 +100,13 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         WorkSummary(if (ar) "صافي العمل" else "Work net", netProfit, currency, Modifier.fillMaxWidth(), money)
         WorkSummary(if (ar) "رصيد العمل" else "Work cash balance", balance, currency, Modifier.fillMaxWidth(), money)
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            TextButton(onClick = { reportPeriod = "day" }) { Text((if (reportPeriod == "day") "✓ " else "") + (if (ar) "يومي" else "Daily")) }
-            TextButton(onClick = { reportPeriod = "month" }) { Text((if (reportPeriod == "month") "✓ " else "") + (if (ar) "شهري" else "Monthly")) }
-            TextButton(onClick = { reportPeriod = "year" }) { Text((if (reportPeriod == "year") "✓ " else "") + (if (ar) "سنوي" else "Yearly")) }
+            FinanceTextButton(onClick = { reportPeriod = "day" }) { Text((if (reportPeriod == "day") "✓ " else "") + (if (ar) "يومي" else "Daily")) }
+            FinanceTextButton(onClick = { reportPeriod = "month" }) { Text((if (reportPeriod == "month") "✓ " else "") + (if (ar) "شهري" else "Monthly")) }
+            FinanceTextButton(onClick = { reportPeriod = "year" }) { Text((if (reportPeriod == "year") "✓ " else "") + (if (ar) "سنوي" else "Yearly")) }
         }
-        OutlinedTextField(searchQuery, { searchQuery = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text(if (ar) "بحث في السجلات والمصادر" else "Search sources and records") })
+        FinanceTextField(searchQuery, { searchQuery = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text(if (ar) "بحث في السجلات والمصادر" else "Search sources and records") })
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            TextButton(onClick = { transferDialog = true }) { Text(if (ar) "تحويل" else "Transfer") }
+            FinanceTextButton(onClick = { transferDialog = true }) { Text(if (ar) "تحويل" else "Transfer") }
         }
         if (error) Text(if (ar) "تعذر الحفظ. تحقق من صحة البيانات." else "Could not save. Check the entered details.", color = MaterialTheme.colorScheme.error)
         Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "جهات العمل" else "العملاء والأنشطة") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Employers" else "Clients and activities"), style = MaterialTheme.typography.titleMedium)
@@ -120,8 +124,8 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                         Text((if (ar) "المستحق: " else "Outstanding: ") + money.format(due) + " " + source.currency)
                         if (!source.isActive) Text(if (ar) "مؤرشف" else "Archived", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = { editingSource = source; sourceDialog = true }) { Text(if (ar) "تعديل" else "Edit") }
-                            TextButton(onClick = { viewModel.updateWorkSource(source.copy(isActive = !source.isActive)) { if (!it) error = true } }) {
+                            FinanceTextButton(onClick = { editingSource = source; sourceDialog = true }) { Text(if (ar) "تعديل" else "Edit") }
+                            FinanceTextButton(onClick = { viewModel.updateWorkSource(source.copy(isActive = !source.isActive)) { if (!it) error = true } }) {
                                 Text(if (source.isActive) (if (ar) "أرشفة" else "Archive") else (if (ar) "استعادة" else "Restore"))
                             }
                         }
@@ -136,19 +140,19 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                 val name = sources.firstOrNull { it.id == row.sourceId }?.name ?: (if (row.type == WorkRecordType.WORK_TRANSFER_IN || row.type == WorkRecordType.WORK_TRANSFER_OUT) (if (ar) "تحويل داخلي" else "Internal transfer") else (if (ar) "عمل عام" else "General work"))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(name + " · " + workRecordLabel(row.type, ar) + " · " + money.format(row.amount) + " " + row.currency, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { editingRecord = row; recordDialog = true }) { Text(if (ar) "تعديل" else "Edit") }
-                    TextButton(onClick = { deleteRecordId = row.id }) { Text(if (ar) "حذف" else "Delete") }
+                    FinanceTextButton(onClick = { editingRecord = row; recordDialog = true }) { Text(if (ar) "تعديل" else "Edit") }
+                    FinanceTextButton(onClick = { deleteRecordId = row.id }) { Text(if (ar) "حذف" else "Delete") }
                 }
             }
         }
     }
     if (deleteRecordId != null) {
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { deleteRecordId = null },
             title = { Text(if (ar) "حذف حركة العمل؟" else "Delete work record?") },
             text = { Text(if (ar) "سيتم حذف الحركة المرتبطة بها، وعكس أثرها على الحساب الشخصي إذا كانت مرتبطة به." else "The linked work record will be deleted and its posted effect on the personal account will be reversed.") },
             confirmButton = {
-                TextButton(onClick = {
+                FinanceTextButton(onClick = {
                     val id = deleteRecordId ?: return@TextButton
                     viewModel.deleteWorkRecord(id) { success ->
                         if (!success) error = true
@@ -156,7 +160,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                     }
                 }) { Text(if (ar) "حذف نهائياً" else "Delete") }
             },
-            dismissButton = { TextButton(onClick = { deleteRecordId = null }) { Text(if (ar) "إلغاء" else "Cancel") } }
+            dismissButton = { FinanceTextButton(onClick = { deleteRecordId = null }) { Text(if (ar) "إلغاء" else "Cancel") } }
         )
     }
     if (sourceDialog) WorkSourceDialog(ar, currency, selectedScope, editingSource, { sourceDialog = false; editingSource = null }) { name, type, salary ->
@@ -183,15 +187,15 @@ fun WorkScreen(viewModel: FinanceViewModel) {
 }
 @Composable private fun WorkSourceDialog(ar: Boolean, currency: String, initialType: WorkSourceType, existing: WorkSourceEntity?, dismiss: () -> Unit, save: (String, WorkSourceType, Double) -> Unit) {
     var name by remember(existing?.id) { mutableStateOf(existing?.name.orEmpty()) }; var salary by remember(existing?.id) { mutableStateOf(existing?.monthlySalary?.toString() ?: "0") }; val type = existing?.type ?: initialType
-    AlertDialog(onDismissRequest = dismiss, title = { Text(if (existing == null) (if (ar) "مصدر عمل جديد" else "New work source") else (if (ar) "تعديل مصدر العمل" else "Edit work source")) }, text = {
-        Column { OutlinedTextField(name, { name = it }, label = { Text(if (ar) (if (type == WorkSourceType.EMPLOYMENT) "اسم جهة العمل أو الوظيفة" else "اسم العميل أو النشاط") else (if (type == WorkSourceType.EMPLOYMENT) "Employer or job name" else "Client or activity name")) })
+    FinanceAlertDialog(onDismissRequest = dismiss, title = { Text(if (existing == null) (if (ar) "مصدر عمل جديد" else "New work source") else (if (ar) "تعديل مصدر العمل" else "Edit work source")) }, text = {
+        Column { FinanceTextField(name, { name = it }, label = { Text(if (ar) (if (type == WorkSourceType.EMPLOYMENT) "اسم جهة العمل أو الوظيفة" else "اسم العميل أو النشاط") else (if (type == WorkSourceType.EMPLOYMENT) "Employer or job name" else "Client or activity name")) })
             Text(if (ar) (if (type == WorkSourceType.EMPLOYMENT) "نوع المصدر: جهة عمل" else "نوع المصدر: نشاط عمل حر") else (if (type == WorkSourceType.EMPLOYMENT) "Source type: employer" else "Source type: freelance activity"))
-            if (type == WorkSourceType.EMPLOYMENT) OutlinedTextField(salary, { salary = it }, label = { Text(if (ar) "الراتب الشهري (اختياري)" else "Monthly salary (optional)") })
+            if (type == WorkSourceType.EMPLOYMENT) FinanceTextField(salary, { salary = it }, label = { Text(if (ar) "الراتب الشهري (اختياري)" else "Monthly salary (optional)") })
         }
     }, confirmButton = {
         val amount = if (type == WorkSourceType.FREELANCE || salary.isBlank()) 0.0 else salary.toDoubleOrNull() ?: -1.0
-        Button(onClick = { if (name.isNotBlank() && amount >= 0) save(name.trim(), type, amount) }, enabled = name.isNotBlank() && amount >= 0) { Text(if (ar) "حفظ" else "Save") }
-    }, dismissButton = { TextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
+        FinanceButton(onClick = { if (name.isNotBlank() && amount >= 0) save(name.trim(), type, amount) }, enabled = name.isNotBlank() && amount >= 0) { Text(if (ar) "حفظ" else "Save") }
+    }, dismissButton = { FinanceTextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
 }
 @Composable private fun WorkRecordDialog(ar: Boolean, currency: String, scope: WorkSourceType, sources: List<WorkSourceEntity>, records: List<WorkRecordEntity>, accounts: List<AccountEntity>, existing: WorkRecordEntity?, dismiss: () -> Unit, save: (WorkRecordEntity, Long?) -> Unit) {
     var sourceId by remember(existing?.id, scope) { mutableStateOf(existing?.sourceId) }
@@ -224,14 +228,14 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         it.type == WorkRecordType.FREELANCE_INCOME && it.sourceId == sourceId &&
             (WorkLedgerCalculator.freelanceOutstanding(it, records).toDouble() > 0.000001 || it.id == existing?.relatedRecordId)
     }
-    AlertDialog(onDismissRequest = dismiss, title = { Text(if (existing == null) (if (ar) "تسجيل حركة عمل" else "Add work record") else (if (ar) "تعديل حركة العمل" else "Edit work record")) }, text = {
+    FinanceAlertDialog(onDismissRequest = dismiss, title = { Text(if (existing == null) (if (ar) "تسجيل حركة عمل" else "Add work record") else (if (ar) "تعديل حركة العمل" else "Edit work record")) }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(if (ar) "المصدر (اختياري)" else "Source (optional)")
-            TextButton(onClick = { sourceId = null; type = WorkRecordType.WORK_INCOME; related = null; accountId = null; currencyCode = currency }) {
+            FinanceTextButton(onClick = { sourceId = null; type = WorkRecordType.WORK_INCOME; related = null; accountId = null; currencyCode = currency }) {
                 Text((if (sourceId == null) "✓ " else "") + if (ar) "تسجيل عام بدون مصدر" else "General record without source")
             }
             sources.filter { it.isActive || it.id == existing?.sourceId }.forEach { item ->
-                TextButton(onClick = {
+                FinanceTextButton(onClick = {
                     sourceId = item.id
                     currencyCode = item.currency
                     type = if (item.type == WorkSourceType.EMPLOYMENT) WorkRecordType.SALARY_ADVANCE else WorkRecordType.FREELANCE_INCOME
@@ -243,32 +247,32 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             }
             Text(if (ar) "نوع الحركة" else "Record type")
             options.forEach { option ->
-                TextButton(onClick = { type = option; related = null }) {
+                FinanceTextButton(onClick = { type = option; related = null }) {
                     Text((if (type == option) "✓ " else "") + workRecordLabel(option, ar))
                 }
             }
             if (source == null) {
-                OutlinedTextField(currencyCode, { currencyCode = it.uppercase().take(8) }, label = { Text(if (ar) "رمز العملة" else "Currency code") }, singleLine = true)
+                FinanceTextField(currencyCode, { currencyCode = it.uppercase().take(8) }, label = { Text(if (ar) "رمز العملة" else "Currency code") }, singleLine = true)
             }
             if (type == WorkRecordType.FREELANCE_PAYMENT) {
                 Text(if (ar) "المستحق المرتبط بالدفعة" else "Receivable linked to this payment")
                 receivables.forEach { row ->
-                    TextButton(onClick = { related = row.id }) {
+                    FinanceTextButton(onClick = { related = row.id }) {
                         Text((if (related == row.id) "✓ " else "") + NumberFormat.getNumberInstance().format(WorkLedgerCalculator.freelanceOutstanding(row, records).toDouble()) + " · " + row.notes)
                     }
                 }
             }
-            OutlinedTextField(amount, { amount = it }, label = { Text(if (ar) "المبلغ" else "Amount") }, singleLine = true)
-            OutlinedTextField(dateText, { dateText = it.take(10) }, label = { Text(if (ar) "التاريخ (YYYY-MM-DD)" else "Date (YYYY-MM-DD)") }, singleLine = true)
-            OutlinedTextField(period, { period = it.take(7) }, label = { Text(if (ar) "الفترة (YYYY-MM)" else "Period (YYYY-MM)") }, singleLine = true)
-            OutlinedTextField(note, { note = it }, label = { Text(if (ar) "الوصف / الملاحظات" else "Description / notes") })
+            FinanceTextField(amount, { amount = it }, label = { Text(if (ar) "المبلغ" else "Amount") }, singleLine = true)
+            FinanceTextField(dateText, { dateText = it.take(10) }, label = { Text(if (ar) "التاريخ (YYYY-MM-DD)" else "Date (YYYY-MM-DD)") }, singleLine = true)
+            FinanceTextField(period, { period = it.take(7) }, label = { Text(if (ar) "الفترة (YYYY-MM)" else "Period (YYYY-MM)") }, singleLine = true)
+            FinanceTextField(note, { note = it }, label = { Text(if (ar) "الوصف / الملاحظات" else "Description / notes") })
             if (cash) {
                 Text(if (ar) "ربط اختياري بحساب شخصي" else "Optional link to a personal account")
-                TextButton(onClick = { accountId = null }) {
+                FinanceTextButton(onClick = { accountId = null }) {
                     Text((if (accountId == null) "✓ " else "") + if (ar) "حفظ في سجل العمل فقط" else "Save only in work ledger")
                 }
                 matching.forEach { row ->
-                    TextButton(onClick = { accountId = row.id }) {
+                    FinanceTextButton(onClick = { accountId = row.id }) {
                         Text((if (accountId == row.id) "✓ " else "") + row.name + " · " + row.currency)
                     }
                 }
@@ -284,7 +288,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_INCOME,
             WorkRecordType.FREELANCE_PAYMENT
         )
-        Button(
+        FinanceButton(
             onClick = {
                 if (value != null && value > 0 && (!needsSource || source != null) &&
                     (type != WorkRecordType.FREELANCE_PAYMENT || related != null)) {
@@ -308,7 +312,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             enabled = value != null && value.isFinite() && value > 0 && recordDate != null && currencyCode.isNotBlank() &&
                 period.trim().matches(Regex("\\d{4}-\\d{2}")) && (!needsSource || source != null) && (type != WorkRecordType.FREELANCE_PAYMENT || related != null)
         ) { Text(if (ar) "حفظ" else "Save") }
-    }, dismissButton = { TextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
+    }, dismissButton = { FinanceTextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
 }
 @Composable private fun WorkTransferDialog(ar: Boolean, currency: String, scope: WorkSourceType, accounts: List<AccountEntity>, dismiss: () -> Unit, save: (WorkRecordType, Double, String, Long?) -> Unit) {
     var type by remember { mutableStateOf(WorkRecordType.WORK_TRANSFER_IN) }
@@ -316,19 +320,19 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     var note by remember { mutableStateOf("") }
     val matching = accounts.filter { it.currency.equals(currency, true) }
     var accountId by remember { mutableStateOf<Long?>(null) }
-    AlertDialog(onDismissRequest = dismiss, title = { Text(if (ar) "تحويل بين الشخصي والعمل" else "Personal ↔ Work transfer") }, text = {
+    FinanceAlertDialog(onDismissRequest = dismiss, title = { Text(if (ar) "تحويل بين الشخصي والعمل" else "Personal ↔ Work transfer") }, text = {
         Column {
-            TextButton(onClick = { type = WorkRecordType.WORK_TRANSFER_IN }) { Text((if (type == WorkRecordType.WORK_TRANSFER_IN) "✓ " else "") + (if (ar) "من الشخصي إلى العمل" else "Personal to work")) }
-            TextButton(onClick = { type = WorkRecordType.WORK_TRANSFER_OUT }) { Text((if (type == WorkRecordType.WORK_TRANSFER_OUT) "✓ " else "") + (if (ar) "من العمل إلى الشخصي" else "Work to personal")) }
-            OutlinedTextField(amount, { amount = it }, label = { Text(if (ar) "المبلغ" else "Amount") }, singleLine = true)
-            OutlinedTextField(note, { note = it }, label = { Text(if (ar) "ملاحظات" else "Notes") })
-            TextButton(onClick = { accountId = null }) { Text((if (accountId == null) "✓ " else "") + if (ar) "بدون ربط بحساب شخصي" else "No personal account link") }
-            matching.forEach { row -> TextButton(onClick = { accountId = row.id }) { Text((if (accountId == row.id) "✓ " else "") + row.name) } }
+            FinanceTextButton(onClick = { type = WorkRecordType.WORK_TRANSFER_IN }) { Text((if (type == WorkRecordType.WORK_TRANSFER_IN) "✓ " else "") + (if (ar) "من الشخصي إلى العمل" else "Personal to work")) }
+            FinanceTextButton(onClick = { type = WorkRecordType.WORK_TRANSFER_OUT }) { Text((if (type == WorkRecordType.WORK_TRANSFER_OUT) "✓ " else "") + (if (ar) "من العمل إلى الشخصي" else "Work to personal")) }
+            FinanceTextField(amount, { amount = it }, label = { Text(if (ar) "المبلغ" else "Amount") }, singleLine = true)
+            FinanceTextField(note, { note = it }, label = { Text(if (ar) "ملاحظات" else "Notes") })
+            FinanceTextButton(onClick = { accountId = null }) { Text((if (accountId == null) "✓ " else "") + if (ar) "بدون ربط بحساب شخصي" else "No personal account link") }
+            matching.forEach { row -> FinanceTextButton(onClick = { accountId = row.id }) { Text((if (accountId == row.id) "✓ " else "") + row.name) } }
         }
     }, confirmButton = {
         val value = amount.toDoubleOrNull()
-        Button(onClick = { if (value != null && value > 0) save(type, value, note, accountId) }, enabled = value != null && value > 0) { Text(if (ar) "تأكيد" else "Confirm") }
-    }, dismissButton = { TextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
+        FinanceButton(onClick = { if (value != null && value > 0) save(type, value, note, accountId) }, enabled = value != null && value > 0) { Text(if (ar) "تأكيد" else "Confirm") }
+    }, dismissButton = { FinanceTextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
 }
 
 private fun workRecordLabel(type: WorkRecordType, ar: Boolean): String = when (type) {
