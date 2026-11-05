@@ -11,6 +11,7 @@ import com.example.finance.ui.FinanceViewModel
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceFloatingActionButton
+import com.example.ui.components.FinanceFilterChip
 import com.example.ui.components.FinanceIconButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
@@ -46,8 +47,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -156,15 +155,15 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = filter == null, onClick = { filter = null }, label = { Text(WebI18n.tr("كل الأنواع", "All types", lang)) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = ByeProTheme.colors.goldPrimary))
+                    FinanceFilterChip(selected = filter == null, onClick = { filter = null }, label = { Text(WebI18n.tr("كل الأنواع", "All types", lang)) }, selectedContainerColor = ByeProTheme.colors.goldPrimary)
                     webTransactionTypes.forEach { type ->
-                        FilterChip(selected = filter == type, onClick = { filter = type }, label = { Text(txTypeLabel(type, lang)) })
+                        FinanceFilterChip(selected = filter == type, onClick = { filter = type }, label = { Text(txTypeLabel(type, lang)) })
                     }
                 }
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = statusFilter == null, onClick = { statusFilter = null }, label = { Text(WebI18n.tr("كل الحالات", "All statuses", lang)) }, modifier = Modifier.testTag("transaction_status_all"))
+                    FinanceFilterChip(selected = statusFilter == null, onClick = { statusFilter = null }, label = { Text(WebI18n.tr("كل الحالات", "All statuses", lang)) }, modifier = Modifier.testTag("transaction_status_all"))
                     listOf(TransactionStatus.PENDING, TransactionStatus.COMPLETED, TransactionStatus.CANCELLED).forEach { status ->
-                        FilterChip(selected = statusFilter == status, onClick = { statusFilter = status }, label = { Text(statusLabel(status, lang)) }, modifier = Modifier.testTag("transaction_status_${status.name.lowercase()}"))
+                        FinanceFilterChip(selected = statusFilter == status, onClick = { statusFilter = status }, label = { Text(statusLabel(status, lang)) }, modifier = Modifier.testTag("transaction_status_${status.name.lowercase()}"))
                     }
                 }
             }

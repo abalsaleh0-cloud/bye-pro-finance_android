@@ -21,6 +21,8 @@ import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LocalContentColor
@@ -259,5 +261,30 @@ fun FinanceFloatingActionButton(
         containerColor = containerColor,
         contentColor = contentColor,
         content = content
+    )
+}
+
+
+/** Shared selectable filter chip using the active BYE PRO palette. */
+@Composable
+fun FinanceFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    selectedContainerColor: Color = ByeProTheme.colors.goldPrimary.copy(alpha = 0.18f)
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = label,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = ByeProTheme.colors.cardMain.copy(alpha = 0.08f),
+            selectedContainerColor = selectedContainerColor,
+            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            selectedLabelColor = ByeProTheme.colors.goldPrimary
+        )
     )
 }
