@@ -140,7 +140,7 @@ fun DashboardScreen(
     val outstandingDebtCount = currencyDebts.size
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF4A1A45), Color(0xFF2A0F2E), Color(0xFF170918)))).padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(if (ByeProTheme.colors.isDark) listOf(Color(0xFF4A1A45), Color(0xFF2A0F2E), Color(0xFF170918)) else listOf(Color(0xFFF6E3F3), Color(0xFFFBF5FA)))).padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {

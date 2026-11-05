@@ -46,7 +46,7 @@ require("app/src/main/java/com/example/finance/i18n/Localization.kt",
 require("app/src/main/java/com/example/finance/i18n/Localization.kt",
         '"dashboard" to "Dashboard"')
 require("app/src/main/java/com/example/ui/theme/DesignTokens.kt",
-        "val background = Color(0xFF101114)")
+        "val background = Color(0xFF2A0F2E)")
 require("app/src/main/java/com/example/ui/theme/Color.kt",
         "val DarkBgMain = ByeProDesignTokens.Colors.background")
 
