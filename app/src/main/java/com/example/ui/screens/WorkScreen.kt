@@ -1,4 +1,6 @@
 package com.example.ui.screens
+
+import com.example.ui.components.FinanceCard
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceTextButton
@@ -116,7 +118,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             }
             items(visibleSources, key = { "source" + it.id }) { source ->
                 val due = if (source.type == WorkSourceType.EMPLOYMENT) WorkLedgerCalculator.salaryDue(source, records, period).toDouble() else records.filter { it.sourceId == source.id && it.type == WorkRecordType.FREELANCE_INCOME }.sumOf { WorkLedgerCalculator.freelanceOutstanding(it, records).toDouble() }
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                FinanceCard() {
                     Column(Modifier.fillMaxWidth().padding(12.dp)) {
                         Text(source.name, style = MaterialTheme.typography.titleMedium)
                         Text(if (source.type == WorkSourceType.EMPLOYMENT) (if (ar) "وظيفة" else "Employment") else (if (ar) "عمل حر" else "Freelance"))
@@ -181,7 +183,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     }
 }
 @Composable private fun WorkSummary(title: String, value: Double, currency: String, modifier: Modifier, format: NumberFormat) {
-    Card(modifier, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    FinanceCard(modifier, ) {
         Column(Modifier.padding(12.dp)) { Text(title, style = MaterialTheme.typography.labelMedium); Text(format.format(value) + " " + currency, style = MaterialTheme.typography.titleMedium) }
     }
 }
