@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.sp
 /** Typography mapped to the shared BYE PRO FINANCE design token scale. */
 val Typography = Typography(
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Normal,
         fontSize = ByeProDesignTokens.Typography.body,
         lineHeight = ByeProDesignTokens.Typography.bodyLine,

@@ -42,15 +42,15 @@ object ByeProTheme {
 }
 
 private val DarkColorScheme = darkColorScheme(
-    primary = GoldPrimary,
-    onPrimary = Color(0xFF17130B),
-    primaryContainer = GoldDark,
+    primary = Color(0xFFF58BD6),
+    onPrimary = Color(0xFF2A0F2E),
+    primaryContainer = Color(0xFF7A3C6D),
     onPrimaryContainer = DarkTextPrimary,
-    secondary = FinancialGreen,
-    onSecondary = DarkBgMain,
+    secondary = Color(0xFF4FD6D0),
+    onSecondary = Color(0xFF170918),
     secondaryContainer = StatusSuccessDark,
     onSecondaryContainer = DarkTextSecondary,
-    tertiary = GoldFeatured,
+    tertiary = Color(0xFFB79BFF),
     background = DarkBgMain,
     onBackground = DarkTextPrimary,
     surface = DarkSurfaceMain,
@@ -66,15 +66,15 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = LightGoldFeatured,
-    onPrimary = Color(0xFF17130B),
+    primary = Color(0xFF9C1F86),
+    onPrimary = Color(0xFFFFFFFF),
     primaryContainer = LightCardSecondary,
     onPrimaryContainer = LightTextPrimary,
-    secondary = LightStatusSuccess,
+    secondary = Color(0xFF0F766E),
     onSecondary = LightSurfaceMain,
     secondaryContainer = LightCardSecondary,
     onSecondaryContainer = LightTextPrimary,
-    tertiary = LightGoldFeatured,
+    tertiary = Color(0xFF6D4AD0),
     background = LightBgMain,
     onBackground = LightTextPrimary,
     surface = LightSurfaceMain,
