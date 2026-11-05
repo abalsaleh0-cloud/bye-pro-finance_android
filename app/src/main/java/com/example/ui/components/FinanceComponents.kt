@@ -4,6 +4,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -56,7 +57,7 @@ fun FinanceTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     interactionSource: MutableInteractionSource? = null,
-    shape: Shape = RoundedCornerShape(10.dp)
+    shape: Shape = RoundedCornerShape(16.dp)
 ) {
     OutlinedTextField(
         value = value, onValueChange = onValueChange, modifier = modifier,
@@ -89,7 +90,7 @@ fun FinanceButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(12.dp),
+    shape: Shape = RoundedCornerShape(16.dp),
     colors: ButtonColors = ButtonDefaults.buttonColors(
         containerColor = ByeProTheme.colors.goldFeatured,
         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -101,8 +102,8 @@ fun FinanceButton(
     content: @Composable RowScope.() -> Unit
 ) {
     Button(
-        onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
-        colors = colors, elevation = elevation, border = border,
+        onClick = onClick, modifier = modifier.heightIn(min = 52.dp), enabled = enabled, shape = shape,
+        colors = colors, elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp, focusedElevation = 0.dp, hoveredElevation = 0.dp), border = border,
         contentPadding = contentPadding, interactionSource = interactionSource, content = content
     )
 }
@@ -113,7 +114,7 @@ fun FinanceOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(12.dp),
+    shape: Shape = RoundedCornerShape(16.dp),
     colors: ButtonColors = ButtonDefaults.outlinedButtonColors(contentColor = ByeProTheme.colors.goldPrimary),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = null,
@@ -123,13 +124,13 @@ fun FinanceOutlinedButton(
 ) {
     if (border == null) {
         OutlinedButton(
-            onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
+            onClick = onClick, modifier = modifier.heightIn(min = 52.dp), enabled = enabled, shape = shape,
             colors = colors, elevation = elevation, contentPadding = contentPadding,
             interactionSource = interactionSource, content = content
         )
     } else {
         OutlinedButton(
-            onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
+            onClick = onClick, modifier = modifier.heightIn(min = 52.dp), enabled = enabled, shape = shape,
             colors = colors, elevation = elevation, border = border,
             contentPadding = contentPadding, interactionSource = interactionSource, content = content
         )
