@@ -752,7 +752,7 @@ class FinanceRepository(
             val account = accountId?.let { dao.getAccountById(it) ?: return@operation false }
             if (account != null && (account.isArchived ||
                 !bill.currency.equals(account.currency, ignoreCase = true) ||
-                !account.balance.isFinite() || account.balance < bill.amount)
+                !account.balance.isFinite())
             ) return@operation false
 
             if (account != null) {
