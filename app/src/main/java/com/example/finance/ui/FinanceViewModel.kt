@@ -980,6 +980,22 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             }
         }
 
+        val debtCreate = AiCommandRouter.parseDebtCreate(query, primaryCurrency.value)
+        if (debtCreate != null) {
+            val staged = aiAppTools.proposeCreateDebt(
+                name = debtCreate.personName,
+                principal = debtCreate.amount,
+                remaining = debtCreate.amount,
+                direction = debtCreate.direction,
+                currency = debtCreate.currency
+            )
+            if (staged["success"] != true) {
+                return "لم أتمكن من تجهيز الدين: ${staged["error"] ?: "بيانات غير صالحة"}. لم يتم حفظ أي شيء."
+            }
+            val directionLabel = if (debtCreate.direction == "i_owe") "دين عليك لصالح" else "دين لك على"
+            return "جهزت تسجيل $directionLabel «${debtCreate.personName}» بمبلغ ${TextContent.money(debtCreate.amount, debtCreate.currency, _appLanguage.value)}. لم أربطه بأي حساب أو رصيد. راجع المعاينة وأكد التسجيل."
+        }
+
         val debtPayment = AiCommandRouter.parseDebtPayment(query)
         if (debtPayment != null) {
             val candidates = debts.value.filter { debt ->
