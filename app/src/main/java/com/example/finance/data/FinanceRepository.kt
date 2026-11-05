@@ -323,14 +323,14 @@ class FinanceRepository(
 
     suspend fun addTransaction(tx: TransactionEntity): Long = withContext(Dispatchers.IO) {
         val operation: suspend () -> Long = {
-            val account = dao.getAccountById(tx.accountId)
-                ?: throw IllegalArgumentException("Account not found: ${tx.accountId}")
+            val account = if (tx.accountId > 0L) dao.getAccountById(tx.accountId)
+                ?: throw IllegalArgumentException("Account not found: ${tx.accountId}") else null
             require(tx.amount.isFinite() && tx.amount > 0.0) { "Transaction amount must be a finite positive number" }
-            require(tx.currency.equals(account.currency, ignoreCase = true)) {
+            if (account != null) require(tx.currency.equals(account.currency, ignoreCase = true)) {
                 "Transaction currency must match the selected account currency"
             }
-            val txId = dao.insertTransaction(tx)
-            if (tx.status == TransactionStatus.COMPLETED) {
+            val txId = dao.insertTransaction(tx.copy(currency = account?.currency ?: tx.currency.trim().uppercase()))
+            if (tx.status == TransactionStatus.COMPLETED && account != null) {
                 val currentBal = FinanceEngine.toBigDecimal(account.balance)
                 val txAmount = FinanceEngine.toBigDecimal(tx.amount)
                 val newBal = when (tx.type) {
