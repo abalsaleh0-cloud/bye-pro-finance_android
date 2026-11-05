@@ -35,8 +35,6 @@ import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -137,11 +135,12 @@ fun SavingsAssetsScreen(
                 item {
                     Spacer(modifier = Modifier.height(10.dp))
                     if (selectedTabIndex == 1) {
-                        Card(
+                        FinanceCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                border = null
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
@@ -310,11 +309,12 @@ fun SavingsGoalCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(
+    FinanceCard(
         modifier = Modifier
             .fillMaxWidth()
             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                border = null,
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -413,11 +413,12 @@ fun AssetCardItem(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(
+    FinanceCard(
         modifier = Modifier
             .fillMaxWidth()
             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                border = null,
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(

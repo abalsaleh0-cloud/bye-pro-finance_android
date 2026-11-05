@@ -32,8 +32,6 @@ import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -179,11 +177,12 @@ fun ReportsScreen(
 
         // Summary Cards
         item {
-            Card(
+            FinanceCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                border = null,
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -249,11 +248,12 @@ fun ReportsScreen(
 
         // Spending by category breakdown
         item {
-            Card(
+            FinanceCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                border = null,
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
@@ -326,11 +326,12 @@ fun ReportsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Card(
+                    FinanceCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background)
+                        containerColor = MaterialTheme.colorScheme.background,
+                border = null
                     ) {
                         Text(
                             text = exportModalData!!,

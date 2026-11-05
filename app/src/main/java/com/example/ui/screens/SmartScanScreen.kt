@@ -41,8 +41,6 @@ import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -212,11 +210,12 @@ fun SmartScanScreen(
         // Error message if OCR fails without mock fallback
         if (ocrError != null) {
             item {
-                Card(
+                FinanceCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .border(1.dp, ByeProTheme.colors.financialRed.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
-                    colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.financialRed.copy(alpha = 0.12f))
+                    containerColor = ByeProTheme.colors.financialRed.copy(alpha = 0.12f),
+                border = null
                 ) {
                     Text(
                         text = ocrError!!,
@@ -232,11 +231,12 @@ fun SmartScanScreen(
         // Extracted Confirmation Card (User must review and approve before saving!)
         if (scannedReceipt != null) {
             item {
-                Card(
+                FinanceCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.6f), RoundedCornerShape(16.dp)),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                border = null,
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(
@@ -371,9 +371,10 @@ fun SmartScanScreen(
 
         if (statusMessage != null) {
             item {
-                Card(
+                FinanceCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.financialGreen.copy(alpha = 0.15f))
+                    containerColor = ByeProTheme.colors.financialGreen.copy(alpha = 0.15f),
+                border = null
                 ) {
                     Text(
                         text = statusMessage!!,
