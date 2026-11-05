@@ -215,6 +215,17 @@ class FinanceRepositoryIntegrationTest {
     }
 
     @Test
+    fun billAndRentPaymentCanBeRecordedWithoutAccountLinkage() = runBlocking {
+        val accountId = repository.addAccount(AccountEntity(name = "Personal cash", type = AccountType.CASH, balance = 5.0, currency = "LYD"))
+        repository.addBill(BillEntity(name = "Rent November 2026", category = "Rent", amount = 500.0, currency = "LYD", dueDate = System.currentTimeMillis()))
+        val bill = repository.bills.first().single()
+        assertTrue(repository.markBillPaid(bill.id, null))
+        assertTrue(repository.bills.first().single().isPaid)
+        assertEquals(5.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertTrue("Unlinked rent payments must not create account transactions", repository.transactions.first().isEmpty())
+    }
+
+    @Test
     fun savingsContributionCurrencyMismatchDoesNotChangeGoalOrBalance() = runBlocking {
         val accountId = repository.addAccount(
             AccountEntity(name = "LYD account", type = AccountType.CASH, balance = 100.0, currency = "LYD")
