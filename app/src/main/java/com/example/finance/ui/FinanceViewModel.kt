@@ -271,7 +271,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun addAccount(account: AccountEntity) { viewModelScope.launch { _accountActionFeedback.value = AccountActionFeedback("add", runCatching { repository.addAccount(account) }.isSuccess) } }
     fun clearAccountActionFeedback() { _accountActionFeedback.value = null }
     fun updateAccount(account: AccountEntity) { viewModelScope.launch { repository.updateAccount(account) } }
-    fun deleteAccount(account: AccountEntity) { viewModelScope.launch { repository.deleteAccount(account) } }
+    fun deleteAccount(account: AccountEntity) { viewModelScope.launch { _accountActionFeedback.value = AccountActionFeedback("delete", runCatching { repository.deleteAccount(account) }.isSuccess) } }
     fun archiveAccount(accountId: Long, isArchived: Boolean) { viewModelScope.launch { _accountActionFeedback.value = AccountActionFeedback(if (isArchived) "deactivate" else "activate", runCatching { repository.archiveAccount(accountId, isArchived) }.isSuccess) } }
     fun addTransaction(tx: TransactionEntity) { viewModelScope.launch { repository.addTransaction(tx) } }
     fun updateTransaction(tx: TransactionEntity, onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { onComplete(runCatching { repository.updateTransaction(tx) }.onFailure { Log.w("BYE_PRO_FINANCE", "Transaction update rejected", it) }.isSuccess) } }
