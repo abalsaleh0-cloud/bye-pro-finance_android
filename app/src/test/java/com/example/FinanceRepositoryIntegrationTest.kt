@@ -718,50 +718,6 @@ class FinanceRepositoryIntegrationTest {
     }
 
     @Test
-    fun freelancePartialPaymentsCannotExceedReceivableAndReceivableCannotBeDeletedOrReducedBelowPaid() = runBlocking {
-        val sourceId = repository.addWorkSource(
-            WorkSourceEntity(name = "Freelance client", type = WorkSourceType.FREELANCE, currency = "LYD")
-        )
-        val receivableId = repository.addWorkRecord(
-            WorkRecordEntity(sourceId = sourceId, scope = WorkSourceType.FREELANCE,
-                type = WorkRecordType.FREELANCE_INCOME, amount = 100.0, currency = "LYD", period = "2026-11")
-        )
-        val paymentId = repository.addWorkRecord(
-            WorkRecordEntity(sourceId = sourceId, relatedRecordId = receivableId, scope = WorkSourceType.FREELANCE,
-                type = WorkRecordType.FREELANCE_PAYMENT, amount = 60.0, currency = "LYD", period = "2026-11")
-        )
-        try {
-            repository.addWorkRecord(
-                WorkRecordEntity(sourceId = sourceId, relatedRecordId = receivableId, scope = WorkSourceType.FREELANCE,
-                    type = WorkRecordType.FREELANCE_PAYMENT, amount = 50.0, currency = "LYD", period = "2026-11")
-            )
-            fail("Partial payments must not exceed the receivable")
-        } catch (_: IllegalArgumentException) { }
-        try {
-            repository.updateWorkRecord(
-                db.financeDao().getWorkRecordById(paymentId)!!.copy(amount = 101.0)
-            )
-            fail("An edited payment must not exceed the outstanding receivable")
-        } catch (_: IllegalArgumentException) { }
-        try {
-            repository.updateWorkRecord(
-                db.financeDao().getWorkRecordById(receivableId)!!.copy(amount = 50.0)
-            )
-            fail("A receivable cannot be reduced below payments already received")
-        } catch (_: IllegalArgumentException) { }
-        try {
-            repository.deleteWorkRecord(receivableId)
-            fail("A receivable with linked payments cannot be deleted")
-        } catch (_: IllegalArgumentException) { }
-        assertEquals(100.0, db.financeDao().getWorkRecordById(receivableId)!!.amount, 0.001)
-        assertEquals(60.0, db.financeDao().getWorkRecordById(paymentId)!!.amount, 0.001)
-        assertEquals(40.0, WorkLedgerCalculator.freelanceOutstanding(
-            db.financeDao().getWorkRecordById(receivableId)!!,
-            repository.workRecords.first()
-        ).toDouble(), 0.001)
-    }
-
-    @Test
     fun editingWorkRecordReconcilesLinkedAccountBalanceAtomically() = runBlocking {
         val accountId = repository.addAccount(
             AccountEntity(name = "Work edit account", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
@@ -834,4 +790,194 @@ class FinanceRepositoryIntegrationTest {
         assertEquals(WorkRecordType.WORK_EXPENSE, db.financeDao().getWorkRecordById(id)!!.type)
     }
 
+
+    @Test
+    fun freelancePartialPaymentsCannotExceedReceivableAndReceivableCannotBeDeletedOrReducedBelowPaid() = runBlocking {
+        val sourceId = repository.addWorkSource(
+            WorkSourceEntity(name = "Freelance client", type = WorkSourceType.FREELANCE, currency = "LYD")
+        )
+        val receivableId = repository.addWorkRecord(
+            WorkRecordEntity(sourceId = sourceId, scope = WorkSourceType.FREELANCE,
+                type = WorkRecordType.FREELANCE_INCOME, amount = 100.0, currency = "LYD", period = "2026-11")
+        )
+        val paymentId = repository.addWorkRecord(
+            WorkRecordEntity(sourceId = sourceId, relatedRecordId = receivableId, scope = WorkSourceType.FREELANCE,
+                type = WorkRecordType.FREELANCE_PAYMENT, amount = 60.0, currency = "LYD", period = "2026-11")
+        )
+        try {
+            repository.addWorkRecord(
+                WorkRecordEntity(sourceId = sourceId, relatedRecordId = receivableId, scope = WorkSourceType.FREELANCE,
+                    type = WorkRecordType.FREELANCE_PAYMENT, amount = 50.0, currency = "LYD", period = "2026-11")
+            )
+            fail("Partial payments must not exceed the receivable")
+        } catch (_: IllegalArgumentException) { }
+        try {
+            repository.updateWorkRecord(
+                db.financeDao().getWorkRecordById(paymentId)!!.copy(amount = 101.0)
+            )
+            fail("An edited payment must not exceed the outstanding receivable")
+        } catch (_: IllegalArgumentException) { }
+        try {
+            repository.updateWorkRecord(
+                db.financeDao().getWorkRecordById(receivableId)!!.copy(amount = 50.0)
+            )
+            fail("A receivable cannot be reduced below payments already received")
+        } catch (_: IllegalArgumentException) { }
+        try {
+            repository.deleteWorkRecord(receivableId)
+            fail("A receivable with linked payments cannot be deleted")
+        } catch (_: IllegalArgumentException) { }
+        assertEquals(100.0, db.financeDao().getWorkRecordById(receivableId)!!.amount, 0.001)
+        assertEquals(60.0, db.financeDao().getWorkRecordById(paymentId)!!.amount, 0.001)
+        assertEquals(40.0, WorkLedgerCalculator.freelanceOutstanding(
+            db.financeDao().getWorkRecordById(receivableId)!!,
+            repository.workRecords.first()
+        ).toDouble(), 0.001)
+    }
+
+
+    @Test
+    fun editingCompletedTransactionReconcilesAccountBalanceAtomically() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Edit account", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val transactionId = repository.addTransaction(
+            TransactionEntity(
+                accountId = accountId,
+                type = TransactionType.INCOME,
+                amount = 200.0,
+                currency = "LYD",
+                category = "Salary",
+                description = "Original income"
+            )
+        )
+        assertEquals(1200.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+
+        val original = db.financeDao().getTransactionById(transactionId)!!
+        repository.updateTransaction(
+            original.copy(
+                type = TransactionType.EXPENSE,
+                amount = 75.0,
+                category = "Other",
+                description = "Corrected expense"
+            )
+        )
+
+        val updated = db.financeDao().getTransactionById(transactionId)!!
+        assertEquals(TransactionType.EXPENSE, updated.type)
+        assertEquals(75.0, updated.amount, 0.001)
+        assertEquals("Corrected expense", updated.description)
+        assertEquals(925.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun deletingTransactionUsesPersistedRowAndCannotReverseBalanceTwice() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Delete persisted row", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addTransaction(
+            TransactionEntity(accountId = accountId, type = TransactionType.INCOME, amount = 80.0,
+                currency = "LYD", category = "Income", description = "Persisted transaction",
+                status = TransactionStatus.COMPLETED)
+        )
+        val persisted = db.financeDao().getTransactionById(id)!!
+        assertEquals(1080.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        repository.deleteTransaction(persisted.copy(accountId = accountId + 9999, amount = 900.0))
+        assertEquals(1000.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertEquals(null, db.financeDao().getTransactionById(id))
+        try {
+            repository.deleteTransaction(persisted)
+            fail("A deleted transaction must not be reversed again")
+        } catch (_: IllegalArgumentException) { }
+        assertEquals(1000.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun staleStatusUpdateCannotPostTheSameTransactionTwice() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Stale status row", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addTransaction(
+            TransactionEntity(accountId = accountId, type = TransactionType.EXPENSE, amount = 25.0,
+                currency = "LYD", category = "Other", description = "Stale status test",
+                status = TransactionStatus.PENDING)
+        )
+        val stale = db.financeDao().getTransactionById(id)!!
+        repository.updateTransactionStatus(stale, TransactionStatus.COMPLETED)
+        assertEquals(975.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        repository.updateTransactionStatus(stale, TransactionStatus.COMPLETED)
+        assertEquals(975.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun editingWithStaleFormCannotTurnCompletedTransactionBackToPending() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Stale edit status", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addTransaction(
+            TransactionEntity(accountId = accountId, type = TransactionType.EXPENSE, amount = 30.0,
+                currency = "LYD", category = "Other", description = "Before edit",
+                status = TransactionStatus.PENDING)
+        )
+        val staleForm = db.financeDao().getTransactionById(id)!!
+        repository.updateTransactionStatus(staleForm, TransactionStatus.COMPLETED)
+        repository.updateTransaction(staleForm.copy(description = "Edited after completion"))
+        assertEquals(970.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        val saved = db.financeDao().getTransactionById(id)!!
+        assertEquals(TransactionStatus.COMPLETED, saved.status)
+        assertEquals("Edited after completion", saved.description)
+    }
+
+    @Test
+    fun deletingAdjustmentReversesItsPositiveAccountDelta() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Adjustment deletion", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addTransaction(
+            TransactionEntity(accountId = accountId, type = TransactionType.ADJUSTMENT, amount = 45.0,
+                currency = "LYD", category = "Adjustment", description = "Positive adjustment",
+                status = TransactionStatus.COMPLETED)
+        )
+        assertEquals(1045.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        repository.deleteTransaction(db.financeDao().getTransactionById(id)!!)
+        assertEquals(1000.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun deletingPendingTransactionDoesNotChangeAccountBalance() = runBlocking {
+        val accountId = repository.addAccount(
+            AccountEntity(name = "Pending deletion", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val id = repository.addTransaction(
+            TransactionEntity(accountId = accountId, type = TransactionType.EXPENSE, amount = 65.0,
+                currency = "LYD", category = "Other", description = "Pending expense",
+                status = TransactionStatus.PENDING)
+        )
+        repository.deleteTransaction(db.financeDao().getTransactionById(id)!!)
+        assertEquals(1000.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun editingCompletedTransactionMovesPostingBetweenAccountsAtomically() = runBlocking {
+        val sourceId = repository.addAccount(
+            AccountEntity(name = "Edit source account", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
+        )
+        val destinationId = repository.addAccount(
+            AccountEntity(name = "Edit destination account", type = AccountType.BANK, balance = 300.0, currency = "LYD")
+        )
+        val id = repository.addTransaction(
+            TransactionEntity(accountId = sourceId, type = TransactionType.INCOME, amount = 50.0,
+                currency = "LYD", category = "Income", description = "Move this posting",
+                status = TransactionStatus.COMPLETED)
+        )
+        assertEquals(1050.0, db.financeDao().getAccountById(sourceId)?.balance ?: 0.0, 0.001)
+        repository.updateTransaction(
+            db.financeDao().getTransactionById(id)!!.copy(
+                accountId = destinationId, type = TransactionType.EXPENSE, amount = 20.0,
+                description = "Moved and corrected"
+            )
+        )
+        assertEquals(1000.0, db.financeDao().getAccountById(sourceId)?.balance ?: 0.0, 0.001)
+        assertEquals(280.0, db.financeDao().getAccountById(destinationId)?.balance ?: 0.0, 0.001)
+    }
 }

@@ -2,7 +2,7 @@ name: Android CI and APK
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/phase-2-transactions-final]
   pull_request:
     branches: [main]
   workflow_dispatch:

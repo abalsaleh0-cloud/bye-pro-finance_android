@@ -631,7 +631,7 @@ fun AddDebtDialog(
         title = { Text(text = if (initialDebt == null) Strings.get("add_debt", lang) else WebI18n.tr("تعديل الدين", "Edit debt", lang), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الشخص أو الجهة", "Person or organization", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الشخص أو الجهة", "Person or organization", lang)) }, modifier = Modifier.fillMaxWidth().testTag("debt_name_input"))
                 FinanceTextField(value = creditor, onValueChange = { creditor = it }, label = { Text(WebI18n.tr("تفاصيل الطرف / الدائن", "Counterparty details", lang)) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                     DebtDirectionOption(
@@ -649,7 +649,7 @@ fun AddDebtDialog(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                FinanceTextField(value = principalStr, onValueChange = { principalStr = it }, label = { Text(WebI18n.tr("المبلغ الأصلي", "Original amount", lang)) }, modifier = Modifier.fillMaxWidth())
+                FinanceTextField(value = principalStr, onValueChange = { principalStr = it }, label = { Text(WebI18n.tr("المبلغ الأصلي", "Original amount", lang)) }, modifier = Modifier.fillMaxWidth().testTag("debt_principal_input"))
                 FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(Locale.ROOT) }, label = { Text(WebI18n.tr("العملة (LYD / USD / EUR ...)", "Currency (LYD / USD / EUR ...)", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = minPaymentStr, onValueChange = { minPaymentStr = it }, label = { Text(WebI18n.tr("القسط / الدفعة المتوقعة", "Expected installment", lang)) }, modifier = Modifier.fillMaxWidth())
                 FinanceTextField(value = dueDateText, onValueChange = { dueDateText = it }, label = { Text(WebI18n.tr("تاريخ الاستحقاق (YYYY-MM-DD)", "Due date (YYYY-MM-DD)", lang)) }, modifier = Modifier.fillMaxWidth())
@@ -689,7 +689,7 @@ fun AddDebtDialog(
                         )
                     )
                 }
-            }) { Text(Strings.get("confirm", lang)) }
+            }, modifier = Modifier.testTag("submit_debt_btn")) { Text(Strings.get("confirm", lang)) }
         },
         dismissButton = { FinanceOutlinedButton(onClick = onDismiss) { Text(Strings.get("cancel", lang)) } }
     )
