@@ -15,6 +15,8 @@ import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
@@ -101,6 +103,30 @@ fun FinanceTextField(
             focusedLabelColor = ByeProTheme.colors.fieldFocus,
             cursorColor = ByeProTheme.colors.fieldFocus,
             errorBorderColor = MaterialTheme.colorScheme.error
+        )
+    )
+}
+
+/** Shared switch colors derived from the active dark/light Material theme. */
+@Composable
+fun FinanceSwitch(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)?,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+        enabled = enabled,
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+            checkedTrackColor = MaterialTheme.colorScheme.primary,
+            checkedBorderColor = MaterialTheme.colorScheme.primary,
+            uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+            uncheckedBorderColor = MaterialTheme.colorScheme.outline
         )
     )
 }
