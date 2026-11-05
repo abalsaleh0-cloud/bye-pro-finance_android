@@ -58,7 +58,7 @@ internal object AiCommandRouter {
         val direction = if (listOf("لي عند", "إلي عند", "الي عند", "مستحق لي", "owed to me", "they owe me").any(text::contains)) "owed_to_me" else "i_owe"
         val before = normalized.substring(0, amountMatch.range.first)
         val after = normalized.substring(amountMatch.range.last + 1)
-        val cleanedAfter = after.replace(Regex("""(?i)\b(?:دينار|دنانير|د\.ل|lyd|usd|eur|دولار|يورو|ليرة)\b"""), " ")
+        val cleanedAfter = after.replace(Regex("""(?i)(?<![\p{L}])(?:دينار|دنانير|د\.ل|lyd|usd|eur|دولار|يورو|ليرة)(?![\p{L}])"""), " ")
             .replace(Regex("""[،,:؛.]+"""), " ").trim()
         val person = Regex("""([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""").find(cleanedAfter)?.groupValues?.get(1)
             ?: Regex("""(?:لي عند|مستحق لي من|لدى)\s+([\p{L}][\p{L}0-9_-]*)""").find(before)?.groupValues?.get(1)
