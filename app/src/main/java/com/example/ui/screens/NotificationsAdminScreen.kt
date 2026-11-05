@@ -39,7 +39,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
+
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -196,7 +196,8 @@ fun NotificationsAdminScreen(
 
                 // Local profile role is informational only; it is not server-enforced RBAC.
                 item {
-                    Card(
+                    FinanceCard(
+                border = null,
                         modifier = Modifier.fillMaxWidth().border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         shape = RoundedCornerShape(16.dp)
@@ -287,7 +288,8 @@ fun NotificationCardItem(
     onRead: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(
+    FinanceCard(
+                border = null,
         modifier = Modifier
             .fillMaxWidth()
             .border(
@@ -341,7 +343,8 @@ fun AuditLogRowItem(log: AuditLogEntity) {
         ""
     }
 
-    Card(
+    FinanceCard(
+                border = null,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
         shape = RoundedCornerShape(8.dp)
