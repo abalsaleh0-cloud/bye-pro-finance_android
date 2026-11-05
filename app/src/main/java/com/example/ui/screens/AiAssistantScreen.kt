@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceCard
+
 import com.example.ui.components.FinanceDropdownMenuItem
 
 import com.example.ui.components.FinanceDropdownMenu
@@ -393,19 +395,19 @@ fun AiAssistantScreen(
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
+                        FinanceCard(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), containerColor = ByeProTheme.colors.cardMain, border = null) {
                             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(insights.size.toString(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = ByeProTheme.colors.goldPrimary)
                                 Text(WebI18n.tr("إجمالي الرؤى", "Total insights", lang), style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.textSecondary)
                             }
                         }
-                        Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
+                        FinanceCard(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), containerColor = ByeProTheme.colors.cardMain, border = null) {
                             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(insights.count { it.impactType == "POSITIVE" }.toString(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = ByeProTheme.colors.goldPrimary)
                                 Text(WebI18n.tr("فرص إيجابية", "Positive signals", lang), style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.textSecondary)
                             }
                         }
-                        Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
+                        FinanceCard(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), containerColor = ByeProTheme.colors.cardMain, border = null) {
                             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(insights.count { it.impactType == "WARNING" }.toString(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                                 Text(WebI18n.tr("تنبيهات", "Alerts", lang), style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.textSecondary)

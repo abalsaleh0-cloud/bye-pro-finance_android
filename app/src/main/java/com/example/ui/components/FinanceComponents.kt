@@ -47,15 +47,16 @@ import com.example.ui.theme.ByeProTheme
 @Composable
 fun FinanceCard(
     modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(16.dp),
+    containerColor: Color = ByeProTheme.colors.cardMain.copy(alpha = 0.08f),
+    border: BorderStroke? = BorderStroke(1.dp, ByeProTheme.colors.borderBase),
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = ByeProTheme.colors.cardMain.copy(alpha = 0.08f)
-        ),
-        border = BorderStroke(1.dp, ByeProTheme.colors.borderBase),
+        shape = shape,
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = border,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         content = content
     )
