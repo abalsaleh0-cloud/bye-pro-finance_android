@@ -15,7 +15,74 @@ internal data class ParsedTransactionCommand(
     val description: String
 )
 
+internal data class ParsedWorkCommand(
+    val type: String,
+    val amount: Double,
+    val currency: String,
+    val sourceName: String?,
+    val description: String
+)
+
+internal data class ParsedDebtPaymentCommand(
+    val amount: Double,
+    val currency: String?,
+    val personName: String,
+    val description: String
+)
+
 internal object AiCommandRouter {
+    fun parseDebtPayment(query: String): ParsedDebtPaymentCommand? {
+        val normalized = normalizeDigits(query).trim()
+        val text = normalized.lowercase(Locale.ROOT)
+        val verb = listOf("دفعت", "سددت", "سدّدت", "حولت", "حوّلت", "اعطيت", "أعطيت", "paid", "repaid").any(text::contains)
+        if (!verb) return null
+        val amountMatch = Regex("""([0-9]+(?:[.,][0-9]{1,2})?)""").find(text) ?: return null
+        val amount = amountMatch.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
+        if (!amount.isFinite() || amount <= 0.0) return null
+        val afterAmount = normalized.substring(amountMatch.range.last + 1)
+        val nameMatch = Regex("""(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""").find(afterAmount)
+            ?: Regex("""(?:دين|الدين|قرض)\s+(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*)""").find(afterAmount)
+            ?: return null
+        val name = nameMatch.groupValues[1].trim().trimEnd('،', '.', '!')
+        if (name.length < 2) return null
+        val currency = when {
+            text.contains("usd") || text.contains("دولار") || text.contains("$") -> "USD"
+            text.contains("eur") || text.contains("يورو") || text.contains("€") -> "EUR"
+            text.contains("lyd") || text.contains("دينار") || text.contains("د.ل") -> "LYD"
+            text.contains("syp") || text.contains("ليرة") -> "SYP"
+            else -> null
+        }
+        return ParsedDebtPaymentCommand(amount, currency, name, normalized)
+    }
+
+    fun parseWorkRecord(query: String, defaultCurrency: String): ParsedWorkCommand? {
+        val normalized = normalizeDigits(query).trim()
+        val text = normalized.lowercase(Locale.ROOT)
+        if (text.isBlank()) return null
+        val amountMatch = Regex("""([0-9]+(?:[.,][0-9]{1,2})?)""").find(text) ?: return null
+        val amount = amountMatch.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
+        if (!amount.isFinite() || amount <= 0.0) return null
+        val type = when {
+            listOf("سلفة", "سلفه", "سلفة راتب", "advance", "salary advance").any(text::contains) -> "SALARY_ADVANCE"
+            listOf("دفعة راتب", "دفعة من الراتب", "استلمت الراتب", "استلمت راتبي", "قبضت الراتب", "اخذت الراتب", "أخذت الراتب", "salary payment", "received salary", "got paid").any(text::contains) -> "SALARY_PAYMENT"
+            listOf("بدل وظيفي", "بدل", "allowance").any(text::contains) -> "SALARY_ALLOWANCE"
+            listOf("مكافأة", "مكافاه", "bonus").any(text::contains) -> "SALARY_BONUS"
+            listOf("عمل إضافي", "عمل اضافي", "أوفر تايم", "overtime").any(text::contains) -> "SALARY_OVERTIME"
+            listOf("خصم راتب", "خصم من الراتب", "salary deduction").any(text::contains) -> "SALARY_DEDUCTION"
+            else -> return null
+        }
+        val sourceMatch = Regex("""(?:من|عند|لدى|في)\s+([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,3})""").find(normalized)
+        val sourceName = sourceMatch?.groupValues?.get(1)?.trim()
+        val currency = when {
+            text.contains("usd") || text.contains("دولار") || text.contains("$") -> "USD"
+            text.contains("eur") || text.contains("يورو") || text.contains("€") -> "EUR"
+            text.contains("syp") || text.contains("ليرة") -> "SYP"
+            text.contains("lyd") || text.contains("دينار") || text.contains("د.ل") -> "LYD"
+            else -> defaultCurrency.trim().uppercase(Locale.ROOT).takeIf { it.matches(Regex("[A-Z]{3}")) } ?: return null
+        }
+        return ParsedWorkCommand(type, amount, currency, sourceName, normalized)
+    }
+
     fun parseSectionNavigation(query: String): String? {
         val text = query.trim().lowercase(Locale.ROOT)
         val navigationIntent = listOf("افتح", "اذهب إلى", "انتقل إلى", "روح على", "وريني", "اعرض قسم", "open ", "go to ").any(text::contains)
