@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +25,8 @@ import com.example.finance.ai.ElevenLabsSpeechProvider
 import com.example.finance.ai.SecureVoiceSettings
 import com.example.ui.theme.ByeProTheme
 import com.example.ui.components.FinanceCard
+import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceOutlinedButton
 import com.example.finance.model.AppLanguage
 import com.example.finance.i18n.WebI18n
 import kotlinx.coroutines.launch
@@ -91,7 +91,7 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            OutlinedTextField(
+            FinanceTextField(
                 value = apiKey,
                 onValueChange = { apiKey = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -101,7 +101,7 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true
             )
-            OutlinedTextField(
+            FinanceTextField(
                 value = voiceId,
                 onValueChange = { voiceId = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -109,7 +109,7 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
                 singleLine = true
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
+                FinanceOutlinedButton(
                     onClick = {
                         if (persistSettings()) {
                             status = if (settings.hasApiKey()) {
@@ -121,7 +121,7 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
                     },
                     modifier = Modifier.weight(1f)
                 ) { Text(WebI18n.tr("حفظ الإعدادات", "Save settings", lang)) }
-                OutlinedButton(
+                FinanceOutlinedButton(
                     enabled = !isTesting,
                     onClick = {
                         if (persistSettings()) {
@@ -144,7 +144,7 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
                     else Text(WebI18n.tr("اختبار الاتصال", "Test connection", lang))
                 }
             }
-            OutlinedButton(
+            FinanceOutlinedButton(
                 enabled = !isTesting,
                 onClick = {
                     runCatching { settings.saveApiKey("") }
