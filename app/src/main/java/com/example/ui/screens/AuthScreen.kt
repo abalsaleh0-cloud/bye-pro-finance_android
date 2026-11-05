@@ -5,7 +5,6 @@ import com.example.ui.components.FinanceTextField
 import com.example.ui.components.FinanceIconButton
 
 import androidx.compose.foundation.background
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -37,6 +36,7 @@ import com.example.finance.auth.AuthOutcome
 import com.example.finance.auth.SupabaseAuthRepository
 import com.example.finance.model.AppLanguage
 import com.example.ui.theme.ByeProTheme
+import com.example.ui.theme.byeVisualBackground
 import kotlinx.coroutines.launch
 
 @Composable
@@ -59,7 +59,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Box(
-            Modifier.fillMaxSize().background(Brush.verticalGradient(if (ByeProTheme.colors.isDark) listOf(Color(0xFF4A1A45), Color(0xFF2A0F2E), Color(0xFF170918)) else listOf(Color(0xFFF6E3F3), Color(0xFFFBF5FA))))
+            Modifier.fillMaxSize().byeVisualBackground(ByeProTheme.colors.isDark)
                 .verticalScroll(rememberScrollState()).padding(20.dp),
             contentAlignment = Alignment.Center
         ) {
