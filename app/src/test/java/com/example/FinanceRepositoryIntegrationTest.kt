@@ -665,20 +665,22 @@ class FinanceRepositoryIntegrationTest {
     }
 
     @Test
-    fun debtPaymentRejectsInsufficientFundsAndCurrencyMismatchWithoutPartialWrites() = runBlocking {
+    fun debtPaymentCanBeRecordedWithoutAccountOrSufficientAccountBalance() = runBlocking {
         val lowBalanceId = repository.addAccount(AccountEntity(name = "Low balance", type = AccountType.CASH, balance = 10.0, currency = "LYD"))
         repository.addDebt(DebtEntity(name = "Personal loan", creditor = "Bank", principal = 100.0, remaining = 100.0, currency = "LYD", direction = "i_owe"))
         val debtId = repository.debts.first().single().id
-        assertFalse(repository.recordDebtPayment(debtId, lowBalanceId, 20.0, "Insufficient"))
+
+        assertTrue(repository.recordDebtPayment(debtId, null, 20.0, "Unlinked payment"))
         assertEquals(10.0, db.financeDao().getAccountById(lowBalanceId)?.balance ?: 0.0, 0.001)
-        assertEquals(100.0, repository.debts.first().single().remaining, 0.001)
-        assertTrue(repository.transactions.first().isEmpty())
-        assertTrue(repository.debtPayments(debtId).first().isEmpty())
+        assertEquals(80.0, repository.debts.first().single().remaining, 0.001)
+        assertTrue("Unlinked debt payments must not create account transactions", repository.transactions.first().isEmpty())
+        assertEquals(1, repository.debtPayments(debtId).first().size)
 
         val usdAccountId = repository.addAccount(AccountEntity(name = "USD account", type = AccountType.CASH, balance = 500.0, currency = "USD"))
         assertFalse(repository.recordDebtPayment(debtId, usdAccountId, 20.0, "Wrong currency"))
         assertEquals(500.0, db.financeDao().getAccountById(usdAccountId)?.balance ?: 0.0, 0.001)
-        assertEquals(100.0, repository.debts.first().single().remaining, 0.001)
+        assertEquals(80.0, repository.debts.first().single().remaining, 0.001)
+        assertEquals(1, repository.debtPayments(debtId).first().size)
     }
  
     @Test
