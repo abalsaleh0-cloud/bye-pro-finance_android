@@ -58,9 +58,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.finance.engine.FinanceEngine
 import com.example.finance.i18n.Strings
+import com.example.finance.model.BillEntity
 import com.example.finance.model.HouseholdExpenseEntity
 import com.example.finance.model.HouseholdMemberEntity
 import com.example.finance.ui.FinanceViewModel
+import java.time.YearMonth
+import java.time.ZoneId
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun HouseholdScreen(
@@ -69,12 +74,14 @@ fun HouseholdScreen(
     val lang by viewModel.appLanguage.collectAsState()
     val members by viewModel.householdMembers.collectAsState()
     val expenses by viewModel.householdExpenses.collectAsState()
+    val bills by viewModel.bills.collectAsState()
     val primaryCurrency by viewModel.primaryCurrency.collectAsState()
 
     var showAddMemberDialog by remember { mutableStateOf(false) }
     var editingMember by remember { mutableStateOf<HouseholdMemberEntity?>(null) }
     var editingExpense by remember { mutableStateOf<HouseholdExpenseEntity?>(null) }
     var showAddExpenseDialog by remember { mutableStateOf(false) }
+    var showRentDialog by remember { mutableStateOf(false) }
 
     val currencyExpenses = expenses.filter { it.currency.equals(primaryCurrency, ignoreCase = true) }
     val totalExpenses = currencyExpenses.sumOf { it.amount }
@@ -151,6 +158,63 @@ fun HouseholdScreen(
                             fontWeight = FontWeight.Bold,
                             color = ByeProTheme.colors.goldPrimary
                         )
+                    }
+                }
+            }
+
+            // Monthly rent register: each month is an independent bill so arrears remain visible.
+            item {
+                val rentBills = bills.filter { it.category.equals("Rent", true) || it.name.contains("إيجار") || it.name.contains("rent", true) }
+                    .sortedByDescending { it.dueDate }
+                Card(
+                    modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(WebI18n.tr("إيجار المنزل", "Home rent", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text(WebI18n.tr("سجل مستقل لكل شهر مع حالة مدفوع أو غير مدفوع", "Separate monthly records with paid or unpaid status", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            FinanceOutlinedButton(onClick = { showRentDialog = true }, modifier = Modifier.testTag("add_rent_installment_btn")) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Text(WebI18n.tr("إضافة شهر", "Add month", lang))
+                            }
+                        }
+                        if (rentBills.isEmpty()) {
+                            Text(WebI18n.tr("لا توجد أشهر إيجار مسجلة بعد.", "No rent months recorded yet.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else {
+                            rentBills.forEach { rent ->
+                                val monthLabel = runCatching {
+                                    LocalDate.ofInstant(java.time.Instant.ofEpochMilli(rent.dueDate), ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy-MM"))
+                                }.getOrDefault("")
+                                Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(monthLabel.ifBlank { rent.name }, fontWeight = FontWeight.SemiBold)
+                                        Text(TextContent.money(rent.amount, rent.currency, lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(
+                                            if (rent.isPaid) WebI18n.tr("مدفوع", "Paid", lang) else WebI18n.tr("غير مدفوع", "Unpaid", lang),
+                                            color = if (rent.isPaid) ByeProTheme.colors.financialGreen else ByeProTheme.colors.financialRed,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        if (!rent.isPaid) FinanceOutlinedButton(
+                                            onClick = { viewModel.markBillPaid(rent.id, null) },
+                                            modifier = Modifier.testTag("mark_rent_paid_${rent.id}")
+                                        ) { Text(WebI18n.tr("تسجيل الدفع", "Record payment", lang), style = MaterialTheme.typography.labelSmall) }
+                                    }
+                                }
+                            }
+                            val unpaidTotal = rentBills.filter { !it.isPaid && it.currency.equals(primaryCurrency, true) }.sumOf { it.amount }
+                            Text(
+                                WebI18n.tr("إجمالي الإيجار غير المدفوع: ", "Unpaid rent total: ", lang) + TextContent.money(unpaidTotal, primaryCurrency, lang),
+                                fontWeight = FontWeight.Bold,
+                                color = if (unpaidTotal > 0.0) ByeProTheme.colors.financialRed else ByeProTheme.colors.financialGreen
+                            )
+                        }
                     }
                 }
             }
@@ -266,6 +330,50 @@ fun HouseholdScreen(
                 Spacer(modifier = Modifier.height(72.dp))
             }
         }
+    }
+
+    if (showRentDialog) {
+        var month by remember { mutableStateOf(YearMonth.now().toString()) }
+        var amountText by remember { mutableStateOf("") }
+        var rentCurrency by remember { mutableStateOf(primaryCurrency) }
+        var currencyMenuExpanded by remember { mutableStateOf(false) }
+        var rentError by remember { mutableStateOf("") }
+        FinanceAlertDialog(
+            onDismissRequest = { showRentDialog = false },
+            title = { Text(WebI18n.tr("إضافة شهر إيجار", "Add rent month", lang), fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FinanceTextField(value = month, onValueChange = { month = it.take(7); rentError = "" }, label = { Text(WebI18n.tr("الشهر YYYY-MM", "Month YYYY-MM", lang)) }, modifier = Modifier.fillMaxWidth().testTag("rent_month_input"))
+                    FinanceTextField(value = amountText, onValueChange = { amountText = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' }; rentError = "" }, label = { Text(WebI18n.tr("مبلغ الإيجار", "Rent amount", lang)) }, modifier = Modifier.fillMaxWidth().testTag("rent_amount_input"))
+                    Box {
+                        FinanceOutlinedButton(onClick = { currencyMenuExpanded = true }, modifier = Modifier.fillMaxWidth()) { Text(rentCurrency) }
+                        androidx.compose.material3.DropdownMenu(expanded = currencyMenuExpanded, onDismissRequest = { currencyMenuExpanded = false }) {
+                            listOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD").forEach { code ->
+                                androidx.compose.material3.DropdownMenuItem(text = { Text(code) }, onClick = { rentCurrency = code; currencyMenuExpanded = false })
+                            }
+                        }
+                    }
+                    if (rentError.isNotBlank()) Text(rentError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = {
+                FinanceButton(onClick = {
+                    val amount = amountText.replace(',', '.').toDoubleOrNull()
+                    val due = runCatching { YearMonth.parse(month).atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() }.getOrNull()
+                    rentError = when {
+                        due == null -> WebI18n.tr("أدخل الشهر بصيغة YYYY-MM.", "Enter the month as YYYY-MM.", lang)
+                        amount == null || !amount.isFinite() || amount <= 0.0 -> WebI18n.tr("أدخل مبلغاً صحيحاً أكبر من صفر.", "Enter a valid amount greater than zero.", lang)
+                        bills.any { (it.category.equals("Rent", true) || it.name.contains("إيجار") || it.name.contains("rent", true)) && it.dueDate == due } -> WebI18n.tr("هذا الشهر مسجل مسبقاً.", "This month is already recorded.", lang)
+                        else -> ""
+                    }
+                    if (rentError.isBlank() && due != null && amount != null) {
+                        viewModel.addBill(BillEntity(name = "إيجار المنزل — $month", category = "Rent", amount = amount, currency = rentCurrency, dueDate = due, isRecurring = false))
+                        showRentDialog = false
+                    }
+                }, modifier = Modifier.testTag("save_rent_installment_btn")) { Text(Strings.get("confirm", lang)) }
+            },
+            dismissButton = { FinanceOutlinedButton(onClick = { showRentDialog = false }) { Text(Strings.get("cancel", lang)) } }
+        )
     }
 
     // Add Member Dialog
