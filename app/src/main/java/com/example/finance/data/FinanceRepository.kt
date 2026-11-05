@@ -663,43 +663,45 @@ class FinanceRepository(
 
     suspend fun recordDebtPayment(
         debtId: Long,
-        accountId: Long,
+        accountId: Long?,
         amount: Double,
         notes: String,
         paymentDate: Long = System.currentTimeMillis()
     ): Boolean = withContext(Dispatchers.IO) {
         val operation: suspend () -> Boolean = operation@{
             val debt = dao.getDebtById(debtId) ?: return@operation false
-            val account = dao.getAccountById(accountId) ?: return@operation false
             if (debt.status == DebtStatus.PAID || !amount.isFinite() || amount <= 0.0 ||
-                !debt.remaining.isFinite() || amount > debt.remaining || paymentDate <= 0L ||
-                !debt.currency.equals(account.currency, ignoreCase = true) || !account.balance.isFinite()
+                !debt.remaining.isFinite() || amount > debt.remaining || paymentDate <= 0L
             ) return@operation false
-            // Payments for debts we owe are expenses; collections are income.
+            // A debt payment is a valid ledger event even when no personal account is linked.
+            // Only an explicitly selected account receives a balance/transaction posting.
+            val account = accountId?.let { dao.getAccountById(it) ?: return@operation false }
+            if (account != null && (!account.currency.equals(debt.currency, ignoreCase = true) || !account.balance.isFinite())) return@operation false
             val outgoing = debt.direction == "i_owe"
-            if (outgoing && account.balance < amount) return@operation false
             val amountDecimal = FinanceEngine.toBigDecimal(amount)
-            val balance = FinanceEngine.toBigDecimal(account.balance).let {
-                if (outgoing) it.subtract(amountDecimal) else it.add(amountDecimal)
-            }
             val remaining = FinanceEngine.toBigDecimal(debt.remaining).subtract(amountDecimal)
             val newStatus = if (remaining <= BigDecimal.ZERO) DebtStatus.PAID else DebtStatus.ACTIVE
-            dao.insertTransaction(
-                TransactionEntity(
-                    accountId = accountId,
-                    type = if (outgoing) TransactionType.EXPENSE else TransactionType.INCOME,
-                    amount = amount,
-                    currency = debt.currency,
-                    category = if (outgoing) "Debt payment" else "Debt collection",
-                    date = paymentDate,
-                    description = (if (outgoing) "Debt payment: " else "Debt collection: ") + debt.name,
-                    notes = notes.trim()
+            if (account != null) {
+                val balance = FinanceEngine.toBigDecimal(account.balance).let {
+                    if (outgoing) it.subtract(amountDecimal) else it.add(amountDecimal)
+                }
+                dao.insertTransaction(
+                    TransactionEntity(
+                        accountId = account.id,
+                        type = if (outgoing) TransactionType.EXPENSE else TransactionType.INCOME,
+                        amount = amount,
+                        currency = debt.currency,
+                        category = if (outgoing) "Debt payment" else "Debt collection",
+                        date = paymentDate,
+                        description = (if (outgoing) "Debt payment: " else "Debt collection: ") + debt.name,
+                        notes = notes.trim()
+                    )
                 )
-            )
-            dao.updateAccountBalance(accountId, balance.toDouble())
+                dao.updateAccountBalance(account.id, balance.toDouble())
+            }
             dao.updateDebt(debt.copy(remaining = remaining.toDouble(), status = newStatus))
             dao.insertDebtPayment(DebtPaymentEntity(debtId = debtId, amount = amount, date = paymentDate, notes = notes.trim(), currency = debt.currency))
-            logAudit("PAYMENT", "Debt", (if (outgoing) "Paid " else "Collected ") + amount + " for " + debt.name + "; remaining " + remaining)
+            logAudit("PAYMENT", "Debt", (if (outgoing) "Paid " else "Collected ") + amount + " for " + debt.name + (if (account == null) " (unlinked)" else " in account " + account.name) + "; remaining " + remaining)
             true
         }
         if (db != null) db.withTransaction { operation() } else operation()
