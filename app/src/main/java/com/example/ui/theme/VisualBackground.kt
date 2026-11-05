@@ -4,17 +4,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 
 /** Canonical BYE PRO FINANCE background: three-stop gradient plus restrained radial glow. */
 fun Modifier.byeVisualBackground(isDark: Boolean): Modifier = drawBehind {
-    val palette = ByeProDesignTokens
     if (isDark) {
         drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(
-                    palette.Fields.darkGradientTop,
-                    palette.Fields.darkGradientMiddle,
-                    palette.Fields.darkGradientBottom
+                    ByeProDesignTokens.Fields.darkGradientTop,
+                    ByeProDesignTokens.Fields.darkGradientMiddle,
+                    ByeProDesignTokens.Fields.darkGradientBottom
                 ),
                 startY = 0f,
                 endY = size.height
@@ -25,10 +25,10 @@ fun Modifier.byeVisualBackground(isDark: Boolean): Modifier = drawBehind {
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    palette.Colors.orbIvory.copy(alpha = 0.20f),
-                    palette.Colors.orbPink.copy(alpha = 0.13f),
-                    palette.Colors.orbViolet.copy(alpha = 0.07f),
-                    androidx.compose.ui.graphics.Color.Transparent
+                    ByeProDesignTokens.Colors.orbIvory.copy(alpha = 0.20f),
+                    ByeProDesignTokens.Colors.orbPink.copy(alpha = 0.13f),
+                    ByeProDesignTokens.Colors.orbViolet.copy(alpha = 0.07f),
+                    Color.Transparent
                 ),
                 center = center,
                 radius = radius
@@ -40,9 +40,9 @@ fun Modifier.byeVisualBackground(isDark: Boolean): Modifier = drawBehind {
         drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(
-                    palette.LightColors.surface,
-                    palette.LightColors.background,
-                    palette.LightColors.background
+                    ByeProDesignTokens.LightColors.surface,
+                    ByeProDesignTokens.LightColors.background,
+                    ByeProDesignTokens.LightColors.background
                 ),
                 startY = 0f,
                 endY = size.height

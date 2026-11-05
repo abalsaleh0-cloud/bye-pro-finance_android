@@ -15,7 +15,7 @@ val TajawalFontFamily = FontFamily(
     Font(R.font.tajawal_bold, FontWeight.Bold)
 )
 
-private fun TextStyle.withTajawal(weight: FontWeight = fontWeight): TextStyle =
+private fun TextStyle.withTajawal(weight: FontWeight = FontWeight.Normal): TextStyle =
     copy(fontFamily = TajawalFontFamily, fontWeight = weight)
 
 /** Apply Tajawal consistently to every Material 3 text role. */
