@@ -512,12 +512,23 @@ class AiAppToolSet(
         return stageAction("مراجعة إنشاء حساب", "الحساب: " + n + "\nالنوع: " + parsed.name + "\nالرصيد: " + openingBalance + " " + cur, PendingPayload.Account(AccountEntity(name=n,type=parsed,currency=cur,balance=openingBalance,openingBalance=openingBalance)))
     }
 
-    @Tool(description = "Prepare a transaction. Account existence and matching currency are checked again when confirmed.")
-    fun proposeCreateTransaction(accountId: Long, type: String, amount: Double, category: String, description: String, currency: String = "LYD", status: String = "COMPLETED"): Map<String, Any> {
-        val t=runCatching { TransactionType.valueOf(type.trim().uppercase()) }.getOrNull(); val s=runCatching { TransactionStatus.valueOf(status.trim().uppercase()) }.getOrNull(); val cur=currency.trim().uppercase()
-        if (accountId<=0 || t==null || s==null || !amount.isFinite() || amount<=0.0 || category.isBlank() || description.isBlank() || !cur.matches(Regex("[A-Z]{3}"))) return mapOf("success" to false, "error" to "Transaction details are invalid.")
-        val value=TransactionEntity(accountId=accountId,type=t,amount=amount,currency=cur,category=category.trim(),description=description.trim(),status=s)
-        return stageAction("مراجعة تسجيل معاملة", "النوع: " + t.name + "\nالمبلغ: " + amount + " " + cur + "\nالحساب: " + accountId, PendingPayload.Transaction(value))
+    @Tool(description = "Prepare a personal expense or income entry. accountId=0 records it in the personal ledger without linking a personal account or changing any account balance. Use a positive accountId only when the user explicitly requests that account.")
+    fun proposeCreateTransaction(accountId: Long = 0L, type: String, amount: Double, category: String, description: String, currency: String = "LYD", status: String = "COMPLETED"): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val t = runCatching { TransactionType.valueOf(type.trim().uppercase()) }.getOrNull()
+        val s = runCatching { TransactionStatus.valueOf(status.trim().uppercase()) }.getOrNull()
+        val cur = currency.trim().uppercase()
+        if (accountId < 0L || t == null || s == null || !amount.isFinite() || amount <= 0.0 || category.isBlank() || description.isBlank() || !cur.matches(Regex("[A-Z]{3}"))) {
+            return@runBlocking mapOf("success" to false, "error" to "Transaction details are invalid.")
+        }
+        val account = if (accountId > 0L) repository.accounts.first().firstOrNull { it.id == accountId }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Account not found.") else null
+        if (account != null && !account.currency.equals(cur, true)) return@runBlocking mapOf("success" to false, "error" to "Transaction currency does not match the selected account.")
+        val value = TransactionEntity(accountId = account?.id ?: 0L, type = t, amount = amount, currency = cur, category = category.trim(), description = description.trim(), status = s)
+        stageAction(
+            "مراجعة تسجيل معاملة",
+            "النوع: " + t.name + "\nالمبلغ: " + amount + " " + cur + "\n" + (if (account == null) "دون ربط بحساب شخصي" else "الحساب: " + account.name),
+            PendingPayload.Transaction(value)
+        )
     }
 
     @Tool(description = "Prepare a debt record. direction must be i_owe or owed_to_me. Requires user confirmation.")
@@ -1015,7 +1026,7 @@ class AiAppToolSet(
             "listNotifications" to listOf(),
             "listAuditActivity" to listOf(),
             "proposeCreateAccount" to listOf("name", "type", "currency", "openingBalance"),
-            "proposeCreateTransaction" to listOf("accountId", "type", "amount", "category", "description", "currency", "status"),
+            "proposeCreateTransaction" to listOf("type", "amount", "category", "description"),
             "proposeCreateDebt" to listOf("name", "principal", "remaining", "direction", "currency"),
             "proposeCreateBill" to listOf("name", "category", "amount", "dueDate", "currency", "recurring"),
             "proposeCreateSavingsGoal" to listOf("name", "targetAmount", "currentAmount", "currency", "deadline"),
