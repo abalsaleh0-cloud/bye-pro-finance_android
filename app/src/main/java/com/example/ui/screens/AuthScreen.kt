@@ -5,6 +5,7 @@ import com.example.ui.components.FinanceTextField
 import com.example.ui.components.FinanceIconButton
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -57,7 +58,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Box(
-            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+            Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF4A1A45), Color(0xFF2A0F2E), Color(0xFF170918))))
                 .verticalScroll(rememberScrollState()).padding(20.dp),
             contentAlignment = Alignment.Center
         ) {

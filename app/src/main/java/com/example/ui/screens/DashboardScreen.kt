@@ -10,6 +10,7 @@ import com.example.ui.components.FinanceTextField
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -139,7 +140,7 @@ fun DashboardScreen(
     val outstandingDebtCount = currencyDebts.size
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF4A1A45), Color(0xFF2A0F2E), Color(0xFF170918)))).padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
