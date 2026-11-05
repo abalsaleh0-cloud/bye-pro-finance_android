@@ -153,7 +153,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             text = { Text(if (ar) "سيتم حذف الحركة المرتبطة بها، وعكس أثرها على الحساب الشخصي إذا كانت مرتبطة به." else "The linked work record will be deleted and its posted effect on the personal account will be reversed.") },
             confirmButton = {
                 FinanceTextButton(onClick = {
-                    val id = deleteRecordId ?: return@TextButton
+                    val id = deleteRecordId ?: return@FinanceTextButton
                     viewModel.deleteWorkRecord(id) { success ->
                         if (!success) error = true
                         deleteRecordId = null
