@@ -470,7 +470,7 @@ class FinanceRepository(
             require(!existing.isTransferLedgerEntry()) {
                 "Transfer ledger entries are managed by their source records and cannot be deleted independently"
             }
-            if (existing.status == TransactionStatus.COMPLETED) {
+            if (existing.status == TransactionStatus.COMPLETED && existing.accountId > 0L) {
                 val account = dao.getAccountById(existing.accountId)
                     ?: throw IllegalStateException("Transaction account is missing; refusing to delete an unbalanced ledger row")
                 val current = FinanceEngine.toBigDecimal(account.balance)
