@@ -604,7 +604,7 @@ fun ChatBubbleItem(message: ChatMessage, lang: AppLanguage, autoSpeak: Boolean =
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val context = LocalContext.current
-                    TextButton(
+                    FinanceTextButton(
                         onClick = {
                             val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
                             if (clipboard != null) {
