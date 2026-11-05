@@ -113,7 +113,11 @@ class FinanceRepository(
         if (record.type == WorkRecordType.FREELANCE_PAYMENT) {
             val parentId = record.relatedRecordId ?: throw IllegalArgumentException("Select the receivable being paid")
             val parent = dao.getWorkRecordById(parentId) ?: throw IllegalArgumentException("Receivable not found")
-            require(parent.type == WorkRecordType.FREELANCE_INCOME && parent.sourceId == record.sourceId)
+            require(parent.type == WorkRecordType.FREELANCE_INCOME && parent.sourceId == record.sourceId && parent.scope == record.scope && parent.currency.equals(record.currency, true))
+            val alreadyPaid = dao.getWorkRecordsSnapshot()
+                .filter { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == parentId }
+                .sumOf { it.amount }
+            require(record.amount <= parent.amount - alreadyPaid + 0.000001) { "Payment exceeds outstanding receivable" }
         } else require(record.relatedRecordId == null)
 
         val cash = WorkLedgerCalculator.isCashMovement(record.type)
@@ -171,9 +175,26 @@ class FinanceRepository(
         if (record.type == WorkRecordType.FREELANCE_EXPENSE) require(record.scope == WorkSourceType.FREELANCE) { "Freelance expenses belong to the freelance ledger" }
         if (record.type == WorkRecordType.FREELANCE_PAYMENT) {
             val parent = record.relatedRecordId?.let { dao.getWorkRecordById(it) } ?: throw IllegalArgumentException("Select the receivable being paid")
-            require(parent.type == WorkRecordType.FREELANCE_INCOME && parent.sourceId == record.sourceId && parent.scope == record.scope)
+            require(parent.type == WorkRecordType.FREELANCE_INCOME && parent.sourceId == record.sourceId && parent.scope == record.scope && parent.currency.equals(record.currency, true))
             require(parent.id != record.id)
+            val alreadyPaid = dao.getWorkRecordsSnapshot()
+                .filter { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == parent.id && it.id != record.id }
+                .sumOf { it.amount }
+            require(record.amount <= parent.amount - alreadyPaid + 0.000001) { "Payment exceeds outstanding receivable" }
         } else require(record.relatedRecordId == null)
+        if (existing.type == WorkRecordType.FREELANCE_INCOME) {
+            val linkedPayments = dao.getWorkRecordsSnapshot().filter {
+                it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == existing.id
+            }
+            if (linkedPayments.isNotEmpty()) {
+                require(record.sourceId == existing.sourceId && record.scope == existing.scope && record.currency.equals(existing.currency, true)) {
+                    "A receivable with linked payments cannot change source, scope or currency"
+                }
+                require(linkedPayments.sumOf { it.amount } <= record.amount + 0.000001) {
+                    "Receivable amount cannot be lower than payments already received"
+                }
+            }
+        }
         val cash = WorkLedgerCalculator.isCashMovement(record.type)
         require(transaction == null || cash) { "Accrued records cannot post a personal cash transaction" }
         if (transaction != null) {
@@ -233,6 +254,12 @@ class FinanceRepository(
 
     suspend fun deleteWorkRecord(recordId: Long) = withContext(Dispatchers.IO) {
         val record = dao.getWorkRecordById(recordId) ?: return@withContext
+        if (record.type == WorkRecordType.FREELANCE_INCOME) {
+            val hasPayments = dao.getWorkRecordsSnapshot().any {
+                it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == record.id
+            }
+            require(!hasPayments) { "Remove or reassign linked partial payments before deleting this receivable" }
+        }
         val operation: suspend () -> Unit = {
             val linkedTransactionId = record.linkedTransactionId
             if (linkedTransactionId != null) {
