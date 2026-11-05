@@ -284,7 +284,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun addDebt(debt: DebtEntity) { viewModelScope.launch { repository.addDebt(debt) } }
     fun updateDebt(debt: DebtEntity) { viewModelScope.launch { repository.updateDebt(debt) } }
     fun debtPayments(debtId: Long): Flow<List<DebtPaymentEntity>> = repository.debtPayments(debtId)
-    fun payDebt(debtId: Long, accountId: Long, amount: Double, notes: String, paymentDate: Long = System.currentTimeMillis(), onComplete: (Boolean) -> Unit = {}) {
+    fun payDebt(debtId: Long, accountId: Long?, amount: Double, notes: String, paymentDate: Long = System.currentTimeMillis(), onComplete: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             val success = runCatching { repository.recordDebtPayment(debtId, accountId, amount, notes, paymentDate) }.getOrDefault(false)
             onComplete(success)
