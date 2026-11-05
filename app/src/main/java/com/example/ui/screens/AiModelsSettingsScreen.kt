@@ -1,4 +1,5 @@
 package com.example.ui.screens
+import com.example.ui.components.FinanceCard
 
 import com.example.ui.components.FinanceLinearProgressIndicator
 
@@ -21,7 +22,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tune
 import com.example.ui.components.FinanceOutlinedButton
-import androidx.compose.material3.Card
+
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -220,7 +221,8 @@ fun AiModelsSettingsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Card(
+            FinanceCard(
+                border = null,
                 modifier = Modifier.fillMaxWidth().border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.35f), RoundedCornerShape(18.dp)),
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)
@@ -231,7 +233,8 @@ fun AiModelsSettingsScreen(
                     Text(WebI18n.tr("إدارة النماذج المحلية والهجينة، حالة التشغيل، الصوت والخصوصية من مساحة موحدة.", "Manage local and hybrid models, runtime status, voice and privacy in one workspace.", lang), style = MaterialTheme.typography.bodySmall, color = ByeProTheme.colors.textSecondary)
                 }
             }
-            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
+            FinanceCard(
+                border = null,colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         WebI18n.tr("النموذج الموصى به لهذا الهاتف", "Recommended model for this phone", lang),
@@ -281,7 +284,8 @@ fun AiModelsSettingsScreen(
             )
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
+            FinanceCard(
+                border = null,colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Storage, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
@@ -311,7 +315,8 @@ fun AiModelsSettingsScreen(
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
+            FinanceCard(
+                border = null,colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(WebI18n.tr("استعادة النموذج الموجود على الهاتف", "Restore a model already on this phone", lang), fontWeight = FontWeight.SemiBold)
                     Text(
@@ -394,7 +399,8 @@ fun AiModelsSettingsScreen(
             }
         }
         items(modelFiles) { model ->
-            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)) {
+            FinanceCard(
+                border = null,colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.surfaceMain)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(model.name, fontWeight = FontWeight.SemiBold)
                     Text(String.format(Locale.US, "%.2f GB", model.sizeBytes / 1_073_741_824.0))
@@ -430,7 +436,8 @@ fun AiModelsSettingsScreen(
             )
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
+            FinanceCard(
+                border = null,colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Tune, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
@@ -461,7 +468,8 @@ fun AiModelsSettingsScreen(
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
+            FinanceCard(
+                border = null,colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(WebI18n.tr("الخصوصية والحفاظ على النموذج", "Privacy & model retention", lang), fontWeight = FontWeight.SemiBold)
                     Text(
