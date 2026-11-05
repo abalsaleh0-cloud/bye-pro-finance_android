@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.ui.theme.ByeProTheme
 import com.example.ui.components.FinanceCard
+import com.example.ui.components.FinanceSwitch
 import com.example.finance.model.AppLanguage
 import com.example.finance.i18n.WebI18n
 
@@ -43,7 +42,7 @@ fun HybridAssistantSettingsCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Switch(checked = cloudGeneralEnabled, onCheckedChange = onCloudGeneralEnabledChange, colors = SwitchDefaults.colors(checkedThumbColor = ByeProTheme.colors.goldPrimary, checkedTrackColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.28f)))
+                FinanceSwitch(checked = cloudGeneralEnabled, onCheckedChange = onCloudGeneralEnabledChange)
             }
             Text(
                 WebI18n.tr("يتطلب الاتصال بالإنترنت وجلسة تسجيل دخول صالحة. عند إيقاف الخيار أو تعذر الخدمة، يعود التطبيق إلى التحليل المحلي الحتمي.", "Requires internet and a valid signed-in session. If disabled or unavailable, the app falls back to deterministic local analysis.", lang),
