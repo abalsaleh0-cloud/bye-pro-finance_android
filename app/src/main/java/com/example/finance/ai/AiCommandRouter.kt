@@ -60,6 +60,7 @@ internal object AiCommandRouter {
         val cleanedAfter = after.replace(Regex("""(?i)\b(?:دينار|دنانير|د\.ل|lyd|usd|eur|دولار|يورو|ليرة)\b"""), " ")
             .replace(Regex("""[،,:؛.]+"""), " ").trim()
         val person = Regex("""([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""").find(cleanedAfter)?.groupValues?.get(1)
+            ?: Regex("""(?:لي عند|مستحق لي من|لدى)\s+([\p{L}][\p{L}0-9_-]*)""").find(before)?.groupValues?.get(1)
             ?: Regex("""(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*)""").find(before)?.groupValues?.get(1)
             ?: return null
         val name = person.trim()
