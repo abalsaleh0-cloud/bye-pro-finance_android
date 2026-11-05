@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceCard
+
 import com.example.ui.components.FinanceDropdownMenuItem
 
 import androidx.compose.foundation.border
@@ -18,8 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -104,11 +104,9 @@ fun TransfersScreen(viewModel: FinanceViewModel) {
         }
 
         item {
-            Card(
+            FinanceCard(
                 modifier = Modifier.fillMaxWidth()
-                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(16.dp)
+                    ,
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ExposedDropdownMenuBox(
@@ -289,9 +287,8 @@ fun TransfersScreen(viewModel: FinanceViewModel) {
 
         if (transfers.isEmpty()) {
             item {
-                Card(
+                FinanceCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Text(
                         text = WebI18n.tr("لا توجد تحويلات بعد.", "No transfers yet.", lang),
@@ -322,12 +319,10 @@ private fun TransferHistoryCard(
     val date = remember(transfer.date) {
         SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.ROOT).format(Date(transfer.date))
     }
-    Card(
+    FinanceCard(
         modifier = Modifier.fillMaxWidth().border(
             1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(14.dp)
         ),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(14.dp)
     ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(

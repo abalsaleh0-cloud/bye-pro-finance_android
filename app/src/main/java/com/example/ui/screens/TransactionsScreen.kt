@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceCard
+
 import com.example.ui.components.FinanceDropdownMenuItem
 
 import com.example.ui.components.FinanceDropdownMenu
@@ -47,8 +49,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -175,7 +175,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         summary.forEach { (currency, values) ->
                             val (income, expense, count) = values
-                            Card(Modifier.weight(1f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                            FinanceCard(Modifier.weight(1f), ) {
                                 Column(Modifier.padding(12.dp)) {
                                     Text(currency, fontWeight = FontWeight.Bold)
                                     Text(TextContent.money(income - expense, currency, lang), fontWeight = FontWeight.Bold, color = if (income >= expense) ByeProTheme.colors.financialGreen else ByeProTheme.colors.financialRed)
@@ -206,7 +206,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
 
             if (visible.isEmpty()) {
                 item {
-                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    FinanceCard(Modifier.fillMaxWidth(), ) {
                         Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(WebI18n.tr("لا توجد معاملات مطابقة", "No matching transactions", lang), fontWeight = FontWeight.Bold)
                             Text(WebI18n.tr("سجّل أول معاملة أو غيّر الفلتر.", "Record your first transaction or change the filter.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -257,7 +257,7 @@ fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCance
     val account = accounts.firstOrNull { it.id == accountId }
     val categories = webCategories[type].orEmpty()
 
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    FinanceCard(Modifier.fillMaxWidth(), ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(if (initialTransaction == null) WebI18n.tr("إضافة معاملة", "Add transaction", lang) else WebI18n.tr("تعديل المعاملة", "Edit transaction", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             if (accounts.isEmpty()) Text(WebI18n.tr("أضف حساباً نشطاً أولاً من قسم الحسابات.", "Add an active account in Accounts first.", lang), color = MaterialTheme.colorScheme.error)
