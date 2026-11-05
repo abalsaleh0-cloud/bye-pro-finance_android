@@ -717,6 +717,50 @@ class FinanceRepositoryIntegrationTest {
     }
 
     @Test
+    fun freelancePartialPaymentsCannotExceedReceivableAndReceivableCannotBeDeletedOrReducedBelowPaid() = runBlocking {
+        val sourceId = repository.addWorkSource(
+            WorkSourceEntity(name = "Freelance client", type = WorkSourceType.FREELANCE, currency = "LYD")
+        )
+        val receivableId = repository.addWorkRecord(
+            WorkRecordEntity(sourceId = sourceId, scope = WorkSourceType.FREELANCE,
+                type = WorkRecordType.FREELANCE_INCOME, amount = 100.0, currency = "LYD", period = "2026-11")
+        )
+        val paymentId = repository.addWorkRecord(
+            WorkRecordEntity(sourceId = sourceId, relatedRecordId = receivableId, scope = WorkSourceType.FREELANCE,
+                type = WorkRecordType.FREELANCE_PAYMENT, amount = 60.0, currency = "LYD", period = "2026-11")
+        )
+        try {
+            repository.addWorkRecord(
+                WorkRecordEntity(sourceId = sourceId, relatedRecordId = receivableId, scope = WorkSourceType.FREELANCE,
+                    type = WorkRecordType.FREELANCE_PAYMENT, amount = 50.0, currency = "LYD", period = "2026-11")
+            )
+            fail("Partial payments must not exceed the receivable")
+        } catch (_: IllegalArgumentException) { }
+        try {
+            repository.updateWorkRecord(
+                db.financeDao().getWorkRecordById(paymentId)!!.copy(amount = 101.0)
+            )
+            fail("An edited payment must not exceed the outstanding receivable")
+        } catch (_: IllegalArgumentException) { }
+        try {
+            repository.updateWorkRecord(
+                db.financeDao().getWorkRecordById(receivableId)!!.copy(amount = 50.0)
+            )
+            fail("A receivable cannot be reduced below payments already received")
+        } catch (_: IllegalArgumentException) { }
+        try {
+            repository.deleteWorkRecord(receivableId)
+            fail("A receivable with linked payments cannot be deleted")
+        } catch (_: IllegalArgumentException) { }
+        assertEquals(100.0, db.financeDao().getWorkRecordById(receivableId)!!.amount, 0.001)
+        assertEquals(60.0, db.financeDao().getWorkRecordById(paymentId)!!.amount, 0.001)
+        assertEquals(40.0, WorkLedgerCalculator.freelanceOutstanding(
+            db.financeDao().getWorkRecordById(receivableId)!!,
+            repository.workRecords.first()
+        ).toDouble(), 0.001)
+    }
+
+    @Test
     fun editingWorkRecordReconcilesLinkedAccountBalanceAtomically() = runBlocking {
         val accountId = repository.addAccount(
             AccountEntity(name = "Work edit account", type = AccountType.CASH, balance = 1000.0, currency = "LYD")
