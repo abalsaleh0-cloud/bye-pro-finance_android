@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceCard
+
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
@@ -147,10 +149,7 @@ fun NotificationsAdminScreen(
 
                 if (filteredNotifications.isEmpty()) {
                     item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
+                        FinanceCard(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 text = WebI18n.tr("لا توجد تنبيهات جديدة في الوقت الحالي.", "There are no new alerts right now.", lang),
                                 modifier = Modifier.padding(24.dp),
@@ -230,11 +229,7 @@ fun NotificationsAdminScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Card(
-                            modifier = Modifier.weight(1f),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
+                        FinanceCard(modifier = Modifier.weight(1f)) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Icon(Icons.Default.Security, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -243,11 +238,7 @@ fun NotificationsAdminScreen(
                             }
                         }
 
-                        Card(
-                            modifier = Modifier.weight(1f),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
+                        FinanceCard(modifier = Modifier.weight(1f)) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Icon(Icons.Default.Storage, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                                 Spacer(modifier = Modifier.height(4.dp))

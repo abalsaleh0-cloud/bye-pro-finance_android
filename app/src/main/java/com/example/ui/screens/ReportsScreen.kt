@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceCard
+
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
@@ -118,7 +120,7 @@ fun ReportsScreen(
         }
 
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), modifier = Modifier.fillMaxWidth()) {
+            FinanceCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(WebI18n.tr("الفترة الزمنية", "Date range", lang), fontWeight = FontWeight.Bold)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -213,7 +215,7 @@ fun ReportsScreen(
         }
 
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), modifier = Modifier.fillMaxWidth()) {
+            FinanceCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                     Text(WebI18n.tr("المدخرات والالتزامات", "Savings and obligations", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

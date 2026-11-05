@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceCard
+
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
@@ -168,10 +170,7 @@ fun SavingsAssetsScreen(
                 if (selectedTabIndex == 0) {
                     if (savingsGoals.isEmpty()) {
                         item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                            ) {
+                            FinanceCard(modifier = Modifier.fillMaxWidth()) {
                                 Text(
                                     text = WebI18n.tr("لا توجد أهداف ادخارية حالياً. ابدأ بإنشاء هدفك الآن!", "No savings goals yet. Create your first goal now!", lang),
                                     modifier = Modifier.padding(24.dp),
@@ -201,10 +200,7 @@ fun SavingsAssetsScreen(
                 } else {
                     if (assets.isEmpty()) {
                         item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                            ) {
+                            FinanceCard(modifier = Modifier.fillMaxWidth()) {
                                 Text(
                                     text = WebI18n.tr("سجل الأصول فارغ. أضف عقاراتك، الذهب، والمركبات لحساب صافي الثروة بدقة.", "Your asset register is empty. Add property, gold, and vehicles to calculate net worth.", lang),
                                     modifier = Modifier.padding(24.dp),
