@@ -364,9 +364,9 @@ class FinanceRepository(
             require(!existing.isTransferLedgerEntry()) {
                 "Transfer and work ledger entries are managed by their source records"
             }
-            val destination = dao.getAccountById(tx.accountId)
-                ?: throw IllegalArgumentException("Account not found: ${tx.accountId}")
-            require(tx.currency.equals(destination.currency, ignoreCase = true)) {
+            val destination = if (tx.accountId > 0L) dao.getAccountById(tx.accountId)
+                ?: throw IllegalArgumentException("Account not found: ${tx.accountId}") else null
+            if (destination != null) require(tx.currency.equals(destination.currency, ignoreCase = true)) {
                 "Transaction currency must match the selected account currency"
             }
             // Reverse the old posting first, then post the edited row. Each balance
@@ -378,14 +378,14 @@ class FinanceRepository(
                     TransactionType.EXPENSE, TransactionType.TRANSFER -> amount.negate()
                 }
             }
-            if (existing.status == TransactionStatus.COMPLETED) {
+            if (existing.status == TransactionStatus.COMPLETED && existing.accountId > 0L) {
                 val oldAccount = dao.getAccountById(existing.accountId)
                     ?: throw IllegalStateException("Original transaction account is missing")
                 val reversed = FinanceEngine.toBigDecimal(oldAccount.balance).subtract(delta(existing))
                 dao.updateAccountBalance(oldAccount.id, reversed.toDouble())
             }
-            val updated = tx.copy(id = existing.id, status = existing.status, currency = destination.currency)
-            if (updated.status == TransactionStatus.COMPLETED) {
+            val updated = tx.copy(id = existing.id, status = existing.status, currency = destination?.currency ?: tx.currency.trim().uppercase())
+            if (updated.status == TransactionStatus.COMPLETED && destination != null) {
                 val refreshed = dao.getAccountById(destination.id)
                     ?: throw IllegalStateException("Selected account is missing")
                 val posted = FinanceEngine.toBigDecimal(refreshed.balance).add(delta(updated))
