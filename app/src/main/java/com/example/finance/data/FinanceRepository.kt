@@ -744,34 +744,36 @@ class FinanceRepository(
         logAudit("UPDATE", "Bill", "Updated bill ${bill.name}")
     }
 
-    suspend fun markBillPaid(billId: Long, accountId: Long): Boolean = withContext(Dispatchers.IO) {
+    suspend fun markBillPaid(billId: Long, accountId: Long?): Boolean = withContext(Dispatchers.IO) {
         val operation: suspend () -> Boolean = operation@{
-            val bill = dao.getBillById(billId)
-                ?: return@operation false
+            val bill = dao.getBillById(billId) ?: return@operation false
             if (bill.isPaid) return@operation true
-            val account = dao.getAccountById(accountId) ?: return@operation false
-            if (account.isArchived || !bill.amount.isFinite() || bill.amount <= 0.0 ||
+            if (!bill.amount.isFinite() || bill.amount <= 0.0) return@operation false
+            val account = accountId?.let { dao.getAccountById(it) ?: return@operation false }
+            if (account != null && (account.isArchived ||
                 !bill.currency.equals(account.currency, ignoreCase = true) ||
-                !account.balance.isFinite() || account.balance < bill.amount
+                !account.balance.isFinite() || account.balance < bill.amount)
             ) return@operation false
 
-            dao.insertTransaction(
-                TransactionEntity(
-                    accountId = accountId,
-                    type = TransactionType.EXPENSE,
-                    amount = bill.amount,
-                    currency = bill.currency,
-                    category = bill.category,
-                    description = "Bill payment: ${bill.name}"
+            if (account != null) {
+                dao.insertTransaction(
+                    TransactionEntity(
+                        accountId = account.id,
+                        type = TransactionType.EXPENSE,
+                        amount = bill.amount,
+                        currency = bill.currency,
+                        category = bill.category,
+                        description = "Bill payment: ${bill.name}"
+                    )
                 )
-            )
-            dao.updateAccountBalance(
-                accountId,
-                FinanceEngine.toBigDecimal(account.balance)
-                    .subtract(FinanceEngine.toBigDecimal(bill.amount)).toDouble()
-            )
+                dao.updateAccountBalance(
+                    account.id,
+                    FinanceEngine.toBigDecimal(account.balance)
+                        .subtract(FinanceEngine.toBigDecimal(bill.amount)).toDouble()
+                )
+            }
             dao.updateBill(bill.copy(isPaid = true))
-            logAudit("PAYMENT", "Bill", "Marked bill ${bill.name} as paid")
+            logAudit("PAYMENT", "Bill", "Marked bill ${bill.name} as paid" + if (account == null) " without account linkage" else " from ${account.name}")
             true
         }
         if (db != null) db.withTransaction { operation() } else operation()
