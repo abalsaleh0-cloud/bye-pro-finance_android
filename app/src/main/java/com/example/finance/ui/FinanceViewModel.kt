@@ -733,7 +733,14 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 _isAiLoading.value = false
                 return@launch
             }
-            val commandResponse = if (attachments.isEmpty()) prepareDeterministicAiCommand(trimmedQuery) else null
+            val commandResponse = if (attachments.isEmpty()) {
+                runCatching { prepareDeterministicAiCommand(trimmedQuery) }
+                    .onFailure { Log.e("BYE_PRO_FINANCE_AI", "Preparing a financial action failed safely.", it) }
+                    .getOrElse {
+                        _isAiLoading.value = false
+                        WebI18n.tr("تعذر تجهيز العملية بأمان. لم يتم حفظ أي بيانات؛ حاول مرة أخرى أو افتح القسم المطلوب مباشرة.", "The operation could not be prepared safely. No data was saved; retry or open the relevant section directly.", _appLanguage.value)
+                    }
+            } else null
             if (commandResponse != null) {
                 _chatMessages.value = _chatMessages.value + ChatMessage("AI", commandResponse)
                 _isAiLoading.value = false
@@ -939,15 +946,14 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             val name = account["name"] as? String ?: return@filter false
             query.contains(name, ignoreCase = true)
         }
-        val selectedAccount = when {
-            mentionedAccounts.size == 1 -> mentionedAccounts.single()
-            mentionedAccounts.size > 1 -> null
-            matchingAccounts.size == 1 -> matchingAccounts.single()
-            else -> null
-        }
+        val selectedAccount = mentionedAccounts.singleOrNull()
         if (selectedAccount == null) {
             val names = matchingAccounts.mapNotNull { it["name"] as? String }.joinToString("، ")
-            return "وجدت أكثر من حساب بعملة ${command.currency}: $names. اذكر اسم الحساب الذي تريد استخدامه."
+            return if (mentionedAccounts.size > 1) {
+                "ذكرت أكثر من حساب: $names. حدّد الحساب الذي تريد ربط العملية به، ولن أختار حساباً تلقائياً."
+            } else {
+                "أستطيع تجهيز العملية، لكن لا يوجد حساب محدد في طلبك. اذكر اسم الحساب إذا أردت ربطها به؛ لن أختار حساباً تلقائياً أو أغيّر أي رصيد من دون تحديدك."
+            }
         }
 
         val accountId = (selectedAccount["id"] as? Number)?.toLong()
