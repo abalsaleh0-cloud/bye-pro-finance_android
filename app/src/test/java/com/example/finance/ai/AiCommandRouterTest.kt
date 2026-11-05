@@ -43,6 +43,18 @@ class AiCommandRouterTest {
     }
 
     @Test
+    fun parsesNamedDebtCreationAndDirection() {
+        val owed = AiCommandRouter.parseDebtCreate("سجل دين علي له ٥٠ دينار أحمد", "LYD")
+        assertEquals(50.0, owed?.amount ?: 0.0, 0.0)
+        assertEquals("أحمد", owed?.personName)
+        assertEquals("i_owe", owed?.direction)
+
+        val receivable = AiCommandRouter.parseDebtCreate("سجل دين لي عند أحمد ١٠٠ دينار", "LYD")
+        assertEquals("أحمد", receivable?.personName)
+        assertEquals("owed_to_me", receivable?.direction)
+    }
+
+    @Test
     fun parsesColloquialDebtPaymentWithoutRequiringAccount() {
         val command = AiCommandRouter.parseDebtPayment("دفعت ٢٠ دينار لأحمد")
         assertEquals(20.0, command?.amount ?: 0.0, 0.0)
