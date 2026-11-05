@@ -50,7 +50,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -58,7 +57,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
@@ -86,6 +84,7 @@ import com.example.finance.i18n.appText
 import com.example.finance.i18n.WebI18n
 import com.example.finance.model.AppLanguage
 import com.example.finance.ui.FinanceViewModel
+import com.example.ui.components.FinanceModalBottomSheet
 import com.example.ui.screens.AccountsScreen
 import com.example.ui.screens.AddTransactionDialog
 import com.example.ui.screens.AiAssistantScreen
@@ -356,9 +355,8 @@ fun MainAppScaffold(
 
     // Hub Navigation Bottom Sheet
     if (showHubBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showHubBottomSheet = false },
-            containerColor = MaterialTheme.colorScheme.surface
+        FinanceModalBottomSheet(
+            onDismissRequest = { showHubBottomSheet = false }
         ) {
             Column(
                 modifier = Modifier
