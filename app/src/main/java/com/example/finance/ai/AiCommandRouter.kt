@@ -4,8 +4,9 @@ import java.util.Locale
 
 /**
  * Deterministic first-pass command extraction shared by every AI provider.
- * It only recognizes unambiguous transaction create requests; all other
- * messages continue through the selected conversational model.
+ * Handles explicit expense/income, debt, work-payroll, rent and navigation
+ * requests before a conversational model is invoked. Every write is staged
+ * for explicit user confirmation; ambiguous requests fall through safely.
  */
 internal data class ParsedTransactionCommand(
     val type: String,
