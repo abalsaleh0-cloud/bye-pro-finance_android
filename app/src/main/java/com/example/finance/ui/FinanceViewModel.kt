@@ -26,6 +26,7 @@ import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceExportService
 import com.example.finance.data.FinanceRepository
 import com.example.finance.i18n.WebI18n
+import com.example.finance.i18n.TextContent
 import com.example.finance.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -103,6 +104,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val dateFormat: StateFlow<String> = _dateFormat.asStateFlow()
     private val _numberFormat = MutableStateFlow(preferences.getString("number_format", "1,234.56") ?: "1,234.56")
     val numberFormat: StateFlow<String> = _numberFormat.asStateFlow()
+    private val _westernDigits = MutableStateFlow(preferences.getBoolean("western_digits", false))
+    val westernDigits: StateFlow<Boolean> = _westernDigits.asStateFlow()
     private val _emailNotifications = MutableStateFlow(preferences.getBoolean("email_notifications", true))
     val emailNotifications: StateFlow<Boolean> = _emailNotifications.asStateFlow()
     private val _transactionAlerts = MutableStateFlow(preferences.getBoolean("transaction_alerts", true))
@@ -115,6 +118,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun setTimeZone(value: String) { if (value !in setOf("Africa/Tripoli", "Asia/Damascus", "Asia/Amman", "Europe/Istanbul", "Europe/London", "UTC")) return; _timeZone.value = value; preferences.edit().putString("time_zone", value).apply(); scheduleUserSettingsSync() }
     fun setDateFormat(value: String) { if (value !in setOf("YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY")) return; _dateFormat.value = value; preferences.edit().putString("date_format", value).apply(); scheduleUserSettingsSync() }
     fun setNumberFormat(value: String) { if (value !in setOf("1,234.56", "1.234,56", "1 234,56")) return; _numberFormat.value = value; preferences.edit().putString("number_format", value).apply(); scheduleUserSettingsSync() }
+    fun setWesternDigits(value: Boolean) {
+        _westernDigits.value = value
+        TextContent.useWesternDigits = value
+        preferences.edit().putBoolean("western_digits", value).apply()
+    }
     fun setEmailNotifications(value: Boolean) { _emailNotifications.value = value; preferences.edit().putBoolean("email_notifications", value).apply(); scheduleUserSettingsSync() }
     fun setTransactionAlerts(value: Boolean) { _transactionAlerts.value = value; preferences.edit().putBoolean("transaction_alerts", value).apply(); scheduleUserSettingsSync() }
     fun setBillReminders(value: Boolean) { _billReminders.value = value; preferences.edit().putBoolean("bill_reminders", value).apply(); scheduleUserSettingsSync() }
@@ -138,7 +146,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val localModelProgress: StateFlow<Float> = _localModelProgress.asStateFlow()
     private val _localModelStatus = MutableStateFlow("لم يتم تحميل نموذج محلي بعد.")
     val localModelStatus: StateFlow<String> = _localModelStatus.asStateFlow()
-    init { resetWelcomeMessage(); viewModelScope.launch { restoreUserSettingsFromCloud(); resetWelcomeMessage(); runCatching { repository.accounts.first(); repository.archivedAccounts.first() }; _accountsLoading.value = false } }
+    init { TextContent.useWesternDigits = _westernDigits.value; resetWelcomeMessage(); viewModelScope.launch { restoreUserSettingsFromCloud(); resetWelcomeMessage(); runCatching { repository.accounts.first(); repository.archivedAccounts.first() }; _accountsLoading.value = false } }
     private fun currentUserSettingsPayload(): JSONObject = JSONObject()
         .put("theme", if (_isDarkMode.value) "dark" else "light")
         .put("locale", if (_appLanguage.value == AppLanguage.EN) "en" else "ar")
