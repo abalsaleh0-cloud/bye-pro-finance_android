@@ -264,7 +264,7 @@ fun MainAppScaffold(
                         selected = currentScreen == "ai_assistant",
                         onClick = { viewModel.setScreen("ai_assistant") },
                         icon = { Icon(Icons.Default.AutoAwesome, contentDescription = WebI18n.tr("المساعد المالي", "Financial assistant", lang)) },
-                        label = { Text(WebI18n.tr("المساعد", "Assistant", lang), fontSize = 10.sp, maxLines = 1) },
+                        label = { Text(WebI18n.tr("المساعد المالي", "Financial assistant", lang), fontSize = 9.sp, maxLines = 1, softWrap = false) },
                         colors = navColors,
                         modifier = Modifier.testTag("nav_ai_assistant_tab")
                     )
