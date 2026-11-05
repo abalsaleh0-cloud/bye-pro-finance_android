@@ -51,9 +51,9 @@ internal class LiteRtVisionToolSet(private val delegate: AiAppToolSet) : ToolSet
         currency: String,
         period: String,
         notes: String,
-        accountId: Int = 0,
-        relatedRecordId: Int = 0,
-        scope: String = ""
+        accountId: Int,
+        relatedRecordId: Int,
+        scope: String
     ): Map<String, Any> = delegate.proposeCreateWorkRecord(
         sourceId = sourceId.toLong(), type = type, amount = amount, currency = currency,
         period = period, notes = notes, accountId = accountId.toLong(),
@@ -66,11 +66,11 @@ internal class LiteRtVisionToolSet(private val delegate: AiAppToolSet) : ToolSet
     }
 
     @Tool(description = "Prepare a debt record. direction is i_owe when I owe the person, or owed_to_me when the person owes me. Use the person's actual name.")
-    fun proposeCreateDebt(name: String, principal: Double, remaining: Double, direction: String, currency: String = "LYD"): Map<String, Any> =
+    fun proposeCreateDebt(name: String, principal: Double, remaining: Double, direction: String, currency: String): Map<String, Any> =
         delegate.proposeCreateDebt(name, principal, remaining, direction, currency)
 
     @Tool(description = "Prepare a debt payment or collection without linking a personal account. Never check or require an account balance. The debt record is updated only after confirmation.")
-    fun proposeRecordDebtPayment(debtId: Int, amount: Double, notes: String = ""): Map<String, Any> =
+    fun proposeRecordDebtPayment(debtId: Int, amount: Double, notes: String): Map<String, Any> =
         delegate.proposeRecordDebtPayment(debtId.toLong(), 0L, amount, notes, System.currentTimeMillis())
 
     @Tool(description = "Read all bills and rent installments with their due dates and paid status.")
@@ -79,7 +79,7 @@ internal class LiteRtVisionToolSet(private val delegate: AiAppToolSet) : ToolSet
     }
 
     @Tool(description = "Prepare a rent or bill record. Use dueDate in ISO format YYYY-MM-DD. Each unpaid month must be a separate bill record so arrears remain visible.")
-    fun proposeCreateBill(name: String, category: String, amount: Double, dueDate: String, currency: String = "LYD", recurring: Boolean = false): Map<String, Any> {
+    fun proposeCreateBill(name: String, category: String, amount: Double, dueDate: String, currency: String, recurring: Boolean): Map<String, Any> {
         val date = runCatching {
             java.time.LocalDate.parse(dueDate).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
         }.getOrNull() ?: return mapOf("success" to false, "error" to "Due date must use YYYY-MM-DD.")
@@ -87,8 +87,8 @@ internal class LiteRtVisionToolSet(private val delegate: AiAppToolSet) : ToolSet
     }
 
     @Tool(description = "Prepare marking one unpaid rent installment or bill as paid without linking a personal account. This does not check account balance.")
-    fun proposeMarkBillPaid(billId: Int): Map<String, Any> =
-        delegate.proposeMarkBillPaid(billId.toLong(), 0L)
+    fun proposeMarkBillPaid(billId: Int, accountId: Int): Map<String, Any> =
+        delegate.proposeMarkBillPaid(billId.toLong(), accountId.toLong())
 
     @Tool(description = "Read household members and their IDs. Do not expose email addresses.")
     fun listHouseholdMembers(): List<Map<String, Any>> = delegate.listHouseholdMembers().map { row ->
@@ -101,7 +101,7 @@ internal class LiteRtVisionToolSet(private val delegate: AiAppToolSet) : ToolSet
     }
 
     @Tool(description = "Prepare a household expense. Use the correct household payer member ID from listHouseholdMembers.")
-    fun proposeCreateHouseholdExpense(title: String, amount: Double, payerMemberId: Int, category: String, currency: String = "LYD"): Map<String, Any> =
+    fun proposeCreateHouseholdExpense(title: String, amount: Double, payerMemberId: Int, category: String, currency: String): Map<String, Any> =
         delegate.proposeCreateHouseholdExpense(title, amount, payerMemberId.toLong(), category, currency)
 
     @Tool(description = "Prepare a transaction preview. It is not saved until the user confirms it. Only use an account the user explicitly named.")
