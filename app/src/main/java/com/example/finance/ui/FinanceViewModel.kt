@@ -984,6 +984,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         if (debtPayment != null) {
             val candidates = debts.value.filter { debt ->
                 debt.status != DebtStatus.PAID &&
+                    debt.direction == "i_owe" &&
                     (debt.name.contains(debtPayment.personName, true) ||
                         debt.creditor.contains(debtPayment.personName, true))
             }.filter { debt -> debtPayment.currency == null || debt.currency.equals(debtPayment.currency, true) }
