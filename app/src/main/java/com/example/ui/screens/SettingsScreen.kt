@@ -28,7 +28,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
@@ -407,7 +406,7 @@ fun SettingsScreen(
     }
 
     if (showAboutDialog) {
-        AlertDialog(
+        FinanceAlertDialog(
             onDismissRequest = { showAboutDialog = false },
             title = { Text(WebI18n.tr("بيانات التطبيق", "Application information", lang), fontWeight = FontWeight.Bold) },
             text = {
