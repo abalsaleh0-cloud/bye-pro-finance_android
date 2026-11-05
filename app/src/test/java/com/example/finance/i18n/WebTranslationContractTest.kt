@@ -59,13 +59,13 @@ class WebTranslationContractTest {
         assertEquals(Color(0xFF1F0B22), ByeProDesignTokens.LightColors.text)
         assertEquals(Color(0xFF6B4A69), ByeProDesignTokens.LightColors.muted)
         assertEquals(Color(0xFF9C1F86), ByeProDesignTokens.LightColors.accent)
-        assertEquals(Color(0xFFD6B56D), ByeProDesignTokens.LightColors.primaryAction)
+        assertEquals(Color(0xFF9C1F86), ByeProDesignTokens.LightColors.primaryAction)
         assertEquals(Color(0xFF15803D), ByeProDesignTokens.LightColors.success)
         assertEquals(Color(0xFFBE123C), ByeProDesignTokens.LightColors.danger)
         assertEquals(Color(0xFF170918), ByeProDesignTokens.Fields.darkBackground)
         assertEquals(Color(0x66F6ECF5), ByeProDesignTokens.Fields.darkBorder)
         assertEquals(Color(0x336B4A69), ByeProDesignTokens.Fields.lightBorder)
-        assertEquals(Color(0xFFD6B56D), ByeProDesignTokens.Fields.focus)
+        assertEquals(Color(0xFFF58BD6), ByeProDesignTokens.Fields.focus)
     }
 
     @Test
