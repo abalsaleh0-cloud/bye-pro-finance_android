@@ -30,6 +30,14 @@ internal data class ParsedDebtPaymentCommand(
     val description: String
 )
 
+internal data class ParsedDebtCreateCommand(
+    val amount: Double,
+    val currency: String,
+    val direction: String,
+    val personName: String,
+    val description: String
+)
+
 internal data class ParsedRentCommand(
     val amount: Double,
     val currency: String,
@@ -39,6 +47,33 @@ internal data class ParsedRentCommand(
 )
 
 internal object AiCommandRouter {
+    fun parseDebtCreate(query: String, defaultCurrency: String): ParsedDebtCreateCommand? {
+        val normalized = normalizeDigits(query).trim()
+        val text = normalized.lowercase(Locale.ROOT)
+        if (!listOf("سجل دين", "سجّل دين", "اضف دين", "أضف دين", "ضيف دين", "add debt", "record debt").any(text::contains)) return null
+        val amountMatch = Regex("""([0-9]+(?:[.,][0-9]{1,2})?)""").find(text) ?: return null
+        val amount = amountMatch.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
+        if (!amount.isFinite() || amount <= 0.0) return null
+        val direction = if (listOf("لي عند", "إلي عند", "الي عند", "مستحق لي", "owed to me", "they owe me").any(text::contains)) "owed_to_me" else "i_owe"
+        val before = normalized.substring(0, amountMatch.range.first)
+        val after = normalized.substring(amountMatch.range.last + 1)
+        val cleanedAfter = after.replace(Regex("""(?i)\b(?:دينار|دنانير|د\.ل|lyd|usd|eur|دولار|يورو|ليرة)\b"""), " ")
+            .replace(Regex("""[،,:؛.]+"""), " ").trim()
+        val person = Regex("""([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""").find(cleanedAfter)?.groupValues?.get(1)
+            ?: Regex("""(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*)""").find(before)?.groupValues?.get(1)
+            ?: return null
+        val name = person.trim()
+        if (name.length < 2) return null
+        val currency = when {
+            text.contains("usd") || text.contains("دولار") || text.contains("$") -> "USD"
+            text.contains("eur") || text.contains("يورو") || text.contains("€") -> "EUR"
+            text.contains("syp") || text.contains("ليرة") -> "SYP"
+            text.contains("lyd") || text.contains("دينار") || text.contains("د.ل") -> "LYD"
+            else -> defaultCurrency.trim().uppercase(Locale.ROOT).takeIf { it.matches(Regex("[A-Z]{3}")) } ?: return null
+        }
+        return ParsedDebtCreateCommand(amount, currency, direction, name, normalized)
+    }
+
     fun parseRentCommand(query: String, defaultCurrency: String, currentMonth: String): ParsedRentCommand? {
         val normalized = normalizeDigits(query).trim()
         val text = normalized.lowercase(Locale.ROOT)
