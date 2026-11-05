@@ -938,26 +938,16 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
         val matchingAccounts = withContext(Dispatchers.IO) { aiAppTools.listAccounts() }
             .filter { (it["currency"] as? String).equals(command.currency, ignoreCase = true) }
-        if (matchingAccounts.isEmpty()) {
-            return "لا يوجد لديك حساب نشط بعملة ${command.currency}. هل تريد أن أجهّز لك معاينة إنشاء حساب نقدي بهذه العملة؟ لن يتم إنشاء الحساب أو تسجيل المصروف إلا بعد موافقتك."
-        }
-
         val mentionedAccounts = matchingAccounts.filter { account ->
             val name = account["name"] as? String ?: return@filter false
             query.contains(name, ignoreCase = true)
         }
-        val selectedAccount = mentionedAccounts.singleOrNull()
-        if (selectedAccount == null) {
-            val names = matchingAccounts.mapNotNull { it["name"] as? String }.joinToString("، ")
-            return if (mentionedAccounts.size > 1) {
-                "ذكرت أكثر من حساب: $names. حدّد الحساب الذي تريد ربط العملية به، ولن أختار حساباً تلقائياً."
-            } else {
-                "أستطيع تجهيز العملية، لكن لا يوجد حساب محدد في طلبك. اذكر اسم الحساب إذا أردت ربطها به؛ لن أختار حساباً تلقائياً أو أغيّر أي رصيد من دون تحديدك."
-            }
+        if (mentionedAccounts.size > 1) {
+            val names = mentionedAccounts.mapNotNull { it["name"] as? String }.joinToString("، ")
+            return "ذكرت أكثر من حساب: $names. حدّد الحساب الذي تريد ربط العملية به، أو اتركها دون ربط بحساب."
         }
-
-        val accountId = (selectedAccount["id"] as? Number)?.toLong()
-            ?: return "تعذر تحديد معرّف الحساب؛ لم أسجل أي عملية."
+        val selectedAccount = mentionedAccounts.singleOrNull()
+        val accountId = (selectedAccount?.get("id") as? Number)?.toLong() ?: 0L
         val result = aiAppTools.proposeCreateTransaction(
             accountId = accountId,
             type = command.type,
@@ -972,8 +962,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             return "لم أتمكن من تجهيز العملية: $errorText. لم يتم حفظ أي شيء."
         }
         val operationLabel = if (command.type == "EXPENSE") "المصروف" else "الإيراد"
-        val accountName = selectedAccount["name"]?.toString().orEmpty()
-        return "جهزت معاينة $operationLabel بمبلغ ${command.amount} ${command.currency} في حساب $accountName. راجع نافذة التأكيد واضغط «تأكيد التنفيذ» لحفظها."
+        val accountName = selectedAccount?.get("name")?.toString()
+        return "جهزت معاينة $operationLabel بمبلغ ${command.amount} ${command.currency}" +
+            (if (accountName == null) " دون ربط بحساب شخصي أو تغيير رصيد أي حساب." else " وربطتها بالحساب $accountName بناءً على طلبك.") +
+            " راجع نافذة التأكيد واضغط «تأكيد التنفيذ» لحفظها."
     }
 
     fun confirmPendingAiAction(actionId: String) {
