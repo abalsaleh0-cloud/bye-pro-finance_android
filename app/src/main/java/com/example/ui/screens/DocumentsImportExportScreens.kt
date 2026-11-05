@@ -1,4 +1,6 @@
 package com.example.ui.screens
+
+import com.example.ui.components.FinanceCard
 import com.example.ui.components.FinanceIconButton
 
 import android.content.Intent
@@ -20,8 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -85,7 +85,7 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
         }
         if (filteredDocuments.isEmpty()) {
             item {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                FinanceCard() {
                     Text(
                         WebI18n.tr("لا توجد مستندات محفوظة حتى الآن.", "No documents have been saved yet.", lang),
                         modifier = Modifier.padding(18.dp),
@@ -95,9 +95,8 @@ fun DocumentsScreen(viewModel: FinanceViewModel) {
             }
         } else {
             items(filteredDocuments, key = { it.id }) { document ->
-                Card(
+                FinanceCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(14.dp),
@@ -213,7 +212,7 @@ fun ImportExportScreen(viewModel: FinanceViewModel) {
             )
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            FinanceCard() {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(WebI18n.tr("تصدير البيانات", "Export data", lang), style = MaterialTheme.typography.titleMedium)
                     FinanceButton(onClick = { csvExport.launch("bye-pro-finance-transactions.csv") }, modifier = Modifier.fillMaxWidth()) {
@@ -226,7 +225,7 @@ fun ImportExportScreen(viewModel: FinanceViewModel) {
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            FinanceCard() {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(WebI18n.tr("استيراد البيانات", "Import data", lang), style = MaterialTheme.typography.titleMedium)
                     Text(

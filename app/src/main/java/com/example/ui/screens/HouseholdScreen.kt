@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceCard
+
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
@@ -34,8 +36,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -131,12 +131,10 @@ fun HouseholdScreen(
 
             // Summary Card
             item {
-                Card(
+                FinanceCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(16.dp)
+                        ,
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
@@ -165,10 +163,8 @@ fun HouseholdScreen(
             }
 
             items(members, key = { it.id }) { m ->
-                Card(
+                FinanceCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -228,10 +224,8 @@ fun HouseholdScreen(
             } else {
                 items(expenses, key = { it.id }) { exp ->
                     val payerName = members.find { it.id == exp.payerMemberId }?.name ?: WebI18n.tr("عضو", "Member", lang)
-                    Card(
+                    FinanceCard(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Row(
                             modifier = Modifier
