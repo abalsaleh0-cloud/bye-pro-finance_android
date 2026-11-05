@@ -73,6 +73,23 @@ internal class LiteRtVisionToolSet(private val delegate: AiAppToolSet) : ToolSet
     fun proposeRecordDebtPayment(debtId: Int, amount: Double, notes: String = ""): Map<String, Any> =
         delegate.proposeRecordDebtPayment(debtId.toLong(), 0L, amount, notes, System.currentTimeMillis())
 
+    @Tool(description = "Read all bills and rent installments with their due dates and paid status.")
+    fun listBills(): List<Map<String, Any>> = delegate.listBills().map { row ->
+        row.mapValues { (key, value) -> if (key == "id" && value is Long) value.toInt() else value }
+    }
+
+    @Tool(description = "Prepare a rent or bill record. Use dueDate in ISO format YYYY-MM-DD. Each unpaid month must be a separate bill record so arrears remain visible.")
+    fun proposeCreateBill(name: String, category: String, amount: Double, dueDate: String, currency: String = "LYD", recurring: Boolean = false): Map<String, Any> {
+        val date = runCatching {
+            java.time.LocalDate.parse(dueDate).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        }.getOrNull() ?: return mapOf("success" to false, "error" to "Due date must use YYYY-MM-DD.")
+        return delegate.proposeCreateBill(name, category, amount, date, currency, recurring)
+    }
+
+    @Tool(description = "Prepare marking one unpaid rent installment or bill as paid without linking a personal account. This does not check account balance.")
+    fun proposeMarkBillPaid(billId: Int): Map<String, Any> =
+        delegate.proposeMarkBillPaid(billId.toLong(), 0L)
+
     @Tool(description = "Read household members and their IDs. Do not expose email addresses.")
     fun listHouseholdMembers(): List<Map<String, Any>> = delegate.listHouseholdMembers().map { row ->
         row.mapValues { (key, value) -> if (key == "id" && value is Long) value.toInt() else value }
