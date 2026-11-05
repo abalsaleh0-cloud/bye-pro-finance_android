@@ -28,14 +28,66 @@ import java.util.concurrent.atomic.AtomicBoolean
  * then convert stable database IDs back to Long inside the app boundary.
  */
 internal class LiteRtVisionToolSet(private val delegate: AiAppToolSet) : ToolSet {
-    @Tool(description = "Read active personal accounts and their currencies.")
+    @Tool(description = "Navigate to a supported app section by exact section id.")
+    fun navigateToAppSection(section: String): Map<String, Any> = delegate.navigateToAppSection(section)
+
+    @Tool(description = "Read active personal accounts and their currencies. Never choose an account automatically.")
     fun listAccounts(): List<Map<String, Any>> = delegate.listAccounts().map { account ->
-        account.mapValues { (key, value) ->
-            if (key == "id" && value is Long) value.toInt() else value
-        }
+        account.mapValues { (key, value) -> if (key == "id" && value is Long) value.toInt() else value }
     }
 
-    @Tool(description = "Prepare a transaction preview. It is not saved until the user confirms it.")
+    @Tool(description = "Read the employment and freelance work ledger, including salary, advances, payments, records and balances.")
+    fun getWorkLedgerOverview(): Map<String, Any> = delegate.getWorkLedgerOverview()
+
+    @Tool(description = "Prepare a work source. Understand everyday Arabic names for employment and freelance work. Saved only after confirmation.")
+    fun proposeCreateWorkSource(name: String, type: String, monthlySalary: Double, currency: String): Map<String, Any> =
+        delegate.proposeCreateWorkSource(name, type, monthlySalary, currency)
+
+    @Tool(description = "Prepare a work ledger record. accountId=0 means do not link a personal account. Use exact WorkRecordType values and ask one question if the work source or record type is unclear.")
+    fun proposeCreateWorkRecord(
+        sourceId: Int,
+        type: String,
+        amount: Double,
+        currency: String,
+        period: String,
+        notes: String,
+        accountId: Int = 0,
+        relatedRecordId: Int = 0,
+        scope: String = ""
+    ): Map<String, Any> = delegate.proposeCreateWorkRecord(
+        sourceId = sourceId.toLong(), type = type, amount = amount, currency = currency,
+        period = period, notes = notes, accountId = accountId.toLong(),
+        relatedRecordId = relatedRecordId.toLong(), scope = scope
+    )
+
+    @Tool(description = "Read all saved debts with the person's name, direction, remaining amount and currency.")
+    fun listDebts(): List<Map<String, Any>> = delegate.listDebts().map { row ->
+        row.mapValues { (key, value) -> if (key == "id" && value is Long) value.toInt() else value }
+    }
+
+    @Tool(description = "Prepare a debt record. direction is i_owe when I owe the person, or owed_to_me when the person owes me. Use the person's actual name.")
+    fun proposeCreateDebt(name: String, principal: Double, remaining: Double, direction: String, currency: String = "LYD"): Map<String, Any> =
+        delegate.proposeCreateDebt(name, principal, remaining, direction, currency)
+
+    @Tool(description = "Prepare a debt payment or collection without linking a personal account. Never check or require an account balance. The debt record is updated only after confirmation.")
+    fun proposeRecordDebtPayment(debtId: Int, amount: Double, notes: String = ""): Map<String, Any> =
+        delegate.proposeRecordDebtPayment(debtId.toLong(), 0L, amount, notes, System.currentTimeMillis())
+
+    @Tool(description = "Read household members and their IDs. Do not expose email addresses.")
+    fun listHouseholdMembers(): List<Map<String, Any>> = delegate.listHouseholdMembers().map { row ->
+        row.mapValues { (key, value) -> if (key == "id" && value is Long) value.toInt() else value }
+    }
+
+    @Tool(description = "Read household expenses and their categories.")
+    fun listHouseholdExpenses(): List<Map<String, Any>> = delegate.listHouseholdExpenses().map { row ->
+        row.mapValues { (key, value) -> if (key == "id" && value is Long) value.toInt() else value }
+    }
+
+    @Tool(description = "Prepare a household expense. Use the correct household payer member ID from listHouseholdMembers.")
+    fun proposeCreateHouseholdExpense(title: String, amount: Double, payerMemberId: Int, category: String, currency: String = "LYD"): Map<String, Any> =
+        delegate.proposeCreateHouseholdExpense(title, amount, payerMemberId.toLong(), category, currency)
+
+    @Tool(description = "Prepare a transaction preview. It is not saved until the user confirms it. Only use an account the user explicitly named.")
     fun proposeCreateTransaction(
         accountId: Int,
         type: String,
@@ -45,13 +97,8 @@ internal class LiteRtVisionToolSet(private val delegate: AiAppToolSet) : ToolSet
         currency: String,
         status: String
     ): Map<String, Any> = delegate.proposeCreateTransaction(
-        accountId = accountId.toLong(),
-        type = type,
-        amount = amount,
-        category = category,
-        description = description,
-        currency = currency,
-        status = status
+        accountId = accountId.toLong(), type = type, amount = amount, category = category,
+        description = description, currency = currency, status = status
     )
 }
 
@@ -115,7 +162,8 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
                                 "Be concise and direct by default; give the answer first and add detail only when needed. Do not produce lengthy hidden reasoning or repeat the question. " +
                                 "Talk naturally and warmly, like a thoughtful human conversation partner, without pretending to be human. " +
                                 "Understand general knowledge, explanations, writing, translation, brainstorming, learning, coding and problem solving. " +
-                                "Reply in the same language and conversational register as the user; use natural Arabic when the user writes Arabic. " +
+                                "Reply in the same language and conversational register as the user. Understand colloquial Arabic, including Libyan, Syrian, Palestinian and Jordanian everyday expressions; do not force the user to write formal Arabic. " +
+                                "For financial commands, identify the action, amount, currency, named person or item, date/period, and target section from the user's words. Preserve the exact item/person name and ask one short question only when an essential detail is missing. " +
                                 "Use the supplied local financial context only when the user asks about their own finances. " +
                                 "Never invent balances, amounts, dates, currencies, transactions, or account details. " +
                                 "Keep currencies separate and never convert them unless an explicit rate is supplied. " +
@@ -124,7 +172,8 @@ class LiteRtLocalAssistant(private val cacheDir: File, private val appTools: AiA
                                 "If a request is ambiguous or missing essential details, ask one concise clarifying question. " +
                                 "You have local app tools for navigating every implemented app section, reading financial and work-ledger data, and preparing confirmation-gated changes to accounts, transactions, budgets, debts, bills, savings goals, assets, transfers, household records, document-register metadata (without pretending to upload files), employment and freelance sources, work-ledger records, debt payments and collections, bill payments, notification reading and management, and project workspaces. Use the tools whenever the user requests a supported action or asks about their saved data. " +
                                 "For every write operation, first prepare a preview and wait for the user to explicitly confirm that exact preview in the app. The app executes the pending operation only after confirmation. If the user cancels, do not retry or perform the operation. Never bypass confirmation. Deletions are available only through explicit deletion-preview tools; show the exact target and consequences, then wait for confirmation. Never delete accounts or work-ledger history because no deletion tool is exposed for those records. " +
-                                "For debt payments, debt collections and bill payments, prepare the corresponding app-tool preview and wait for explicit confirmation; the repository performs the linked balance, transaction and record updates atomically. For Work-section changes, use the work-ledger tools and preserve source type, currency, receivable linkage and personal-account linkage. Never invent unsupported operations or claim success before confirmation returns success. " +
+                                "For debt payments and collections, use the debt tools and record them without linking a personal account by default; never reject a debt payment because a work or personal account balance is low. For Work-section changes, use the work-ledger tools: salary, advances, salary payments, partial payments, freelance income, receivables and work expenses must be recorded in the Work ledger; do not link a personal account unless the user explicitly asks. For household requests such as rent and household expenses, use household tools or the matching bill tools; never invent a payer/member ID. For general expenses, use a personal transaction only after the user explicitly identifies the account; never choose the first or only account automatically. " +
+                                "For every section, read the existing record first before changing or paying it. Preserve names, currencies, amounts, dates and partial-payment history. Never invent unsupported operations or claim success before confirmation returns success. " +
                                 "This local model must not send local records or project files to a network service."
                         )
                     )
