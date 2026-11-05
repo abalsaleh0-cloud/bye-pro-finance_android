@@ -4,6 +4,8 @@ import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceTextButton
+import com.example.ui.components.FinanceSwitch
 
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
@@ -28,7 +30,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -36,7 +37,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -283,7 +283,7 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Switch(
+                        FinanceSwitch(
                             checked = isDark,
                             onCheckedChange = viewModel::setDarkMode,
                             modifier = Modifier.testTag("theme_mode_switch")
@@ -420,7 +420,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showAboutDialog = false }) {
+                FinanceTextButton(onClick = { showAboutDialog = false }) {
                     Text(WebI18n.tr("إغلاق", "Close", lang))
                 }
             }
@@ -448,6 +448,6 @@ private fun SettingsChoiceRow(label: String, selected: String, options: List<Str
 private fun SettingsSwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodyMedium)
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        FinanceSwitch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
