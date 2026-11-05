@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceRepository
 import com.example.finance.engine.FinanceEngine
+import com.example.finance.engine.WorkLedgerCalculator
 import com.example.finance.model.AccountEntity
 import com.example.finance.model.AccountType
 import com.example.finance.model.BudgetEntity
