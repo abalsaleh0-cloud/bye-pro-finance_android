@@ -27,7 +27,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -254,7 +253,7 @@ fun SectionHeader(
             color = MaterialTheme.colorScheme.onSurface
         )
         if (actionLabel != null && onAction != null) {
-            TextButton(onClick = onAction) {
+            FinanceTextButton(onClick = onAction) {
                 Text(
                     text = actionLabel,
                     style = MaterialTheme.typography.labelMedium,
@@ -398,10 +397,10 @@ fun FinancialTextField(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(if (singleLine) 44.dp else androidx.compose.ui.unit.Dp.Unspecified)
-                        .clip(RoundedCornerShape(10.dp))
+                        .heightIn(min = 56.dp)
+                        .clip(RoundedCornerShape(16.dp))
                         .background(colors.fieldBg)
-                        .border(1.dp, borderColor, RoundedCornerShape(10.dp))
+                        .border(1.dp, borderColor, RoundedCornerShape(16.dp))
                         .padding(horizontal = 12.dp, vertical = if (singleLine) 0.dp else 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
