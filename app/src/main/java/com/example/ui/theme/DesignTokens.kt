@@ -4,18 +4,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/**
- * Android mirror of the canonical BYE PRO FINANCE web design tokens.
- *
- * Source of truth:
- * - packages/ui/src/tokens.css
- * - apps/web/src/unified-ui.css (theme and form-control overrides)
- *
- * Keep this file aligned with those web tokens. Android-only rendering values
- * (dp/sp) are converted from the web rem/px values at the 1:1 CSS pixel scale.
- */
+/** Android mirror of the approved BYE PRO FINANCE web design system. */
 object ByeProDesignTokens {
     object Colors {
+        // Core dark surfaces
         val background = Color(0xFF2A0F2E)
         val surface = Color(0xFF170918)
         val surfaceRaised = Color(0xFF4A1A45)
@@ -23,8 +15,29 @@ object ByeProDesignTokens {
         val text = Color(0xFFF6ECF5)
         val muted = Color(0xFFCDB8CC)
         val accent = Color(0xFFF58BD6)
+        val onAccent = Color(0xFF2A0F2E)
+
+        // Brand and semantic accents
+        val cyan = Color(0xFF4FD6D0)
+        val gold = Color(0xFFFADA53)
+        val lavender = Color(0xFFB79BFF)
+        val blue = Color(0xFF7FB2FF)
+        val mint = Color(0xFF7FE0C0)
+        val amber = Color(0xFFFFB86B)
+        val coral = Color(0xFFFFB3BD)
         val success = Color(0xFFA8EFC0)
-        val danger = Color(0xFFFFB3BD)
+        val orbIvory = Color(0xFFFFE0F5)
+        val orbPink = Color(0xFFF06BC8)
+        val orbViolet = Color(0xFF7A3CFF)
+        val orbBlue = Color(0xFF2A6BFF)
+        val orbWarm = Color(0xFFFF9A4D)
+
+        // Financial semantics
+        val income = Color(0xFF0F766E)
+        val expense = Color(0xFFBE123C)
+        val warning = Color(0xFFB45309)
+        val info = Color(0xFF0E7490)
+        val savings = Color(0xFF6D4AD0)
     }
 
     object LightColors {
@@ -35,9 +48,13 @@ object ByeProDesignTokens {
         val text = Color(0xFF1F0B22)
         val muted = Color(0xFF6B4A69)
         val accent = Color(0xFF9C1F86)
-        val primaryAction = Color(0xFF9C1F86)
+        val onAccent = Color(0xFFFFFFFF)
+        val income = Color(0xFF0F766E)
+        val expense = Color(0xFFBE123C)
+        val warning = Color(0xFFB45309)
+        val info = Color(0xFF0E7490)
+        val savings = Color(0xFF6D4AD0)
         val success = Color(0xFF15803D)
-        val danger = Color(0xFFBE123C)
     }
 
     object Fields {
@@ -49,22 +66,8 @@ object ByeProDesignTokens {
         val lightBorder = Color(0x336B4A69)
         val focus = Colors.accent
         val darkGradientTop = Color(0xFF4A1A45)
+        val darkGradientMiddle = Color(0xFF2A0F2E)
         val darkGradientBottom = Color(0xFF170918)
-        val orbPink = Color(0xFFF06BC8)
-        val orbViolet = Color(0xFF7A3CFF)
-        val orbBlue = Color(0xFF2A6BFF)
-        val orbWarm = Color(0xFFFF9A4D)
-        val cyan = Color(0xFF4FD6D0)
-        val gold = Color(0xFFFADA53)
-        val lavender = Color(0xFFB79BFF)
-        val blue = Color(0xFF7FB2FF)
-        val mint = Color(0xFF7FE0C0)
-        val amber = Color(0xFFFFB86B)
-        val income = Color(0xFF0F766E)
-        val expense = Color(0xFFBE123C)
-        val warning = Color(0xFFB45309)
-        val info = Color(0xFF0E7490)
-        val savings = Color(0xFF6D4AD0)
     }
 
     object Spacing {
@@ -87,11 +90,14 @@ object ByeProDesignTokens {
 
     object Control {
         val height = 52.dp
+        val minTouchTarget = 48.dp
         val contentMaxWidth = 1440.dp
         val focusRingWidth = 3.dp
     }
 
     object Breakpoints {
+        val compact = 600.dp
+        val expanded = 840.dp
         val xs = 360.dp
         val sm = 480.dp
         val md = 640.dp
@@ -107,6 +113,11 @@ object ByeProDesignTokens {
         val label = 14.sp
         val title = 22.sp
         val display = 30.sp
+    }
+
+    object Motion {
+        const val standardDurationMillis = 200
+        const val emphasizedDurationMillis = 300
     }
 
     object Shadow {
