@@ -344,7 +344,7 @@ fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?,
             Spacer(Modifier.size(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(transaction.description, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text("${account?.name ?: WebI18n.tr("حساب", "Account", lang)} · $dateText", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${account?.name ?: WebI18n.tr("دون ربط بحساب", "Unlinked", lang)} · $dateText", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("$sign${TextContent.money(transaction.amount, transaction.currency, lang)}", fontWeight = FontWeight.Bold, color = color)
