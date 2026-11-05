@@ -80,9 +80,12 @@ internal object AiCommandRouter {
         val category = when {
             listOf("بنزين", "وقود", "محروقات", "fuel", "petrol").any(text::contains) -> "fuel"
             listOf("طعام", "أكل", "اكل", "مطعم", "food", "restaurant").any(text::contains) -> "food"
-            listOf("بقالة", "سوبرماركت", "groceries", "grocery").any(text::contains) -> "groceries"
+            listOf("خضار", "فواكه", "مواد غذائية", "غذائية", "بقالة", "سوبرماركت", "مقاضي", "groceries", "grocery", "vegetables", "produce").any(text::contains) -> "groceries"
+            listOf("رصيد", "شحن هاتف", "تعبئة هاتف", "mobile credit", "top up", "phone credit").any(text::contains) -> "mobile_credit"
+            listOf("إيجار", "ايجار", "rent").any(text::contains) -> "rent"
             listOf("مواصلات", "تاكسي", "نقل", "transport", "taxi").any(text::contains) -> "transport"
             listOf("كهرباء", "ماء", "إنترنت", "انترنت", "utilities", "internet").any(text::contains) -> "utilities"
+            listOf("دواء", "طبيب", "مستشفى", "صحة", "medicine", "doctor", "health").any(text::contains) -> "health"
             else -> "other"
         }
         return ParsedTransactionCommand(
