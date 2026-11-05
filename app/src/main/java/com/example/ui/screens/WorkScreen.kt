@@ -34,7 +34,15 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     val scopedRecords = records.filter { it.scope == selectedScope }
     val query = searchQuery.trim()
     val visibleSources = scopedSources.filter { query.isBlank() || it.name.contains(query, true) }
-    val visibleRecords = scopedRecords.filter { query.isBlank() || it.notes.contains(query, true) || workRecordLabel(it.type, ar).contains(query, true) || it.amount.toString().contains(query) }
+    val visibleRecords = scopedRecords.filter { row ->
+        query.isBlank() ||
+            row.notes.contains(query, true) ||
+            workRecordLabel(row.type, ar).contains(query, true) ||
+            row.amount.toString().contains(query) ||
+            row.currency.contains(query, true) ||
+            java.time.Instant.ofEpochMilli(row.date).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString().contains(query) ||
+            sources.firstOrNull { it.id == row.sourceId }?.name?.contains(query, true) == true
+    }
     val period = java.time.YearMonth.now().toString()
     val currentDate = java.time.LocalDate.now()
     val money = remember(lang) { NumberFormat.getNumberInstance(if (ar) Locale("ar") else Locale.ENGLISH) }
@@ -156,7 +164,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     if (recordDialog) WorkRecordDialog(ar, currency, selectedScope, scopedSources, scopedRecords, accounts, editingRecord, { recordDialog = false; editingRecord = null }) { row, accountId ->
         val existing = editingRecord
         if (existing == null) viewModel.addWorkRecord(row, accountId) { if (it) { recordDialog = false; error = false } else error = true }
-        else viewModel.updateWorkRecord(row.copy(id = existing.id, date = existing.date, period = existing.period), accountId) { if (it) { recordDialog = false; editingRecord = null; error = false } else error = true }
+        else viewModel.updateWorkRecord(row.copy(id = existing.id), accountId) { if (it) { recordDialog = false; editingRecord = null; error = false } else error = true }
     }
     if (transferDialog) WorkTransferDialog(ar, currency, selectedScope, accounts, { transferDialog = false }) { type, amount, note, accountId ->
         viewModel.addWorkRecord(WorkRecordEntity(type = type, amount = amount, currency = currency, notes = note, scope = selectedScope), accountId) { if (it) { transferDialog = false; error = false } else error = true }
