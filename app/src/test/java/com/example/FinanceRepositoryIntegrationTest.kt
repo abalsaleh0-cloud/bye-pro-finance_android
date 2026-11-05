@@ -102,6 +102,36 @@ class FinanceRepositoryIntegrationTest {
     }
 
     @Test
+    fun personalExpenseCanBeRecordedAndManagedWithoutAnyAccountBalanceLink() = runBlocking {
+        val accountId = repository.addAccount(AccountEntity(name = "Work account", type = AccountType.CASH, balance = 100.0, currency = "LYD"))
+        val expense = TransactionEntity(
+            accountId = 0L,
+            type = TransactionType.EXPENSE,
+            amount = 50.0,
+            currency = "LYD",
+            category = "groceries",
+            description = "Household shopping"
+        )
+        val id = repository.addTransaction(expense)
+        assertTrue(id > 0L)
+        assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        val saved = repository.transactions.first().single()
+        assertEquals(0L, saved.accountId)
+        assertEquals(50.0, saved.amount, 0.001)
+
+        repository.updateTransaction(saved.copy(amount = 75.0, description = "Updated household shopping"))
+        val updated = repository.transactions.first().single()
+        assertEquals(75.0, updated.amount, 0.001)
+        repository.updateTransactionStatus(updated, TransactionStatus.PENDING)
+        assertEquals(TransactionStatus.PENDING, repository.transactions.first().single().status)
+        repository.updateTransactionStatus(updated, TransactionStatus.COMPLETED)
+        assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        repository.deleteTransaction(updated)
+        assertTrue(repository.transactions.first().isEmpty())
+        assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+    }
+
+    @Test
     fun testAtomicTransferSuccess() = runBlocking {
         val srcId = repository.addAccount(AccountEntity(name = "Src", type = AccountType.BANK, balance = 1000.00, currency = "SAR"))
         val dstId = repository.addAccount(AccountEntity(name = "Dst", type = AccountType.SAVINGS, balance = 200.00, currency = "SAR"))
