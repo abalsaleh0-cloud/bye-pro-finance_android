@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceCard
+
 import com.example.ui.components.FinanceDropdownMenuItem
 
 import com.example.ui.components.FinanceDropdownMenu
@@ -29,8 +31,6 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Wallet
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -232,12 +232,8 @@ fun AccountDetailedCard(
         AccountType.INVESTMENT -> Icons.Default.TrendingUp
         else -> Icons.Default.AccountBalance
     }
-    Card(
-        modifier = Modifier.fillMaxWidth().border(
-            1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)
-        ),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(16.dp)
+    FinanceCard(
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -295,10 +291,8 @@ fun AddAccountForm(
     var currencyMenuExpanded by remember { mutableStateOf(false) }
     var validationMessage by remember { mutableStateOf("") }
 
-    Card(
+    FinanceCard(
         modifier = Modifier.fillMaxWidth().testTag("account_form"),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(16.dp)
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             FinanceTextField(

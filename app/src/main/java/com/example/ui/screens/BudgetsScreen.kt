@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceCard
+
 import com.example.ui.components.FinanceDropdownMenuItem
 
 import com.example.ui.components.FinanceDropdownMenu
@@ -133,8 +135,7 @@ fun BudgetsScreen(viewModel: FinanceViewModel) {
             }
             if (visible.isEmpty()) {
                 item {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        modifier = Modifier.fillMaxWidth()) {
+                    FinanceCard(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(if (budgets.isEmpty()) WebI18n.tr("لا توجد ميزانيات بعد. أضف ميزانيتك الأولى.", "No budgets yet. Add your first budget.", lang)
                                 else WebI18n.tr("لا توجد نتائج مطابقة للبحث.", "No matching budgets found.", lang))
@@ -198,10 +199,8 @@ private fun BudgetItemCard(
         status.percentage >= 75f -> ByeProTheme.colors.goldPrimary
         else -> ByeProTheme.colors.financialGreen
     }
-    Card(
-        modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .35f), RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(16.dp)
+    FinanceCard(
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
