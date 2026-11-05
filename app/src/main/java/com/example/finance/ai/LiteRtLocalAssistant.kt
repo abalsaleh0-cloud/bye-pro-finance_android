@@ -86,7 +86,7 @@ internal class LiteRtVisionToolSet(private val delegate: AiAppToolSet) : ToolSet
         return delegate.proposeCreateBill(name, category, amount, date, currency, recurring)
     }
 
-    @Tool(description = "Prepare marking one unpaid rent installment or bill as paid without linking a personal account. This does not check account balance.")
+    @Tool(description = "Prepare marking one unpaid rent installment or bill as paid. Pass accountId=0 to avoid personal-account linkage; never reject a recorded payment because an account balance is low.")
     fun proposeMarkBillPaid(billId: Int, accountId: Int): Map<String, Any> =
         delegate.proposeMarkBillPaid(billId.toLong(), accountId.toLong())
 
