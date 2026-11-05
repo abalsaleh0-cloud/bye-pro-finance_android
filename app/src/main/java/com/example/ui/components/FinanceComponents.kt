@@ -12,6 +12,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
@@ -32,6 +34,24 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.example.ui.theme.ByeProTheme
+
+/** Shared low-elevation glass card: 8% brand-tinted surface and a 1dp token border. */
+@Composable
+fun FinanceCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = ByeProTheme.colors.cardMain.copy(alpha = 0.08f)
+        ),
+        border = BorderStroke(1.dp, ByeProTheme.colors.borderBase),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        content = content
+    )
+}
 
 /** Shared BYE PRO FINANCE field style aligned with the visual identity. */
 @Composable
