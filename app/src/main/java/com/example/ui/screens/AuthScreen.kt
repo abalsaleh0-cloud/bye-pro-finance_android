@@ -1,4 +1,5 @@
 package com.example.ui.screens
+import com.example.ui.components.FinanceCard
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceTextButton
 import com.example.ui.components.FinanceTextField
@@ -76,7 +77,7 @@ fun AuthScreen(language: AppLanguage, onToggleLanguage: () -> Unit, onAuthentica
                 Text("BYE PRO FINANCE", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = ByeProTheme.colors.goldPrimary)
                 Text(tr("نظامك المالي في مكان واحد", "Your finances in one place"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(22.dp))
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                FinanceCard(modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.fillMaxWidth().padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(tr(if (signup) "إنشاء حساب جديد" else "تسجيل الدخول", if (signup) "Create account" else "Sign in"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                         Text(tr("أدخل بياناتك للمتابعة بأمان.", "Enter your details to continue securely."), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
