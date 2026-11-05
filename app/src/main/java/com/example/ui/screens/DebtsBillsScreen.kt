@@ -1,5 +1,9 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceDropdownMenuItem
+
+import com.example.ui.components.FinanceDropdownMenu
+
 import com.example.finance.i18n.TextContent
 
 import com.example.ui.components.FinanceAlertDialog
@@ -36,8 +40,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -244,9 +246,9 @@ fun DebtsBillsScreen(
                         FinanceOutlinedButton(onClick = { accountMenuExpanded = true }, modifier = Modifier.fillMaxWidth(), enabled = eligibleAccounts.isNotEmpty()) {
                             Text(selectedAccount?.let { it.name + " • " + TextContent.money(it.balance, it.currency, lang) } ?: WebI18n.tr("لا يوجد حساب بهذه العملة", "No account in this currency", lang))
                         }
-                        DropdownMenu(expanded = accountMenuExpanded, onDismissRequest = { accountMenuExpanded = false }) {
+                        FinanceDropdownMenu(expanded = accountMenuExpanded, onDismissRequest = { accountMenuExpanded = false }) {
                             eligibleAccounts.forEach { account ->
-                                DropdownMenuItem(
+                                FinanceDropdownMenuItem(
                                     text = { Text(account.name + " • " + TextContent.money(account.balance, account.currency, lang)) },
                                     onClick = { selectedAccountId = account.id; accountMenuExpanded = false }
                                 )

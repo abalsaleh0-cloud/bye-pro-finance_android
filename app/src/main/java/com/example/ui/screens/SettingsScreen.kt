@@ -1,5 +1,9 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceDropdownMenuItem
+
+import com.example.ui.components.FinanceDropdownMenu
+
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -31,8 +35,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -230,12 +232,12 @@ fun SettingsScreen(
                         ) {
                             Text(primaryCurrency)
                         }
-                        DropdownMenu(
+                        FinanceDropdownMenu(
                             expanded = currencyMenuExpanded,
                             onDismissRequest = { currencyMenuExpanded = false }
                         ) {
                             listOf("LYD", "USD", "EUR", "GBP", "SAR", "AED", "EGP").forEach { code ->
-                                DropdownMenuItem(
+                                FinanceDropdownMenuItem(
                                     text = { Text(code) },
                                     onClick = {
                                         viewModel.setPrimaryCurrency(code)
@@ -435,9 +437,9 @@ private fun SettingsChoiceRow(label: String, selected: String, options: List<Str
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Box {
             FinanceOutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected) }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            FinanceDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
-                    DropdownMenuItem(text = { Text(option) }, onClick = { onSelected(option); expanded = false })
+                    FinanceDropdownMenuItem(text = { Text(option) }, onClick = { onSelected(option); expanded = false })
                 }
             }
         }

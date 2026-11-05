@@ -1,5 +1,9 @@
 package com.example.ui.screens
 
+import com.example.ui.components.FinanceDropdownMenuItem
+
+import com.example.ui.components.FinanceDropdownMenu
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -28,8 +32,6 @@ import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -313,9 +315,9 @@ fun AddAccountForm(
                 FinanceOutlinedButton(onClick = { typeMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_type_selector")) {
                     Text(accountTypeLabel(selectedType, lang))
                 }
-                DropdownMenu(typeMenuExpanded, { typeMenuExpanded = false }) {
+                FinanceDropdownMenu(typeMenuExpanded, { typeMenuExpanded = false }) {
                     webAccountTypes.forEach { type ->
-                        DropdownMenuItem(text = { Text(accountTypeLabel(type, lang)) }, onClick = { selectedType = type; typeMenuExpanded = false })
+                        FinanceDropdownMenuItem(text = { Text(accountTypeLabel(type, lang)) }, onClick = { selectedType = type; typeMenuExpanded = false })
                     }
                 }
             }
@@ -324,9 +326,9 @@ fun AddAccountForm(
                 FinanceOutlinedButton(onClick = { currencyMenuExpanded = true }, modifier = Modifier.fillMaxWidth().testTag("account_currency_selector")) {
                     Text(currencyLabel(selectedCurrency, lang))
                 }
-                DropdownMenu(currencyMenuExpanded, { currencyMenuExpanded = false }) {
+                FinanceDropdownMenu(currencyMenuExpanded, { currencyMenuExpanded = false }) {
                     accountCurrencies.forEach { currency ->
-                        DropdownMenuItem(text = { Text(currencyLabel(currency, lang)) }, onClick = { selectedCurrency = currency; currencyMenuExpanded = false })
+                        FinanceDropdownMenuItem(text = { Text(currencyLabel(currency, lang)) }, onClick = { selectedCurrency = currency; currencyMenuExpanded = false })
                     }
                 }
             }

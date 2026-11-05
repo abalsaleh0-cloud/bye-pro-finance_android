@@ -1,4 +1,8 @@
 package com.example.ui.screens
+
+import com.example.ui.components.FinanceDropdownMenuItem
+
+import com.example.ui.components.FinanceDropdownMenu
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
@@ -267,16 +271,16 @@ private fun BudgetFormDialog(
                     FinanceTextField(currency, {}, label = { Text(WebI18n.tr("العملة", "Currency", lang)) },
                         modifier = Modifier.fillMaxWidth().testTag("budget_currency_input"), readOnly = true)
                     Box(Modifier.matchParentSize().clickable { currencyMenu = true })
-                    DropdownMenu(expanded = currencyMenu, onDismissRequest = { currencyMenu = false }) {
-                        budgetCurrencies.forEach { code -> DropdownMenuItem(text = { Text(code) }, onClick = { currency = code; currencyMenu = false }) }
+                    FinanceDropdownMenu(expanded = currencyMenu, onDismissRequest = { currencyMenu = false }) {
+                        budgetCurrencies.forEach { code -> FinanceDropdownMenuItem(text = { Text(code) }, onClick = { currency = code; currencyMenu = false }) }
                     }
                 }
                 Box {
                     FinanceTextField(periodLabel(period, lang), {}, label = { Text(WebI18n.tr("الفترة", "Period", lang)) },
                         modifier = Modifier.fillMaxWidth().testTag("budget_period_input"), readOnly = true)
                     Box(Modifier.matchParentSize().clickable { periodMenu = true })
-                    DropdownMenu(expanded = periodMenu, onDismissRequest = { periodMenu = false }) {
-                        budgetPeriods.forEach { option -> DropdownMenuItem(text = { Text(periodLabel(option, lang)) },
+                    FinanceDropdownMenu(expanded = periodMenu, onDismissRequest = { periodMenu = false }) {
+                        budgetPeriods.forEach { option -> FinanceDropdownMenuItem(text = { Text(periodLabel(option, lang)) },
                             onClick = { period = option; periodMenu = false }) }
                     }
                 }
@@ -284,8 +288,8 @@ private fun BudgetFormDialog(
                     FinanceTextField(budgetCategoryLabel(category, lang), {}, label = { Text(WebI18n.tr("الفئة", "Category", lang)) },
                         modifier = Modifier.fillMaxWidth().testTag("budget_category_input"), readOnly = true)
                     Box(Modifier.matchParentSize().clickable { categoryMenu = true })
-                    DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
-                        budgetCategories.forEach { option -> DropdownMenuItem(
+                    FinanceDropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
+                        budgetCategories.forEach { option -> FinanceDropdownMenuItem(
                             text = { Text(budgetCategoryLabel(option, lang)) },
                             onClick = { category = option; categoryMenu = false }
                         ) }
