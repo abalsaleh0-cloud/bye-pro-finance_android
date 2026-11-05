@@ -14,6 +14,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
@@ -53,12 +54,13 @@ fun FinanceCard(
     shape: Shape = RoundedCornerShape(16.dp),
     containerColor: Color = ByeProTheme.colors.cardMain.copy(alpha = 0.08f),
     border: BorderStroke? = BorderStroke(1.dp, ByeProTheme.colors.borderBase),
+    colors: CardColors? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
         modifier = modifier,
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
+        colors = colors ?: CardDefaults.cardColors(containerColor = containerColor),
         border = border,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         content = content
