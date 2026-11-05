@@ -369,6 +369,7 @@ fun FinanceLinearProgressIndicator(
 
 
 /** Shared bottom sheet surface for consistent dark/light presentation. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun FinanceModalBottomSheet(
     onDismissRequest: () -> Unit,
