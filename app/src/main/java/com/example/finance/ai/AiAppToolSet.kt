@@ -606,28 +606,27 @@ class AiAppToolSet(
         )
     }
 
-    @Tool(description = "Prepare paying an unpaid bill from an existing personal account. Checks account currency and available balance. Payment, transaction, account balance and bill status are updated atomically only after confirmation.")
-    fun proposeMarkBillPaid(billId: Long, accountId: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+    @Tool(description = "Prepare marking an unpaid bill or rent installment as paid. accountId=0 means record payment without linking a personal account. Never reject the record because an account balance is low; an explicitly selected account is optional.")
+    fun proposeMarkBillPaid(billId: Long, accountId: Long = 0L): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val bill = repository.bills.first().firstOrNull { it.id == billId }
             ?: return@runBlocking mapOf("success" to false, "error" to "Bill not found.")
         if (bill.isPaid) return@runBlocking mapOf("success" to true, "message" to "الفاتورة مدفوعة مسبقاً؛ لم يتم إنشاء دفعة مكررة.")
-        val account = repository.accounts.first().firstOrNull { it.id == accountId }
-            ?: return@runBlocking mapOf("success" to false, "error" to "Active account not found.")
+        val account = if (accountId > 0L) repository.accounts.first().firstOrNull { it.id == accountId }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Active account not found.") else null
         if (!bill.amount.isFinite() || bill.amount <= 0.0 ||
-            !bill.currency.equals(account.currency, true) || account.balance < bill.amount
-        ) return@runBlocking mapOf("success" to false, "error" to "Bill amount, account currency or available balance is invalid.")
+            (account != null && !bill.currency.equals(account.currency, true))
+        ) return@runBlocking mapOf("success" to false, "error" to "Bill amount or account currency is invalid.")
         stageUpdate(
             "مراجعة دفع فاتورة",
             "الفاتورة: " + bill.name + "\nالمبلغ: " + bill.amount + " " + bill.currency +
-                "\nالحساب: " + account.name,
+                (if (account == null) "\nدون ربط بحساب شخصي" else "\nالحساب: " + account.name),
             suspend {
-                val ok = repository.markBillPaid(billId, accountId)
-                check(ok) { "تعذر دفع الفاتورة؛ تحقق من الرصيد والحساب وحالة الفاتورة." }
-                "تم دفع الفاتورة وتسجيل المصروف وتحديث رصيد الحساب بعد تأكيدك."
+                val ok = repository.markBillPaid(billId, account?.id)
+                check(ok) { "تعذر تسجيل دفع الفاتورة؛ ربما تغيرت حالتها." }
+                "تم تسجيل دفع الفاتورة" + (if (account == null) " دون ربط بحساب شخصي" else " وتحديث الحساب") + " بعد تأكيدك."
             }
         )
     }
-
 
     @Tool(description = "Prepare deletion of an existing transaction. Shows its amount, date, account and description. The repository reverses the posted balance impact and writes an audit event atomically. Never delete a transfer ledger row independently; the repository rejects it. Requires explicit confirmation.")
     fun proposeDeleteTransaction(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
@@ -1025,7 +1024,7 @@ class AiAppToolSet(
             "proposeCreateHouseholdMember" to listOf("name", "role", "contributionPercent", "email"),
             "proposeCreateHouseholdExpense" to listOf("title", "amount", "payerMemberId", "category", "currency"),
             "proposeRecordDebtPayment" to listOf("debtId", "amount"),
-            "proposeMarkBillPaid" to listOf("billId", "accountId"),
+            "proposeMarkBillPaid" to listOf("billId"),
             "proposeDeleteTransaction" to listOf("id"),
             "proposeDeleteBudget" to listOf("id"),
             "proposeDeleteDebt" to listOf("id"),
