@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 
 import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceFilterChip
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
@@ -58,8 +59,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -214,38 +213,23 @@ fun AiAssistantScreen(
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            FilterChip(
+            FinanceFilterChip(
                 selected = selectedTabIndex == 0,
                 onClick = { selectedTabIndex = 0 },
                 label = { Text(WebI18n.tr("المحادثة", "Studio", lang), fontWeight = FontWeight.SemiBold) },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = ByeProTheme.colors.cardMain,
-                    selectedContainerColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.18f),
-                    labelColor = ByeProTheme.colors.textSecondary,
-                    selectedLabelColor = ByeProTheme.colors.goldPrimary
-                )
+                modifier = Modifier
             )
-            FilterChip(
+            FinanceFilterChip(
                 selected = selectedTabIndex == 1,
                 onClick = { selectedTabIndex = 1 },
                 label = { Text(Strings.get("nav_ai_insights", lang), fontWeight = FontWeight.SemiBold) },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = ByeProTheme.colors.cardMain,
-                    selectedContainerColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.18f),
-                    labelColor = ByeProTheme.colors.textSecondary,
-                    selectedLabelColor = ByeProTheme.colors.goldPrimary
-                )
+                modifier = Modifier
             )
-            FilterChip(
+            FinanceFilterChip(
                 selected = selectedTabIndex == 2,
                 onClick = { selectedTabIndex = 2 },
                 label = { Text(WebI18n.tr("النماذج والإعدادات", "Models & Settings", lang), fontWeight = FontWeight.SemiBold) },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = ByeProTheme.colors.cardMain,
-                    selectedContainerColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.18f),
-                    labelColor = ByeProTheme.colors.textSecondary,
-                    selectedLabelColor = ByeProTheme.colors.goldPrimary
-                )
+                modifier = Modifier
             )
         }
 
