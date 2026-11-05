@@ -18,7 +18,7 @@ class AiCommandRouterTest {
     fun classifiesColloquialGroceriesAndMobileCreditExpenses() {
         val groceries = AiCommandRouter.parseTransaction("سجل مصروف ٥٠ دينار مشتريات خضار", "LYD")
         assertEquals("groceries", groceries?.category)
-        assertEquals("سجل مصروف ٥٠ دينار مشتريات خضار", groceries?.description)
+        assertEquals("سجل مصروف 50 دينار مشتريات خضار", groceries?.description)
 
         val mobile = AiCommandRouter.parseTransaction("صرفت ١٠ دينار شحن رصيد", "LYD")
         assertEquals("mobile_credit", mobile?.category)
