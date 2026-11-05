@@ -121,7 +121,7 @@ class AiAppToolSet(
     }
 
     @Tool(description = "Prepare a work ledger record. type must exactly match WorkRecordType. sourceId=0 means a general record without a work source; accountId=0 means save in the work ledger without linking a personal account. scope selects EMPLOYMENT or FREELANCE; omit it only when the record type makes the scope clear. Salary and freelance-specific record types require a matching source. FREELANCE_PAYMENT requires relatedRecordId. Saved only after confirmation.")
-    fun proposeCreateWorkRecord(sourceId: Long, type: String, amount: Double, currency: String, period: String, notes: String, accountId: Long, relatedRecordId: Long, scope: String = ""): Map<String, Any> = runBlocking(Dispatchers.IO) {
+    fun proposeCreateWorkRecord(sourceId: Long, type: String, amount: Double, currency: String, period: String, notes: String, accountId: Long = 0L, relatedRecordId: Long = 0L, scope: String = ""): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val parsedType = runCatching { WorkRecordType.valueOf(type.trim().uppercase()) }.getOrNull()
             ?: return@runBlocking mapOf("success" to false, "error" to "Unknown work record type.")
         val cleanCurrency = currency.trim().uppercase()
@@ -581,26 +581,27 @@ class AiAppToolSet(
     }
 
 
-    @Tool(description = "Prepare a real debt payment or debt collection. Reads the debt and account first, validates currency, remaining amount and available funds, then executes atomically only after confirmation.")
-    fun proposeRecordDebtPayment(debtId: Long, accountId: Long, amount: Double, notes: String, paymentDate: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+    @Tool(description = "Record a payment or collection against an existing debt. Understand natural and colloquial Arabic requests. accountId=0 means do not link any personal account and never check account balance; a positive accountId is an explicitly requested optional posting. The debt remaining amount is always updated atomically after user confirmation.")
+    fun proposeRecordDebtPayment(debtId: Long, accountId: Long = 0L, amount: Double, notes: String = "", paymentDate: Long = System.currentTimeMillis()): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val debt = repository.debts.first().firstOrNull { it.id == debtId }
             ?: return@runBlocking mapOf("success" to false, "error" to "Debt not found.")
-        val account = repository.accounts.first().firstOrNull { it.id == accountId }
-            ?: return@runBlocking mapOf("success" to false, "error" to "Active account not found.")
+        val account = if (accountId > 0L) repository.accounts.first().firstOrNull { it.id == accountId }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Active account not found.") else null
         if (debt.status.name == "PAID" || !amount.isFinite() || amount <= 0.0 ||
             amount > debt.remaining || paymentDate <= 0L ||
-            !debt.currency.equals(account.currency, true) ||
-            (debt.direction == "i_owe" && account.balance < amount)
-        ) return@runBlocking mapOf("success" to false, "error" to "Debt payment details, currency, remaining amount or account balance are invalid.")
+            (account != null && !debt.currency.equals(account.currency, true))
+        ) return@runBlocking mapOf("success" to false, "error" to "Debt payment details or currency are invalid.")
         val action = if (debt.direction == "i_owe") "سداد دين" else "تحصيل دين"
         stageUpdate(
             "مراجعة " + action,
             "الدين: " + debt.name + "\nالمبلغ: " + amount + " " + debt.currency +
-                "\nالحساب: " + account.name + "\nالمتبقي بعد العملية: " + (debt.remaining - amount) + " " + debt.currency,
+                (if (account == null) "\nدون ربط بحساب شخصي" else "\nالحساب: " + account.name) +
+                "\nالمتبقي بعد العملية: " + (debt.remaining - amount) + " " + debt.currency,
             suspend {
-                val ok = repository.recordDebtPayment(debtId, accountId, amount, notes.trim(), paymentDate)
-                check(ok) { "تعذر تسجيل دفعة الدين؛ ربما تغير الرصيد أو حالة الدين." }
-                "تم تسجيل " + (if (debt.direction == "i_owe") "سداد الدين" else "تحصيل الدين") + " وتحديث الحساب والدين بعد تأكيدك."
+                val ok = repository.recordDebtPayment(debtId, account?.id, amount, notes.trim(), paymentDate)
+                check(ok) { "تعذر تسجيل دفعة الدين؛ ربما تغيرت حالة الدين أو قيمته." }
+                "تم تسجيل " + (if (debt.direction == "i_owe") "سداد الدين" else "تحصيل الدين") +
+                    (if (account == null) " دون ربط بحساب شخصي" else " وتحديث الحساب") + " بعد تأكيدك."
             }
         )
     }
