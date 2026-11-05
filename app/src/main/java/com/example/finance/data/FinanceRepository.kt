@@ -407,20 +407,18 @@ class FinanceRepository(
             if (existing.status != newStatus) {
                 val crossesPostedBoundary = (existing.status == TransactionStatus.COMPLETED) != (newStatus == TransactionStatus.COMPLETED)
                 if (crossesPostedBoundary) {
-                    val account = dao.getAccountById(existing.accountId)
-                        ?: throw IllegalStateException("Transaction account is missing")
-                    val current = FinanceEngine.toBigDecimal(account.balance)
-                    val amount = FinanceEngine.toBigDecimal(existing.amount)
-                    val signedDelta = when (existing.type) {
-                        TransactionType.INCOME, TransactionType.REFUND, TransactionType.ADJUSTMENT -> amount
-                        TransactionType.EXPENSE, TransactionType.TRANSFER -> amount.negate()
+                    if (existing.accountId > 0L) {
+                        val account = dao.getAccountById(existing.accountId)
+                            ?: throw IllegalStateException("Transaction account is missing")
+                        val current = FinanceEngine.toBigDecimal(account.balance)
+                        val amount = FinanceEngine.toBigDecimal(existing.amount)
+                        val signedDelta = when (existing.type) {
+                            TransactionType.INCOME, TransactionType.REFUND, TransactionType.ADJUSTMENT -> amount
+                            TransactionType.EXPENSE, TransactionType.TRANSFER -> amount.negate()
+                        }
+                        val updatedBalance = if (newStatus == TransactionStatus.COMPLETED) current.add(signedDelta) else current.subtract(signedDelta)
+                        dao.updateAccountBalance(account.id, updatedBalance.toDouble())
                     }
-                    val updatedBalance = if (newStatus == TransactionStatus.COMPLETED) {
-                        current.add(signedDelta)
-                    } else {
-                        current.subtract(signedDelta)
-                    }
-                    dao.updateAccountBalance(account.id, updatedBalance.toDouble())
                 }
                 dao.updateTransaction(existing.copy(status = newStatus))
                 logAudit("STATUS", "Transaction", "Transaction #${existing.id} status: ${existing.status} -> $newStatus")
