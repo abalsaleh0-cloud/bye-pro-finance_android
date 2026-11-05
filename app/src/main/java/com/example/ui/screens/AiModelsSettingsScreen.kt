@@ -16,11 +16,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tune
+import com.example.ui.components.FinanceOutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -251,7 +251,7 @@ fun AiModelsSettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    OutlinedButton(
+                    FinanceOutlinedButton(
                         onClick = onDownloadRecommendedModel,
                         enabled = !localModelLoading,
                         modifier = Modifier.fillMaxWidth()
@@ -296,7 +296,7 @@ fun AiModelsSettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    OutlinedButton(
+                    FinanceOutlinedButton(
                         onClick = { scope.launch { scanModels() } },
                         enabled = !isScanning,
                         modifier = Modifier.fillMaxWidth()
@@ -317,7 +317,7 @@ fun AiModelsSettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    OutlinedButton(
+                    FinanceOutlinedButton(
                         onClick = { modelPicker.launch(arrayOf("*/*")) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -356,7 +356,7 @@ fun AiModelsSettingsScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = ByeProTheme.colors.goldPrimary
                         )
-                        OutlinedButton(
+                        FinanceOutlinedButton(
                             onClick = { onImportAndLoadModel(model.uri) },
                             enabled = !localModelLoading && (
                                 model.name.endsWith(".litertlm", ignoreCase = true) ||
@@ -403,7 +403,7 @@ fun AiModelsSettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (model.file.extension.equals("litertlm", ignoreCase = true)) {
-                        OutlinedButton(
+                        FinanceOutlinedButton(
                             onClick = { onLoadModelFile(model.file) },
                             enabled = !localModelLoading,
                             modifier = Modifier.fillMaxWidth()
