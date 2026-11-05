@@ -247,69 +247,58 @@ fun MainAppScaffold(
                     containerColor = MaterialTheme.colorScheme.surface,
                     tonalElevation = 8.dp
                 ) {
+                    val navColors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = ByeProTheme.colors.goldPrimary,
+                        selectedTextColor = ByeProTheme.colors.goldPrimary,
+                        indicatorColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f)
+                    )
                     NavigationBarItem(
                         selected = currentScreen == "dashboard",
                         onClick = { viewModel.setScreen("dashboard") },
                         icon = { Icon(Icons.Default.Dashboard, contentDescription = Strings.get("nav_dashboard", lang)) },
-                        label = { Text(appText("nav_dashboard"), fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = ByeProTheme.colors.goldPrimary,
-                            selectedTextColor = ByeProTheme.colors.goldPrimary,
-                            indicatorColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f)
-                        ),
+                        label = { Text(WebI18n.tr("الرئيسية", "Home", lang), fontSize = 10.sp, maxLines = 1) },
+                        colors = navColors,
                         modifier = Modifier.testTag("nav_dashboard_tab")
                     )
-
                     NavigationBarItem(
-                        selected = currentScreen == "accounts",
-                        onClick = { viewModel.setScreen("accounts") },
-                        icon = { Icon(Icons.Default.AccountBalance, contentDescription = Strings.get("nav_accounts", lang)) },
-                        label = { Text(appText("nav_accounts"), fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = ByeProTheme.colors.goldPrimary,
-                            selectedTextColor = ByeProTheme.colors.goldPrimary,
-                            indicatorColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f)
-                        ),
-                        modifier = Modifier.testTag("nav_accounts_tab")
+                        selected = currentScreen == "ai_assistant",
+                        onClick = { viewModel.setScreen("ai_assistant") },
+                        icon = { Icon(Icons.Default.AutoAwesome, contentDescription = WebI18n.tr("المساعد المالي", "Financial assistant", lang)) },
+                        label = { Text(WebI18n.tr("المساعد", "Assistant", lang), fontSize = 10.sp, maxLines = 1) },
+                        colors = navColors,
+                        modifier = Modifier.testTag("nav_ai_assistant_tab")
                     )
-
+                    NavigationBarItem(
+                        selected = currentScreen == "work",
+                        onClick = { viewModel.setScreen("work") },
+                        icon = { Icon(Icons.Default.AccountBalance, contentDescription = WebI18n.tr("العمل", "Work", lang)) },
+                        label = { Text(WebI18n.tr("العمل", "Work", lang), fontSize = 10.sp, maxLines = 1) },
+                        colors = navColors,
+                        modifier = Modifier.testTag("nav_work_tab")
+                    )
+                    NavigationBarItem(
+                        selected = currentScreen == "household",
+                        onClick = { viewModel.setScreen("household") },
+                        icon = { Icon(Icons.Default.Group, contentDescription = WebI18n.tr("المنزل", "Home", lang)) },
+                        label = { Text(WebI18n.tr("المنزل", "Household", lang), fontSize = 10.sp, maxLines = 1) },
+                        colors = navColors,
+                        modifier = Modifier.testTag("nav_household_tab")
+                    )
+                    NavigationBarItem(
+                        selected = currentScreen == "debts",
+                        onClick = { viewModel.setScreen("debts") },
+                        icon = { Icon(Icons.Default.MoneyOff, contentDescription = Strings.get("debts_title", lang)) },
+                        label = { Text(WebI18n.tr("الديون", "Debts", lang), fontSize = 10.sp, maxLines = 1) },
+                        colors = navColors,
+                        modifier = Modifier.testTag("nav_debts_tab")
+                    )
                     NavigationBarItem(
                         selected = currentScreen == "transactions",
                         onClick = { viewModel.setScreen("transactions") },
-                        icon = { Icon(Icons.Default.ReceiptLong, contentDescription = Strings.get("nav_transactions", lang)) },
-                        label = { Text(appText("nav_transactions"), fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = ByeProTheme.colors.goldPrimary,
-                            selectedTextColor = ByeProTheme.colors.goldPrimary,
-                            indicatorColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f)
-                        ),
-                        modifier = Modifier.testTag("nav_transactions_tab")
-                    )
-
-                    NavigationBarItem(
-                        selected = currentScreen == "budgets",
-                        onClick = { viewModel.setScreen("budgets") },
-                        icon = { Icon(Icons.Default.PieChart, contentDescription = Strings.get("nav_budgets", lang)) },
-                        label = { Text(appText("nav_budgets"), fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = ByeProTheme.colors.goldPrimary,
-                            selectedTextColor = ByeProTheme.colors.goldPrimary,
-                            indicatorColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f)
-                        ),
-                        modifier = Modifier.testTag("nav_budgets_tab")
-                    )
-
-                    NavigationBarItem(
-                        selected = currentScreen !in listOf("dashboard", "accounts", "transactions", "budgets"),
-                        onClick = { showHubBottomSheet = true },
-                        icon = { Icon(Icons.Default.Menu, contentDescription = WebI18n.tr("القائمة", "Hub menu", lang)) },
-                        label = { Text(WebI18n.tr("المزيد", "More", lang), fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = ByeProTheme.colors.goldPrimary,
-                            selectedTextColor = ByeProTheme.colors.goldPrimary,
-                            indicatorColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f)
-                        ),
-                        modifier = Modifier.testTag("nav_more_hub_tab")
+                        icon = { Icon(Icons.Default.ReceiptLong, contentDescription = WebI18n.tr("المصروفات", "Expenses", lang)) },
+                        label = { Text(WebI18n.tr("المصروفات", "Expenses", lang), fontSize = 10.sp, maxLines = 1) },
+                        colors = navColors,
+                        modifier = Modifier.testTag("nav_expenses_tab")
                     )
                 }
             }
