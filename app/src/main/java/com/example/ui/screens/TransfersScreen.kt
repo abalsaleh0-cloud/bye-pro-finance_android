@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -124,7 +123,7 @@ fun TransfersScreen(viewModel: FinanceViewModel) {
                         )
                         ExposedDropdownMenu(expanded = fromExpanded, onDismissRequest = { fromExpanded = false }) {
                             accounts.filterNot { it.isArchived }.forEach { account ->
-                                DropdownMenuItem(
+                                FinanceDropdownMenuItem(
                                     text = { Text("${TextContent.isolate(account.name)} · ${account.currency}") },
                                     onClick = {
                                         fromAccountId = account.id
@@ -153,7 +152,7 @@ fun TransfersScreen(viewModel: FinanceViewModel) {
                         )
                         ExposedDropdownMenu(expanded = toExpanded, onDismissRequest = { toExpanded = false }) {
                             accounts.filter { !it.isArchived && it.id != fromAccountId }.forEach { account ->
-                                DropdownMenuItem(
+                                FinanceDropdownMenuItem(
                                     text = { Text("${TextContent.isolate(account.name)} · ${account.currency}") },
                                     onClick = {
                                         toAccountId = account.id
