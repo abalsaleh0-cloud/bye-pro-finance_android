@@ -157,17 +157,11 @@ fun DebtsBillsScreen(
                     // Bills list
                     if (bills.isEmpty()) {
                         item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                            ) {
-                                Text(
-                                    text = WebI18n.tr("لا توجد فواتير دورية مسجلة حالياً.", "No recurring bills recorded.", lang),
-                                    modifier = Modifier.padding(24.dp),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            AppEmptyState(
+                                icon = Icons.Default.Payment,
+                                title = WebI18n.tr("لا توجد فواتير دورية مسجلة", "No recurring bills recorded", lang),
+                                description = WebI18n.tr("ستظهر هنا الفواتير الدورية عند إضافتها.", "Recurring bills will appear here after you add them.", lang)
+                            )
                         }
                     } else {
                         items(bills, key = { it.id }) { bill ->
