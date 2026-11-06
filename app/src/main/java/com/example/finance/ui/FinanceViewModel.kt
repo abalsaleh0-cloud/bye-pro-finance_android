@@ -421,8 +421,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                         "تم تحميل نموذج الصور لكنه لم ينتج وصفاً للصورة."
                     }
                     val elapsed = System.currentTimeMillis() - startedAt
+                    val sampleOutput = result.trim().replace(Regex("\\s+"), " ").take(220)
                     _localModelStatus.value =
-                        "اجتاز نموذج الصور الاختبار الفعلي محلياً: ${modelFile.name} • ${elapsed} ms"
+                        "اجتاز نموذج الصور الاختبار الفعلي محلياً: ${modelFile.name} • ${elapsed} ms\nعينة من إجابة النموذج: ${sampleOutput}"
                     _localModelReady.value = false
                 } else {
                     require(
@@ -445,8 +446,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                     }
                     val elapsed = System.currentTimeMillis() - startedAt
                     _localModelReady.value = true
+                    val sampleOutput = result.trim().replace(Regex("\\s+"), " ").take(220)
                     _localModelStatus.value =
-                        "اجتاز نموذج المحادثة اختبار التوليد الفعلي محلياً: ${modelFile.name} • ${elapsed} ms"
+                        "اجتاز نموذج المحادثة اختبار التوليد الفعلي محلياً: ${modelFile.name} • ${elapsed} ms\nعينة من إجابة النموذج: ${sampleOutput}"
                 }
             } catch (error: Throwable) {
                 if (!forVision) _localModelReady.value = false
