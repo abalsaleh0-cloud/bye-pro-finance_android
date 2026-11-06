@@ -121,6 +121,13 @@ enum class ElevenLabsConnectionResult {
     REQUEST_FAILED
 }
 
+/** Safe diagnostic metadata only; never contains the API key or raw response body. */
+data class ElevenLabsConnectionCheck(
+    val result: ElevenLabsConnectionResult,
+    val errorCode: String? = null,
+    val requestId: String? = null
+)
+
 class ElevenLabsSpeechProvider(context: Context) {
     private val settings = SecureVoiceSettings(context)
     private val client = OkHttpClient.Builder()
@@ -133,9 +140,9 @@ class ElevenLabsSpeechProvider(context: Context) {
      * Checks the stored credential against ElevenLabs' authenticated user endpoint.
      * Provider response bodies are intentionally not exposed to the UI or logs.
      */
-    suspend fun testConnection(): ElevenLabsConnectionResult = withContext(Dispatchers.IO) {
+    suspend fun testConnection(): ElevenLabsConnectionCheck = withContext(Dispatchers.IO) {
         val apiKey = settings.readApiKey()
-            ?: return@withContext ElevenLabsConnectionResult.MISSING_KEY
+            ?: return@withContext ElevenLabsConnectionCheck(ElevenLabsConnectionResult.MISSING_KEY)
         val request = Request.Builder()
             .url("https://api.elevenlabs.io/v1/user")
             .header("xi-api-key", apiKey)
@@ -144,7 +151,17 @@ class ElevenLabsSpeechProvider(context: Context) {
             .build()
         try {
             client.newCall(request).execute().use { response ->
-                when {
+                // Read only safe diagnostic fields. Never expose or log the raw body.
+                val responseBody = response.body?.string().orEmpty().take(8_192)
+                val detail = runCatching {
+                    JSONObject(responseBody).optJSONObject("detail")
+                }.getOrNull()
+                val errorCode = (detail?.optString("code")?.takeIf { it.isNotBlank() && it != "null" }
+                    ?: detail?.optString("status")?.takeIf { it.isNotBlank() && it != "null" })
+                    ?.takeIf { it.matches(Regex("[A-Za-z0-9_]{1,64}")) }
+                val requestId = detail?.optString("request_id")
+                    ?.takeIf { it.matches(Regex("[A-Fa-f0-9-]{8,64}")) }
+                val result = when {
                     response.isSuccessful -> ElevenLabsConnectionResult.CONNECTED
                     response.code == 400 -> ElevenLabsConnectionResult.BAD_REQUEST
                     response.code == 401 -> ElevenLabsConnectionResult.INVALID_KEY
@@ -155,17 +172,18 @@ class ElevenLabsSpeechProvider(context: Context) {
                     response.code in 500..599 -> ElevenLabsConnectionResult.SERVER_ERROR
                     else -> ElevenLabsConnectionResult.OTHER_HTTP_RESPONSE
                 }
+                ElevenLabsConnectionCheck(result, errorCode, requestId)
             }
         } catch (_: SocketTimeoutException) {
-            ElevenLabsConnectionResult.TIMEOUT
+            ElevenLabsConnectionCheck(ElevenLabsConnectionResult.TIMEOUT)
         } catch (_: SSLException) {
-            ElevenLabsConnectionResult.TLS_ERROR
+            ElevenLabsConnectionCheck(ElevenLabsConnectionResult.TLS_ERROR)
         } catch (_: UnknownHostException) {
-            ElevenLabsConnectionResult.DNS_ERROR
+            ElevenLabsConnectionCheck(ElevenLabsConnectionResult.DNS_ERROR)
         } catch (_: IOException) {
-            ElevenLabsConnectionResult.NETWORK_ERROR
+            ElevenLabsConnectionCheck(ElevenLabsConnectionResult.NETWORK_ERROR)
         } catch (_: Exception) {
-            ElevenLabsConnectionResult.REQUEST_FAILED
+            ElevenLabsConnectionCheck(ElevenLabsConnectionResult.REQUEST_FAILED)
         }
     }
 

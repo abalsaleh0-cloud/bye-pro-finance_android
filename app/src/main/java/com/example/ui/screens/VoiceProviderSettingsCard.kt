@@ -62,13 +62,18 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
         false
     }
 
-    fun resultMessage(result: ElevenLabsConnectionResult): String = when (result) {
+    fun resultMessage(check: com.example.finance.ai.ElevenLabsConnectionCheck): String {
+        val diagnostic = buildString {
+            check.errorCode?.let { append(" [").append(it).append("]") }
+            check.requestId?.let { append(" (Request ID: ").append(it).append(")") }
+        }
+        return when (check.result) {
         ElevenLabsConnectionResult.CONNECTED ->
             WebI18n.tr("متصل بنجاح — مفتاح ElevenLabs صالح.", "Connected — ElevenLabs API key is valid.", lang)
         ElevenLabsConnectionResult.MISSING_KEY ->
             WebI18n.tr("أدخل مفتاح API واحفظه أولاً.", "Enter and save an API key first.", lang)
         ElevenLabsConnectionResult.INVALID_KEY ->
-            WebI18n.tr("فشل التحقق: مفتاح API غير صالح (401).", "Verification failed: invalid API key (401).", lang)
+            WebI18n.tr("رفضت ElevenLabs المصادقة (401). رمز الخطأ:", "ElevenLabs rejected authentication (401). Error code:", lang) + diagnostic
         ElevenLabsConnectionResult.FORBIDDEN ->
             WebI18n.tr("المفتاح وصل إلى ElevenLabs لكن صلاحية هذا الطلب مرفوضة (403). راجع صلاحيات User: Read أو قيود IP للمفتاح.", "ElevenLabs rejected this endpoint (403). Check User: Read scope and the key's IP allowlist.", lang)
         ElevenLabsConnectionResult.BAD_REQUEST ->
@@ -93,6 +98,7 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
             WebI18n.tr("تعذر الاتصال بالإنترنت أو الوصول إلى ElevenLabs.", "Could not reach ElevenLabs. Check your internet connection.", lang)
         ElevenLabsConnectionResult.REQUEST_FAILED ->
             WebI18n.tr("حدث خطأ غير متوقع أثناء اختبار الاتصال. لم يتم عرض المفتاح أو تسجيله. أعد المحاولة، وإذا تكرر الخطأ أرسل نص هذه الرسالة فقط.", "An unexpected error occurred during the connection test. The key was not displayed or logged. Retry; if it persists, share only this message.", lang)
+        }
     }
 
     Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
@@ -144,9 +150,9 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
                             status = WebI18n.tr("جارٍ التحقق من مفتاح ElevenLabs…", "Verifying ElevenLabs API key…", lang)
                             scope.launch {
                                 try {
-                                    val result = runCatching { provider.testConnection() }
-                                        .getOrElse { ElevenLabsConnectionResult.REQUEST_FAILED }
-                                    status = resultMessage(result)
+                                    val check = runCatching { provider.testConnection() }
+                                        .getOrElse { com.example.finance.ai.ElevenLabsConnectionCheck(ElevenLabsConnectionResult.REQUEST_FAILED) }
+                                    status = resultMessage(check)
                                 } finally {
                                     isTesting = false
                                 }
