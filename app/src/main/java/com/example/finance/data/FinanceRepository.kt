@@ -957,7 +957,7 @@ class FinanceRepository(
             dao.clearBudgets(); dao.clearBills()
             dao.clearSavingsGoals(); dao.clearAssets()
             dao.clearDocuments(); dao.clearAccounts()
-            dao.clearAuditLogs()
+            dao.clearAllNotifications(); dao.clearAuditLogs()
         }
         if (db != null) db.withTransaction { clear() } else clear()
     }
