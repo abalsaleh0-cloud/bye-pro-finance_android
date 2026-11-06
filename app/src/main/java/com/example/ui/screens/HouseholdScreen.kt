@@ -8,6 +8,10 @@ import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
 import com.example.ui.components.FinanceIconButton
 import com.example.ui.components.FinanceFloatingActionButton
+import com.example.ui.components.AppFilterChip
+import com.example.ui.components.AppSearchField
+import com.example.ui.components.AppEmptyState
+import com.example.ui.components.AppListBottomPadding
 
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
@@ -180,7 +184,7 @@ fun HouseholdScreen(
                                 Text(WebI18n.tr("سجل مستقل لكل شهر مع حالة مدفوع أو غير مدفوع", "Separate monthly records with paid or unpaid status", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             FinanceOutlinedButton(onClick = { showRentDialog = true }, modifier = Modifier.testTag("add_rent_installment_btn")) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Add, contentDescription = WebI18n.tr("إضافة مصروف منزلي", "Add household expense", lang), modifier = Modifier.size(16.dp))
                                 Text(WebI18n.tr("إضافة شهر", "Add month", lang))
                             }
                         }
@@ -285,10 +289,10 @@ fun HouseholdScreen(
 
             if (expenses.isEmpty()) {
                 item {
-                    Text(
-                        text = WebI18n.tr("لا توجد مصاريف مشتركة مسجلة بعد.", "No shared expenses recorded yet.", lang),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    AppEmptyState(
+                        icon = Icons.Default.ReceiptLong,
+                        title = WebI18n.tr("لا توجد مصاريف مشتركة", "No shared expenses", lang),
+                        description = WebI18n.tr("استخدم زر الإضافة لتسجيل أول مصروف منزلي.", "Use the add button to record the first household expense.", lang)
                     )
                 }
             } else {
@@ -329,7 +333,7 @@ fun HouseholdScreen(
             }
 
             item {
-                Spacer(modifier = Modifier.height(72.dp))
+                Spacer(modifier = Modifier.height(AppListBottomPadding))
             }
         }
     }

@@ -11,6 +11,10 @@ import com.example.finance.ui.FinanceViewModel
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceFloatingActionButton
+import com.example.ui.components.AppFilterChip
+import com.example.ui.components.AppSearchField
+import com.example.ui.components.AppEmptyState
+import com.example.ui.components.AppListBottomPadding
 import com.example.ui.components.FinanceIconButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
@@ -40,14 +44,11 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -146,26 +147,18 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
                 Spacer(Modifier.height(4.dp))
                 Text(WebI18n.tr("تسجيل ومراجعة الدخل والمصروفات والتسويات دون خلط العملات.", "Record and review income, expenses, and adjustments without mixing currencies.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(10.dp))
-                FinanceTextField(
-                    value = search,
-                    onValueChange = { search = it },
-                    placeholder = { Text(WebI18n.tr("ابحث في الوصف أو الحساب أو التصنيف أو العملة…", "Search description, account, category or currency…", lang)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth().testTag("transaction_search_input"),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
+                AppSearchField(search, { search = it }, WebI18n.tr("ابحث في المعاملات…", "Search transactions…", lang), Modifier.fillMaxWidth().testTag("transaction_search_input"))
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = filter == null, onClick = { filter = null }, label = { Text(WebI18n.tr("كل الأنواع", "All types", lang)) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = ByeProTheme.colors.goldPrimary))
+                    AppFilterChip(selected = filter == null, onClick = { filter = null }, label = { Text(WebI18n.tr("كل الأنواع", "All types", lang)) })
                     webTransactionTypes.forEach { type ->
-                        FilterChip(selected = filter == type, onClick = { filter = type }, label = { Text(txTypeLabel(type, lang)) })
+                        AppFilterChip(selected = filter == type, onClick = { filter = type }, label = { Text(txTypeLabel(type, lang)) })
                     }
                 }
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = statusFilter == null, onClick = { statusFilter = null }, label = { Text(WebI18n.tr("كل الحالات", "All statuses", lang)) }, modifier = Modifier.testTag("transaction_status_all"))
+                    AppFilterChip(selected = statusFilter == null, onClick = { statusFilter = null }, label = { Text(WebI18n.tr("كل الحالات", "All statuses", lang)) }, modifier = Modifier.testTag("transaction_status_all"))
                     listOf(TransactionStatus.PENDING, TransactionStatus.COMPLETED, TransactionStatus.CANCELLED).forEach { status ->
-                        FilterChip(selected = statusFilter == status, onClick = { statusFilter = status }, label = { Text(statusLabel(status, lang)) }, modifier = Modifier.testTag("transaction_status_${status.name.lowercase()}"))
+                        AppFilterChip(selected = statusFilter == status, onClick = { statusFilter = status }, label = { Text(statusLabel(status, lang)) }, modifier = Modifier.testTag("transaction_status_${status.name.lowercase()}"))
                     }
                 }
             }
@@ -207,19 +200,18 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
 
             if (visible.isEmpty()) {
                 item {
-                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                        Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(WebI18n.tr("لا توجد معاملات مطابقة", "No matching transactions", lang), fontWeight = FontWeight.Bold)
-                            Text(WebI18n.tr("سجّل أول معاملة أو غيّر الفلتر.", "Record your first transaction or change the filter.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
+                    AppEmptyState(
+                        icon = Icons.Default.ReceiptLong,
+                        title = WebI18n.tr(if (search.isBlank() && filter == null && statusFilter == null) "لا توجد معاملات بعد" else "لا توجد نتائج للفلتر", if (search.isBlank() && filter == null && statusFilter == null) "No transactions yet" else "No filter results", lang),
+                        description = WebI18n.tr("استخدم زر الإضافة لتسجيل معاملة.", "Use the add button to record a transaction.", lang)
+                    )
                 }
             } else {
                 items(visible, key = { it.id }) { tx ->
                     TransactionItemCard(transaction = tx, account = accounts.firstOrNull { it.id == tx.accountId }, lang = lang, onEdit = { editTarget = tx; showForm = true }, onDelete = { deleteTarget = tx }, onCancel = { cancelTarget = tx }, onToggleStatus = { viewModel.updateTransactionStatus(tx, if (tx.status == TransactionStatus.COMPLETED) TransactionStatus.PENDING else TransactionStatus.COMPLETED) })
                 }
             }
-            item { Spacer(Modifier.height(72.dp)) }
+            item { Spacer(Modifier.height(AppListBottomPadding)) }
         }
     }
 

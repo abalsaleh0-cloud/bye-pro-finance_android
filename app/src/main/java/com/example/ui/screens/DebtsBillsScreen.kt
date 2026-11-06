@@ -8,6 +8,10 @@ import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
 import com.example.ui.components.FinanceIconButton
 import com.example.ui.components.FinanceFloatingActionButton
+import com.example.ui.components.AppFilterChip
+import com.example.ui.components.AppSearchField
+import com.example.ui.components.AppEmptyState
+import com.example.ui.components.AppListBottomPadding
 
 import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
@@ -101,7 +105,7 @@ fun DebtsBillsScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_debt_bill_fab")
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = null)
+                Icon(imageVector = Icons.Default.Add, contentDescription = WebI18n.tr("إضافة دين أو فاتورة", "Add debt or bill", lang))
             }
         }
     ) { padding ->
@@ -523,12 +527,7 @@ private fun DebtManagementPanel(
                 modifier = Modifier.weight(1f)
             )
         }
-        FinanceTextField(
-            value = search,
-            onValueChange = { search = it },
-            label = { Text(WebI18n.tr("بحث في الديون", "Search debts", lang)) },
-            modifier = Modifier.fillMaxWidth()
-        )
+        AppSearchField(search, { search = it }, WebI18n.tr("ابحث في الديون…", "Search debts…", lang), Modifier.fillMaxWidth())
         if (currencyTotals.isNotEmpty()) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -540,17 +539,11 @@ private fun DebtManagementPanel(
             }
         }
         if (filtered.isEmpty()) {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Text(
-                    if (search.isBlank()) WebI18n.tr("لا توجد سجلات في هذا التصنيف بعد.", "No records in this debt category yet.", lang)
-                    else WebI18n.tr("لا توجد نتائج مطابقة للبحث.", "No matching search results.", lang),
-                    modifier = Modifier.padding(20.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (debts.none { it.direction == direction }) {
-                FinanceButton(onClick = onAdd) { Text(WebI18n.tr("إضافة أول سجل", "Add first record", lang)) }
-            }
+            AppEmptyState(
+                icon = Icons.Default.CreditCard,
+                title = WebI18n.tr(if (search.isBlank()) "لا توجد ديون في هذا التصنيف" else "لا توجد نتائج للفلتر", if (search.isBlank()) "No debts in this category" else "No filter results", lang),
+                description = WebI18n.tr("استخدم زر الإضافة لإضافة سجل دين.", "Use the add button to add a debt record.", lang)
+            )
         } else {
             Text(WebI18n.tr("${filtered.size} سجل", "${filtered.size} records", lang), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             filtered.forEach { debt ->
