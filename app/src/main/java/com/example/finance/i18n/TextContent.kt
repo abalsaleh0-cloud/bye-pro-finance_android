@@ -1,0 +1,112 @@
+package com.example.finance.i18n
+
+import androidx.compose.runtime.Composable
+import com.example.finance.model.AppLanguage
+import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+/**
+ * Shared text-content layer for the Android client.
+ *
+ * Keeps UI copy in the central Strings catalogue, supports named placeholders,
+ * locale-aware plural categories, consistent financial formatting, and safe
+ * mixed-direction values while the app's visual layout remains RTL.
+ */
+object TextContent {
+    @Volatile
+    var useWesternDigits: Boolean = false
+
+    private fun applyDigitStyle(value: String): String = if (!useWesternDigits) value else buildString(value.length) {
+        value.forEach { char ->
+            append(when (char) {
+                in '٠'..'٩' -> ('0'.code + char.code - '٠'.code).toChar()
+                in '۰'..'۹' -> ('0'.code + char.code - '۰'.code).toChar()
+                else -> char
+            })
+        }
+    }
+
+    private val placeholder = Regex("""\{([A-Za-z][A-Za-z0-9_]*)\}""")
+
+    fun text(
+        key: String,
+        language: AppLanguage,
+        arguments: Map<String, Any?> = emptyMap()
+    ): String {
+        val template = Strings.get(key, language)
+        if (template == key || arguments.isEmpty()) return template
+        return placeholder.replace(template) { match ->
+            val name = match.groupValues[1]
+            arguments[name]?.toString()?.let(::isolate) ?: match.value
+        }
+    }
+
+    fun plural(key: String, count: Int, language: AppLanguage): String {
+        val category = pluralCategory(count, language)
+        val specific = Strings.get("${key}_${category}", language)
+        val fallback = Strings.get("${key}_other", language)
+        val template = if (specific != "${key}_${category}") specific else fallback
+        return if (template == "${key}_other") Strings.get(key, language)
+        else textTemplate(template, mapOf("count" to number(count, language)))
+    }
+
+    fun pluralCategory(count: Int, language: AppLanguage): String {
+        if (language == AppLanguage.EN) return if (count == 1) "one" else "other"
+        return when {
+            count == 0 -> "zero"
+            count == 1 -> "one"
+            count == 2 -> "two"
+            count % 100 in 3..10 -> "few"
+            count % 100 in 11..99 -> "many"
+            else -> "other"
+        }
+    }
+
+    fun number(value: Number, language: AppLanguage, maximumFractionDigits: Int = 2): String =
+        NumberFormat.getNumberInstance(locale(language)).apply {
+            this.maximumFractionDigits = maximumFractionDigits.coerceAtLeast(0)
+        }.format(value).let(::applyDigitStyle)
+
+    fun money(value: Number, currencyCode: String, language: AppLanguage): String =
+        runCatching {
+            val currency = java.util.Currency.getInstance(currencyCode.uppercase(Locale.ROOT))
+            val digits = currency.defaultFractionDigits.coerceAtLeast(0)
+            val amount = NumberFormat.getNumberInstance(Locale.ENGLISH).apply {
+                minimumFractionDigits = digits
+                maximumFractionDigits = digits
+            }.format(value)
+            val label = if (currency.currencyCode == "LYD" && language == AppLanguage.AR) "د.ل" else currency.currencyCode
+            "${isolate(amount)} ${isolate(label)}"
+        }.getOrElse {
+            "${isolate(NumberFormat.getNumberInstance(Locale.ENGLISH).format(value))} ${isolate(currencyCode.uppercase(Locale.ROOT))}"
+        }
+
+    fun percent(value: Number, language: AppLanguage, fractionDigits: Int = 1): String =
+        NumberFormat.getPercentInstance(locale(language)).apply {
+            maximumFractionDigits = fractionDigits.coerceAtLeast(0)
+        }.format(value).let(::applyDigitStyle)
+
+    fun date(value: Date, language: AppLanguage): String =
+        SimpleDateFormat("d MMM yyyy", locale(language)).format(value)
+
+    fun dateTime(value: Date, language: AppLanguage): String =
+        SimpleDateFormat("d MMM yyyy, HH:mm", locale(language)).format(value)
+
+    /** Unicode First Strong Isolate / Pop Directional Isolate for user-entered LTR/RTL values. */
+    fun isolate(value: String): String = "\u2068$value\u2069"
+
+    private fun textTemplate(template: String, arguments: Map<String, Any?>): String =
+        placeholder.replace(template) { match ->
+            arguments[match.groupValues[1]]?.toString()?.let(::isolate) ?: match.value
+        }
+
+    private fun locale(language: AppLanguage): Locale =
+        if (language == AppLanguage.EN) Locale.ENGLISH else Locale.forLanguageTag("ar")
+}
+
+/** Compose-ready string lookup using the app-wide language composition local. */
+@Composable
+fun appText(key: String, arguments: Map<String, Any?> = emptyMap()): String =
+    TextContent.text(key, LocalAppLanguage.current, arguments)

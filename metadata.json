@@ -1,0 +1,6 @@
+{
+  "name": "BYE PRO FINANCE",
+  "description": "Complete professional financial management system with multi-currency accounts, transactions, budgets, debts, bills, savings, reports, OCR smart scan, and AI financial assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

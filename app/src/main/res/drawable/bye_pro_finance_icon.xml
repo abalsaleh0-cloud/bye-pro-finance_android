@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Exact web icon background: #101114, rounded 112px corners. -->
+    <path
+        android:fillColor="#101114"
+        android:pathData="M112,0 L400,0 A112,112 0,0 1,512,112 L512,400 A112,112 0,0 1,400,512 L112,512 A112,112 0,0 1,0,400 L0,112 A112,112 0,0 1,112,0 Z" />
+
+    <!-- Exact web icon gold border: x/y 28, 456x456, radius 96, stroke 10. -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#D4A62A"
+        android:strokeWidth="10"
+        android:strokeLineJoin="round"
+        android:pathData="M124,28 L388,28 A96,96 0,0 1,484,124 L484,388 A96,96 0,0 1,388,484 L124,484 A96,96 0,0 1,28,388 L28,124 A96,96 0,0 1,124,28 Z" />
+
+    <!-- Exact web icon white finance marks. -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#F2EEE5"
+        android:strokeWidth="34"
+        android:strokeLineCap="round"
+        android:pathData="M154,166 L358,166 M154,256 L358,256 M154,346 L286,346" />
+
+    <path
+        android:fillColor="#D4A62A"
+        android:pathData="M399,346 A34,34 0,1 1,331,346 A34,34 0,1 1,399,346 Z" />
+</vector>
