@@ -243,6 +243,23 @@ interface FinanceDao {
     @Delete
     suspend fun deleteWorkRecord(record: WorkRecordEntity)
 
+
+    @Query("UPDATE accounts SET balance = 0.0, openingBalance = 0.0") suspend fun resetAllAccountBalances()
+    @Query("DELETE FROM debt_payments") suspend fun clearDebtPayments()
+    @Query("DELETE FROM debts") suspend fun clearDebts()
+    @Query("DELETE FROM work_records") suspend fun clearWorkRecords()
+    @Query("DELETE FROM work_sources") suspend fun clearWorkSources()
+    @Query("DELETE FROM household_expenses") suspend fun clearHouseholdExpenses()
+    @Query("DELETE FROM household_members") suspend fun clearHouseholdMembers()
+    @Query("DELETE FROM transactions") suspend fun clearTransactions()
+    @Query("DELETE FROM transfers") suspend fun clearTransfers()
+    @Query("DELETE FROM budgets") suspend fun clearBudgets()
+    @Query("DELETE FROM bills") suspend fun clearBills()
+    @Query("DELETE FROM savings_goals") suspend fun clearSavingsGoals()
+    @Query("DELETE FROM assets") suspend fun clearAssets()
+    @Query("DELETE FROM documents") suspend fun clearDocuments()
+    @Query("DELETE FROM accounts") suspend fun clearAccounts()
+    @Query("DELETE FROM audit_logs") suspend fun clearAuditLogs()
     // --- User / Auth ---
     @Query("SELECT * FROM users LIMIT 1")
     fun getCurrentUser(): Flow<UserEntity?>
