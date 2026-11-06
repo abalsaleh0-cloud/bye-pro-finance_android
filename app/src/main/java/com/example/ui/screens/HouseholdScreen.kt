@@ -388,33 +388,58 @@ fun HouseholdScreen(
 
     // Add Member Dialog
     if (showAddMemberDialog) {
+        val roleOptions = listOf(
+            WebI18n.tr("رب الأسرة", "Head of household", lang),
+            WebI18n.tr("شريك", "Partner", lang),
+            WebI18n.tr("ابن / ابنة", "Child", lang),
+            WebI18n.tr("فرد من الأسرة", "Family member", lang)
+        )
         var name by remember(editingMember?.id) { mutableStateOf(editingMember?.name.orEmpty()) }
-        var role by remember(editingMember?.id) { mutableStateOf(editingMember?.role ?: WebI18n.tr("عضو", "Member", lang)) }
+        var role by remember(editingMember?.id, lang) {
+            mutableStateOf(
+                when (editingMember?.role?.trim()?.lowercase()) {
+                    "head", "head of household", "رب الأسرة" -> roleOptions[0]
+                    "partner", "شريك", "spouse" -> roleOptions[1]
+                    "child", "son", "daughter", "ابن", "ابنة", "ابن / ابنة" -> roleOptions[2]
+                    "member", "family member", "عضو", "فرد من الأسرة" -> roleOptions[3]
+                    else -> editingMember?.role ?: roleOptions[3]
+                }
+            )
+        }
         var percentStr by remember(editingMember?.id) { mutableStateOf(editingMember?.contributionPercent?.toString() ?: "50") }
+        var roleMenuExpanded by remember { mutableStateOf(false) }
 
         FinanceAlertDialog(
             onDismissRequest = { showAddMemberDialog = false; editingMember = null },
-            title = { Text(if (editingMember == null) Strings.get("add_member", lang) else WebI18n.tr("تعديل عضو الأسرة", "Edit household member", lang), fontWeight = FontWeight.Bold) },
+            title = { Text(if (editingMember == null) WebI18n.tr("إضافة فرد إلى المنزل", "Add household member", lang) else WebI18n.tr("تعديل بيانات فرد", "Edit household member", lang), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(WebI18n.tr("أدخل بيانات الشخص الذي سيشارك في مصاريف المنزل.", "Enter the person who will participate in household expenses.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     FinanceTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text(WebI18n.tr("الاسم", "Name", lang)) },
-                        modifier = Modifier.fillMaxWidth()
+                        label = { Text(WebI18n.tr("اسم الفرد", "Member name", lang)) },
+                        modifier = Modifier.fillMaxWidth().testTag("household_member_name")
                     )
-                    FinanceTextField(
-                        value = role,
-                        onValueChange = { role = it },
-                        label = { Text(WebI18n.tr("الدور (رب الأسرة، شريك، ابن)", "Role (head of household, partner, child)", lang)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    FinanceTextField(
-                        value = percentStr,
-                        onValueChange = { percentStr = it },
-                        label = { Text(WebI18n.tr("نسبة المساهمة %", "Contribution percentage %", lang)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1.25f)) {
+                            FinanceOutlinedButton(onClick = { roleMenuExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                                Text(role, maxLines = 1)
+                            }
+                            androidx.compose.material3.DropdownMenu(expanded = roleMenuExpanded, onDismissRequest = { roleMenuExpanded = false }) {
+                                roleOptions.forEach { option ->
+                                    androidx.compose.material3.DropdownMenuItem(text = { Text(option) }, onClick = { role = option; roleMenuExpanded = false })
+                                }
+                            }
+                        }
+                        FinanceTextField(
+                            value = percentStr,
+                            onValueChange = { percentStr = it.filter { ch -> ch.isDigit() || ch == '.' }.take(6) },
+                            label = { Text(WebI18n.tr("نسبة المشاركة %", "Share %", lang)) },
+                            modifier = Modifier.weight(0.75f).testTag("household_member_share")
+                        )
+                    }
+                    Text(WebI18n.tr("النسبة من 0 إلى 100 وتُستخدم لتوزيع المصاريف المشتركة.", "Enter 0–100; this percentage is used to split shared expenses.", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
             confirmButton = {

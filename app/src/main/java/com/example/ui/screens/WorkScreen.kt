@@ -68,21 +68,19 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(if (ar) "العمل" else "Work", style = MaterialTheme.typography.headlineSmall)
         Text(if (ar) "اختر نوع العمل لإدارة سجلاته وبياناته بشكل مستقل" else "Choose a work type to manage its records independently", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            TextButton(onClick = { reportPeriod = "day" }, modifier = Modifier.weight(1f)) { Text((if (reportPeriod == "day") "✓ " else "") + (if (ar) "يومي" else "Daily")) }
+            TextButton(onClick = { reportPeriod = "month" }, modifier = Modifier.weight(1f)) { Text((if (reportPeriod == "month") "✓ " else "") + (if (ar) "شهري" else "Monthly")) }
+            TextButton(onClick = { reportPeriod = "year" }, modifier = Modifier.weight(1f)) { Text((if (reportPeriod == "year") "✓ " else "") + (if (ar) "سنوي" else "Yearly")) }
+        }
+        AppSearchField(searchQuery, { searchQuery = it }, WebI18n.tr("ابحث في سجلات العمل…", "Search work records…", lang), Modifier.fillMaxWidth().heightIn(min = 52.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { editingSource = null; sourceDialog = true }, modifier = Modifier.weight(1f)) {
-                Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "إضافة جهة عمل" else "إضافة عميل / نشاط") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Add employer" else "Add client / activity"))
-            }
-            Button(onClick = { editingRecord = null; recordDialog = true }, modifier = Modifier.weight(1f)) {
-                Text(if (ar) "تسجيل حركة" else "Add record")
-            }
+            Button(onClick = { editingSource = null; sourceDialog = true }, modifier = Modifier.weight(1f)) { Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "إضافة جهة عمل" else "إضافة عميل / نشاط") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Add employer" else "Add client / activity")) }
+            Button(onClick = { editingRecord = null; recordDialog = true }, modifier = Modifier.weight(1f)) { Text(if (ar) "تسجيل حركة" else "Add record") }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { selectedScope = WorkSourceType.EMPLOYMENT }, modifier = Modifier.weight(1f), enabled = selectedScope != WorkSourceType.EMPLOYMENT) {
-                Text(if (ar) "العمل الوظيفي" else "Employment")
-            }
-            Button(onClick = { selectedScope = WorkSourceType.FREELANCE }, modifier = Modifier.weight(1f), enabled = selectedScope != WorkSourceType.FREELANCE) {
-                Text(if (ar) "العمل الحر" else "Freelance")
-            }
+            Button(onClick = { selectedScope = WorkSourceType.EMPLOYMENT }, modifier = Modifier.weight(1f), enabled = selectedScope != WorkSourceType.EMPLOYMENT) { Text(if (ar) "العمل الوظيفي" else "Employment") }
+            Button(onClick = { selectedScope = WorkSourceType.FREELANCE }, modifier = Modifier.weight(1f), enabled = selectedScope != WorkSourceType.FREELANCE) { Text(if (ar) "العمل الحر" else "Freelance") }
         }
         Text(
             if (selectedScope == WorkSourceType.EMPLOYMENT) {
@@ -101,14 +99,9 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         }
         WorkSummary(if (ar) "صافي العمل" else "Work net", netProfit, currency, lang, Modifier.fillMaxWidth())
         WorkSummary(if (ar) "رصيد العمل" else "Work cash balance", balance, currency, lang, Modifier.fillMaxWidth())
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            TextButton(onClick = { reportPeriod = "day" }) { Text((if (reportPeriod == "day") "✓ " else "") + (if (ar) "يومي" else "Daily")) }
-            TextButton(onClick = { reportPeriod = "month" }) { Text((if (reportPeriod == "month") "✓ " else "") + (if (ar) "شهري" else "Monthly")) }
-            TextButton(onClick = { reportPeriod = "year" }) { Text((if (reportPeriod == "year") "✓ " else "") + (if (ar) "سنوي" else "Yearly")) }
-        }
-        AppSearchField(searchQuery, { searchQuery = it }, WebI18n.tr("ابحث في سجلات العمل…", "Search work records…", lang), Modifier.fillMaxWidth())
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            TextButton(onClick = { transferDialog = true }) { Text(if (ar) "تحويل" else "Transfer") }
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = { transferDialog = true }) { Text(if (ar) "تحويل بين الحسابات" else "Transfer between accounts") }
         }
         if (error) Text(if (ar) "تعذر الحفظ. تحقق من صحة البيانات." else "Could not save. Check the entered details.", color = MaterialTheme.colorScheme.error)
         Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "جهات العمل" else "العملاء والأنشطة") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Employers" else "Clients and activities"), style = MaterialTheme.typography.titleMedium)

@@ -92,6 +92,27 @@ private fun statusLabel(status: TransactionStatus, lang: AppLanguage) = when (st
     TransactionStatus.CANCELLED -> WebI18n.tr("ملغاة", "Cancelled", lang)
 }
 
+/** Preserve canonical category values in storage; localize their presentation only. */
+private fun txCategoryLabel(category: String, lang: AppLanguage): String = when (category.trim().lowercase()) {
+    "groceries" -> WebI18n.tr("البقالة والمواد الغذائية", "Groceries", lang)
+    "dining" -> WebI18n.tr("المطاعم والمقاهي", "Dining", lang)
+    "utilities" -> WebI18n.tr("الفواتير والخدمات", "Utilities", lang)
+    "shopping" -> WebI18n.tr("التسوق", "Shopping", lang)
+    "health" -> WebI18n.tr("الصحة والعلاج", "Health", lang)
+    "transport" -> WebI18n.tr("المواصلات", "Transport", lang)
+    "salary" -> WebI18n.tr("الراتب", "Salary", lang)
+    "investments" -> WebI18n.tr("الاستثمارات", "Investments", lang)
+    "adjustment" -> WebI18n.tr("تسوية", "Adjustment", lang)
+    "other" -> WebI18n.tr("أخرى", "Other", lang)
+    "transfer" -> WebI18n.tr("تحويل", "Transfer", lang)
+    "transfer fee" -> WebI18n.tr("رسوم تحويل", "Transfer fee", lang)
+    "work_income" -> WebI18n.tr("دخل العمل", "Work income", lang)
+    "work_expense" -> WebI18n.tr("مصروفات العمل", "Work expenses", lang)
+    "work_transfer" -> WebI18n.tr("تحويل العمل", "Work transfer", lang)
+    "" -> WebI18n.tr("بدون تصنيف", "Uncategorized", lang)
+    else -> category
+}
+
 @Composable
 fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = false) {
     val lang by viewModel.appLanguage.collectAsState()
@@ -112,7 +133,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
         val q = search.trim()
         (filter == null || tx.type == filter) &&
             (statusFilter == null || tx.status == statusFilter) &&
-            (q.isBlank() || tx.description.contains(q, true) || accountName.contains(q, true) || tx.category.contains(q, true) || tx.currency.contains(q, true))
+            (q.isBlank() || tx.description.contains(q, true) || accountName.contains(q, true) || tx.category.contains(q, true) || txCategoryLabel(tx.category, lang).contains(q, true) || tx.currency.contains(q, true))
     }
     // Match dashboard and reports: pending/cancelled rows are not posted
     // financial activity. Refunds are included in income like FinanceEngine.
@@ -290,8 +311,17 @@ fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCance
 
             Text(WebI18n.tr("التصنيف", "Category", lang), style = MaterialTheme.typography.labelMedium)
             Box(Modifier.fillMaxWidth()) {
-                FinanceOutlinedButton(onClick = { categoryMenu = true }, modifier = Modifier.fillMaxWidth().testTag("transaction_category_input")) { Text(category.ifBlank { WebI18n.tr("بدون تصنيف", "No category", lang) }) }
-                DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) { categories.forEach { item -> DropdownMenuItem(text = { Text(item) }, onClick = { category = item; categoryMenu = false }) } }
+                FinanceOutlinedButton(onClick = { categoryMenu = true }, modifier = Modifier.fillMaxWidth().testTag("transaction_category_input")) {
+                    Text(if (category.isBlank()) WebI18n.tr("اختر التصنيف", "Choose a category", lang) else txCategoryLabel(category, lang))
+                }
+                DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
+                    categories.forEach { item ->
+                        DropdownMenuItem(
+                            text = { Text(txCategoryLabel(item, lang)) },
+                            onClick = { category = item; categoryMenu = false }
+                        )
+                    }
+                }
             }
 
             FinanceTextField(value = amount, onValueChange = { amount = it.filter { c -> c.isDigit() || c == '.' }.take(18) }, label = { Text(WebI18n.tr("المبلغ", "Amount", lang)) }, modifier = Modifier.fillMaxWidth().testTag("transaction_amount_input"), singleLine = true)
@@ -336,7 +366,7 @@ fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?,
             Spacer(Modifier.size(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(transaction.description, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text("${account?.name ?: WebI18n.tr("دون ربط بحساب", "Unlinked", lang)} · $dateText", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${txCategoryLabel(transaction.category, lang)} · ${account?.name ?: WebI18n.tr("دون ربط بحساب", "Unlinked", lang)} · $dateText", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("$sign${TextContent.money(transaction.amount, transaction.currency, lang)}", fontWeight = FontWeight.Bold, color = color)
