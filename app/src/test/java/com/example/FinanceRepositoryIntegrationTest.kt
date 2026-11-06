@@ -23,6 +23,7 @@ import com.example.finance.model.DocumentEntity
 import com.example.finance.model.DocumentType
 import com.example.finance.model.NotificationType
 import com.example.finance.model.NotificationEntity
+import com.example.finance.model.UserEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
 import com.example.finance.model.TransactionStatus
