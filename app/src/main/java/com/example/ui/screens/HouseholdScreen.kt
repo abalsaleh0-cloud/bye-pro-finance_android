@@ -290,7 +290,7 @@ fun HouseholdScreen(
             if (expenses.isEmpty()) {
                 item {
                     AppEmptyState(
-                        icon = Icons.Default.ReceiptLong,
+                        icon = Icons.Default.Group,
                         title = WebI18n.tr("لا توجد مصاريف مشتركة", "No shared expenses", lang),
                         description = WebI18n.tr("استخدم زر الإضافة لتسجيل أول مصروف منزلي.", "Use the add button to record the first household expense.", lang)
                     )
