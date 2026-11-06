@@ -321,7 +321,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun markNotificationRead(id: Long) { viewModelScope.launch { runCatching { repository.markNotificationRead(id) }.onFailure { Log.e("BYE_PRO_FINANCE", "Mark notification read failed", it) } } }
     fun markAllNotificationsRead() { viewModelScope.launch { runCatching { repository.markAllNotificationsRead() }.onFailure { Log.e("BYE_PRO_FINANCE", "Mark all notifications read failed", it) } } }
     fun deleteNotification(id: Long) { viewModelScope.launch { runCatching { repository.deleteNotification(id) }.onFailure { Log.e("BYE_PRO_FINANCE", "Delete notification failed", it) } } }
+
     fun clearNotifications() { viewModelScope.launch { runCatching { repository.clearNotifications() }.onFailure { Log.e("BYE_PRO_FINANCE", "Clear notifications failed", it) } } }
+    fun resetAllAccountBalances(onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { val r = runCatching { repository.resetAllAccountBalances() }; r.exceptionOrNull()?.let { Log.e("BYE_PRO_FINANCE", "Reset account balances failed", it) }; onComplete(r.isSuccess) } }
+    fun clearAllFinancialData(onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { val r = runCatching { repository.clearAllFinancialData() }; r.exceptionOrNull()?.let { Log.e("BYE_PRO_FINANCE", "Clear financial data failed", it) }; onComplete(r.isSuccess) } }
     fun clearAiChat() { if (_isAiLoading.value) return; resetWelcomeMessage() }
     fun loadLocalModelFile(file: File) {
         if (_localModelLoading.value) return
