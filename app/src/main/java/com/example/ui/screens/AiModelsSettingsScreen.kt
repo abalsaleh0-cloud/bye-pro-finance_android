@@ -66,14 +66,21 @@ fun AiModelsSettingsScreen(
     localModelLoading: Boolean,
     localModelProgress: Float,
     localModelStatus: String,
-    onImportAndLoadModel: (Uri) -> Unit
+    onImportAndLoadModel: (Uri) -> Unit,
+    onTestLocalModel: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var selectionError by remember { mutableStateOf<String?>(null) }
+    val modelPreferences = context.getSharedPreferences("bye_pro_finance_ai_models", 0)
     val visionModelReady = remember(localModelStatus) {
-        context.getSharedPreferences("bye_pro_finance_ai_models", 0)
-            .getBoolean("vision_model_available", false)
+        val path = modelPreferences.getString("vision_model_path", null)
+        modelPreferences.getBoolean("vision_model_available", false) &&
+            !path.isNullOrBlank() && java.io.File(path).let { it.isFile && it.canRead() }
+    }
+    val textModelAvailable = remember(localModelStatus) {
+        val path = modelPreferences.getString("active_model_path", null)
+        !path.isNullOrBlank() && java.io.File(path).let { it.isFile && it.canRead() }
     }
 
     suspend fun acceptModel(uri: Uri, forVision: Boolean) {
@@ -181,6 +188,13 @@ fun AiModelsSettingsScreen(
                 ) {
                     Text(WebI18n.tr("اختيار نموذج المحادثة من الهاتف", "Choose chat model from phone", lang))
                 }
+                OutlinedButton(
+                    onClick = { onTestLocalModel(false) },
+                    enabled = !localModelLoading && textModelAvailable,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(WebI18n.tr("اختبار تشغيل نموذج المحادثة", "Test chat model", lang))
+                }
             }
         }
 
@@ -214,6 +228,13 @@ fun AiModelsSettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(WebI18n.tr("اختيار نموذج الصور من الهاتف", "Choose vision model from phone", lang))
+                }
+                OutlinedButton(
+                    onClick = { onTestLocalModel(true) },
+                    enabled = !localModelLoading && visionModelReady,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(WebI18n.tr("اختبار تحليل الصور", "Test image analysis", lang))
                 }
             }
         }

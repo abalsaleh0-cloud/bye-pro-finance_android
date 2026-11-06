@@ -363,6 +363,108 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    /**
+     * Runs a real on-device inference smoke test. This deliberately bypasses cloud
+     * fallback so a passing result proves that the selected local model generated output.
+     */
+    fun testLocalModel(forVision: Boolean) {
+        if (_localModelLoading.value) return
+        viewModelScope.launch {
+            _localModelLoading.value = true
+            _localModelProgress.value = 0f
+            val startedAt = System.currentTimeMillis()
+            var sampleImage: File? = null
+            try {
+                val preferenceKey = if (forVision) "vision_model_path" else "active_model_path"
+                val savedPath = aiModelPreferences.getString(preferenceKey, null)
+                    ?: error(if (forVision) "لم يتم اختيار نموذج صور بعد." else "لم يتم اختيار نموذج محادثة بعد.")
+                val modelFile = File(savedPath)
+                require(modelFile.isFile && modelFile.canRead() && modelFile.length() > 0L) {
+                    "ملف النموذج المحدد غير موجود أو غير قابل للقراءة. أعد اختياره من الهاتف."
+                }
+
+                if (forVision) {
+                    require(isGemma3nVisionModel(modelFile)) {
+                        "ملف نموذج الصور المحدد ليس حزمة Gemma 3n LiteRT-LM."
+                    }
+                    _localModelStatus.value = "جارٍ اختبار نموذج الصور بتشغيل تحليل صورة تجريبية محلياً..."
+                    localLlm.unload()
+                    ggufLlm.unload()
+                    visionLlm.unload()
+                    visionLlm.load(modelFile)
+
+                    val bitmap = android.graphics.Bitmap.createBitmap(
+                        160, 160, android.graphics.Bitmap.Config.ARGB_8888
+                    )
+                    try {
+                        val canvas = android.graphics.Canvas(bitmap)
+                        canvas.drawColor(android.graphics.Color.BLUE)
+                        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                            color = android.graphics.Color.RED
+                        }
+                        canvas.drawCircle(80f, 80f, 42f, paint)
+                        sampleImage = File(getApplication<Application>().cacheDir, "bye-pro-vision-smoke-test.jpg")
+                        java.io.FileOutputStream(sampleImage!!).use { output ->
+                            check(bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, output)) {
+                                "تعذر إنشاء صورة الاختبار."
+                            }
+                        }
+                    } finally {
+                        bitmap.recycle()
+                    }
+
+                    val result = visionLlm.sendMessageWithImages(
+                        "صف الصورة التجريبية باختصار، واذكر الألوان والأشكال التي تراها.",
+                        listOf(sampleImage!!)
+                    )
+                    require(result.isNotBlank() && !result.contains("لم ينتج النموذج إجابة نصية.")) {
+                        "تم تحميل نموذج الصور لكنه لم ينتج وصفاً للصورة."
+                    }
+                    val elapsed = System.currentTimeMillis() - startedAt
+                    _localModelStatus.value =
+                        "اجتاز نموذج الصور الاختبار الفعلي محلياً: ${modelFile.name} • ${elapsed} ms"
+                    _localModelReady.value = false
+                } else {
+                    require(
+                        modelFile.extension.equals("gguf", true) ||
+                            modelFile.extension.equals("litertlm", true)
+                    ) { "صيغة نموذج المحادثة غير مدعومة." }
+                    _localModelStatus.value = "جارٍ اختبار نموذج المحادثة بتوليد إجابة فعلية محلياً..."
+                    loadLocalModelIntoRuntime(modelFile)
+                    val format = aiModelPreferences.getString(
+                        "active_model_format",
+                        if (modelFile.extension.equals("gguf", true)) "GGUF" else "LITERTLM"
+                    )
+                    val result = if (format == "GGUF") {
+                        ggufLlm.sendMessage("اكتب كلمة اختبار فقط.", "")
+                    } else {
+                        localLlm.sendMessage("اكتب كلمة اختبار فقط.", "")
+                    }
+                    require(result.isNotBlank() && !result.contains("لم ينتج النموذج إجابة نصية.")) {
+                        "تم تحميل النموذج لكنه لم ينتج إجابة نصية."
+                    }
+                    val elapsed = System.currentTimeMillis() - startedAt
+                    _localModelReady.value = true
+                    _localModelStatus.value =
+                        "اجتاز نموذج المحادثة اختبار التوليد الفعلي محلياً: ${modelFile.name} • ${elapsed} ms"
+                }
+            } catch (error: Throwable) {
+                if (!forVision) _localModelReady.value = false
+                _localModelStatus.value =
+                    "فشل اختبار ${if (forVision) "نموذج الصور" else "نموذج المحادثة"}: " +
+                        (error.message ?: "خطأ غير معروف")
+                Log.e("BYE_PRO_LOCAL_AI", "Local model inference test failed (vision=$forVision)", error)
+            } finally {
+                sampleImage?.delete()
+                if (forVision) {
+                    runCatching { visionLlm.unload() }
+                        .onFailure { Log.w("BYE_PRO_LOCAL_VISION", "Vision test cleanup failed.", it) }
+                }
+                _localModelLoading.value = false
+            }
+        }
+    }
+
     /** Downloads the recommended Gemma 3n E2B Q4_K_M GGUF into app-private storage. */
     fun downloadRecommendedGemma3n() {
         if (_localModelLoading.value) return

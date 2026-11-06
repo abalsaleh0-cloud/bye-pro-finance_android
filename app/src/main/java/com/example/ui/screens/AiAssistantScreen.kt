@@ -483,7 +483,8 @@ fun AiAssistantScreen(
                 localModelLoading = localModelLoading,
                 localModelProgress = localModelProgress,
                 localModelStatus = localModelStatus,
-                onImportAndLoadModel = viewModel::importAndLoadLocalModel
+                onImportAndLoadModel = viewModel::importAndLoadLocalModel,
+                onTestLocalModel = viewModel::testLocalModel
             )
         }
     }
