@@ -229,7 +229,23 @@ fun AiAssistantScreen(
                     .fillMaxSize()
                     .padding(12.dp)
             ) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FinanceOutlinedButton(
+                        onClick = {
+                            selectedTabIndex = 2
+                            viewModel.testLocalModel(false)
+                        },
+                        enabled = !isAiLoading && !localModelLoading
+                    ) {
+                        Text(
+                            WebI18n.tr("اختبار نموذج المحادثة", "Test chat model", lang),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                     FinanceOutlinedButton(onClick = { viewModel.clearAiChat() }, enabled = !isAiLoading) {
                         Text(WebI18n.tr("مسح المحادثة", "Clear chat", lang), style = MaterialTheme.typography.labelSmall)
                     }

@@ -73,12 +73,12 @@ fun AiModelsSettingsScreen(
     val scope = rememberCoroutineScope()
     var selectionError by remember { mutableStateOf<String?>(null) }
     val modelPreferences = context.getSharedPreferences("bye_pro_finance_ai_models", 0)
-    val visionModelReady = remember(localModelStatus) {
+    val visionModelReady = run {
         val path = modelPreferences.getString("vision_model_path", null)
         modelPreferences.getBoolean("vision_model_available", false) &&
             !path.isNullOrBlank() && java.io.File(path).let { it.isFile && it.canRead() }
     }
-    val textModelAvailable = remember(localModelStatus) {
+    val textModelAvailable = run {
         val path = modelPreferences.getString("active_model_path", null)
         !path.isNullOrBlank() && java.io.File(path).let { it.isFile && it.canRead() }
     }
@@ -190,7 +190,7 @@ fun AiModelsSettingsScreen(
                 }
                 OutlinedButton(
                     onClick = { onTestLocalModel(false) },
-                    enabled = !localModelLoading && textModelAvailable,
+                    enabled = !localModelLoading,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(WebI18n.tr("اختبار تشغيل نموذج المحادثة", "Test chat model", lang))
@@ -231,7 +231,7 @@ fun AiModelsSettingsScreen(
                 }
                 OutlinedButton(
                     onClick = { onTestLocalModel(true) },
-                    enabled = !localModelLoading && visionModelReady,
+                    enabled = !localModelLoading,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(WebI18n.tr("اختبار تحليل الصور", "Test image analysis", lang))
