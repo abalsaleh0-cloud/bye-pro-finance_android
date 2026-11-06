@@ -61,6 +61,7 @@ import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceFloatingActionButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
+import com.example.ui.components.AppListBottomPadding
 import com.example.ui.theme.ByeProTheme
 
 private val accountCurrencies = listOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD")
