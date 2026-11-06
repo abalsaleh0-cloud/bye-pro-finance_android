@@ -77,6 +77,9 @@ class AiCommandRouterTest {
         assertEquals(10.0, command?.amount ?: 0.0, 0.0)
         assertEquals("خالد", command?.personName)
         assertEquals("LYD", command?.currency)
+
+        val secondName = AiCommandRouter.parseDebtPayment("سجل دفعة 25 دينار محمود")
+        assertEquals("محمود", secondName?.personName)
     }
 
     @Test
