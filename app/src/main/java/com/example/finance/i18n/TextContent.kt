@@ -71,11 +71,17 @@ object TextContent {
 
     fun money(value: Number, currencyCode: String, language: AppLanguage): String =
         runCatching {
-            NumberFormat.getCurrencyInstance(locale(language)).apply {
-                currency = java.util.Currency.getInstance(currencyCode)
-                maximumFractionDigits = (currency.defaultFractionDigits ?: 2).coerceAtLeast(0)
-            }.format(value).let(::applyDigitStyle)
-        }.getOrElse { "${number(value, language)} ${currencyCode.uppercase(Locale.ROOT)}" }
+            val currency = java.util.Currency.getInstance(currencyCode.uppercase(Locale.ROOT))
+            val digits = currency.defaultFractionDigits.coerceAtLeast(0)
+            val amount = NumberFormat.getNumberInstance(Locale.ENGLISH).apply {
+                minimumFractionDigits = digits
+                maximumFractionDigits = digits
+            }.format(value)
+            val label = if (currency.currencyCode == "LYD" && language == AppLanguage.AR) "د.ل" else currency.currencyCode
+            "${isolate(amount)} ${isolate(label)}"
+        }.getOrElse {
+            "${isolate(NumberFormat.getNumberInstance(Locale.ENGLISH).format(value))} ${isolate(currencyCode.uppercase(Locale.ROOT))}"
+        }
 
     fun percent(value: Number, language: AppLanguage, fractionDigits: Int = 1): String =
         NumberFormat.getPercentInstance(locale(language)).apply {

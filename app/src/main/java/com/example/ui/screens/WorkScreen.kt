@@ -1,4 +1,9 @@
 package com.example.ui.screens
+
+import com.example.finance.i18n.TextContent
+import com.example.ui.components.AppSearchField
+import com.example.ui.components.AppEmptyState
+import com.example.ui.components.AppListBottomPadding
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,8 +14,6 @@ import androidx.compose.ui.unit.dp
 import com.example.finance.engine.WorkLedgerCalculator
 import com.example.finance.model.*
 import com.example.finance.ui.FinanceViewModel
-import java.text.NumberFormat
-import java.util.Locale
 
 @Composable
 fun WorkScreen(viewModel: FinanceViewModel) {
@@ -45,7 +48,6 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     }
     val period = java.time.YearMonth.now().toString()
     val currentDate = java.time.LocalDate.now()
-    val money = remember(lang) { NumberFormat.getNumberInstance(if (ar) Locale("ar") else Locale.ENGLISH) }
     val salaryDue = if (selectedScope == WorkSourceType.EMPLOYMENT) visibleSources.filter { it.currency.equals(currency, true) }.sumOf { WorkLedgerCalculator.salaryDue(it, records, period).toDouble() } else 0.0
     val freelanceDue = if (selectedScope == WorkSourceType.FREELANCE) scopedRecords.filter { it.type == WorkRecordType.FREELANCE_INCOME && it.currency.equals(currency, true) }.sumOf { WorkLedgerCalculator.freelanceOutstanding(it, scopedRecords).toDouble() } else 0.0
     val periodRows = scopedRecords.filter { row ->
@@ -87,20 +89,20 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            WorkSummary(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "الراتب المستحق" else "مستحقات العملاء") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Salary due" else "Client receivables"), if (selectedScope == WorkSourceType.EMPLOYMENT) salaryDue else freelanceDue, currency, Modifier.weight(1f), money)
-            WorkSummary(if (ar) "المقبوض" else "Received", received, currency, Modifier.weight(1f), money)
+            WorkSummary(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "الراتب المستحق" else "مستحقات العملاء") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Salary due" else "Client receivables"), if (selectedScope == WorkSourceType.EMPLOYMENT) salaryDue else freelanceDue, currency, lang, Modifier.weight(1f))
+            WorkSummary(if (ar) "المقبوض" else "Received", received, currency, lang, Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            WorkSummary(if (ar) "المصروفات" else "Expenses", expenses, currency, Modifier.weight(1f), money)
+            WorkSummary(if (ar) "المصروفات" else "Expenses", expenses, currency, lang, Modifier.weight(1f))
         }
-        WorkSummary(if (ar) "صافي العمل" else "Work net", netProfit, currency, Modifier.fillMaxWidth(), money)
-        WorkSummary(if (ar) "رصيد العمل" else "Work cash balance", balance, currency, Modifier.fillMaxWidth(), money)
+        WorkSummary(if (ar) "صافي العمل" else "Work net", netProfit, currency, lang, Modifier.fillMaxWidth())
+        WorkSummary(if (ar) "رصيد العمل" else "Work cash balance", balance, currency, lang, Modifier.fillMaxWidth())
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TextButton(onClick = { reportPeriod = "day" }) { Text((if (reportPeriod == "day") "✓ " else "") + (if (ar) "يومي" else "Daily")) }
             TextButton(onClick = { reportPeriod = "month" }) { Text((if (reportPeriod == "month") "✓ " else "") + (if (ar) "شهري" else "Monthly")) }
             TextButton(onClick = { reportPeriod = "year" }) { Text((if (reportPeriod == "year") "✓ " else "") + (if (ar) "سنوي" else "Yearly")) }
         }
-        OutlinedTextField(searchQuery, { searchQuery = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text(if (ar) "بحث في السجلات والمصادر" else "Search sources and records") })
+        AppSearchField(searchQuery, { searchQuery = it }, if (ar) "ابحث في سجلات العمل…" else "Search work records…", Modifier.fillMaxWidth())
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TextButton(onClick = { transferDialog = true }) { Text(if (ar) "تحويل" else "Transfer") }
         }
@@ -116,8 +118,8 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                     Column(Modifier.fillMaxWidth().padding(12.dp)) {
                         Text(source.name, style = MaterialTheme.typography.titleMedium)
                         Text(if (source.type == WorkSourceType.EMPLOYMENT) (if (ar) "وظيفة" else "Employment") else (if (ar) "عمل حر" else "Freelance"))
-                        if (source.type == WorkSourceType.EMPLOYMENT) Text(money.format(source.monthlySalary) + " " + source.currency)
-                        Text((if (ar) "المستحق: " else "Outstanding: ") + money.format(due) + " " + source.currency)
+                        if (source.type == WorkSourceType.EMPLOYMENT) Text(TextContent.money(source.monthlySalary, source.currency, lang))
+                        Text((if (ar) "المستحق: " else "Outstanding: ") + TextContent.money(due, source.currency, lang))
                         if (!source.isActive) Text(if (ar) "مؤرشف" else "Archived", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton(onClick = { editingSource = source; sourceDialog = true }) { Text(if (ar) "تعديل" else "Edit") }
@@ -135,7 +137,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             items(visibleRecords, key = { "record" + it.id }) { row ->
                 val name = sources.firstOrNull { it.id == row.sourceId }?.name ?: (if (row.type == WorkRecordType.WORK_TRANSFER_IN || row.type == WorkRecordType.WORK_TRANSFER_OUT) (if (ar) "تحويل داخلي" else "Internal transfer") else (if (ar) "عمل عام" else "General work"))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(name + " · " + workRecordLabel(row.type, ar) + " · " + money.format(row.amount) + " " + row.currency, modifier = Modifier.weight(1f))
+                    Text(name + " · " + workRecordLabel(row.type, ar) + " · " + TextContent.money(row.amount, row.currency, lang), modifier = Modifier.weight(1f))
                     TextButton(onClick = { editingRecord = row; recordDialog = true }) { Text(if (ar) "تعديل" else "Edit") }
                     TextButton(onClick = { deleteRecordId = row.id }) { Text(if (ar) "حذف" else "Delete") }
                 }
@@ -176,9 +178,9 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         viewModel.addWorkRecord(WorkRecordEntity(type = type, amount = amount, currency = currency, notes = note, scope = selectedScope), accountId) { if (it) { transferDialog = false; error = false } else error = true }
     }
 }
-@Composable private fun WorkSummary(title: String, value: Double, currency: String, modifier: Modifier, format: NumberFormat) {
+@Composable private fun WorkSummary(title: String, value: Double, currency: String, lang: AppLanguage, modifier: Modifier) {
     Card(modifier, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(Modifier.padding(12.dp)) { Text(title, style = MaterialTheme.typography.labelMedium); Text(format.format(value) + " " + currency, style = MaterialTheme.typography.titleMedium) }
+        Column(Modifier.padding(12.dp)) { Text(title, style = MaterialTheme.typography.labelMedium); Text(TextContent.money(value, currency, lang), style = MaterialTheme.typography.titleMedium) }
     }
 }
 @Composable private fun WorkSourceDialog(ar: Boolean, currency: String, initialType: WorkSourceType, existing: WorkSourceEntity?, dismiss: () -> Unit, save: (String, WorkSourceType, Double) -> Unit) {
@@ -254,7 +256,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                 Text(if (ar) "المستحق المرتبط بالدفعة" else "Receivable linked to this payment")
                 receivables.forEach { row ->
                     TextButton(onClick = { related = row.id }) {
-                        Text((if (related == row.id) "✓ " else "") + NumberFormat.getNumberInstance().format(WorkLedgerCalculator.freelanceOutstanding(row, records).toDouble()) + " · " + row.notes)
+                        Text((if (related == row.id) "✓ " else "") + TextContent.money(WorkLedgerCalculator.freelanceOutstanding(row, records).toDouble(), row.currency, if (ar) AppLanguage.AR else AppLanguage.EN) + " · " + row.notes)
                     }
                 }
             }
