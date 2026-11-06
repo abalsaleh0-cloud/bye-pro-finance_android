@@ -189,7 +189,11 @@ fun HouseholdScreen(
                             }
                         }
                         if (rentBills.isEmpty()) {
-                            Text(WebI18n.tr("لا توجد أشهر إيجار مسجلة بعد.", "No rent months recorded yet.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            AppEmptyState(
+                                icon = Icons.Default.Group,
+                                title = WebI18n.tr("لا توجد أشهر إيجار مسجلة بعد", "No rent months recorded yet", lang),
+                                description = WebI18n.tr("أضف سجل الإيجار الشهري لمتابعة المبالغ وحالة السداد.", "Add a monthly rent record to track amounts and payment status.", lang)
+                            )
                         } else {
                             rentBills.forEach { rent ->
                                 val monthLabel = runCatching {
