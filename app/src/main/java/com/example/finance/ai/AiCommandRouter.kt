@@ -52,7 +52,9 @@ internal object AiCommandRouter {
     fun parseDebtCreate(query: String, defaultCurrency: String): ParsedDebtCreateCommand? {
         val normalized = normalizeDigits(query).trim()
         val text = normalized.lowercase(Locale.ROOT)
-        if (!listOf("سجل دين", "سجّل دين", "اضف دين", "أضف دين", "ضيف دين", "add debt", "record debt").any(text::contains)) return null
+        val explicitDebtCreation = listOf("سجل دين", "سجّل دين", "اضف دين", "أضف دين", "ضيف دين", "add debt", "record debt").any(text::contains) ||
+            (listOf("سجل", "سجّل", "اضف", "أضف", "ضيف").any(text::contains) && text.contains("دين"))
+        if (!explicitDebtCreation) return null
         val amountMatch = Regex("""([0-9]+(?:[.,][0-9]{1,2})?)""").find(text) ?: return null
         val amount = amountMatch.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
         if (!amount.isFinite() || amount <= 0.0) return null
@@ -61,7 +63,8 @@ internal object AiCommandRouter {
         val after = normalized.substring(amountMatch.range.last + 1)
         val cleanedAfter = after.replace(Regex("""(?i)(?<![\p{L}])(?:دينار|دنانير|د\.ل|lyd|usd|eur|دولار|يورو|ليرة)(?![\p{L}])"""), " ")
             .replace(Regex("""[،,:؛.]+"""), " ").trim()
-        val person = Regex("""([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""").find(cleanedAfter)?.groupValues?.get(1)
+        val person = Regex("""(?:^|\s)(?:له|إلى|الى|لـ|ل)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})\s*$""").find(cleanedAfter)?.groupValues?.get(1)
+            ?: Regex("""([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""").find(cleanedAfter)?.groupValues?.get(1)
             ?: Regex("""(?:لي عند|مستحق لي من|لدى)\s+([\p{L}][\p{L}0-9_-]*)""").find(before)?.groupValues?.get(1)
             ?: Regex("""(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*)""").find(before)?.groupValues?.get(1)
             ?: return null
@@ -104,7 +107,9 @@ internal object AiCommandRouter {
         val text = normalized.lowercase(Locale.ROOT)
         // A named "دفعة ... [person]" is a debt-payment intent, but "دفعة من العمل"
         // belongs to the work ledger and must be routed there instead.
-        val workContext = listOf("من العمل", "العمل الحر", "راتب", "سلفة", "مكافأة", "بدل وظيفي", "salary", "work").any(text::contains)
+        val workContext = listOf("من العمل", "العمل الحر", "راتب", "سلفة", "مكافأة", "بدل وظيفي", "salary", "work").any(text::contains) ||
+            (text.contains("العمل") && listOf("دفعة", "دفعه", "راتب").any(text::contains)) ||
+            (text.contains("الشغل") && listOf("دفعة", "دفعه", "راتب").any(text::contains))
         if (workContext) return null
         val verb = listOf("دفعت", "سددت", "سدّدت", "حولت", "حوّلت", "اعطيت", "أعطيت", "دفعة", "سجل دفعة", "سجّل دفعة", "paid", "repaid").any(text::contains)
         if (!verb) return null
@@ -131,7 +136,7 @@ internal object AiCommandRouter {
         } else null
         val name = (prefixedName ?: bareName ?: beforeAmountName)?.trim()?.trimEnd('،', '.', '!')
             ?: return null
-        if (name.length < 2 || name in setOf("دينار", "الدين", "دين", "قرض")) return null
+        if (name.length < 2 || name in setOf("دينار", "الدين", "دين", "قرض", "دفعة", "دفعه", "العمل", "الشغل", "راتب")) return null
         val currency = when {
             text.contains("usd") || text.contains("دولار") || text.contains("$") -> "USD"
             text.contains("eur") || text.contains("يورو") || text.contains("€") -> "EUR"
@@ -149,9 +154,11 @@ internal object AiCommandRouter {
         val amountMatch = Regex("""([0-9]+(?:[.,][0-9]{1,2})?)""").find(text) ?: return null
         val amount = amountMatch.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
         if (!amount.isFinite() || amount <= 0.0) return null
+        val workContext = listOf("العمل", "الشغل", "work").any(text::contains)
+        val workPaymentIntent = workContext && listOf("دفعة", "دفعه", "راتب", "استلمت", "قبضت", "salary", "paid").any(text::contains)
         val type = when {
             listOf("سلفة", "سلفه", "سلفة راتب", "advance", "salary advance").any(text::contains) -> "SALARY_ADVANCE"
-            listOf("دفعة راتب", "دفعة من الراتب", "دفعة من العمل", "دفعة العمل", "دفعه العمل", "العمل دفعة", "العمل دفعه", "دفعة من الشغل", "دخل من العمل", "دخل العمل", "استلمت من العمل", "استلمت الراتب", "استلمت راتبي", "قبضت الراتب", "اخذت الراتب", "أخذت الراتب", "salary payment", "received salary", "got paid").any(text::contains) -> "SALARY_PAYMENT"
+            workPaymentIntent || listOf("دفعة راتب", "دفعة من الراتب", "دفعة من العمل", "دفعه من العمل", "دفعة العمل", "دفعه العمل", "العمل دفعة", "العمل دفعه", "دفعة من الشغل", "دخل من العمل", "دخل العمل", "استلمت من العمل", "استلمت الراتب", "استلمت راتبي", "قبضت الراتب", "اخذت الراتب", "أخذت الراتب", "salary payment", "received salary", "got paid").any(text::contains) -> "SALARY_PAYMENT"
             listOf("بدل وظيفي", "بدل", "allowance").any(text::contains) -> "SALARY_ALLOWANCE"
             listOf("مكافأة", "مكافاه", "bonus").any(text::contains) -> "SALARY_BONUS"
             listOf("عمل إضافي", "عمل اضافي", "أوفر تايم", "overtime").any(text::contains) -> "SALARY_OVERTIME"

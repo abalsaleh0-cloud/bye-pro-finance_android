@@ -125,6 +125,29 @@ class AiCommandRouterTest {
         assertEquals(2000.0, salary?.amount ?: 0.0, 0.0)
     }
 
+    
+    @Test
+    fun routesColloquialWorkPaymentsWithoutMisclassifyingThemAsDebtPayments() {
+        listOf(
+            "سجل العمل 600 دينار دفعة",
+            "سجل 600 دينار دفعه من العمل"
+        ).forEach { query ->
+            val work = AiCommandRouter.parseWorkRecord(query, "LYD")
+            assertEquals("SALARY_PAYMENT", work?.type)
+            assertEquals(600.0, work?.amount ?: 0.0, 0.0)
+            assertNull(AiCommandRouter.parseDebtPayment(query))
+        }
+    }
+
+    @Test
+    fun parsesDebtCreationWhenAmountPrecedesDebtDescription() {
+        val command = AiCommandRouter.parseDebtCreate("سجل 20 دينار دين عليه له احمد", "LYD")
+        assertEquals(20.0, command?.amount ?: 0.0, 0.0)
+        assertEquals("احمد", command?.personName)
+        assertEquals("i_owe", command?.direction)
+        assertEquals("LYD", command?.currency)
+    }
+
     @Test
     fun parsesMonthlyRentInstallmentAndPayment() {
         val unpaid = AiCommandRouter.parseRentCommand("سجل إيجار المنزل ٥٠٠ دينار لشهر 2026-11", "LYD", "2026-11")
