@@ -5,6 +5,9 @@ import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextButton
 import com.example.ui.components.FinanceTextField
 import com.example.ui.components.FinanceFloatingActionButton
+import com.example.ui.components.AppSearchField
+import com.example.ui.components.AppEmptyState
+import com.example.ui.components.AppListBottomPadding
 import com.example.ui.components.FinanceIconButton
 
 import androidx.compose.foundation.border
@@ -115,12 +118,7 @@ fun BudgetsScreen(viewModel: FinanceViewModel) {
                 Text(WebI18n.tr("خطط الإنفاق مع متابعة المبلغ المخصص لكل فترة.", "Plan spending and track allocations for each period.", lang),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
-                FinanceTextField(
-                    value = search, onValueChange = { search = it },
-                    modifier = Modifier.fillMaxWidth().testTag("budget_search_input"),
-                    label = { Text(WebI18n.tr("بحث في الميزانيات…", "Search budgets…", lang)) },
-                    singleLine = true
-                )
+                AppSearchField(search, { search = it }, WebI18n.tr("ابحث في الميزانيات…", "Search budgets…", lang), Modifier.fillMaxWidth().testTag("budget_search_input"))
                 Text(
                     WebI18n.tr("عدد الميزانيات: ", "Budgets: ", lang) + visible.size,
                     style = MaterialTheme.typography.labelMedium,
