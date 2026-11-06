@@ -115,7 +115,7 @@ internal object AiCommandRouter {
             .replace(Regex("""(?i)(?<![\p{L}])(?:دينار|دنانير|د\.ل|lyd|usd|eur|دولار|يورو|ليرة|syp)(?![\p{L}])"""), " ")
             .replace(Regex("""[،,:؛.]+"""), " ")
             .trim()
-        val prefixedName = Regex("""(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""").find(afterAmount)
+        val prefixedName = Regex("""(?:^|\s)(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""").find(afterAmount)
             ?.groupValues?.get(1)
         val bareName = Regex("""^([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})$""")
             .matchEntire(afterAmount)?.groupValues?.get(1)
@@ -124,7 +124,7 @@ internal object AiCommandRouter {
         val trailingName = afterAmount.substringAfterLast(' ').takeIf { token ->
             token.length >= 2 && token.all { it.isLetter() || it == '_' || it == '-' }
         }
-        val beforeAmountName = Regex("""(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""")
+        val beforeAmountName = Regex("""(?:^|\s)(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""")
             .find(normalized.substring(0, amountMatch.range.first))?.groupValues?.get(1)
         val name = (prefixedName ?: bareName ?: trailingName ?: beforeAmountName)?.trim()?.trimEnd('،', '.', '!')
             ?: return null
