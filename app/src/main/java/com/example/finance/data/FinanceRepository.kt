@@ -943,6 +943,24 @@ class FinanceRepository(
         dao.deleteNotification(id)
     }
 
+
+    suspend fun resetAllAccountBalances() = withContext(Dispatchers.IO) {
+        if (db != null) db.withTransaction { dao.resetAllAccountBalances() } else dao.resetAllAccountBalances()
+        logAudit("RESET", "Accounts", "Reset all account balances to zero")
+    }
+    suspend fun clearAllFinancialData() = withContext(Dispatchers.IO) {
+        val clear: suspend () -> Unit = {
+            dao.clearDebtPayments(); dao.clearDebts()
+            dao.clearWorkRecords(); dao.clearWorkSources()
+            dao.clearHouseholdExpenses(); dao.clearHouseholdMembers()
+            dao.clearTransactions(); dao.clearTransfers()
+            dao.clearBudgets(); dao.clearBills()
+            dao.clearSavingsGoals(); dao.clearAssets()
+            dao.clearDocuments(); dao.clearAccounts()
+            dao.clearAuditLogs()
+        }
+        if (db != null) db.withTransaction { clear() } else clear()
+    }
     suspend fun clearNotifications() = withContext(Dispatchers.IO) {
         dao.clearAllNotifications()
     }
