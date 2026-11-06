@@ -540,7 +540,7 @@ private fun DebtManagementPanel(
         }
         if (filtered.isEmpty()) {
             AppEmptyState(
-                icon = Icons.Default.CreditCard,
+                icon = Icons.Default.Payment,
                 title = WebI18n.tr(if (search.isBlank()) "لا توجد ديون في هذا التصنيف" else "لا توجد نتائج للفلتر", if (search.isBlank()) "No debts in this category" else "No filter results", lang),
                 description = WebI18n.tr("استخدم زر الإضافة لإضافة سجل دين.", "Use the add button to add a debt record.", lang)
             )
