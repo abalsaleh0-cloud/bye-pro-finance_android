@@ -393,6 +393,19 @@ fun SettingsScreen(
                 }
             }
         }
+        // Voice provider settings live in general settings, not in the model picker screen.
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    WebI18n.tr("صوت المساعد", "Assistant voice", lang),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                VoiceProviderSettingsCard(lang = lang)
+            }
+        }
+
         // Application information is intentionally opened on demand, matching the web "About" area.
         item {
             Card(
