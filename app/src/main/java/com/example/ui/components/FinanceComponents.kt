@@ -237,7 +237,7 @@ fun AppFilterChip(selected: Boolean, onClick: () -> Unit, label: @Composable () 
         modifier = modifier.heightIn(min = 48.dp),
         border = BorderStroke(1.dp, if (selected) Color.Transparent else MaterialTheme.colorScheme.outline),
         colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = ByeProTheme.colors.goldPrimary,
+            selectedContainerColor = ByeProTheme.colors.goldFeatured,
             selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
             containerColor = Color.Transparent,
             labelColor = MaterialTheme.colorScheme.onSurface
