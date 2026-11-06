@@ -63,6 +63,29 @@ class AiCommandRouterTest {
     }
 
     @Test
+    fun parsesShortArabicDebtPaymentWithBarePersonName() {
+        val command = AiCommandRouter.parseDebtPayment("سجل دفعة 10 دينار خالد")
+        assertEquals(10.0, command?.amount ?: 0.0, 0.0)
+        assertEquals("خالد", command?.personName)
+        assertEquals("LYD", command?.currency)
+    }
+
+    @Test
+    fun parsesDebtPaymentWithPrepositionAndKeepsWorkPaymentSeparate() {
+        val debtPayment = AiCommandRouter.parseDebtPayment("دفعة ١٠ دينار لخالد")
+        assertEquals("خالد", debtPayment?.personName)
+        assertNull(AiCommandRouter.parseDebtPayment("سجل 600 دينار دفعة من العمل"))
+    }
+
+    @Test
+    fun parsesWorkPaymentDescribedAsInstallmentFromWork() {
+        val command = AiCommandRouter.parseWorkRecord("سجل 600 دينار دفعة من العمل", "LYD")
+        assertEquals("SALARY_PAYMENT", command?.type)
+        assertEquals(600.0, command?.amount ?: 0.0, 0.0)
+        assertEquals(null, command?.sourceName)
+    }
+
+    @Test
     fun parsesSalaryAdvanceAndSalaryPaymentAsWorkRecords() {
         val advance = AiCommandRouter.parseWorkRecord("أخذت سلفة ٣٠٠ دينار من الشركة", "LYD")
         assertEquals("SALARY_ADVANCE", advance?.type)

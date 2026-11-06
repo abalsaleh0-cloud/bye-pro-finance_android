@@ -100,17 +100,28 @@ internal object AiCommandRouter {
     fun parseDebtPayment(query: String): ParsedDebtPaymentCommand? {
         val normalized = normalizeDigits(query).trim()
         val text = normalized.lowercase(Locale.ROOT)
-        val verb = listOf("دفعت", "سددت", "سدّدت", "حولت", "حوّلت", "اعطيت", "أعطيت", "paid", "repaid").any(text::contains)
+        // A named "دفعة ... [person]" is a debt-payment intent, but "دفعة من العمل"
+        // belongs to the work ledger and must be routed there instead.
+        val workContext = listOf("من العمل", "العمل الحر", "راتب", "سلفة", "مكافأة", "بدل وظيفي", "salary", "work").any(text::contains)
+        if (workContext) return null
+        val verb = listOf("دفعت", "سددت", "سدّدت", "حولت", "حوّلت", "اعطيت", "أعطيت", "دفعة", "سجل دفعة", "سجّل دفعة", "paid", "repaid").any(text::contains)
         if (!verb) return null
         val amountMatch = Regex("""([0-9]+(?:[.,][0-9]{1,2})?)""").find(text) ?: return null
         val amount = amountMatch.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
         if (!amount.isFinite() || amount <= 0.0) return null
         val afterAmount = normalized.substring(amountMatch.range.last + 1)
-        val nameMatch = Regex("""(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""").find(afterAmount)
-            ?: Regex("""(?:دين|الدين|قرض)\s+(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*)""").find(afterAmount)
+            .replace(Regex("""(?i)(?<![\p{L}])(?:دينار|دنانير|د\.ل|lyd|usd|eur|دولار|يورو|ليرة|syp)(?![\p{L}])"""), " ")
+            .replace(Regex("""[،,:؛.]+"""), " ")
+            .trim()
+        val prefixedName = Regex("""(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""").find(afterAmount)
+            ?.groupValues?.get(1)
+        val bareName = Regex("""^([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})$""")
+            .matchEntire(afterAmount)?.groupValues?.get(1)
+        val beforeAmountName = Regex("""(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""")
+            .find(normalized.substring(0, amountMatch.range.first))?.groupValues?.get(1)
+        val name = (prefixedName ?: bareName ?: beforeAmountName)?.trim()?.trimEnd('،', '.', '!')
             ?: return null
-        val name = nameMatch.groupValues[1].trim().trimEnd('،', '.', '!')
-        if (name.length < 2) return null
+        if (name.length < 2 || name in setOf("دينار", "الدين", "دين", "قرض")) return null
         val currency = when {
             text.contains("usd") || text.contains("دولار") || text.contains("$") -> "USD"
             text.contains("eur") || text.contains("يورو") || text.contains("€") -> "EUR"
@@ -130,7 +141,7 @@ internal object AiCommandRouter {
         if (!amount.isFinite() || amount <= 0.0) return null
         val type = when {
             listOf("سلفة", "سلفه", "سلفة راتب", "advance", "salary advance").any(text::contains) -> "SALARY_ADVANCE"
-            listOf("دفعة راتب", "دفعة من الراتب", "استلمت الراتب", "استلمت راتبي", "قبضت الراتب", "اخذت الراتب", "أخذت الراتب", "salary payment", "received salary", "got paid").any(text::contains) -> "SALARY_PAYMENT"
+            listOf("دفعة راتب", "دفعة من الراتب", "دفعة من العمل", "دفعة العمل", "دخل من العمل", "استلمت من العمل", "استلمت الراتب", "استلمت راتبي", "قبضت الراتب", "اخذت الراتب", "أخذت الراتب", "salary payment", "received salary", "got paid").any(text::contains) -> "SALARY_PAYMENT"
             listOf("بدل وظيفي", "بدل", "allowance").any(text::contains) -> "SALARY_ALLOWANCE"
             listOf("مكافأة", "مكافاه", "bonus").any(text::contains) -> "SALARY_BONUS"
             listOf("عمل إضافي", "عمل اضافي", "أوفر تايم", "overtime").any(text::contains) -> "SALARY_OVERTIME"
@@ -138,7 +149,8 @@ internal object AiCommandRouter {
             else -> return null
         }
         val sourceMatch = Regex("""(?:من|عند|لدى|في)\s+([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,3})""").find(normalized)
-        val sourceName = sourceMatch?.groupValues?.get(1)?.trim()
+        val parsedSourceName = sourceMatch?.groupValues?.get(1)?.trim()
+        val sourceName = parsedSourceName?.takeUnless { it in setOf("العمل", "عمل", "الوظيفة", "وظيفة") }
         val currency = when {
             text.contains("usd") || text.contains("دولار") || text.contains("$") -> "USD"
             text.contains("eur") || text.contains("يورو") || text.contains("€") -> "EUR"
