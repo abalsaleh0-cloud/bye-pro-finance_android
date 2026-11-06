@@ -119,9 +119,14 @@ internal object AiCommandRouter {
             ?.groupValues?.get(1)
         val bareName = Regex("""^([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})$""")
             .matchEntire(afterAmount)?.groupValues?.get(1)
+        // Fallback for short colloquial forms where the currency token or spacing
+        // prevents a full-tail match (e.g. "سجل دفعة 10 دينار خالد").
+        val trailingName = afterAmount.substringAfterLast(' ').takeIf { token ->
+            token.length >= 2 && token.all { it.isLetter() || it == '_' || it == '-' }
+        }
         val beforeAmountName = Regex("""(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""")
             .find(normalized.substring(0, amountMatch.range.first))?.groupValues?.get(1)
-        val name = (prefixedName ?: bareName ?: beforeAmountName)?.trim()?.trimEnd('،', '.', '!')
+        val name = (prefixedName ?: bareName ?: trailingName ?: beforeAmountName)?.trim()?.trimEnd('،', '.', '!')
             ?: return null
         if (name.length < 2 || name in setOf("دينار", "الدين", "دين", "قرض")) return null
         val currency = when {
