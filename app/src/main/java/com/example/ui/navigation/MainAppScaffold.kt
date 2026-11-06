@@ -29,6 +29,8 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Menu
@@ -119,6 +121,7 @@ fun MainAppScaffold(
 ) {
     val lang by viewModel.appLanguage.collectAsState()
     val currentScreen by viewModel.currentScreen.collectAsState()
+    val isDark by viewModel.isDarkMode.collectAsState()
     val notifications by viewModel.notifications.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
 
@@ -159,34 +162,32 @@ fun MainAppScaffold(
         Scaffold(
             topBar = {
                 CenterAlignedTopAppBar(
-                    title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .border(1.dp, ByeProTheme.colors.goldPrimary, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.bye_pro_finance_icon),
-                                    contentDescription = "BYE PRO Logo",
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = appText("app_title"),
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Black,
-                                    letterSpacing = 1.sp
-                                ),
-                                color = ByeProTheme.colors.goldPrimary
+                    title = {},
+                    navigationIcon = {
+                        IconButton(
+                            onClick = { showHubBottomSheet = true },
+                            modifier = Modifier.testTag("top_all_sections_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = WebI18n.tr("كل الأقسام", "All sections", lang),
+                                tint = ByeProTheme.colors.goldPrimary
                             )
                         }
                     },
                     actions = {
+                        // Compact dark/light theme toggle.
+                        IconButton(
+                            onClick = { viewModel.toggleTheme() },
+                            modifier = Modifier.testTag("top_theme_toggle_btn")
+                        ) {
+                            Icon(
+                                imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                contentDescription = if (isDark) WebI18n.tr("الوضع الفاتح", "Light mode", lang) else WebI18n.tr("الوضع الداكن", "Dark mode", lang),
+                                tint = ByeProTheme.colors.goldPrimary
+                            )
+                        }
+
                         // Quick Language Toggle
                         Surface(
                             onClick = { viewModel.toggleLanguage() },
@@ -244,8 +245,9 @@ fun MainAppScaffold(
             },
             bottomBar = {
                 NavigationBar(
+                    modifier = Modifier.height(68.dp),
                     containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 8.dp
+                    tonalElevation = 2.dp
                 ) {
                     val navColors = NavigationBarItemDefaults.colors(
                         selectedIconColor = ByeProTheme.colors.goldPrimary,
