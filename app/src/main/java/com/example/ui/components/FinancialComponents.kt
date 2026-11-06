@@ -1,6 +1,8 @@
 package com.example.ui.components
 
 import com.example.ui.theme.ByeProTheme
+import com.example.finance.i18n.LocalAppLanguage
+import com.example.finance.i18n.WebI18n
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -116,6 +118,7 @@ fun HealthScoreCard(
     label: String,
     modifier: Modifier = Modifier
 ) {
+    val lang = LocalAppLanguage.current
     val animatedProgress by animateFloatAsState(
         targetValue = score / 100f,
         animationSpec = tween(1200),
@@ -154,7 +157,7 @@ fun HealthScoreCard(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "سيولة مستقرة ومعدل ديون منخفض وميزانية متوازنة",
+                    text = WebI18n.tr("سيولة مستقرة ومعدل ديون منخفض وميزانية متوازنة", "Stable liquidity, low debt ratio, and a balanced budget", lang),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -282,6 +285,7 @@ fun InteractiveCashFlowChart(
     currency: String = "SAR",
     modifier: Modifier = Modifier
 ) {
+    val lang = LocalAppLanguage.current
     val total = (income + expense).coerceAtLeast(1.0)
     val incomePercent = (income / total).toFloat()
     val expensePercent = (expense / total).toFloat()
@@ -294,7 +298,7 @@ fun InteractiveCashFlowChart(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "التدفق والمقارنة الشهرية (Cash Flow Comparison)",
+                text = WebI18n.tr("التدفق والمقارنة الشهرية (Cash Flow Comparison)", "Cash Flow Comparison", lang),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -306,7 +310,7 @@ fun InteractiveCashFlowChart(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("الدخل (Income)", style = MaterialTheme.typography.bodySmall, color = ByeProTheme.colors.financialGreen)
+                Text(WebI18n.tr("الدخل (Income)", "Income", lang), style = MaterialTheme.typography.bodySmall, color = ByeProTheme.colors.financialGreen)
                 Text("${income.toInt()} $currency", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(6.dp))
@@ -327,7 +331,7 @@ fun InteractiveCashFlowChart(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("المصروف (Expense)", style = MaterialTheme.typography.bodySmall, color = ByeProTheme.colors.financialRed)
+                Text(WebI18n.tr("المصروف (Expense)", "Expense", lang), style = MaterialTheme.typography.bodySmall, color = ByeProTheme.colors.financialRed)
                 Text("${expense.toInt()} $currency", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(6.dp))

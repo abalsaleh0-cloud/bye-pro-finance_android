@@ -1,5 +1,6 @@
 package com.example.finance.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -9,7 +10,7 @@ data class UserEntity(
     val name: String,
     val email: String,
     val role: UserRole = UserRole.ADMIN,
-    val currencyPreference: String = "SAR",
+    val currencyPreference: String = "LYD",
     val languagePreference: AppLanguage = AppLanguage.AR,
     val createdAt: Long = System.currentTimeMillis()
 )
@@ -19,8 +20,9 @@ data class AccountEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val type: AccountType,
-    val currency: String = "SAR",
+    val currency: String = "LYD",
     val balance: Double = 0.0,
+    val openingBalance: Double = balance,
     val accountNumberSafe: String = "",
     val institution: String = "",
     val isArchived: Boolean = false,
@@ -35,7 +37,7 @@ data class TransactionEntity(
     val accountId: Long,
     val type: TransactionType,
     val amount: Double,
-    val currency: String = "SAR",
+    val currency: String = "LYD",
     val category: String,
     val date: Long = System.currentTimeMillis(),
     val description: String,
@@ -55,7 +57,7 @@ data class TransferEntity(
     val toAccountId: Long,
     val amount: Double,
     val fee: Double = 0.0,
-    val currency: String = "SAR",
+    val currency: String = "LYD",
     val date: Long = System.currentTimeMillis(),
     val description: String = "",
     val reference: String = ""
@@ -68,7 +70,7 @@ data class BudgetEntity(
     val category: String,
     val period: BudgetPeriod = BudgetPeriod.MONTHLY,
     val limitAmount: Double,
-    val currency: String = "SAR",
+    val currency: String = "LYD",
     val startDate: Long = System.currentTimeMillis(),
     val endDate: Long = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000)
 )
@@ -83,9 +85,10 @@ data class DebtEntity(
     val interestRate: Double = 0.0,
     val dueDate: Long = System.currentTimeMillis() + (90L * 24 * 60 * 60 * 1000),
     val minimumPayment: Double = 0.0,
-    val currency: String = "SAR",
+    val currency: String = "LYD",
     val status: DebtStatus = DebtStatus.ACTIVE,
-    val notes: String = ""
+    val notes: String = "",
+    val direction: String = "i_owe"
 )
 
 @Entity(tableName = "debt_payments")
@@ -94,7 +97,8 @@ data class DebtPaymentEntity(
     val debtId: Long,
     val amount: Double,
     val date: Long = System.currentTimeMillis(),
-    val notes: String = ""
+    val notes: String = "",
+    val currency: String = "LYD"
 )
 
 @Entity(tableName = "bills")
@@ -103,7 +107,7 @@ data class BillEntity(
     val name: String,
     val category: String,
     val amount: Double,
-    val currency: String = "SAR",
+    val currency: String = "LYD",
     val dueDate: Long,
     val isRecurring: Boolean = true,
     val recurrenceIntervalDays: Int = 30,
@@ -117,7 +121,7 @@ data class SavingsGoalEntity(
     val name: String,
     val targetAmount: Double,
     val currentAmount: Double = 0.0,
-    val currency: String = "SAR",
+    val currency: String = "LYD",
     val deadline: Long,
     val targetMonthlyDeposit: Double = 0.0,
     val colorHex: String = "#F1B942"
@@ -129,7 +133,7 @@ data class AssetEntity(
     val name: String,
     val type: AssetType,
     val value: Double,
-    val currency: String = "SAR",
+    val currency: String = "LYD",
     val purchaseDate: Long = System.currentTimeMillis(),
     val notes: String = ""
 )
@@ -150,6 +154,7 @@ data class HouseholdExpenseEntity(
     val amount: Double,
     val payerMemberId: Long,
     val category: String,
+    @ColumnInfo(defaultValue = "'LYD'") val currency: String = "LYD",
     val date: Long = System.currentTimeMillis(),
     val isSettled: Boolean = false
 )
@@ -163,6 +168,7 @@ data class DocumentEntity(
     val merchant: String = "",
     val totalAmount: Double = 0.0,
     val taxAmount: Double = 0.0,
+    @ColumnInfo(defaultValue = "'LYD'") val currency: String = "LYD",
     val date: Long = System.currentTimeMillis(),
     val notes: String = "",
     val linkedTransactionId: Long? = null

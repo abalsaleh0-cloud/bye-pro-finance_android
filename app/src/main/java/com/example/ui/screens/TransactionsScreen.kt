@@ -1,5 +1,23 @@
 package com.example.ui.screens
 
+import com.example.finance.i18n.TextContent
+import com.example.finance.i18n.WebI18n
+import com.example.finance.model.AccountEntity
+import com.example.finance.model.AppLanguage
+import com.example.finance.model.TransactionEntity
+import com.example.finance.model.TransactionStatus
+import com.example.finance.model.TransactionType
+import com.example.finance.ui.FinanceViewModel
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceFloatingActionButton
+import com.example.ui.components.AppFilterChip
+import com.example.ui.components.AppSearchField
+import com.example.ui.components.AppEmptyState
+import com.example.ui.components.AppListBottomPadding
+import com.example.ui.components.FinanceIconButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,7 +33,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -26,25 +43,15 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -57,418 +64,326 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.finance.engine.FinanceEngine
-import com.example.finance.i18n.Strings
-import com.example.finance.model.AccountEntity
-import com.example.finance.model.TransactionEntity
-import com.example.finance.model.TransactionType
-import com.example.finance.ui.FinanceViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private val webTransactionTypes = listOf(TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.ADJUSTMENT)
+private val webCategories = mapOf(
+    TransactionType.EXPENSE to listOf("Groceries", "Dining", "Utilities", "Shopping", "Health", "Transport", "Other"),
+    TransactionType.INCOME to listOf("Salary", "Investments", "Other"),
+    TransactionType.ADJUSTMENT to listOf("Adjustment", "Other")
+)
+
+private fun txTypeLabel(type: TransactionType, lang: AppLanguage) = when (type) {
+    TransactionType.INCOME -> WebI18n.tr("دخل", "Income", lang)
+    TransactionType.EXPENSE -> WebI18n.tr("مصروف", "Expense", lang)
+    TransactionType.ADJUSTMENT -> WebI18n.tr("تسوية", "Adjustment", lang)
+    else -> WebI18n.tr("تحويل", "Transfer", lang)
+}
+
+private fun statusLabel(status: TransactionStatus, lang: AppLanguage) = when (status) {
+    TransactionStatus.PENDING -> WebI18n.tr("معلّقة", "Pending", lang)
+    TransactionStatus.COMPLETED -> WebI18n.tr("مكتملة", "Completed", lang)
+    TransactionStatus.CANCELLED -> WebI18n.tr("ملغاة", "Cancelled", lang)
+}
+
+/** Preserve canonical category values in storage; localize their presentation only. */
+private fun txCategoryLabel(category: String, lang: AppLanguage): String = when (category.trim().lowercase()) {
+    "groceries" -> WebI18n.tr("البقالة والمواد الغذائية", "Groceries", lang)
+    "dining" -> WebI18n.tr("المطاعم والمقاهي", "Dining", lang)
+    "utilities" -> WebI18n.tr("الفواتير والخدمات", "Utilities", lang)
+    "shopping" -> WebI18n.tr("التسوق", "Shopping", lang)
+    "health" -> WebI18n.tr("الصحة والعلاج", "Health", lang)
+    "transport" -> WebI18n.tr("المواصلات", "Transport", lang)
+    "salary" -> WebI18n.tr("الراتب", "Salary", lang)
+    "investments" -> WebI18n.tr("الاستثمارات", "Investments", lang)
+    "adjustment" -> WebI18n.tr("تسوية", "Adjustment", lang)
+    "other" -> WebI18n.tr("أخرى", "Other", lang)
+    "transfer" -> WebI18n.tr("تحويل", "Transfer", lang)
+    "transfer fee" -> WebI18n.tr("رسوم تحويل", "Transfer fee", lang)
+    "work_income" -> WebI18n.tr("دخل العمل", "Work income", lang)
+    "work_expense" -> WebI18n.tr("مصروفات العمل", "Work expenses", lang)
+    "work_transfer" -> WebI18n.tr("تحويل العمل", "Work transfer", lang)
+    "" -> WebI18n.tr("بدون تصنيف", "Uncategorized", lang)
+    else -> category
+}
+
 @Composable
-fun TransactionsScreen(
-    viewModel: FinanceViewModel,
-    initialAddOpen: Boolean = false
-) {
+fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = false) {
     val lang by viewModel.appLanguage.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
+    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
+    var search by remember { mutableStateOf("") }
+    var filter by remember { mutableStateOf<TransactionType?>(null) }
+    var statusFilter by remember { mutableStateOf<TransactionStatus?>(null) }
+    var showForm by remember { mutableStateOf(initialAddOpen) }
+    var deleteTarget by remember { mutableStateOf<TransactionEntity?>(null) }
+    var cancelTarget by remember { mutableStateOf<TransactionEntity?>(null) }
+    var editTarget by remember { mutableStateOf<TransactionEntity?>(null) }
 
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedTypeFilter by remember { mutableStateOf<TransactionType?>(null) }
-    var showAddDialog by remember { mutableStateOf(initialAddOpen) }
-    var transactionToDelete by remember { mutableStateOf<TransactionEntity?>(null) }
-
-    val filteredTransactions = transactions.filter { tx ->
-        val matchesType = selectedTypeFilter == null || tx.type == selectedTypeFilter
-        val matchesSearch = searchQuery.isBlank() ||
-                tx.description.contains(searchQuery, ignoreCase = true) ||
-                tx.merchant.contains(searchQuery, ignoreCase = true) ||
-                tx.category.contains(searchQuery, ignoreCase = true)
-        matchesType && matchesSearch
+    val activeAccounts = accounts.filter { !it.isArchived }
+    val visible = transactions.filter { tx ->
+        val accountName = accounts.firstOrNull { it.id == tx.accountId }?.name.orEmpty()
+        val q = search.trim()
+        (filter == null || tx.type == filter) &&
+            (statusFilter == null || tx.status == statusFilter) &&
+            (q.isBlank() || tx.description.contains(q, true) || accountName.contains(q, true) || tx.category.contains(q, true) || txCategoryLabel(tx.category, lang).contains(q, true) || tx.currency.contains(q, true))
     }
+    // Match dashboard and reports: pending/cancelled rows are not posted
+    // financial activity. Refunds are included in income like FinanceEngine.
+    val summary = visible.filter { it.status == TransactionStatus.COMPLETED }
+        .groupBy { it.currency }
+        .mapValues { (_, rows) ->
+            val income = rows.filter {
+                it.type == TransactionType.INCOME || it.type == TransactionType.REFUND
+            }.sumOf { it.amount }
+            val expense = rows.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+            Triple(income, expense, rows.size)
+        }
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddDialog = true },
-                containerColor = ByeProTheme.colors.goldPrimary,
+            FinanceFloatingActionButton(
+                onClick = { showForm = !showForm },
+                containerColor = ByeProTheme.colors.goldFeatured,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_transaction_fab")
-            ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = Strings.get("add_transaction", lang))
-            }
+            ) { Icon(Icons.Default.Add, contentDescription = WebI18n.tr("إضافة معاملة", "Add transaction", lang)) }
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = Strings.get("transactions_title", lang),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(Modifier.height(4.dp))
+                Text(WebI18n.tr("الحركة المالية", "Financial activity", lang), style = MaterialTheme.typography.labelMedium, color = ByeProTheme.colors.goldPrimary)
+                Text(WebI18n.tr("المعاملات", "Transactions", lang), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(4.dp))
+                Text(WebI18n.tr("تسجيل ومراجعة الدخل والمصروفات والتسويات دون خلط العملات.", "Record and review income, expenses, and adjustments without mixing currencies.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(10.dp))
+                AppSearchField(search, { search = it }, WebI18n.tr("ابحث في المعاملات…", "Search transactions…", lang), Modifier.fillMaxWidth().testTag("transaction_search_input"))
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AppFilterChip(selected = filter == null, onClick = { filter = null }, label = { Text(WebI18n.tr("كل الأنواع", "All types", lang)) })
+                    webTransactionTypes.forEach { type ->
+                        AppFilterChip(selected = filter == type, onClick = { filter = type }, label = { Text(txTypeLabel(type, lang)) })
+                    }
+                }
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AppFilterChip(selected = statusFilter == null, onClick = { statusFilter = null }, label = { Text(WebI18n.tr("كل الحالات", "All statuses", lang)) }, modifier = Modifier.testTag("transaction_status_all"))
+                    listOf(TransactionStatus.PENDING, TransactionStatus.COMPLETED, TransactionStatus.CANCELLED).forEach { status ->
+                        AppFilterChip(selected = statusFilter == status, onClick = { statusFilter = status }, label = { Text(statusLabel(status, lang)) }, modifier = Modifier.testTag("transaction_status_${status.name.lowercase()}"))
+                    }
+                }
+            }
 
-                // Search field
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text(Strings.get("search_transactions", lang)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("search_transactions_input"),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
-                )
+            if (summary.isNotEmpty()) {
+                item {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        summary.forEach { (currency, values) ->
+                            val (income, expense, count) = values
+                            Card(Modifier.weight(1f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                                Column(Modifier.padding(12.dp)) {
+                                    Text(currency, fontWeight = FontWeight.Bold)
+                                    Text(TextContent.money(income - expense, currency, lang), fontWeight = FontWeight.Bold, color = if (income >= expense) ByeProTheme.colors.financialGreen else ByeProTheme.colors.financialRed)
+                                    Text("${TextContent.money(income, currency, lang)} ${WebI18n.tr("دخل", "income", lang)} · ${TextContent.money(expense, currency, lang)} ${WebI18n.tr("مصروف", "expense", lang)} · $count ${WebI18n.tr("معاملة", "transactions", lang)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Filter chips
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = selectedTypeFilter == null,
-                        onClick = { selectedTypeFilter = null },
-                        label = { Text(Strings.get("filter_all", lang)) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = ByeProTheme.colors.goldPrimary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    )
-                    FilterChip(
-                        selected = selectedTypeFilter == TransactionType.INCOME,
-                        onClick = { selectedTypeFilter = TransactionType.INCOME },
-                        label = { Text(Strings.get("type_income", lang)) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = ByeProTheme.colors.financialGreen,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    )
-                    FilterChip(
-                        selected = selectedTypeFilter == TransactionType.EXPENSE,
-                        onClick = { selectedTypeFilter = TransactionType.EXPENSE },
-                        label = { Text(Strings.get("type_expense", lang)) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = ByeProTheme.colors.financialRed,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    )
-                    FilterChip(
-                        selected = selectedTypeFilter == TransactionType.TRANSFER,
-                        onClick = { selectedTypeFilter = TransactionType.TRANSFER },
-                        label = { Text(Strings.get("type_transfer", lang)) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = ByeProTheme.colors.goldPrimary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        )
+            if (showForm) {
+                item {
+                    AddTransactionForm(
+                        accounts = activeAccounts,
+                        lang = lang,
+                        defaultCurrency = primaryCurrency,
+                        initialTransaction = editTarget,
+                        onCancel = { showForm = false; editTarget = null },
+                        onSave = { transaction ->
+                            if (editTarget == null) viewModel.addTransaction(transaction)
+                            else viewModel.updateTransaction(transaction.copy(id = editTarget!!.id, status = editTarget!!.status))
+                            showForm = false
+                            editTarget = null
+                        }
                     )
                 }
             }
 
-            if (filteredTransactions.isEmpty()) {
+            if (visible.isEmpty()) {
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Text(
-                            text = "لا توجد نتائج مطابقة لبحثك",
-                            modifier = Modifier.padding(32.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    AppEmptyState(
+                        icon = Icons.Default.ArrowDownward,
+                        title = WebI18n.tr(if (search.isBlank() && filter == null && statusFilter == null) "لا توجد معاملات بعد" else "لا توجد نتائج للفلتر", if (search.isBlank() && filter == null && statusFilter == null) "No transactions yet" else "No filter results", lang),
+                        description = WebI18n.tr("استخدم زر الإضافة لتسجيل معاملة.", "Use the add button to record a transaction.", lang)
+                    )
                 }
             } else {
-                items(filteredTransactions, key = { it.id }) { tx ->
-                    TransactionItemCard(
-                        transaction = tx,
-                        onDelete = { transactionToDelete = tx }
-                    )
+                items(visible, key = { it.id }) { tx ->
+                    TransactionItemCard(transaction = tx, account = accounts.firstOrNull { it.id == tx.accountId }, lang = lang, onEdit = { editTarget = tx; showForm = true }, onDelete = { deleteTarget = tx }, onCancel = { cancelTarget = tx }, onToggleStatus = { viewModel.updateTransactionStatus(tx, if (tx.status == TransactionStatus.COMPLETED) TransactionStatus.PENDING else TransactionStatus.COMPLETED) })
                 }
             }
-
-            item {
-                Spacer(modifier = Modifier.height(72.dp))
-            }
+            item { Spacer(Modifier.height(AppListBottomPadding)) }
         }
     }
 
-    // Add Transaction Dialog
-    if (showAddDialog) {
-        AddTransactionDialog(
-            accounts = accounts,
-            lang = lang,
-            onDismiss = { showAddDialog = false },
-            onConfirm = { newTx ->
-                viewModel.addTransaction(newTx)
-                showAddDialog = false
-            }
+    cancelTarget?.let { target ->
+        FinanceAlertDialog(
+            onDismissRequest = { cancelTarget = null },
+            title = { Text(WebI18n.tr("إلغاء المعاملة", "Cancel transaction", lang)) },
+            text = { Text(WebI18n.tr("سيتم إلغاء المعاملة وعكس أثرها من رصيد الحساب إذا كانت مكتملة. هل تريد المتابعة؟", "Cancel this transaction and reverse its account posting if it is completed?", lang)) },
+            confirmButton = { FinanceButton(onClick = { viewModel.updateTransactionStatus(target, TransactionStatus.CANCELLED); cancelTarget = null }) { Text(WebI18n.tr("تأكيد الإلغاء", "Confirm cancellation", lang)) } },
+            dismissButton = { FinanceOutlinedButton(onClick = { cancelTarget = null }) { Text(WebI18n.tr("رجوع", "Back", lang)) } }
         )
     }
 
-    // Delete confirmation dialog
-    if (transactionToDelete != null) {
-        val target = transactionToDelete!!
-        AlertDialog(
-            onDismissRequest = { transactionToDelete = null },
-            title = { Text(text = Strings.get("delete", lang)) },
-            text = { Text("هل تريد حذف المعاملة '${target.description}' وإعادة تعديل رصيد الحساب تلقائياً؟") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.deleteTransaction(target)
-                        transactionToDelete = null
-                    },
-                    modifier = Modifier.testTag("confirm_delete_tx_btn")
-                ) {
-                    Text(Strings.get("delete", lang))
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { transactionToDelete = null }) {
-                    Text(Strings.get("cancel", lang))
-                }
-            }
+    deleteTarget?.let { target ->
+        FinanceAlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            title = { Text(WebI18n.tr("حذف المعاملة", "Delete transaction", lang)) },
+            text = { Text(WebI18n.tr("هل تريد حذف هذه المعاملة وإعادة تعديل رصيد الحساب تلقائياً؟", "Delete this transaction and automatically adjust the account balance?", lang)) },
+            confirmButton = { FinanceButton(onClick = { viewModel.deleteTransaction(target); deleteTarget = null }) { Text(WebI18n.tr("حذف", "Delete", lang)) } },
+            dismissButton = { FinanceOutlinedButton(onClick = { deleteTarget = null }) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) } }
         )
     }
 }
 
 @Composable
-fun TransactionItemCard(
-    transaction: TransactionEntity,
-    onDelete: () -> Unit
-) {
-    val isIncome = transaction.type == TransactionType.INCOME || transaction.type == TransactionType.REFUND
-    val accentColor = when (transaction.type) {
-        TransactionType.INCOME, TransactionType.REFUND -> ByeProTheme.colors.financialGreen
-        TransactionType.EXPENSE -> ByeProTheme.colors.financialRed
-        TransactionType.TRANSFER -> ByeProTheme.colors.goldPrimary
-        TransactionType.ADJUSTMENT -> ByeProTheme.colors.goldPrimary
-    }
-    val sign = when (transaction.type) {
-        TransactionType.INCOME, TransactionType.REFUND -> "+"
-        TransactionType.EXPENSE -> "-"
-        else -> ""
-    }
+fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCancel: () -> Unit, onSave: (TransactionEntity) -> Unit, initialTransaction: TransactionEntity? = null, defaultCurrency: String = "LYD") {
+    var type by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.type ?: TransactionType.EXPENSE) }
+    var accountId by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.accountId ?: 0L) }
+    var currency by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.currency ?: defaultCurrency) }
+    var category by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.category.orEmpty()) }
+    var amount by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.amount?.toString().orEmpty()) }
+    var date by remember(initialTransaction?.id) { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(initialTransaction?.date ?: System.currentTimeMillis()))) }
+    var description by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.description.orEmpty()) }
+    var accountMenu by remember { mutableStateOf(false) }
+    var categoryMenu by remember { mutableStateOf(false) }
+    var currencyMenu by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf("") }
+    val account = accounts.firstOrNull { it.id == accountId }
+    val categories = webCategories[type].orEmpty()
 
-    val dateFormatted = try {
-        SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(Date(transaction.date))
-    } catch (_: Exception) {
-        ""
-    }
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(if (initialTransaction == null) WebI18n.tr("إضافة معاملة", "Add transaction", lang) else WebI18n.tr("تعديل المعاملة", "Edit transaction", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(WebI18n.tr("يمكن تسجيل العملية دون ربطها بحساب شخصي؛ ربط الحساب اختياري.", "You can record this entry without linking a personal account; account linkage is optional.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(14.dp)),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(14.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(accentColor.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (isIncome) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward,
-                        contentDescription = null,
-                        tint = accentColor,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = transaction.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "${transaction.category} • ${transaction.merchant.ifBlank { "N/A" }} • $dateFormatted",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            Text(WebI18n.tr("نوع المعاملة", "Transaction type", lang), style = MaterialTheme.typography.labelMedium)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                webTransactionTypes.forEach { candidate ->
+                    FinanceButton(
+                        onClick = { type = candidate; category = "" },
+                        colors = ButtonDefaults.buttonColors(containerColor = if (type == candidate) ByeProTheme.colors.goldPrimary else MaterialTheme.colorScheme.surface),
+                        modifier = Modifier.weight(1f).testTag("transaction_type_${candidate.name.lowercase()}")
+                    ) { Text(txTypeLabel(candidate, lang)) }
                 }
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "$sign${FinanceEngine.formatMoney(transaction.amount, transaction.currency)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = accentColor
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.testTag("delete_tx_${transaction.id}")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.size(18.dp)
-                    )
+            Text(WebI18n.tr("ربط بحساب شخصي (اختياري)", "Link a personal account (optional)", lang), style = MaterialTheme.typography.labelMedium)
+            Box(Modifier.fillMaxWidth()) {
+                FinanceOutlinedButton(onClick = { accountMenu = true }, modifier = Modifier.fillMaxWidth().testTag("transaction_account_input")) { Text(account?.let { "${it.name} · ${it.currency}" } ?: WebI18n.tr("تسجيل دون ربط بحساب", "Record without linking an account", lang)) }
+                DropdownMenu(expanded = accountMenu, onDismissRequest = { accountMenu = false }) {
+                    DropdownMenuItem(text = { Text(WebI18n.tr("دون ربط بحساب", "No account link", lang)) }, onClick = { accountId = 0L; accountMenu = false })
+                    accounts.forEach { item -> DropdownMenuItem(text = { Text("${item.name} · ${item.currency}") }, onClick = { accountId = item.id; currency = item.currency; accountMenu = false }) }
                 }
+            }
+            if (account == null) {
+                Text(WebI18n.tr("العملة", "Currency", lang), style = MaterialTheme.typography.labelMedium)
+                Box(Modifier.fillMaxWidth()) {
+                    FinanceOutlinedButton(onClick = { currencyMenu = true }, modifier = Modifier.fillMaxWidth().testTag("transaction_currency_input")) { Text(currency) }
+                    DropdownMenu(expanded = currencyMenu, onDismissRequest = { currencyMenu = false }) {
+                        listOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD").forEach { code ->
+                            DropdownMenuItem(text = { Text(code) }, onClick = { currency = code; currencyMenu = false })
+                        }
+                    }
+                }
+            }
+
+            Text(WebI18n.tr("التصنيف", "Category", lang), style = MaterialTheme.typography.labelMedium)
+            Box(Modifier.fillMaxWidth()) {
+                FinanceOutlinedButton(onClick = { categoryMenu = true }, modifier = Modifier.fillMaxWidth().testTag("transaction_category_input")) {
+                    Text(if (category.isBlank()) WebI18n.tr("اختر التصنيف", "Choose a category", lang) else txCategoryLabel(category, lang))
+                }
+                DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
+                    categories.forEach { item ->
+                        DropdownMenuItem(
+                            text = { Text(txCategoryLabel(item, lang)) },
+                            onClick = { category = item; categoryMenu = false }
+                        )
+                    }
+                }
+            }
+
+            FinanceTextField(value = amount, onValueChange = { amount = it.filter { c -> c.isDigit() || c == '.' }.take(18) }, label = { Text(WebI18n.tr("المبلغ", "Amount", lang)) }, modifier = Modifier.fillMaxWidth().testTag("transaction_amount_input"), singleLine = true)
+            FinanceTextField(value = date, onValueChange = { date = it.take(10) }, label = { Text(WebI18n.tr("التاريخ", "Date", lang)) }, modifier = Modifier.fillMaxWidth().testTag("transaction_date_input"), singleLine = true)
+            FinanceTextField(value = description, onValueChange = { description = it.take(200) }, label = { Text(WebI18n.tr("الوصف", "Description", lang)) }, modifier = Modifier.fillMaxWidth().testTag("transaction_description_input"), singleLine = true)
+            Text(WebI18n.tr("الوصف اختياري، بحد أقصى 200 حرفاً.", "Description is optional, up to 200 characters.", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("transaction_form_error"))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FinanceOutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) }
+                FinanceButton(onClick = {
+                    val numeric = amount.toDoubleOrNull()
+                    val parsedDate = runCatching { SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(date)?.time }.getOrNull()
+                    error = when {
+                        numeric == null || !numeric.isFinite() || numeric <= 0.0 -> WebI18n.tr("أدخل مبلغاً أكبر من الصفر.", "Enter an amount greater than zero.", lang)
+                        parsedDate == null -> WebI18n.tr("أدخل تاريخاً صحيحاً بصيغة YYYY-MM-DD.", "Enter a valid date in YYYY-MM-DD format.", lang)
+                        account == null && currency !in setOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD") -> WebI18n.tr("اختر عملة صحيحة.", "Select a valid currency.", lang)
+                        else -> ""
+                    }
+                    if (error.isBlank() && numeric != null && parsedDate != null) {
+                        val selectedCurrency = account?.currency ?: currency
+                        onSave(initialTransaction?.copy(accountId = account?.id ?: 0L, type = type, amount = numeric, currency = selectedCurrency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }) ?: TransactionEntity(accountId = account?.id ?: 0L, type = type, amount = numeric, currency = selectedCurrency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }, status = TransactionStatus.COMPLETED))
+                    }
+                }, modifier = Modifier.weight(1f).testTag("submit_transaction_btn")) { Text(if (initialTransaction == null) WebI18n.tr("حفظ المعاملة", "Save transaction", lang) else WebI18n.tr("حفظ التعديلات", "Save changes", lang)) }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTransactionDialog(
-    accounts: List<AccountEntity>,
-    lang: com.example.finance.model.AppLanguage,
-    onDismiss: () -> Unit,
-    onConfirm: (TransactionEntity) -> Unit
-) {
-    var amountStr by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var merchant by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Groceries") }
-    var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
-    var selectedAccountId by remember { mutableStateOf(accounts.firstOrNull()?.id ?: 1L) }
-
-    val categories = listOf("Groceries", "Dining", "Utilities", "Salary", "Shopping", "Health", "Investments", "Transport", "Other")
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = Strings.get("add_transaction", lang), fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // Type selector
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = { selectedType = TransactionType.EXPENSE },
-                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                            containerColor = if (selectedType == TransactionType.EXPENSE) ByeProTheme.colors.financialRed else MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = if (selectedType == TransactionType.EXPENSE) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                        ),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(Strings.get("type_expense", lang), fontWeight = FontWeight.Bold)
-                    }
-                    Button(
-                        onClick = { selectedType = TransactionType.INCOME },
-                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                            containerColor = if (selectedType == TransactionType.INCOME) ByeProTheme.colors.financialGreen else MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = if (selectedType == TransactionType.INCOME) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                        ),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(Strings.get("type_income", lang), fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                OutlinedTextField(
-                    value = amountStr,
-                    onValueChange = { amountStr = it },
-                    label = { Text(Strings.get("amount", lang)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("tx_amount_input"),
-                    singleLine = true
-                )
-
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text(Strings.get("description", lang)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("tx_desc_input"),
-                    singleLine = true
-                )
-
-                OutlinedTextField(
-                    value = merchant,
-                    onValueChange = { merchant = it },
-                    label = { Text(Strings.get("merchant", lang)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                // Category chips
-                Text(text = Strings.get("category", lang), style = MaterialTheme.typography.labelSmall)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    categories.forEach { cat ->
-                        FilterChip(
-                            selected = category == cat,
-                            onClick = { category = cat },
-                            label = { Text(cat) }
-                        )
-                    }
+fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?, lang: AppLanguage, onDelete: () -> Unit, onToggleStatus: () -> Unit, onEdit: () -> Unit = {}, onCancel: () -> Unit = {}) {
+    val incomeLike = transaction.type == TransactionType.INCOME || transaction.type == TransactionType.REFUND || transaction.type == TransactionType.ADJUSTMENT
+    val workManaged = transaction.category.equals("WORK_INCOME", ignoreCase = true) || transaction.category.equals("WORK_EXPENSE", ignoreCase = true) || transaction.category.equals("WORK_TRANSFER", ignoreCase = true)
+    val transferManaged = transaction.category.equals("Transfer", ignoreCase = true) || transaction.category.equals("Transfer Fee", ignoreCase = true)
+    val ledgerManaged = workManaged || transferManaged
+    val color = if (transaction.type == TransactionType.EXPENSE) ByeProTheme.colors.financialRed else ByeProTheme.colors.financialGreen
+    val sign = if (transaction.type == TransactionType.EXPENSE) "−" else "+"
+    val dateText = runCatching { SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(Date(transaction.date)) }.getOrDefault("")
+    Surface(Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .25f), RoundedCornerShape(14.dp)), color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(14.dp)) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(42.dp).clip(CircleShape).background(color.copy(alpha = .15f)), contentAlignment = Alignment.Center) { Icon(if (incomeLike) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward, contentDescription = null, tint = color) }
+            Spacer(Modifier.size(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(transaction.description, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text("${txCategoryLabel(transaction.category, lang)} · ${account?.name ?: WebI18n.tr("دون ربط بحساب", "Unlinked", lang)} · $dateText", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text("$sign${TextContent.money(transaction.amount, transaction.currency, lang)}", fontWeight = FontWeight.Bold, color = color)
+                Text(statusLabel(transaction.status, lang), style = MaterialTheme.typography.labelSmall)
+                if (workManaged) {
+                    Text(WebI18n.tr("مرتبط بسجل العمل", "Managed by Work", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else if (transferManaged) {
+                    Text(WebI18n.tr("مرتبط بسجل التحويل", "Managed by transfer", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else if (transaction.status != TransactionStatus.CANCELLED) {
+                    Text(if (transaction.status == TransactionStatus.COMPLETED) WebI18n.tr("تعليق", "Set pending", lang) else WebI18n.tr("إكمال", "Complete", lang), style = MaterialTheme.typography.labelSmall, color = ByeProTheme.colors.goldPrimary, modifier = Modifier.testTag("toggle_tx_status_${transaction.id}").clip(RoundedCornerShape(6.dp)).background(ByeProTheme.colors.goldPrimary.copy(alpha = .08f)).clickable(onClick = onToggleStatus).padding(4.dp))
+                    Text(WebI18n.tr("إلغاء", "Cancel", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("cancel_tx_${transaction.id}").clickable(onClick = onCancel).padding(4.dp))
                 }
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val amt = amountStr.toDoubleOrNull() ?: 0.0
-                    if (amt > 0.0 && description.isNotBlank()) {
-                        onConfirm(
-                            TransactionEntity(
-                                accountId = selectedAccountId,
-                                type = selectedType,
-                                amount = amt,
-                                category = category,
-                                description = description,
-                                merchant = merchant
-                            )
-                        )
-                    }
-                },
-                modifier = Modifier.testTag("submit_tx_btn")
-            ) {
-                Text(Strings.get("confirm", lang))
-            }
-        },
-        dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text(Strings.get("cancel", lang))
+            if (!ledgerManaged) {
+                FinanceIconButton(onClick = onEdit, modifier = Modifier.testTag("edit_tx_${transaction.id}")) { Icon(Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل", "Edit", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .8f)) }
+                FinanceIconButton(onClick = onDelete, modifier = Modifier.testTag("delete_tx_${transaction.id}")) { Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .6f)) }
             }
         }
-    )
+    }
 }

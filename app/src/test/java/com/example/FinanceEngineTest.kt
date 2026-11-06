@@ -9,11 +9,14 @@ import com.example.finance.model.BudgetEntity
 import com.example.finance.model.BudgetPeriod
 import com.example.finance.model.DebtEntity
 import com.example.finance.model.DebtStatus
+import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
+import com.example.finance.model.TransactionStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import java.math.BigDecimal
 
@@ -74,6 +77,88 @@ class FinanceEngineTest {
     }
 
     @Test
+    fun cancelledTransactionsDoNotChangeBalancesAndAdjustmentsAreAdditive() {
+        val accountId = 7L
+        val transactions = listOf(
+            TransactionEntity(id = 1, accountId = accountId, type = TransactionType.EXPENSE, amount = 80.0, category = "Food", description = "Cancelled", status = TransactionStatus.CANCELLED),
+            TransactionEntity(id = 2, accountId = accountId, type = TransactionType.ADJUSTMENT, amount = 25.0, category = "Adjustment", description = "Correction")
+        )
+        assertEquals(
+            BigDecimal("1025.00"),
+            FinanceEngine.calculateAccountBalance(BigDecimal("1000.00"), transactions, accountId)
+        )
+        assertEquals(BigDecimal("0.00"), FinanceEngine.calculateTotalExpenses(transactions))
+    }
+
+    @Test
+    fun pendingTransactionsDoNotAffectBalancesIncomeExpensesOrBudgets() {
+        val accountId = 11L
+        val pendingIncome = TransactionEntity(
+            id = 1, accountId = accountId, type = TransactionType.INCOME,
+            amount = 500.0, category = "Salary", description = "Pending income",
+            status = TransactionStatus.PENDING
+        )
+        val pendingExpense = TransactionEntity(
+            id = 2, accountId = accountId, type = TransactionType.EXPENSE,
+            amount = 200.0, category = "Dining", description = "Pending expense",
+            status = TransactionStatus.PENDING
+        )
+        val postedExpense = TransactionEntity(
+            id = 3, accountId = accountId, type = TransactionType.EXPENSE,
+            amount = 50.0, currency = "LYD", category = "Dining", description = "Posted expense"
+        )
+        val transactions = listOf(pendingIncome, pendingExpense, postedExpense)
+        val budget = BudgetEntity(
+            id = 9, name = "Dining", category = "Dining",
+            period = BudgetPeriod.MONTHLY, limitAmount = 100.0,
+            currency = "LYD", startDate = 0L, endDate = Long.MAX_VALUE
+        )
+
+        assertEquals(
+            BigDecimal("950.00"),
+            FinanceEngine.calculateAccountBalance(BigDecimal("1000.00"), transactions, accountId)
+        )
+        assertEquals(BigDecimal("0.00"), FinanceEngine.calculateTotalIncome(transactions))
+        assertEquals(BigDecimal("50.00"), FinanceEngine.calculateTotalExpenses(transactions))
+        assertEquals(BigDecimal("50.00"), FinanceEngine.calculateBudgetStatus(budget, transactions).spent)
+    }
+
+    @Test
+    fun budgetDoesNotMixCurrenciesOrCountCancelledTransactions() {
+        val budget = BudgetEntity(
+            id = 10, name = "Food", category = "Food",
+            period = BudgetPeriod.MONTHLY, limitAmount = 100.0,
+            currency = "LYD", startDate = 0L, endDate = Long.MAX_VALUE
+        )
+        val transactions = listOf(
+            TransactionEntity(id = 1, accountId = 1, type = TransactionType.EXPENSE,
+                amount = 30.0, currency = "USD", category = "Food", description = "Other currency"),
+            TransactionEntity(id = 2, accountId = 1, type = TransactionType.EXPENSE,
+                amount = 20.0, currency = "LYD", category = "Food", description = "Cancelled",
+                status = TransactionStatus.CANCELLED)
+        )
+        assertEquals(BigDecimal("0.00"), FinanceEngine.calculateBudgetStatus(budget, transactions).spent)
+    }
+
+    @Test
+    fun netCashFlowIncludesAdjustmentsButExcludesTransfersAndPendingRows() {
+        val transactions = listOf(
+            TransactionEntity(id = 1, accountId = 1, type = TransactionType.INCOME,
+                amount = 100.0, category = "Salary", description = "Income"),
+            TransactionEntity(id = 2, accountId = 1, type = TransactionType.EXPENSE,
+                amount = 40.0, category = "Food", description = "Expense"),
+            TransactionEntity(id = 3, accountId = 1, type = TransactionType.ADJUSTMENT,
+                amount = 5.0, category = "Correction", description = "Positive correction"),
+            TransactionEntity(id = 4, accountId = 1, type = TransactionType.TRANSFER,
+                amount = 50.0, category = "Transfer", description = "Internal transfer"),
+            TransactionEntity(id = 5, accountId = 1, type = TransactionType.ADJUSTMENT,
+                amount = 20.0, category = "Correction", description = "Pending correction",
+                status = TransactionStatus.PENDING)
+        )
+        assertEquals(BigDecimal("65.00"), FinanceEngine.calculateNetCashFlow(transactions))
+    }
+
+    @Test
     fun testRefundScenario() {
         val accountId = 1L
         val startingBalance = BigDecimal("1000.00")
@@ -105,21 +190,18 @@ class FinanceEngineTest {
 
         // 1000 - 150 + 150 = 1000
         assertEquals(BigDecimal("1000.00"), balanceAfterRefund)
+        assertEquals(BigDecimal("150.00"), FinanceEngine.calculateTotalIncome(transactions))
     }
 
     @Test
-    fun testCurrencyConversion() {
-        // 100 USD to SAR = 375.00
-        val inSar = FinanceEngine.convertCurrency(BigDecimal("100.00"), "USD", "SAR")
-        assertEquals(BigDecimal("375.00"), inSar)
-
-        // 375 SAR to USD = 100.00
-        val inUsd = FinanceEngine.convertCurrency(BigDecimal("375.00"), "SAR", "USD")
-        assertEquals(BigDecimal("100.00"), inUsd)
-
-        // 10 KWD to SAR = 122.50
-        val kwdInSar = FinanceEngine.convertCurrency(BigDecimal("10.00"), "KWD", "SAR")
-        assertEquals(BigDecimal("122.50"), kwdInSar)
+    fun currencyConversionNeverInventsExchangeRates() {
+        assertEquals(
+            BigDecimal("100.00"),
+            FinanceEngine.convertCurrency(BigDecimal("100.00"), "LYD", "LYD")
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+            FinanceEngine.convertCurrency(BigDecimal("100.00"), "USD", "LYD")
+        }
     }
 
     @Test
@@ -145,13 +227,34 @@ class FinanceEngineTest {
             )
         )
 
-        // Liquid = 25,000 + (10,000 * 3.75) = 25,000 + 37,500 = 62,500 SAR
-        // Assets = 500,000 + 35,000 = 535,000 SAR
-        // Total Assets = 62,500 + 535,000 = 597,500 SAR
-        // Debts = 20,000 SAR
-        // Net Worth in SAR = 597,500 - 20,000 = 577,500.00 SAR
+        // Web parity: aggregate only rows in the selected currency; never guess FX.
+        // 25,000 SAR + 500,000 SAR + 35,000 SAR - 20,000 SAR = 540,000 SAR.
         val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, baseCurrency = "SAR")
-        assertEquals(BigDecimal("577500.00"), netWorth)
+        assertEquals(BigDecimal("540000.00"), netWorth)
+    }
+
+    @Test
+    fun netWorthIncludesSavingsAndMoneyOwedToUsWithoutGuessingExchangeRates() {
+        val accounts = listOf(
+            AccountEntity(id = 1, name = "Checking", type = AccountType.BANK, balance = 1000.0, currency = "LYD")
+        )
+        val assets = listOf(
+            AssetEntity(id = 1, name = "Gold", type = AssetType.GOLD, value = 500.0, currency = "LYD")
+        )
+        val debts = listOf(
+            DebtEntity(id = 1, name = "Loan I owe", creditor = "Bank", principal = 300.0, remaining = 200.0, currency = "LYD", direction = "i_owe"),
+            DebtEntity(id = 2, name = "Money owed to me", creditor = "Friend", principal = 150.0, remaining = 100.0, currency = "LYD", direction = "owed_to_me")
+        )
+        val savings = listOf(
+            SavingsGoalEntity(id = 1, name = "Emergency savings", targetAmount = 400.0, currentAmount = 250.0, currency = "LYD", deadline = Long.MAX_VALUE),
+            SavingsGoalEntity(id = 2, name = "USD savings", targetAmount = 100.0, currentAmount = 90.0, currency = "USD", deadline = Long.MAX_VALUE)
+        )
+
+        // 1,000 cash + 500 assets + 100 receivable + 250 savings - 200 liability.
+        assertEquals(
+            BigDecimal("1650.00"),
+            FinanceEngine.calculateNetWorth(accounts, assets, debts, "LYD", savings)
+        )
     }
 
     @Test

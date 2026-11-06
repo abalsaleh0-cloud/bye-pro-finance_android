@@ -1,5 +1,20 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import android.util.Base64
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+
+import com.example.finance.i18n.TextContent
+
+import com.example.ui.components.FinanceAlertDialog
+import com.example.ui.components.FinanceButton
+import com.example.ui.components.FinanceOutlinedButton
+import com.example.ui.components.FinanceTextField
+import com.example.ui.components.FinanceIconButton
+import com.example.ui.components.FinanceFloatingActionButton
+
+import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,8 +76,12 @@ fun SmartScanScreen(
     val scannedReceipt by viewModel.scannedReceipt.collectAsState()
     val documents by viewModel.documents.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
+    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
+    val context = LocalContext.current
+    var selectedReceiptUri by remember { mutableStateOf<String?>(null) }
 
     var statusMessage by remember { mutableStateOf<String?>(null) }
+    var manualReceiptText by remember { mutableStateOf("") }
 
     // Editable confirmation fields
     var merchantField by remember(scannedReceipt) { mutableStateOf(scannedReceipt?.merchant ?: "") }
@@ -70,6 +90,29 @@ fun SmartScanScreen(
     var categoryField by remember(scannedReceipt) { mutableStateOf(scannedReceipt?.category ?: "Groceries") }
 
     val ocrError by viewModel.ocrError.collectAsState()
+
+    val receiptPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching {
+                runCatching {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                }
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: error("Unable to read the selected receipt image")
+                require(bytes.isNotEmpty() && bytes.size <= 10 * 1024 * 1024) {
+                    "Receipt image must be between 1 byte and 10 MB"
+                }
+                selectedReceiptUri = uri.toString()
+                statusMessage = WebI18n.tr("جارٍ تحليل صورة الإيصال…", "Analyzing receipt image…", lang)
+                viewModel.scanReceipt(imageBase64 = Base64.encodeToString(bytes, Base64.NO_WRAP))
+            }.onFailure {
+                statusMessage = WebI18n.tr("تعذر فتح صورة الإيصال: ", "Could not open receipt image: ", lang) + (it.message ?: "")
+            }
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -122,38 +165,49 @@ fun SmartScanScreen(
                     }
 
                     Text(
-                        text = "محرك المسح الضوئي الذكي (Gemini OCR Vision)",
+                        text = WebI18n.tr("محرك المسح الضوئي الذكي (Offline receipt text extraction)", "Smart scanning engine (Offline receipt text extraction)", lang),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
 
-                    Button(
+                    FinanceButton(
                         onClick = {
                             statusMessage = null
-                            viewModel.scanReceipt("شركة أسواق التميمي - فرع الرياض\nتاريخ: 2026-10-30\nالمجموع الفرعي: 162.40 ر.س\nالضريبة: 24.35 ر.س\nالإجمالي: 186.75 ر.س")
+                            receiptPicker.launch(arrayOf("image/jpeg", "image/png", "image/webp"))
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.financialGreen, contentColor = MaterialTheme.colorScheme.onPrimary),
+                        colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldFeatured, contentColor = MaterialTheme.colorScheme.onPrimary),
                         shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("scan_sample_receipt_btn")
-                    ) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = null)
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(Strings.get("scan_sample", lang), fontWeight = FontWeight.Bold)
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            statusMessage = null
-                            viewModel.scanReceipt("مقهى ومحمصة النخبة\nتاريخ: 2026-10-30\nالضريبة: 8.35 ر.س\nالإجمالي: 64.00 ر.س")
-                        },
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("pick_receipt_image_btn")
                     ) {
                         Icon(Icons.Default.Receipt, contentDescription = null)
                         Spacer(modifier = Modifier.size(8.dp))
-                        Text("مسح إيصال مقهى تجريبي", color = MaterialTheme.colorScheme.onSurface)
+                        Text(WebI18n.tr("اختيار صورة إيصال", "Choose receipt image", lang), fontWeight = FontWeight.Bold)
+                    }
+
+                    Text(
+                        WebI18n.tr("أو الصق نص الإيصال المستخرج من أي ماسح ضوئي", "Or paste receipt text from any scanner", lang),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    FinanceTextField(
+                        value = manualReceiptText,
+                        onValueChange = { manualReceiptText = it },
+                        modifier = Modifier.fillMaxWidth().testTag("manual_receipt_text_input"),
+                        minLines = 3,
+                        maxLines = 6,
+                        label = { Text(WebI18n.tr("نص الإيصال", "Receipt text", lang)) }
+                    )
+                    FinanceOutlinedButton(
+                        onClick = {
+                            statusMessage = null
+                            viewModel.scanReceipt(sampleText = manualReceiptText)
+                        },
+                        enabled = manualReceiptText.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(WebI18n.tr("تحليل النص", "Analyze text", lang), color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -197,14 +251,14 @@ fun SmartScanScreen(
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                             Spacer(modifier = Modifier.size(6.dp))
                             Text(
-                                text = "مراجعة وتأكيد البيانات المستخرجة من الإيصال",
+                                text = WebI18n.tr("مراجعة وتأكيد البيانات المستخرجة من الإيصال", "Review and confirm extracted receipt data", lang),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = ByeProTheme.colors.goldPrimary
                             )
                         }
 
-                        OutlinedTextField(
+                        FinanceTextField(
                             value = merchantField,
                             onValueChange = { merchantField = it },
                             label = { Text(Strings.get("extracted_merchant", lang)) },
@@ -217,7 +271,7 @@ fun SmartScanScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            OutlinedTextField(
+                            FinanceTextField(
                                 value = amountField,
                                 onValueChange = { amountField = it },
                                 label = { Text(Strings.get("extracted_amount", lang)) },
@@ -225,7 +279,7 @@ fun SmartScanScreen(
                                     .weight(1f)
                                     .testTag("ocr_amount_input")
                             )
-                            OutlinedTextField(
+                            FinanceTextField(
                                 value = taxField,
                                 onValueChange = { taxField = it },
                                 label = { Text(Strings.get("extracted_tax", lang)) },
@@ -233,7 +287,7 @@ fun SmartScanScreen(
                             )
                         }
 
-                        OutlinedTextField(
+                        FinanceTextField(
                             value = categoryField,
                             onValueChange = { categoryField = it },
                             label = { Text(Strings.get("extracted_category", lang)) },
@@ -241,7 +295,7 @@ fun SmartScanScreen(
                         )
 
                         Text(
-                            text = "الأصناف: ${scannedReceipt!!.itemsSummary}",
+                            text = WebI18n.tr("الأصناف:", "Items:", lang) + " ${scannedReceipt!!.itemsSummary}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -250,41 +304,54 @@ fun SmartScanScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Button(
+                            FinanceButton(
                                 onClick = {
                                     val amt = amountField.toDoubleOrNull() ?: 0.0
                                     val tax = taxField.toDoubleOrNull() ?: 0.0
-                                    val defaultAcc = accounts.firstOrNull()?.id ?: 1L
-
-                                    if (amt > 0.0) {
-                                        // 1. Add Transaction
+                                    val selectedAccount = accounts.firstOrNull()
+                                    val receiptCurrency = scannedReceipt?.currency?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
+                                    val currencyMatches = selectedAccount != null &&
+                                        (receiptCurrency == null || receiptCurrency.equals(selectedAccount.currency, ignoreCase = true))
+                                    if (amt.isFinite() && amt > 0.0 && tax.isFinite() && tax >= 0.0 && selectedAccount != null && currencyMatches) {
                                         viewModel.addTransaction(
                                             TransactionEntity(
-                                                accountId = defaultAcc,
+                                                accountId = selectedAccount.id,
                                                 type = TransactionType.EXPENSE,
                                                 amount = amt,
-                                                currency = "SAR",
+                                                currency = selectedAccount.currency,
                                                 category = categoryField,
-                                                description = "فاتورة مشتريات: $merchantField",
+                                                description = WebI18n.tr("فاتورة مشتريات:", "Purchase receipt:", lang) + " $merchantField",
                                                 merchant = merchantField,
-                                                notes = "ضريبة: $tax ر.س - مستخرجة عبر Smart Scan"
+                                                notes = WebI18n.tr("ضريبة:", "Tax:", lang) + " $tax ${selectedAccount.currency} - extracted via Smart Scan"
                                             )
                                         )
-
-                                        // 2. Add Document
                                         viewModel.addDocument(
                                             DocumentEntity(
-                                                title = "إيصال: $merchantField",
+                                                title = WebI18n.tr("إيصال:", "Receipt:", lang) + " $merchantField",
                                                 type = DocumentType.RECEIPT,
                                                 merchant = merchantField,
                                                 totalAmount = amt,
                                                 taxAmount = tax,
+                                                currency = selectedAccount.currency,
+                                                fileUri = selectedReceiptUri.orEmpty(),
                                                 notes = scannedReceipt!!.itemsSummary
                                             )
                                         )
-
-                                        statusMessage = "تم حفظ الفاتورة وتحديث رصيد الحساب المالي بنجاح ✓"
+                                        statusMessage = WebI18n.tr("تم حفظ الفاتورة وتحديث رصيد الحساب المالي بنجاح ✓", "Receipt saved and account balance updated successfully ✓", lang)
+                                        selectedReceiptUri = null
                                         viewModel.clearScannedReceipt()
+                                    } else if (selectedAccount != null && !currencyMatches) {
+                                        statusMessage = WebI18n.tr(
+                                            "عملة الإيصال لا تطابق عملة الحساب. لا يمكن حفظه دون سعر صرف موثوق.",
+                                            "Receipt currency does not match the account currency. It cannot be saved without a verified exchange rate.",
+                                            lang
+                                        )
+                                    } else {
+                                        statusMessage = WebI18n.tr(
+                                            "أضف حساباً مالياً أولاً، وأدخل مبلغاً وضريبة صحيحين قبل حفظ الإيصال.",
+                                            "Add a financial account first and enter a valid amount and tax before saving the receipt.",
+                                            lang
+                                        )
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.financialGreen, contentColor = MaterialTheme.colorScheme.onPrimary),
@@ -295,7 +362,7 @@ fun SmartScanScreen(
                                 Text(Strings.get("confirm_and_save", lang), fontWeight = FontWeight.Bold)
                             }
 
-                            OutlinedButton(
+                            FinanceOutlinedButton(
                                 onClick = { viewModel.clearScannedReceipt() }
                             ) {
                                 Text(Strings.get("cancel", lang))
@@ -326,7 +393,7 @@ fun SmartScanScreen(
         // Saved Documents History
         item {
             Text(
-                text = "المستندات والإيصالات المحفوظة (${documents.size})",
+                text = WebI18n.tr("المستندات والإيصالات المحفوظة", "Saved documents and receipts", lang) + " (${TextContent.number(documents.size, lang, 0)})",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -335,7 +402,7 @@ fun SmartScanScreen(
         if (documents.isEmpty()) {
             item {
                 Text(
-                    text = "لم يتم حفظ أي مستندات أو إيصالات بعد.",
+                    text = WebI18n.tr("لم يتم حفظ أي مستندات أو إيصالات بعد.", "No documents or receipts have been saved yet.", lang),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -356,12 +423,12 @@ fun SmartScanScreen(
                     ) {
                         Column {
                             Text(doc.title, fontWeight = FontWeight.Bold)
-                            Text("التاجر: ${doc.merchant} • الضريبة: ${FinanceEngine.formatMoney(doc.taxAmount, "SAR")}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(WebI18n.tr("التاجر:", "Merchant:", lang) + " ${doc.merchant} • " + WebI18n.tr("الضريبة:", "Tax:", lang) + " ${TextContent.money(doc.taxAmount, doc.currency, lang)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(FinanceEngine.formatMoney(doc.totalAmount, "SAR"), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
-                            IconButton(onClick = { viewModel.deleteDocument(doc) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
+                            Text(TextContent.money(doc.totalAmount, doc.currency, lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
+                            FinanceIconButton(onClick = { viewModel.deleteDocument(doc) }) {
+                                Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف", "Delete", lang), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
                             }
                         }
                     }
