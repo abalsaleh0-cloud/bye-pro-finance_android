@@ -12,6 +12,9 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import javax.net.ssl.SSLException
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -101,7 +104,21 @@ class SecureVoiceSettings(context: Context) {
  * fallback. Audio is fetched only for the text the user asked to hear.
  */
 enum class ElevenLabsConnectionResult {
-    CONNECTED, MISSING_KEY, INVALID_KEY, FORBIDDEN, RATE_LIMITED, SERVER_ERROR, NETWORK_ERROR, REQUEST_FAILED
+    CONNECTED,
+    MISSING_KEY,
+    INVALID_KEY,
+    FORBIDDEN,
+    RATE_LIMITED,
+    SERVER_ERROR,
+    BAD_REQUEST,
+    NOT_FOUND,
+    INVALID_REQUEST,
+    OTHER_HTTP_RESPONSE,
+    TIMEOUT,
+    TLS_ERROR,
+    DNS_ERROR,
+    NETWORK_ERROR,
+    REQUEST_FAILED
 }
 
 class ElevenLabsSpeechProvider(context: Context) {
@@ -129,13 +146,22 @@ class ElevenLabsSpeechProvider(context: Context) {
             client.newCall(request).execute().use { response ->
                 when {
                     response.isSuccessful -> ElevenLabsConnectionResult.CONNECTED
+                    response.code == 400 -> ElevenLabsConnectionResult.BAD_REQUEST
                     response.code == 401 -> ElevenLabsConnectionResult.INVALID_KEY
                     response.code == 403 -> ElevenLabsConnectionResult.FORBIDDEN
+                    response.code == 404 -> ElevenLabsConnectionResult.NOT_FOUND
+                    response.code == 422 -> ElevenLabsConnectionResult.INVALID_REQUEST
                     response.code == 429 -> ElevenLabsConnectionResult.RATE_LIMITED
                     response.code in 500..599 -> ElevenLabsConnectionResult.SERVER_ERROR
-                    else -> ElevenLabsConnectionResult.REQUEST_FAILED
+                    else -> ElevenLabsConnectionResult.OTHER_HTTP_RESPONSE
                 }
             }
+        } catch (_: SocketTimeoutException) {
+            ElevenLabsConnectionResult.TIMEOUT
+        } catch (_: SSLException) {
+            ElevenLabsConnectionResult.TLS_ERROR
+        } catch (_: UnknownHostException) {
+            ElevenLabsConnectionResult.DNS_ERROR
         } catch (_: IOException) {
             ElevenLabsConnectionResult.NETWORK_ERROR
         } catch (_: Exception) {
