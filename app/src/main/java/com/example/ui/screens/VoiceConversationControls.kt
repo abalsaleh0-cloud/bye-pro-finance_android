@@ -130,7 +130,6 @@ fun SpeakTextButton(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val provider = remember(context) { ElevenLabsSpeechProvider(context.applicationContext) }
-    val hasCloudCredentials = remember(context) { SecureVoiceSettings(context).hasApiKey() }
     val latestText by rememberUpdatedState(text)
     val latestLanguage by rememberUpdatedState(languageCode)
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
@@ -242,7 +241,7 @@ fun SpeakTextButton(
     }
 
     IconButton(
-        enabled = text.isNotBlank() && (ready || hasCloudCredentials),
+        enabled = text.isNotBlank(),
         onClick = { if (speaking) stopSpeaking() else speak() },
         modifier = modifier
     ) {
