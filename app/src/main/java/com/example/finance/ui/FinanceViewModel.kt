@@ -807,62 +807,40 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 } else ""
                 val activeSavedModel = aiModelPreferences.getString("active_model_path", null)
                     ?.let(::File)?.takeIf { it.isFile && it.canRead() }
-                val visionSavedModel = aiModelPreferences.getString("vision_model_path", null)
-                    ?.let(::File)?.takeIf { it.isFile && it.canRead() && isGemma3nVisionModel(it) }
-                // A registered Gemma 3n vision model is also a capable local text/tool model.
-                // Use it automatically when no usable chat model (GGUF or text LiteRT-LM) exists.
-                // It is loaded only for this request and released immediately to limit RAM pressure.
-                val useVisionAsTextFallback = activeSavedModel == null && visionSavedModel != null
-                val savedModel = activeSavedModel ?: visionSavedModel
+                // The multi-GB Gemma 3n vision model is reserved for image requests.
+                // Never load it as a text-chat fallback: doing so can exhaust device RAM
+                // while the assistant is still showing its thinking indicator.
+                val savedModel = activeSavedModel
                 if (savedModel != null) {
                     try {
-                        if (useVisionAsTextFallback) {
+                        val format = aiModelPreferences.getString(
+                            "active_model_format",
+                            if (savedModel.extension.equals("gguf", ignoreCase = true)) "GGUF" else "LITERTLM"
+                        )
+                        if (!_localModelReady.value) {
                             _localModelLoading.value = true
-                            _localModelStatus.value = "جارٍ تجهيز Gemma 3n تلقائياً للمحادثة وأدوات التطبيق..."
+                            _localModelStatus.value = "جارٍ استعادة النموذج المحلي..."
                             try {
-                                localLlm.unload()
-                                ggufLlm.unload()
-                                _localModelReady.value = false
-                                visionLlm.load(savedModel)
+                                // Keep exactly one inference runtime resident at a time.
+                                visionLlm.unload()
+                                if (format == "GGUF") {
+                                    localLlm.unload()
+                                    ggufLlm.load(savedModel)
+                                } else {
+                                    ggufLlm.unload()
+                                    localLlm.load(savedModel)
+                                }
+                                _localModelReady.value = true
+                                _localModelStatus.value = "النموذج المحلي جاهز."
                             } finally {
                                 _localModelLoading.value = false
                             }
-                            try {
-                                visionLlm.sendMessage(trimmedQuery, financialContext) { chunk ->
-                                    _streamingAiText.value += chunk
-                                }
-                            } finally {
-                                runCatching { visionLlm.unload() }
-                                    .onFailure { Log.w("BYE_PRO_LOCAL_AI", "Gemma 3n fallback cleanup failed.", it) }
-                                _localModelReady.value = false
-                                _localModelStatus.value = "تم إيقاف Gemma 3n بعد الطلب لتحرير الذاكرة."
-                            }
+                        }
+                        if (format == "GGUF") {
+                            ggufLlm.sendMessage(trimmedQuery, financialContext)
                         } else {
-                            val format = aiModelPreferences.getString(
-                                "active_model_format",
-                                if (savedModel.extension.equals("gguf", ignoreCase = true)) "GGUF" else "LITERTLM"
-                            )
-                            if (!_localModelReady.value) {
-                                _localModelLoading.value = true
-                                _localModelStatus.value = "جارٍ استعادة النموذج المحلي..."
-                                try {
-                                    if (format == "GGUF") {
-                                        ggufLlm.load(savedModel)
-                                    } else {
-                                        localLlm.load(savedModel)
-                                    }
-                                    _localModelReady.value = true
-                                    _localModelStatus.value = "النموذج المحلي جاهز."
-                                } finally {
-                                    _localModelLoading.value = false
-                                }
-                            }
-                            if (format == "GGUF") {
-                                ggufLlm.sendMessage(trimmedQuery, financialContext)
-                            } else {
-                                localLlm.sendMessage(trimmedQuery, financialContext) { chunk ->
-                                    _streamingAiText.value += chunk
-                                }
+                            localLlm.sendMessage(trimmedQuery, financialContext) { chunk ->
+                                _streamingAiText.value += chunk
                             }
                         }
                     } catch (localError: Throwable) {
