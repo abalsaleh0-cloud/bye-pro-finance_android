@@ -26,6 +26,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Dashboard
@@ -126,6 +133,15 @@ fun MainAppScaffold(
     val accounts by viewModel.accounts.collectAsState()
 
     val unreadCount = notifications.count { !it.isRead }
+    val titleKey = when (currentScreen) {
+        "dashboard" -> "nav_dashboard"; "accounts" -> "nav_accounts"; "transactions" -> "nav_transactions"
+        "budgets" -> "nav_budgets"; "debts" -> "nav_debts"; "bills" -> "nav_bills"; "work" -> "nav_work"
+        "household" -> "nav_household"; "transfers" -> "nav_transfers"; "savings" -> "nav_savings"
+        "assets" -> "nav_assets"; "reports" -> "nav_reports"; "documents" -> "nav_documents"
+        "import_export" -> "nav_import_export"; "smart_scan" -> "nav_smart_scan"; "ai_assistant" -> "nav_ai_assistant"
+        "notifications" -> "nav_notifications"; "admin" -> "nav_admin"; "settings" -> "nav_settings"
+        else -> "nav_dashboard"
+    }
     var showHubBottomSheet by remember { mutableStateOf(false) }
     var showQuickAddTx by remember { mutableStateOf(false) }
 
@@ -138,17 +154,17 @@ fun MainAppScaffold(
     }
 
     val hubMenuItems = listOf(
-        HubMenuItem("work", "nav_work", Icons.Default.AccountBalance, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("work", "nav_work", Icons.Default.Work, ByeProTheme.colors.goldPrimary),
         HubMenuItem("transfers", "nav_transfers", Icons.Default.SwapHoriz, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("debts", "nav_debts", Icons.Default.MoneyOff, ByeProTheme.colors.financialRed),
-        HubMenuItem("bills", "nav_bills", Icons.Default.ReceiptLong, ByeProTheme.colors.financialRed),
+        HubMenuItem("debts", "nav_debts", Icons.Default.CreditCard, ByeProTheme.colors.financialRed),
+        HubMenuItem("bills", "nav_bills", Icons.Default.Event, ByeProTheme.colors.financialRed),
         HubMenuItem("savings", "nav_savings", Icons.Default.Savings, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("assets", "nav_assets", Icons.Default.AccountBalance, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("reports", "nav_reports", Icons.Default.TableChart, ByeProTheme.colors.financialGreen),
+        HubMenuItem("assets", "nav_assets", Icons.Default.Home, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("reports", "nav_reports", Icons.Default.Assessment, ByeProTheme.colors.financialGreen),
         HubMenuItem("household", "nav_household", Icons.Default.Group, ByeProTheme.colors.financialGreen),
-        HubMenuItem("documents", "nav_documents", Icons.Default.ReceiptLong, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("documents", "nav_documents", Icons.Default.FolderOpen, ByeProTheme.colors.goldPrimary),
         HubMenuItem("smart_scan", "nav_smart_scan", Icons.Default.SmartScreen, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("import_export", "nav_import_export", Icons.Default.TableChart, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("import_export", "nav_import_export", Icons.Default.ImportExport, ByeProTheme.colors.goldPrimary),
         HubMenuItem("ai_assistant", "nav_ai_assistant", Icons.Default.AutoAwesome, ByeProTheme.colors.goldPrimary),
         HubMenuItem("notifications", "nav_notifications", Icons.Default.Notifications, ByeProTheme.colors.goldPrimary),
         HubMenuItem("admin", "nav_admin", Icons.Default.AdminPanelSettings, ByeProTheme.colors.financialGreen),
@@ -162,7 +178,7 @@ fun MainAppScaffold(
         Scaffold(
             topBar = {
                 CenterAlignedTopAppBar(
-                    title = {},
+                    title = { Text(Strings.get(titleKey, lang), maxLines = 1, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) },
                     navigationIcon = {
                         IconButton(
                             onClick = { showHubBottomSheet = true },
@@ -203,7 +219,7 @@ fun MainAppScaffold(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Language,
-                                    contentDescription = null,
+                                    contentDescription = WebI18n.tr("تغيير اللغة", "Change language", lang),
                                     tint = ByeProTheme.colors.goldPrimary,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -225,7 +241,7 @@ fun MainAppScaffold(
                                 badge = {
                                     if (unreadCount > 0) {
                                         Badge(containerColor = ByeProTheme.colors.financialRed) {
-                                            Text(TextContent.number(unreadCount, lang, 0), color = Color.White)
+                                            Text(TextContent.number(unreadCount, lang, 0), color = MaterialTheme.colorScheme.onError)
                                         }
                                     }
                                 }
@@ -245,7 +261,6 @@ fun MainAppScaffold(
             },
             bottomBar = {
                 NavigationBar(
-                    modifier = Modifier.height(68.dp),
                     containerColor = MaterialTheme.colorScheme.surface,
                     tonalElevation = 2.dp
                 ) {
@@ -258,7 +273,7 @@ fun MainAppScaffold(
                         selected = currentScreen == "dashboard",
                         onClick = { viewModel.setScreen("dashboard") },
                         icon = { Icon(Icons.Default.Dashboard, contentDescription = Strings.get("nav_dashboard", lang)) },
-                        label = { Text(WebI18n.tr("الرئيسية", "Home", lang), fontSize = 10.sp, maxLines = 1) },
+                        label = { Text(WebI18n.tr("الرئيسية", "Home", lang), fontSize = 11.sp, maxLines = 1) },
                         colors = navColors,
                         modifier = Modifier.testTag("nav_dashboard_tab")
                     )
@@ -266,15 +281,15 @@ fun MainAppScaffold(
                         selected = currentScreen == "ai_assistant",
                         onClick = { viewModel.setScreen("ai_assistant") },
                         icon = { Icon(Icons.Default.AutoAwesome, contentDescription = WebI18n.tr("المساعد المالي", "Financial assistant", lang)) },
-                        label = { Text(WebI18n.tr("المساعد المالي", "Financial assistant", lang), fontSize = 9.sp, maxLines = 1, softWrap = false) },
+                        label = { Text(WebI18n.tr("المساعد", "Assistant", lang), fontSize = 11.sp, maxLines = 1, softWrap = false) },
                         colors = navColors,
                         modifier = Modifier.testTag("nav_ai_assistant_tab")
                     )
                     NavigationBarItem(
                         selected = currentScreen == "work",
                         onClick = { viewModel.setScreen("work") },
-                        icon = { Icon(Icons.Default.AccountBalance, contentDescription = WebI18n.tr("العمل", "Work", lang)) },
-                        label = { Text(WebI18n.tr("العمل", "Work", lang), fontSize = 10.sp, maxLines = 1) },
+                        icon = { Icon(Icons.Default.Work, contentDescription = WebI18n.tr("العمل", "Work", lang)) },
+                        label = { Text(WebI18n.tr("العمل", "Work", lang), fontSize = 11.sp, maxLines = 1) },
                         colors = navColors,
                         modifier = Modifier.testTag("nav_work_tab")
                     )
@@ -282,23 +297,23 @@ fun MainAppScaffold(
                         selected = currentScreen == "household",
                         onClick = { viewModel.setScreen("household") },
                         icon = { Icon(Icons.Default.Group, contentDescription = WebI18n.tr("المنزل", "Home", lang)) },
-                        label = { Text(WebI18n.tr("المنزل", "Household", lang), fontSize = 10.sp, maxLines = 1) },
+                        label = { Text(WebI18n.tr("المنزل", "Household", lang), fontSize = 11.sp, maxLines = 1) },
                         colors = navColors,
                         modifier = Modifier.testTag("nav_household_tab")
                     )
                     NavigationBarItem(
                         selected = currentScreen == "debts",
                         onClick = { viewModel.setScreen("debts") },
-                        icon = { Icon(Icons.Default.MoneyOff, contentDescription = Strings.get("debts_title", lang)) },
-                        label = { Text(WebI18n.tr("الديون", "Debts", lang), fontSize = 10.sp, maxLines = 1) },
+                        icon = { Icon(Icons.Default.CreditCard, contentDescription = Strings.get("debts_title", lang)) },
+                        label = { Text(WebI18n.tr("الديون", "Debts", lang), fontSize = 11.sp, maxLines = 1) },
                         colors = navColors,
                         modifier = Modifier.testTag("nav_debts_tab")
                     )
                     NavigationBarItem(
                         selected = currentScreen == "transactions",
                         onClick = { viewModel.setScreen("transactions") },
-                        icon = { Icon(Icons.Default.ReceiptLong, contentDescription = WebI18n.tr("المصروفات", "Expenses", lang)) },
-                        label = { Text(WebI18n.tr("المصروفات", "Expenses", lang), fontSize = 10.sp, maxLines = 1) },
+                        icon = { Icon(Icons.Default.ReceiptLong, contentDescription = Strings.get("nav_transactions", lang)) },
+                        label = { Text(Strings.get("nav_transactions", lang), fontSize = 11.sp, maxLines = 1) },
                         colors = navColors,
                         modifier = Modifier.testTag("nav_expenses_tab")
                     )
