@@ -43,6 +43,7 @@ internal data class ParsedRentCommand(
     val amount: Double,
     val currency: String,
     val isPayment: Boolean,
+    val isPartialPayment: Boolean,
     val month: String,
     val description: String
 )
@@ -94,8 +95,9 @@ internal object AiCommandRouter {
             text.contains("lyd") || text.contains("دينار") || text.contains("د.ل") -> "LYD"
             else -> defaultCurrency.trim().uppercase(Locale.ROOT).takeIf { it.matches(Regex("[A-Z]{3}")) } ?: return null
         }
-        val isPayment = listOf("دفعت", "سددت", "سدّدت", "paid", "pay rent").any(text::contains)
-        return ParsedRentCommand(amount, currency, isPayment, explicitMonth ?: currentMonth, normalized)
+        val isPayment = listOf("دفعت", "دفع", "دفعه", "دفعة", "سددت", "سدّدت", "كسور", "جزئي", "جزئية", "paid", "pay rent").any(text::contains)
+        val isPartialPayment = listOf("دفعة", "دفعه", "كسور", "جزئي", "جزئية", "partial").any(text::contains)
+        return ParsedRentCommand(amount, currency, isPayment, isPartialPayment, explicitMonth ?: currentMonth, normalized)
     }
     fun parseDebtPayment(query: String): ParsedDebtPaymentCommand? {
         val normalized = normalizeDigits(query).trim()
@@ -141,7 +143,7 @@ internal object AiCommandRouter {
         if (!amount.isFinite() || amount <= 0.0) return null
         val type = when {
             listOf("سلفة", "سلفه", "سلفة راتب", "advance", "salary advance").any(text::contains) -> "SALARY_ADVANCE"
-            listOf("دفعة راتب", "دفعة من الراتب", "دفعة من العمل", "دفعة العمل", "دخل من العمل", "استلمت من العمل", "استلمت الراتب", "استلمت راتبي", "قبضت الراتب", "اخذت الراتب", "أخذت الراتب", "salary payment", "received salary", "got paid").any(text::contains) -> "SALARY_PAYMENT"
+            listOf("دفعة راتب", "دفعة من الراتب", "دفعة من العمل", "دفعة العمل", "دفعه العمل", "العمل دفعة", "العمل دفعه", "دفعة من الشغل", "دخل من العمل", "دخل العمل", "استلمت من العمل", "استلمت الراتب", "استلمت راتبي", "قبضت الراتب", "اخذت الراتب", "أخذت الراتب", "salary payment", "received salary", "got paid").any(text::contains) -> "SALARY_PAYMENT"
             listOf("بدل وظيفي", "بدل", "allowance").any(text::contains) -> "SALARY_ALLOWANCE"
             listOf("مكافأة", "مكافاه", "bonus").any(text::contains) -> "SALARY_BONUS"
             listOf("عمل إضافي", "عمل اضافي", "أوفر تايم", "overtime").any(text::contains) -> "SALARY_OVERTIME"
@@ -199,7 +201,7 @@ internal object AiCommandRouter {
             "دفعت", "دفعنا", "صرفت", "صرفنا", "اشتريت", "اشترينا",
             "سجل مصروف", "سجلت مصروف", "اضف مصروف", "أضف مصروف",
             "add expense", "record expense", "spent", "paid"
-        ).any(text::contains)
+        ).any(text::contains) || (text.contains("سجل") && text.contains("مصروف"))
         val incomeVerb = listOf(
             "استلمت", "استلمنا", "قبضت", "قبضنا", "وصلني", "دخل لي",
             "سجل إيراد", "سجلت إيراد", "اضف دخل", "أضف دخل",

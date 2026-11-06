@@ -1031,16 +1031,31 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 val rentBills = bills.value.filter { bill ->
                     (bill.category.equals("Rent", true) || bill.name.contains("إيجار") || bill.name.contains("rent", true)) &&
                         bill.currency.equals(rentCommand.currency, true) &&
-                        kotlin.math.abs(bill.amount - rentCommand.amount) < 0.000001 &&
                         !bill.isPaid &&
                         java.time.Instant.ofEpochMilli(bill.dueDate).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString().startsWith(rentCommand.month)
                 }
-                if (rentBills.size > 1) return "وجدت أكثر من قسط إيجار مطابق لهذا الشهر. حدّد الشهر المقصود."
+                if (rentBills.size > 1) return "وجدت أكثر من قسط إيجار غير مدفوع لهذا الشهر. حدّد القسط المقصود."
                 val rent = rentBills.singleOrNull()
-                    ?: return "لم أجد قسط إيجار غير مدفوع بالمبلغ والعملة والشهر المذكور. سجّل قسط الشهر في قسم المنزل أولاً، ثم اطلب تسجيل دفعه."
-                val staged = aiAppTools.proposeMarkBillPaid(billId = rent.id)
-                if (staged["success"] != true) return "تعذر تجهيز دفع الإيجار: ${staged["error"] ?: "خطأ غير معروف"}."
-                return "جهزت تسجيل دفع إيجار المنزل لشهر ${rentCommand.month} بمبلغ ${TextContent.money(rentCommand.amount, rentCommand.currency, _appLanguage.value)} دون ربطه برصيد أي حساب. راجع المعاينة وأكد التنفيذ."
+                val exactFullPayment = rent != null && kotlin.math.abs(rent.amount - rentCommand.amount) < 0.000001
+                if (!rentCommand.isPartialPayment && exactFullPayment) {
+                    val staged = aiAppTools.proposeMarkBillPaid(billId = rent!!.id)
+                    if (staged["success"] != true) return "تعذر تجهيز دفع الإيجار: ${staged["error"] ?: "خطأ غير معروف"}."
+                    return "جهزت تسجيل دفع قسط إيجار المنزل لشهر ${rentCommand.month} بالكامل بمبلغ ${TextContent.money(rentCommand.amount, rentCommand.currency, _appLanguage.value)} دون ربطه برصيد أي حساب. راجع المعاينة وأكد التنفيذ."
+                }
+                if (rent != null && !rentCommand.isPartialPayment && rentCommand.amount > rent.amount) {
+                    return "المبلغ المذكور أكبر من قسط الإيجار المسجل (${TextContent.money(rent.amount, rent.currency, _appLanguage.value)}). حدّد هل تريد دفع القسط وإضافة فرق كمصروف مستقل."
+                }
+                val staged = aiAppTools.proposeCreateTransaction(
+                    accountId = 0L,
+                    type = "EXPENSE",
+                    amount = rentCommand.amount,
+                    category = "rent",
+                    description = rentCommand.description,
+                    currency = rentCommand.currency,
+                    status = "COMPLETED"
+                )
+                if (staged["success"] != true) return "تعذر تجهيز دفعة الإيجار كمصروف: ${staged["error"] ?: "بيانات غير صالحة"}."
+                return "جهزت تسجيل دفعة إيجار جزئية بمبلغ ${TextContent.money(rentCommand.amount, rentCommand.currency, _appLanguage.value)} كمصروف مستقل دون ربطها بحساب. لم أغيّر حالة قسط الإيجار؛ سيبقى مفتوحاً حتى تسجيل تسويته بالكامل. راجع المعاينة وأكد التنفيذ."
             } else {
                 val dueDate = runCatching {
                     java.time.YearMonth.parse(rentCommand.month).atDay(1)

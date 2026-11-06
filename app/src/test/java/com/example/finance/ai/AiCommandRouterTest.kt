@@ -25,6 +25,15 @@ class AiCommandRouterTest {
     }
 
     @Test
+    fun parsesExpenseWhenAmountPrecedesExpenseWord() {
+        val command = AiCommandRouter.parseTransaction("سجل 10 دينار مصروف", "LYD")
+        assertEquals("EXPENSE", command?.type)
+        assertEquals(10.0, command?.amount ?: 0.0, 0.0)
+        assertEquals("LYD", command?.currency)
+        assertEquals("other", command?.category)
+    }
+
+    @Test
     fun parsesEnglishIncomeAndCurrency() {
         val command = AiCommandRouter.parseTransaction("Received 125 USD salary", "LYD")
         assertEquals("INCOME", command?.type)
@@ -106,6 +115,21 @@ class AiCommandRouterTest {
 
         val paid = AiCommandRouter.parseRentCommand("دفعت إيجار المنزل ٥٠٠ دينار", "LYD", "2026-11")
         assertEquals(true, paid?.isPayment)
+    }
+
+    @Test
+    fun recognizesPartialRentPaymentAsPartialNotFullBillSettlement() {
+        val partial = AiCommandRouter.parseRentCommand("ال 200 هذه كسور ايجار بيت سجل 200 دينار دفعه", "LYD", "2026-11")
+        assertEquals(true, partial?.isPayment)
+        assertEquals(true, partial?.isPartialPayment)
+        assertEquals(200.0, partial?.amount ?: 0.0, 0.0)
+    }
+
+    @Test
+    fun recognizesColloquialWorkPaymentWordOrder() {
+        val command = AiCommandRouter.parseWorkRecord("سجل 700 دينار العمل دفعه", "LYD")
+        assertEquals("SALARY_PAYMENT", command?.type)
+        assertEquals(700.0, command?.amount ?: 0.0, 0.0)
     }
 
     @Test
