@@ -201,7 +201,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
             if (visible.isEmpty()) {
                 item {
                     AppEmptyState(
-                        icon = Icons.Default.ReceiptLong,
+                        icon = Icons.Default.ArrowDownward,
                         title = WebI18n.tr(if (search.isBlank() && filter == null && statusFilter == null) "لا توجد معاملات بعد" else "لا توجد نتائج للفلتر", if (search.isBlank() && filter == null && statusFilter == null) "No transactions yet" else "No filter results", lang),
                         description = WebI18n.tr("استخدم زر الإضافة لتسجيل معاملة.", "Use the add button to record a transaction.", lang)
                     )
