@@ -1,6 +1,10 @@
 package com.example.ui.screens
 
 import com.example.finance.i18n.TextContent
+import com.example.finance.i18n.WebI18n
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.ReceiptLong
 import com.example.ui.components.AppSearchField
 import com.example.ui.components.AppEmptyState
 import com.example.ui.components.AppListBottomPadding
@@ -102,7 +106,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             TextButton(onClick = { reportPeriod = "month" }) { Text((if (reportPeriod == "month") "✓ " else "") + (if (ar) "شهري" else "Monthly")) }
             TextButton(onClick = { reportPeriod = "year" }) { Text((if (reportPeriod == "year") "✓ " else "") + (if (ar) "سنوي" else "Yearly")) }
         }
-        AppSearchField(searchQuery, { searchQuery = it }, if (ar) "ابحث في سجلات العمل…" else "Search work records…", Modifier.fillMaxWidth())
+        AppSearchField(searchQuery, { searchQuery = it }, WebI18n.tr("ابحث في سجلات العمل…", "Search work records…", lang), Modifier.fillMaxWidth())
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TextButton(onClick = { transferDialog = true }) { Text(if (ar) "تحويل" else "Transfer") }
         }
@@ -110,7 +114,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         Text(if (ar) (if (selectedScope == WorkSourceType.EMPLOYMENT) "جهات العمل" else "العملاء والأنشطة") else (if (selectedScope == WorkSourceType.EMPLOYMENT) "Employers" else "Clients and activities"), style = MaterialTheme.typography.titleMedium)
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (visibleSources.isEmpty()) item {
-                Text(if (ar) "لا توجد جهات أو أنشطة مسجلة تطابق البحث." else "No employers or activities match this search.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                AppEmptyState(icon = Icons.Default.Work, title = WebI18n.tr(if (query.isBlank()) "لا توجد جهات عمل" else "لا توجد نتائج للفلتر", if (query.isBlank()) "No work sources" else "No filter results", lang), description = WebI18n.tr("أضف جهة عمل أو نشاطاً للبدء.", "Add an employer or activity to get started.", lang))
             }
             items(visibleSources, key = { "source" + it.id }) { source ->
                 val due = if (source.type == WorkSourceType.EMPLOYMENT) WorkLedgerCalculator.salaryDue(source, records, period).toDouble() else records.filter { it.sourceId == source.id && it.type == WorkRecordType.FREELANCE_INCOME }.sumOf { WorkLedgerCalculator.freelanceOutstanding(it, records).toDouble() }
@@ -132,7 +136,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             }
             item { Text(if (ar) "آخر الحركات" else "Recent records", style = MaterialTheme.typography.titleMedium) }
             if (visibleRecords.isEmpty()) item {
-                Text(if (ar) "لا توجد حركات مسجلة في هذا القسم بعد." else "No records have been added to this workspace yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                AppEmptyState(icon = Icons.Default.ReceiptLong, title = WebI18n.tr(if (query.isBlank()) "لا توجد حركات بعد" else "لا توجد نتائج للفلتر", if (query.isBlank()) "No records yet" else "No filter results", lang), description = WebI18n.tr("استخدم زر تسجيل حركة لإضافة سجل.", "Use Add record to create an entry.", lang))
             }
             items(visibleRecords, key = { "record" + it.id }) { row ->
                 val name = sources.firstOrNull { it.id == row.sourceId }?.name ?: (if (row.type == WorkRecordType.WORK_TRANSFER_IN || row.type == WorkRecordType.WORK_TRANSFER_OUT) (if (ar) "تحويل داخلي" else "Internal transfer") else (if (ar) "عمل عام" else "General work"))
@@ -142,6 +146,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                     TextButton(onClick = { deleteRecordId = row.id }) { Text(if (ar) "حذف" else "Delete") }
                 }
             }
+            item { Spacer(Modifier.height(AppListBottomPadding)) }
         }
     }
     if (deleteRecordId != null) {

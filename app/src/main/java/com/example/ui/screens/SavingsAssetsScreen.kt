@@ -226,7 +226,7 @@ fun SavingsAssetsScreen(
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(72.dp))
+                    Spacer(modifier = Modifier.height(AppListBottomPadding))
                 }
             }
         }

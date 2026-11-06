@@ -216,7 +216,7 @@ fun AccountsScreen(viewModel: FinanceViewModel) {
                     )
                 }
             }
-            item { Spacer(Modifier.height(72.dp)) }
+            item { Spacer(Modifier.height(AppListBottomPadding)) }
         }
     }
 
