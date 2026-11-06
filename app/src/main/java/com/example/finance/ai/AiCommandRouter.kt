@@ -115,18 +115,21 @@ internal object AiCommandRouter {
             .replace(Regex("""(?i)(?<![\p{L}])(?:دينار|دنانير|د\.ل|lyd|usd|eur|دولار|يورو|ليرة|syp)(?![\p{L}])"""), " ")
             .replace(Regex("""[،,:؛.]+"""), " ")
             .trim()
-        val prefixedName = Regex("""(?:^|\s)(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""").find(afterAmount)
-            ?.groupValues?.get(1)
-        val bareName = Regex("""^([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})$""")
-            .matchEntire(afterAmount)?.groupValues?.get(1)
-        // Fallback for short colloquial forms where the currency token or spacing
-        // prevents a full-tail match (e.g. "سجل دفعة 10 دينار خالد").
-        val trailingName = afterAmount.substringAfterLast(' ').takeIf { token ->
-            token.length >= 2 && token.all { it.isLetter() || it == '_' || it == '-' }
-        }
-        val beforeAmountName = Regex("""(?:^|\s)(?:ل|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""")
-            .find(normalized.substring(0, amountMatch.range.first))?.groupValues?.get(1)
-        val name = (prefixedName ?: bareName ?: trailingName ?: beforeAmountName)?.trim()?.trimEnd('،', '.', '!')
+        // Generic "paid ... for groceries/store" is an expense, not a debt payment.
+        // Bare trailing names are accepted only for explicit installment/debt wording.
+        val explicitDebtPayment = listOf("دفعة", "سجل دفعة", "سجّل دفعة", "سداد دين", "سدد دين", "paid debt", "repaid debt", "debt payment")
+            .any(text::contains)
+        val prefixedName = Regex("""(?:^|\s)(?:ل(?!ل)|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})|(?:^|\s)to\s+([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""", RegexOption.IGNORE_CASE)
+            .find(afterAmount)?.let { it.groupValues[1].ifBlank { it.groupValues[2] } }
+        val bareName = if (explicitDebtPayment) {
+            Regex("""^([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})$""")
+                .matchEntire(afterAmount)?.groupValues?.get(1)
+        } else null
+        val beforeAmountName = if (explicitDebtPayment) {
+            Regex("""(?:^|\s)(?:ل(?!ل)|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""")
+                .find(normalized.substring(0, amountMatch.range.first))?.groupValues?.get(1)
+        } else null
+        val name = (prefixedName ?: bareName ?: beforeAmountName)?.trim()?.trimEnd('،', '.', '!')
             ?: return null
         if (name.length < 2 || name in setOf("دينار", "الدين", "دين", "قرض")) return null
         val currency = when {

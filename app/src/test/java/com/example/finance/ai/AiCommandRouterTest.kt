@@ -83,6 +83,20 @@ class AiCommandRouterTest {
     }
 
     @Test
+    fun doesNotMisclassifyStoreOrGroceryPaymentsAsDebtPayments() {
+        assertNull(AiCommandRouter.parseDebtPayment("دفعت 50 دينار للبقالة"))
+        assertNull(AiCommandRouter.parseDebtPayment("paid 50 USD for groceries"))
+
+        val arabicExpense = AiCommandRouter.parseTransaction("دفعت 50 دينار للبقالة", "LYD")
+        assertEquals("EXPENSE", arabicExpense?.type)
+        assertEquals("groceries", arabicExpense?.category)
+
+        val englishExpense = AiCommandRouter.parseTransaction("paid 50 USD for groceries", "LYD")
+        assertEquals("EXPENSE", englishExpense?.type)
+        assertEquals("groceries", englishExpense?.category)
+    }
+
+    @Test
     fun parsesDebtPaymentWithPrepositionAndKeepsWorkPaymentSeparate() {
         val debtPayment = AiCommandRouter.parseDebtPayment("دفعة ١٠ دينار لخالد")
         assertEquals("خالد", debtPayment?.personName)
