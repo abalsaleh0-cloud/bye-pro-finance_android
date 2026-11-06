@@ -11,8 +11,6 @@ import com.example.finance.model.NotificationType
 import com.example.finance.model.TransactionStatus
 import com.example.finance.model.TransactionType
 import com.example.finance.model.UserRole
-import com.example.finance.model.WorkSourceType
-import com.example.finance.model.WorkRecordType
 
 class Converters {
     @TypeConverter fun fromAccountType(value: AccountType): String = value.name
@@ -44,8 +42,4 @@ class Converters {
 
     @TypeConverter fun fromAppLanguage(value: AppLanguage): String = value.name
     @TypeConverter fun toAppLanguage(value: String): AppLanguage = AppLanguage.valueOf(value)
-    @TypeConverter fun fromWorkSourceType(value: WorkSourceType): String = value.name
-    @TypeConverter fun toWorkSourceType(value: String): WorkSourceType = WorkSourceType.valueOf(value)
-    @TypeConverter fun fromWorkRecordType(value: WorkRecordType): String = value.name
-    @TypeConverter fun toWorkRecordType(value: String): WorkRecordType = WorkRecordType.valueOf(value)
 }

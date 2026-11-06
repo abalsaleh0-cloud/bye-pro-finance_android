@@ -1,7 +1,5 @@
 package com.example.ui.navigation
 
-import com.example.finance.i18n.TextContent
-
 import com.example.ui.theme.ByeProTheme
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -26,18 +24,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Work
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.Event
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Menu
@@ -91,8 +80,6 @@ import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.finance.i18n.LocalAppLanguage
 import com.example.finance.i18n.Strings
-import com.example.finance.i18n.appText
-import com.example.finance.i18n.WebI18n
 import com.example.finance.model.AppLanguage
 import com.example.finance.ui.FinanceViewModel
 import com.example.ui.screens.AccountsScreen
@@ -101,8 +88,6 @@ import com.example.ui.screens.AiAssistantScreen
 import com.example.ui.screens.BudgetsScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.DebtsBillsScreen
-import com.example.ui.screens.DocumentsScreen
-import com.example.ui.screens.ImportExportScreen
 import com.example.ui.screens.HouseholdScreen
 import com.example.ui.screens.NotificationsAdminScreen
 import com.example.ui.screens.ReportsScreen
@@ -111,7 +96,6 @@ import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.SmartScanScreen
 import com.example.ui.screens.TransactionsScreen
 import com.example.ui.screens.TransfersScreen
-import com.example.ui.screens.WorkScreen
 import kotlinx.coroutines.launch
 
 data class HubMenuItem(
@@ -128,25 +112,15 @@ fun MainAppScaffold(
 ) {
     val lang by viewModel.appLanguage.collectAsState()
     val currentScreen by viewModel.currentScreen.collectAsState()
-    val isDark by viewModel.isDarkMode.collectAsState()
     val notifications by viewModel.notifications.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
 
     val unreadCount = notifications.count { !it.isRead }
-    val titleKey = when (currentScreen) {
-        "dashboard" -> "nav_dashboard"; "accounts" -> "nav_accounts"; "transactions" -> "nav_transactions"
-        "budgets" -> "nav_budgets"; "debts" -> "nav_debts"; "bills" -> "nav_bills"; "work" -> "nav_work"
-        "household" -> "nav_household"; "transfers" -> "nav_transfers"; "savings" -> "nav_savings"
-        "assets" -> "nav_assets"; "reports" -> "nav_reports"; "documents" -> "nav_documents"
-        "import_export" -> "nav_import_export"; "smart_scan" -> "nav_smart_scan"; "ai_assistant" -> "nav_ai_assistant"
-        "notifications" -> "nav_notifications"; "admin" -> "nav_admin"; "settings" -> "nav_settings"
-        else -> "nav_dashboard"
-    }
     var showHubBottomSheet by remember { mutableStateOf(false) }
     var showQuickAddTx by remember { mutableStateOf(false) }
 
     // Language changes text only; the app shell and all navigation remain RTL.
-    val layoutDirection = WebI18n.layoutDirection()
+    val layoutDirection = LayoutDirection.Rtl
 
     // BackHandler to safely return to dashboard
     BackHandler(enabled = currentScreen != "dashboard") {
@@ -154,17 +128,12 @@ fun MainAppScaffold(
     }
 
     val hubMenuItems = listOf(
-        HubMenuItem("work", "nav_work", Icons.Default.Work, ByeProTheme.colors.goldPrimary),
         HubMenuItem("transfers", "nav_transfers", Icons.Default.SwapHoriz, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("debts", "nav_debts", Icons.Default.CreditCard, ByeProTheme.colors.financialRed),
-        HubMenuItem("bills", "nav_bills", Icons.Default.Event, ByeProTheme.colors.financialRed),
-        HubMenuItem("savings", "nav_savings", Icons.Default.Savings, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("assets", "nav_assets", Icons.Default.Home, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("reports", "nav_reports", Icons.Default.Assessment, ByeProTheme.colors.financialGreen),
+        HubMenuItem("debts_bills", "nav_debts", Icons.Default.MoneyOff, ByeProTheme.colors.financialRed),
+        HubMenuItem("savings_assets", "nav_savings", Icons.Default.Savings, ByeProTheme.colors.goldPrimary),
+        HubMenuItem("reports", "nav_reports", Icons.Default.TableChart, ByeProTheme.colors.financialGreen),
         HubMenuItem("household", "nav_household", Icons.Default.Group, ByeProTheme.colors.financialGreen),
-        HubMenuItem("documents", "nav_documents", Icons.Default.FolderOpen, ByeProTheme.colors.goldPrimary),
         HubMenuItem("smart_scan", "nav_smart_scan", Icons.Default.SmartScreen, ByeProTheme.colors.goldPrimary),
-        HubMenuItem("import_export", "nav_import_export", Icons.Default.ImportExport, ByeProTheme.colors.goldPrimary),
         HubMenuItem("ai_assistant", "nav_ai_assistant", Icons.Default.AutoAwesome, ByeProTheme.colors.goldPrimary),
         HubMenuItem("notifications", "nav_notifications", Icons.Default.Notifications, ByeProTheme.colors.goldPrimary),
         HubMenuItem("admin", "nav_admin", Icons.Default.AdminPanelSettings, ByeProTheme.colors.financialGreen),
@@ -178,32 +147,34 @@ fun MainAppScaffold(
         Scaffold(
             topBar = {
                 CenterAlignedTopAppBar(
-                    title = { Text(Strings.get(titleKey, lang), maxLines = 1, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = { showHubBottomSheet = true },
-                            modifier = Modifier.testTag("top_all_sections_btn")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = WebI18n.tr("كل الأقسام", "All sections", lang),
-                                tint = ByeProTheme.colors.goldPrimary
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .border(1.dp, ByeProTheme.colors.goldPrimary, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_finance_logo),
+                                    contentDescription = "BYE PRO Logo",
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = Strings.get("app_title", lang),
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.sp
+                                ),
+                                color = ByeProTheme.colors.goldPrimary
                             )
                         }
                     },
                     actions = {
-                        // Compact dark/light theme toggle.
-                        IconButton(
-                            onClick = { viewModel.toggleTheme() },
-                            modifier = Modifier.testTag("top_theme_toggle_btn")
-                        ) {
-                            Icon(
-                                imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
-                                contentDescription = if (isDark) WebI18n.tr("الوضع الفاتح", "Light mode", lang) else WebI18n.tr("الوضع الداكن", "Dark mode", lang),
-                                tint = ByeProTheme.colors.goldPrimary
-                            )
-                        }
-
                         // Quick Language Toggle
                         Surface(
                             onClick = { viewModel.toggleLanguage() },
@@ -219,7 +190,7 @@ fun MainAppScaffold(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Language,
-                                    contentDescription = WebI18n.tr("تغيير اللغة", "Change language", lang),
+                                    contentDescription = null,
                                     tint = ByeProTheme.colors.goldPrimary,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -241,7 +212,7 @@ fun MainAppScaffold(
                                 badge = {
                                     if (unreadCount > 0) {
                                         Badge(containerColor = ByeProTheme.colors.financialRed) {
-                                            Text(TextContent.number(unreadCount, lang, 0), color = MaterialTheme.colorScheme.onError)
+                                            Text("$unreadCount", color = Color.White)
                                         }
                                     }
                                 }
@@ -262,60 +233,71 @@ fun MainAppScaffold(
             bottomBar = {
                 NavigationBar(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 2.dp
+                    tonalElevation = 8.dp
                 ) {
-                    val navColors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = ByeProTheme.colors.goldPrimary,
-                        selectedTextColor = ByeProTheme.colors.goldPrimary,
-                        indicatorColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f)
-                    )
                     NavigationBarItem(
                         selected = currentScreen == "dashboard",
                         onClick = { viewModel.setScreen("dashboard") },
                         icon = { Icon(Icons.Default.Dashboard, contentDescription = Strings.get("nav_dashboard", lang)) },
-                        label = { Text(WebI18n.tr("الرئيسية", "Home", lang), fontSize = 11.sp, maxLines = 1) },
-                        colors = navColors,
+                        label = { Text(Strings.get("nav_dashboard", lang), fontSize = 11.sp) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = ByeProTheme.colors.goldPrimary,
+                            selectedTextColor = ByeProTheme.colors.goldPrimary,
+                            indicatorColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f)
+                        ),
                         modifier = Modifier.testTag("nav_dashboard_tab")
                     )
+
                     NavigationBarItem(
-                        selected = currentScreen == "ai_assistant",
-                        onClick = { viewModel.setScreen("ai_assistant") },
-                        icon = { Icon(Icons.Default.AutoAwesome, contentDescription = WebI18n.tr("المساعد المالي", "Financial assistant", lang)) },
-                        label = { Text(WebI18n.tr("المساعد", "Assistant", lang), fontSize = 11.sp, maxLines = 1, softWrap = false) },
-                        colors = navColors,
-                        modifier = Modifier.testTag("nav_ai_assistant_tab")
+                        selected = currentScreen == "accounts",
+                        onClick = { viewModel.setScreen("accounts") },
+                        icon = { Icon(Icons.Default.AccountBalance, contentDescription = Strings.get("nav_accounts", lang)) },
+                        label = { Text(Strings.get("nav_accounts", lang), fontSize = 11.sp) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = ByeProTheme.colors.goldPrimary,
+                            selectedTextColor = ByeProTheme.colors.goldPrimary,
+                            indicatorColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f)
+                        ),
+                        modifier = Modifier.testTag("nav_accounts_tab")
                     )
-                    NavigationBarItem(
-                        selected = currentScreen == "work",
-                        onClick = { viewModel.setScreen("work") },
-                        icon = { Icon(Icons.Default.Work, contentDescription = WebI18n.tr("العمل", "Work", lang)) },
-                        label = { Text(WebI18n.tr("العمل", "Work", lang), fontSize = 11.sp, maxLines = 1) },
-                        colors = navColors,
-                        modifier = Modifier.testTag("nav_work_tab")
-                    )
-                    NavigationBarItem(
-                        selected = currentScreen == "household",
-                        onClick = { viewModel.setScreen("household") },
-                        icon = { Icon(Icons.Default.Group, contentDescription = WebI18n.tr("المنزل", "Home", lang)) },
-                        label = { Text(WebI18n.tr("المنزل", "Household", lang), fontSize = 11.sp, maxLines = 1) },
-                        colors = navColors,
-                        modifier = Modifier.testTag("nav_household_tab")
-                    )
-                    NavigationBarItem(
-                        selected = currentScreen == "debts",
-                        onClick = { viewModel.setScreen("debts") },
-                        icon = { Icon(Icons.Default.CreditCard, contentDescription = Strings.get("debts_title", lang)) },
-                        label = { Text(WebI18n.tr("الديون", "Debts", lang), fontSize = 11.sp, maxLines = 1) },
-                        colors = navColors,
-                        modifier = Modifier.testTag("nav_debts_tab")
-                    )
+
                     NavigationBarItem(
                         selected = currentScreen == "transactions",
                         onClick = { viewModel.setScreen("transactions") },
                         icon = { Icon(Icons.Default.ReceiptLong, contentDescription = Strings.get("nav_transactions", lang)) },
-                        label = { Text(Strings.get("nav_transactions", lang), fontSize = 11.sp, maxLines = 1) },
-                        colors = navColors,
-                        modifier = Modifier.testTag("nav_expenses_tab")
+                        label = { Text(Strings.get("nav_transactions", lang), fontSize = 11.sp) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = ByeProTheme.colors.goldPrimary,
+                            selectedTextColor = ByeProTheme.colors.goldPrimary,
+                            indicatorColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f)
+                        ),
+                        modifier = Modifier.testTag("nav_transactions_tab")
+                    )
+
+                    NavigationBarItem(
+                        selected = currentScreen == "budgets",
+                        onClick = { viewModel.setScreen("budgets") },
+                        icon = { Icon(Icons.Default.PieChart, contentDescription = Strings.get("nav_budgets", lang)) },
+                        label = { Text(Strings.get("nav_budgets", lang), fontSize = 11.sp) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = ByeProTheme.colors.goldPrimary,
+                            selectedTextColor = ByeProTheme.colors.goldPrimary,
+                            indicatorColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f)
+                        ),
+                        modifier = Modifier.testTag("nav_budgets_tab")
+                    )
+
+                    NavigationBarItem(
+                        selected = currentScreen !in listOf("dashboard", "accounts", "transactions", "budgets"),
+                        onClick = { showHubBottomSheet = true },
+                        icon = { Icon(Icons.Default.Menu, contentDescription = "Hub Menu") },
+                        label = { Text(if (lang == AppLanguage.AR) "المزيد" else "More", fontSize = 11.sp) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = ByeProTheme.colors.goldPrimary,
+                            selectedTextColor = ByeProTheme.colors.goldPrimary,
+                            indicatorColor = ByeProTheme.colors.goldPrimary.copy(alpha = 0.16f)
+                        ),
+                        modifier = Modifier.testTag("nav_more_hub_tab")
                     )
                 }
             }
@@ -327,7 +309,6 @@ fun MainAppScaffold(
                     .background(MaterialTheme.colorScheme.background)
             ) {
                 when (currentScreen) {
-                    "work" -> WorkScreen(viewModel = viewModel)
                     "dashboard" -> DashboardScreen(
                         viewModel = viewModel,
                         onNavigate = { viewModel.setScreen(it) },
@@ -337,18 +318,14 @@ fun MainAppScaffold(
                     "transactions" -> TransactionsScreen(viewModel = viewModel)
                     "transfers" -> TransfersScreen(viewModel = viewModel)
                     "budgets" -> BudgetsScreen(viewModel = viewModel)
-                    "debts" -> DebtsBillsScreen(viewModel = viewModel, initialTabIndex = 0)
-                    "bills" -> DebtsBillsScreen(viewModel = viewModel, initialTabIndex = 1)
-                    "savings" -> SavingsAssetsScreen(viewModel = viewModel, initialTabIndex = 0)
-                    "assets" -> SavingsAssetsScreen(viewModel = viewModel, initialTabIndex = 1)
-                    "documents" -> DocumentsScreen(viewModel = viewModel)
-                    "import_export" -> ImportExportScreen(viewModel = viewModel)
+                    "debts_bills" -> DebtsBillsScreen(viewModel = viewModel)
+                    "savings_assets" -> SavingsAssetsScreen(viewModel = viewModel)
                     "reports" -> ReportsScreen(viewModel = viewModel)
                     "household" -> HouseholdScreen(viewModel = viewModel)
                     "smart_scan" -> SmartScanScreen(viewModel = viewModel)
                     "ai_assistant" -> AiAssistantScreen(viewModel = viewModel)
-                    "notifications" -> NotificationsAdminScreen(viewModel = viewModel, initialTabIndex = 0)
-                    "admin" -> NotificationsAdminScreen(viewModel = viewModel, initialTabIndex = 1)
+                    "notifications" -> NotificationsAdminScreen(viewModel = viewModel)
+                    "admin" -> NotificationsAdminScreen(viewModel = viewModel)
                     "settings" -> SettingsScreen(viewModel = viewModel)
                     else -> DashboardScreen(
                         viewModel = viewModel,
@@ -372,7 +349,7 @@ fun MainAppScaffold(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = WebI18n.tr("مركز العمليات المالية (Finance Hub)", "Financial Hub", lang),
+                    text = if (lang == AppLanguage.AR) "مركز العمليات المالية (Finance Hub)" else "Financial Hub",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface

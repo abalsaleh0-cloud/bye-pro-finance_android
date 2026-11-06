@@ -11,45 +11,108 @@ import androidx.compose.ui.graphics.Color
 
 @Immutable
 data class ByeProColorTokens(
-    val bgMain: Color, val surfaceMain: Color, val cardMain: Color, val cardSecondary: Color,
-    val elementInner: Color, val hoverInteractive: Color, val borderBase: Color, val borderProminent: Color,
-    val textPrimary: Color, val textSecondary: Color, val textMuted: Color, val textNeutral: Color,
-    val goldPrimary: Color, val goldFeatured: Color, val goldMuted: Color, val goldDark: Color,
-    val financialGreen: Color, val financialRed: Color, val statusSuccess: Color, val statusError: Color,
-    val fieldBg: Color, val fieldText: Color, val fieldBorder: Color, val fieldFocus: Color, val isDark: Boolean
+    val bgMain: Color,
+    val surfaceMain: Color,
+    val cardMain: Color,
+    val cardSecondary: Color,
+    val elementInner: Color,
+    val hoverInteractive: Color,
+    val borderBase: Color,
+    val borderProminent: Color,
+    val textPrimary: Color,
+    val textSecondary: Color,
+    val textMuted: Color,
+    val textNeutral: Color,
+    val goldPrimary: Color,
+    val goldFeatured: Color,
+    val goldMuted: Color,
+    val goldDark: Color,
+    val financialGreen: Color,
+    val financialRed: Color,
+    val statusSuccess: Color,
+    val statusError: Color,
+    val fieldBg: Color,
+    val fieldText: Color,
+    val fieldBorder: Color,
+    val fieldFocus: Color,
+    val isDark: Boolean
 )
 
 val ByeProDarkTokens = ByeProColorTokens(
-    DarkBgMain, DarkSurfaceMain, DarkCardMain, DarkCardSecondary, DarkCardSecondary, DarkHoverInteractive,
-    DarkBorderBase, DarkBorderProminent, DarkTextPrimary, DarkTextSecondary, DarkTextMuted, DarkTextNeutral,
-    GoldPrimary, GoldFeatured, GoldMuted, GoldDark, FinancialGreen, FinancialRed,
-    StatusSuccessDark, StatusErrorDark, DarkFieldBg, DarkFieldText, DarkFieldBorder, DarkFieldFocus, true
+    bgMain = DarkBgMain,
+    surfaceMain = DarkSurfaceMain,
+    cardMain = DarkCardMain,
+    cardSecondary = DarkCardSecondary,
+    elementInner = DarkCardSecondary,
+    hoverInteractive = DarkHoverInteractive,
+    borderBase = DarkBorderBase,
+    borderProminent = DarkBorderProminent,
+    textPrimary = DarkTextPrimary,
+    textSecondary = DarkTextSecondary,
+    textMuted = DarkTextMuted,
+    textNeutral = DarkTextNeutral,
+    goldPrimary = GoldPrimary,
+    goldFeatured = GoldFeatured,
+    goldMuted = GoldMuted,
+    goldDark = GoldDark,
+    financialGreen = FinancialGreen,
+    financialRed = FinancialRed,
+    statusSuccess = StatusSuccessDark,
+    statusError = StatusErrorDark,
+    fieldBg = DarkFieldBg,
+    fieldText = DarkFieldText,
+    fieldBorder = DarkFieldBorder,
+    fieldFocus = DarkFieldFocus,
+    isDark = true
 )
 
 val ByeProLightTokens = ByeProColorTokens(
-    LightBgMain, LightSurfaceMain, LightSurfaceMain, LightCardSecondary, LightCardSecondary, LightHoverInteractive,
-    LightBorderBase, LightBorderProminent, LightTextPrimary, LightTextSecondary, LightTextMuted, LightTextMuted,
-    LightGoldPrimary, LightGoldFeatured, LightGoldPrimary, LightGoldPrimary,
-    LightStatusSuccess, LightStatusError, LightStatusSuccess, LightStatusError,
-    LightFieldBg, LightFieldText, LightFieldBorder, LightFieldFocus, false
+    bgMain = LightBgMain,
+    surfaceMain = LightSurfaceMain,
+    cardMain = LightSurfaceMain,
+    cardSecondary = LightCardSecondary,
+    elementInner = LightCardSecondary,
+    hoverInteractive = LightHoverInteractive,
+    borderBase = LightBorderBase,
+    borderProminent = LightBorderProminent,
+    textPrimary = LightTextPrimary,
+    textSecondary = LightTextSecondary,
+    textMuted = LightTextMuted,
+    textNeutral = LightTextMuted,
+    goldPrimary = LightGoldPrimary,
+    goldFeatured = LightGoldFeatured,
+    goldMuted = LightGoldFeatured,
+    goldDark = LightGoldPrimary,
+    financialGreen = LightStatusSuccess,
+    financialRed = LightStatusError,
+    statusSuccess = LightStatusSuccess,
+    statusError = LightStatusError,
+    fieldBg = LightFieldBg,
+    fieldText = LightFieldText,
+    fieldBorder = LightFieldBorder,
+    fieldFocus = LightFieldFocus,
+    isDark = false
 )
 
-val LocalByeProColors = staticCompositionLocalOf { ByeProDarkTokens }
+val LocalByeProColors = staticCompositionLocalOf {
+    ByeProDarkTokens
+}
 
 object ByeProTheme {
     val colors: ByeProColorTokens
-        @Composable get() = LocalByeProColors.current
+        @Composable
+        get() = LocalByeProColors.current
 }
 
 private val DarkColorScheme = darkColorScheme(
     primary = GoldPrimary,
-    onPrimary = Color(0xFF17130B),
+    onPrimary = Color(0xFF101115),
     primaryContainer = GoldDark,
     onPrimaryContainer = DarkTextPrimary,
     secondary = FinancialGreen,
-    onSecondary = DarkBgMain,
-    secondaryContainer = DarkCardMain,
-    onSecondaryContainer = DarkTextPrimary,
+    onSecondary = Color(0xFF0B0A0C),
+    secondaryContainer = StatusSuccessDark,
+    onSecondaryContainer = DarkTextSecondary,
     tertiary = GoldFeatured,
     background = DarkBgMain,
     onBackground = DarkTextPrimary,
@@ -60,19 +123,19 @@ private val DarkColorScheme = darkColorScheme(
     outline = DarkBorderBase,
     outlineVariant = DarkBorderProminent,
     error = StatusErrorDark,
-    onError = DarkBgMain,
+    onError = Color(0xFF101115),
     errorContainer = StatusErrorDark,
     onErrorContainer = DarkTextPrimary
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = LightGoldFeatured,
-    onPrimary = Color(0xFF17130B),
+    primary = LightGoldPrimary,
+    onPrimary = Color.White,
     primaryContainer = LightCardSecondary,
     onPrimaryContainer = LightTextPrimary,
     secondary = LightStatusSuccess,
-    onSecondary = LightSurfaceMain,
-    secondaryContainer = LightSurfaceSecondary,
+    onSecondary = Color.White,
+    secondaryContainer = LightCardSecondary,
     onSecondaryContainer = LightTextPrimary,
     tertiary = LightGoldFeatured,
     background = LightBgMain,
@@ -84,16 +147,25 @@ private val LightColorScheme = lightColorScheme(
     outline = LightBorderBase,
     outlineVariant = LightBorderProminent,
     error = LightStatusError,
-    onError = LightSurfaceMain,
-    errorContainer = LightStatusError.copy(alpha = 0.10f),
+    onError = Color.White,
+    errorContainer = Color(0xFFFFECEC),
     onErrorContainer = LightStatusError
 )
 
 @Composable
-fun MyApplicationTheme(darkTheme: Boolean = true, dynamicColor: Boolean = false, content: @Composable () -> Unit) {
+fun MyApplicationTheme(
+    darkTheme: Boolean = true,
+    dynamicColor: Boolean = false,
+    content: @Composable () -> Unit,
+) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val tokens = if (darkTheme) ByeProDarkTokens else ByeProLightTokens
+
     CompositionLocalProvider(LocalByeProColors provides tokens) {
-        MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
     }
 }

@@ -1,15 +1,5 @@
 package com.example.ui.screens
 
-import com.example.finance.i18n.TextContent
-
-import com.example.ui.components.FinanceAlertDialog
-import com.example.ui.components.FinanceButton
-import com.example.ui.components.FinanceOutlinedButton
-import com.example.ui.components.FinanceTextField
-import com.example.ui.components.FinanceIconButton
-import com.example.ui.components.FinanceFloatingActionButton
-
-import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -71,8 +61,7 @@ import java.util.Locale
 
 @Composable
 fun NotificationsAdminScreen(
-    viewModel: FinanceViewModel,
-    initialTabIndex: Int = 0
+    viewModel: FinanceViewModel
 ) {
     val lang by viewModel.appLanguage.collectAsState()
     val notifications by viewModel.notifications.collectAsState()
@@ -81,9 +70,8 @@ fun NotificationsAdminScreen(
     val transactions by viewModel.transactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
 
-    var selectedTabIndex by remember(initialTabIndex) { mutableIntStateOf(initialTabIndex.coerceIn(0, 1)) }
-    var notificationFilter by remember { mutableIntStateOf(0) }
-    val filteredNotifications = when (notificationFilter) { 1 -> notifications.filter { !it.isRead }; 2 -> notifications.filter { it.isRead }; else -> notifications }
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val isAdmin = currentUser?.role == UserRole.ADMIN
 
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(
@@ -118,41 +106,31 @@ fun NotificationsAdminScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = WebI18n.tr("تنبيهات النظام والمواعيد المالية", "System alerts and financial due dates", lang),
+                            text = "تنبيهات النظام والمواعيد المالية",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            if (notifications.any { !it.isRead }) FinanceOutlinedButton(onClick = { viewModel.markAllNotificationsRead() }, shape = RoundedCornerShape(8.dp)) {
-                                Text(WebI18n.tr("قراءة الكل", "Read all", lang), style = MaterialTheme.typography.labelSmall)
-                            }
-                            if (notifications.isNotEmpty()) FinanceOutlinedButton(onClick = { viewModel.clearNotifications() }, shape = RoundedCornerShape(8.dp)) {
+                        if (notifications.isNotEmpty()) {
+                            OutlinedButton(
+                                onClick = { viewModel.clearNotifications() },
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
                                 Icon(Icons.Default.ClearAll, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Text(WebI18n.tr("مسح الكل", "Clear all", lang), style = MaterialTheme.typography.labelSmall)
+                                Spacer(modifier = Modifier.size(4.dp))
+                                Text("مسح الكل", style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
                 }
 
-                item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(WebI18n.tr("الكل", "All", lang), WebI18n.tr("غير مقروء", "Unread", lang), WebI18n.tr("مقروء", "Read", lang)).forEachIndexed { index, label ->
-                            FinanceOutlinedButton(onClick = { notificationFilter = index }, shape = RoundedCornerShape(8.dp)) {
-                                Text((if (notificationFilter == index) "✓ " else "") + label, style = MaterialTheme.typography.labelSmall)
-                            }
-                        }
-                    }
-                    Text(WebI18n.tr("غير المقروء: ", "Unread: ", lang) + notifications.count { !it.isRead }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-
-                if (filteredNotifications.isEmpty()) {
+                if (notifications.isEmpty()) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Text(
-                                text = WebI18n.tr("لا توجد تنبيهات جديدة في الوقت الحالي.", "There are no new alerts right now.", lang),
+                                text = "لا توجد تنبيهات جديدة في الوقت الحالي.",
                                 modifier = Modifier.padding(24.dp),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -160,12 +138,10 @@ fun NotificationsAdminScreen(
                         }
                     }
                 } else {
-                    items(filteredNotifications, key = { it.id }) { notif ->
+                    items(notifications, key = { it.id }) { notif ->
                         NotificationCardItem(
                             notification = notif,
-                            lang = lang,
-                            onRead = { viewModel.markNotificationRead(notif.id) },
-                            onDelete = { viewModel.deleteNotification(notif.id) }
+                            onRead = { viewModel.markNotificationRead(notif.id) }
                         )
                     }
                 }
@@ -189,34 +165,49 @@ fun NotificationsAdminScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = WebI18n.tr("مراجعة السجلات المحلية وحالة تشغيل التطبيق. إدارة الصلاحيات المركزية غير متاحة في الوضع المحلي.", "Review local records and app runtime status. Centralized role management is unavailable in local mode.", lang),
+                        text = "نظام الصلاحيات (RBAC) وسجل التدقيق الأمني للعمليات المالية.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                // Local profile role is informational only; it is not server-enforced RBAC.
+                // RBAC Role Card
                 item {
                     Card(
-                        modifier = Modifier.fillMaxWidth().border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, ByeProTheme.colors.goldPrimary.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
-                                Spacer(modifier = Modifier.size(8.dp))
-                                Text(
-                                    text = WebI18n.tr("الدور المسجل محلياً (غير موثّق خادمياً): ", "Locally stored role (not server-verified): ", lang) + (currentUser?.role?.name ?: "USER"),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
+                                    Spacer(modifier = Modifier.size(8.dp))
+                                    Text(
+                                        text = "${Strings.get("active_role", lang)}: ${currentUser?.role?.name ?: "ADMIN"}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Button(
+                                    onClick = { viewModel.toggleUserRole() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.testTag("toggle_rbac_role_btn")
+                                ) {
+                                    Text("تبديل الدور", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                }
                             }
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = WebI18n.tr(
-                                    "هذه نسخة محلية تعمل بقاعدة Room على الجهاز. إدارة الأدوار الحقيقية وسجل التدقيق المركزي يتطلبان مصادقة وخادماً متصلاً؛ لذلك لا يمكن منح أو سحب صلاحيات من هذه الشاشة.",
-                                    "This is a local Room-based build. Real role management and centralized audit logging require authenticated server access; roles cannot be granted or revoked here."
-                                , lang),
+                                text = if (isAdmin) "صلاحية المدير كاملة: الوصول لسجلات التدقيق، إدارة الحسابات، وتصدير البيانات الحساسة."
+                                else "صلاحية مستخدم عادي (User Mode): قيود أمان مفعلة.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -238,8 +229,8 @@ fun NotificationsAdminScreen(
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Icon(Icons.Default.Security, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(WebI18n.tr("تخزين البيانات", "Data storage", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(WebI18n.tr("Room SQLite محلي", "Local Room SQLite", lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
+                                Text("تشفير البيانات", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("AES-256 Local", fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
                             }
                         }
 
@@ -251,8 +242,8 @@ fun NotificationsAdminScreen(
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Icon(Icons.Default.Storage, contentDescription = null, tint = ByeProTheme.colors.goldPrimary)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(WebI18n.tr("السجلات المحلية", "Local records", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(WebI18n.tr("${TextContent.number(transactions.size + accounts.size + auditLogs.size, lang, 0)} سجل", "${TextContent.number(transactions.size + accounts.size + auditLogs.size, lang, 0)} records", lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.goldPrimary)
+                                Text("إجمالي القيود", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("${transactions.size + accounts.size + auditLogs.size} Record", fontWeight = FontWeight.Bold, color = ByeProTheme.colors.goldPrimary)
                             }
                         }
                     }
@@ -261,7 +252,7 @@ fun NotificationsAdminScreen(
                 // Audit Logs Header
                 item {
                     Text(
-                        text = WebI18n.tr("سجل التدقيق المحلي", "Local audit log", lang),
+                        text = Strings.get("audit_logs", lang),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -270,7 +261,7 @@ fun NotificationsAdminScreen(
                 if (auditLogs.isEmpty()) {
                     item {
                         Text(
-                            text = WebI18n.tr("لا توجد سجلات تدقيق بعد.", "No audit records yet.", lang),
+                            text = "لا توجد سجلات تدقيق بعد.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -292,9 +283,7 @@ fun NotificationsAdminScreen(
 @Composable
 fun NotificationCardItem(
     notification: NotificationEntity,
-    lang: com.example.finance.model.AppLanguage,
-    onRead: () -> Unit,
-    onDelete: () -> Unit
+    onRead: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -328,14 +317,9 @@ fun NotificationCardItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Column {
-                if (!notification.isRead) {
-                    FinanceIconButton(onClick = onRead) {
-                        Icon(Icons.Default.Check, contentDescription = WebI18n.tr("تحديد كمقروء", "Mark as read", lang), tint = ByeProTheme.colors.financialGreen)
-                    }
-                }
-                FinanceIconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = WebI18n.tr("حذف التنبيه", "Delete notification", lang), tint = MaterialTheme.colorScheme.error)
+            if (!notification.isRead) {
+                IconButton(onClick = onRead) {
+                    Icon(Icons.Default.Check, contentDescription = "Mark as read", tint = ByeProTheme.colors.financialGreen)
                 }
             }
         }

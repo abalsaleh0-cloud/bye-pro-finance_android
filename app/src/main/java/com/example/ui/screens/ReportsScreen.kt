@@ -1,13 +1,5 @@
 package com.example.ui.screens
 
-import com.example.finance.i18n.TextContent
-
-import com.example.ui.components.FinanceAlertDialog
-import com.example.ui.components.FinanceButton
-import com.example.ui.components.FinanceOutlinedButton
-import com.example.ui.components.FinanceTextField
-
-import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -68,29 +60,19 @@ fun ReportsScreen(
     val accounts by viewModel.accounts.collectAsState()
     val assets by viewModel.assets.collectAsState()
     val debts by viewModel.debts.collectAsState()
-    val savingsGoals by viewModel.savingsGoals.collectAsState()
-    val bills by viewModel.bills.collectAsState()
-    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
 
     var exportModalData by remember { mutableStateOf<String?>(null) }
     var exportTitle by remember { mutableStateOf("") }
-    var reportCurrency by remember(primaryCurrency) { mutableStateOf(primaryCurrency) }
-    var reportPeriodDays by remember { mutableStateOf(0) }
-    val reportCurrencies = (transactions.map { it.currency } + accounts.map { it.currency } + assets.map { it.currency } + debts.map { it.currency } + savingsGoals.map { it.currency } + bills.map { it.currency }).distinct().sorted()
-    val cutoff = if (reportPeriodDays == 0) 0L else System.currentTimeMillis() - reportPeriodDays.toLong() * 86400000L
-    val currencyTransactions = transactions.filter { it.currency.equals(reportCurrency, ignoreCase = true) && it.date >= cutoff }
-    val totalIncome = FinanceEngine.calculateTotalIncome(currencyTransactions)
-    val totalExpenses = FinanceEngine.calculateTotalExpenses(currencyTransactions)
-    val netCashFlow = FinanceEngine.calculateNetCashFlow(currencyTransactions)
-    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, reportCurrency, savingsGoals)
-    val currentSavings = savingsGoals.filter { it.currency.equals(reportCurrency, true) }.sumOf { it.currentAmount }
-    val savingsTargets = savingsGoals.filter { it.currency.equals(reportCurrency, true) }.sumOf { it.targetAmount }
-    val unpaidBillsTotal = bills.filter { !it.isPaid && it.currency.equals(reportCurrency, true) }.sumOf { it.amount }
 
-    // Category breakdown includes only completed expenses in the selected currency.
+    val totalIncome = FinanceEngine.calculateTotalIncome(transactions)
+    val totalExpenses = FinanceEngine.calculateTotalExpenses(transactions)
+    val netCashFlow = FinanceEngine.calculateNetCashFlow(totalIncome, totalExpenses)
+    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts)
+
+    // Category breakdown for expenses
     val categoryTotals = mutableMapOf<String, Double>()
-    for (tx in currencyTransactions) {
-        if (tx.status == com.example.finance.model.TransactionStatus.COMPLETED && tx.type == TransactionType.EXPENSE) {
+    for (tx in transactions) {
+        if (tx.type == TransactionType.EXPENSE) {
             categoryTotals[tx.category] = (categoryTotals[tx.category] ?: 0.0) + tx.amount
         }
     }
@@ -111,28 +93,10 @@ fun ReportsScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = WebI18n.tr("تقارير تحليلية شاملة للتدفقات النقدية ومسارات الإنفاق مع إمكانية التصدير الفوري.", "Comprehensive cash-flow and spending analytics with instant export.", lang),
+                text = "تقارير تحليلية شاملة للتدفقات النقدية ومسارات الإنفاق مع إمكانية التصدير الفوري.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-
-        item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(WebI18n.tr("الفترة الزمنية", "Date range", lang), fontWeight = FontWeight.Bold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(30, 90, 365, 0).forEach { days ->
-                            FinanceOutlinedButton(onClick = { reportPeriodDays = days }) { Text(if (days == 0) WebI18n.tr("الكل", "All", lang) else days.toString()) }
-                        }
-                    }
-                    Text(WebI18n.tr("العملة", "Currency", lang), fontWeight = FontWeight.Bold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        reportCurrencies.forEach { code -> FinanceOutlinedButton(onClick = { reportCurrency = code }) { Text(if (reportCurrency == code) "✓ " + code else code) } }
-                    }
-                    Text(WebI18n.tr("لا يتم جمع عملات مختلفة في مؤشر واحد.", "Different currencies are never combined in one metric.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
         }
 
         // Export Actions Row
@@ -141,9 +105,9 @@ fun ReportsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                FinanceButton(
+                Button(
                     onClick = {
-                        exportTitle = WebI18n.tr("تقرير المعاملات المالي (CSV Export)", "Financial transaction report (CSV Export)", lang)
+                        exportTitle = "تقرير المعاملات المالي (CSV Export)"
                         exportModalData = viewModel.generateCsvExport()
                     },
                     modifier = Modifier
@@ -157,15 +121,15 @@ fun ReportsScreen(
                     Text(Strings.get("export_csv", lang), fontWeight = FontWeight.Bold)
                 }
 
-                FinanceButton(
+                Button(
                     onClick = {
-                        exportTitle = WebI18n.tr("التقرير المالي التنفيذي (JSON Export)", "Executive financial report (JSON Export)", lang)
+                        exportTitle = "التقرير المالي التنفيذي (JSON Export)"
                         exportModalData = viewModel.generateJsonExport()
                     },
                     modifier = Modifier
                         .weight(1f)
                         .testTag("export_json_btn"),
-                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldFeatured, contentColor = MaterialTheme.colorScheme.onPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Default.TableChart, contentDescription = null)
@@ -186,7 +150,7 @@ fun ReportsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = WebI18n.tr("الملخص المالي الشامل", "Comprehensive financial summary", lang),
+                        text = "الملخص المالي الشامل",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -196,41 +160,17 @@ fun ReportsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text(WebI18n.tr("إجمالي الدخل", "Total income", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(TextContent.money(totalIncome, reportCurrency, lang), color = ByeProTheme.colors.financialGreen, fontWeight = FontWeight.Bold)
+                            Text("إجمالي الدخل", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(FinanceEngine.formatMoney(totalIncome, "SAR"), color = ByeProTheme.colors.financialGreen, fontWeight = FontWeight.Bold)
                         }
                         Column {
-                            Text(WebI18n.tr("إجمالي المصروفات", "Total expenses", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(TextContent.money(totalExpenses, reportCurrency, lang), color = ByeProTheme.colors.financialRed, fontWeight = FontWeight.Bold)
+                            Text("إجمالي المصروفات", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(FinanceEngine.formatMoney(totalExpenses, "SAR"), color = ByeProTheme.colors.financialRed, fontWeight = FontWeight.Bold)
                         }
                         Column {
-                            Text(WebI18n.tr("صافي التدفق", "Net cash flow", lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(TextContent.money(netCashFlow, reportCurrency, lang), color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
+                            Text("صافي التدفق", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(FinanceEngine.formatMoney(netCashFlow, "SAR"), color = ByeProTheme.colors.goldPrimary, fontWeight = FontWeight.Bold)
                         }
-                    }
-                }
-            }
-        }
-
-        item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                    Text(WebI18n.tr("المدخرات والالتزامات", "Savings and obligations", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(WebI18n.tr("المدخر الحالي", "Current savings", lang), style = MaterialTheme.typography.bodySmall)
-                        Text(TextContent.money(currentSavings, reportCurrency, lang), fontWeight = FontWeight.Bold)
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(WebI18n.tr("أهداف الادخار", "Savings targets", lang), style = MaterialTheme.typography.bodySmall)
-                        Text(TextContent.money(savingsTargets, reportCurrency, lang), fontWeight = FontWeight.Bold)
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(WebI18n.tr("الفواتير غير المسددة", "Unpaid bills", lang), style = MaterialTheme.typography.bodySmall)
-                        Text(TextContent.money(unpaidBillsTotal, reportCurrency, lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialRed)
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(WebI18n.tr("صافي الثروة التقديري", "Estimated net worth", lang), style = MaterialTheme.typography.bodySmall)
-                        Text(TextContent.money(netWorth, reportCurrency, lang), fontWeight = FontWeight.Bold, color = ByeProTheme.colors.financialGreen)
                     }
                 }
             }
@@ -241,7 +181,7 @@ fun ReportsScreen(
             InteractiveCashFlowChart(
                 income = totalIncome.toDouble(),
                 expense = totalExpenses.toDouble(),
-                currency = reportCurrency
+                currency = "SAR"
             )
         }
 
@@ -266,7 +206,7 @@ fun ReportsScreen(
 
                     if (categoryTotals.isEmpty()) {
                         Text(
-                            text = WebI18n.tr("لا توجد مصروفات مسجلة لتحليلها.", "No expenses recorded to analyze.", lang),
+                            text = "لا توجد مصروفات مسجلة لتحليلها.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -279,12 +219,12 @@ fun ReportsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "$cat (${TextContent.number((pct * 100).toInt(), lang, 0)}%)",
+                                        text = "$cat (${(pct * 100).toInt()}%)",
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
-                                        text = TextContent.money(amount, reportCurrency, lang),
+                                        text = FinanceEngine.formatMoney(amount, "SAR"),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = ByeProTheme.colors.goldPrimary
                                     )
@@ -313,13 +253,13 @@ fun ReportsScreen(
 
     // Export preview dialog
     if (exportModalData != null) {
-        FinanceAlertDialog(
+        AlertDialog(
             onDismissRequest = { exportModalData = null },
             title = { Text(exportTitle, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
                     Text(
-                        text = WebI18n.tr("البيانات جاهزة للتصدير والحفظ في قاعدة بيانات خارجية أو ملف جدولي:", "Data is ready to export to an external database or spreadsheet:", lang),
+                        text = "البيانات جاهزة للتصدير والحفظ في قاعدة بيانات خارجية أو ملف جدولي:",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -340,7 +280,7 @@ fun ReportsScreen(
                 }
             },
             confirmButton = {
-                FinanceButton(onClick = { exportModalData = null }) {
+                Button(onClick = { exportModalData = null }) {
                     Text(Strings.get("confirm", lang))
                 }
             }

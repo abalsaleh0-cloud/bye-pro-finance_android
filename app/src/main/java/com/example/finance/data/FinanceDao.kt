@@ -21,8 +21,6 @@ import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransferEntity
 import com.example.finance.model.UserEntity
-import com.example.finance.model.WorkSourceEntity
-import com.example.finance.model.WorkRecordEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -56,11 +54,6 @@ interface FinanceDao {
     // --- Transactions ---
     @Query("SELECT * FROM transactions ORDER BY date DESC, id DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
-    @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
-    suspend fun getTransactionById(id: Long): TransactionEntity?
-
-    @Query("SELECT * FROM transactions ORDER BY date DESC, id DESC")
-    suspend fun getAllTransactionsSnapshot(): List<TransactionEntity>
 
     @Query("SELECT * FROM transactions WHERE accountId = :accountId ORDER BY date DESC")
     fun getTransactionsByAccount(accountId: Long): Flow<List<TransactionEntity>>
@@ -98,9 +91,6 @@ interface FinanceDao {
     @Query("SELECT * FROM debts ORDER BY dueDate ASC")
     fun getAllDebts(): Flow<List<DebtEntity>>
 
-    @Query("SELECT * FROM debts WHERE id = :id LIMIT 1")
-    suspend fun getDebtById(id: Long): DebtEntity?
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDebt(debt: DebtEntity): Long
 
@@ -113,15 +103,9 @@ interface FinanceDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDebtPayment(payment: DebtPaymentEntity): Long
 
-    @Query("SELECT * FROM debt_payments WHERE debtId = :debtId ORDER BY date DESC, id DESC")
-    fun getDebtPayments(debtId: Long): Flow<List<DebtPaymentEntity>>
-
     // --- Bills ---
     @Query("SELECT * FROM bills ORDER BY dueDate ASC")
     fun getAllBills(): Flow<List<BillEntity>>
-
-    @Query("SELECT * FROM bills WHERE id = :id LIMIT 1")
-    suspend fun getBillById(id: Long): BillEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBill(bill: BillEntity): Long
@@ -135,9 +119,6 @@ interface FinanceDao {
     // --- Savings ---
     @Query("SELECT * FROM savings_goals ORDER BY deadline ASC")
     fun getAllSavingsGoals(): Flow<List<SavingsGoalEntity>>
-
-    @Query("SELECT * FROM savings_goals WHERE id = :id LIMIT 1")
-    suspend fun getSavingsGoalById(id: Long): SavingsGoalEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSavingsGoal(goal: SavingsGoalEntity): Long
@@ -165,17 +146,8 @@ interface FinanceDao {
     @Query("SELECT * FROM household_members ORDER BY id ASC")
     fun getAllHouseholdMembers(): Flow<List<HouseholdMemberEntity>>
 
-    @Query("SELECT * FROM household_members WHERE id = :id LIMIT 1")
-    suspend fun getHouseholdMemberById(id: Long): HouseholdMemberEntity?
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHouseholdMember(member: HouseholdMemberEntity): Long
-
-    @Update
-    suspend fun updateHouseholdMember(member: HouseholdMemberEntity)
-
-    @Delete
-    suspend fun deleteHouseholdMember(member: HouseholdMemberEntity)
 
     @Query("SELECT * FROM household_expenses ORDER BY date DESC")
     fun getAllHouseholdExpenses(): Flow<List<HouseholdExpenseEntity>>
@@ -185,9 +157,6 @@ interface FinanceDao {
 
     @Update
     suspend fun updateHouseholdExpense(expense: HouseholdExpenseEntity)
-
-    @Delete
-    suspend fun deleteHouseholdExpense(expense: HouseholdExpenseEntity)
 
     // --- Documents ---
     @Query("SELECT * FROM documents ORDER BY date DESC")
@@ -209,9 +178,6 @@ interface FinanceDao {
     @Query("UPDATE notifications SET isRead = 1 WHERE id = :id")
     suspend fun markNotificationAsRead(id: Long)
 
-    @Query("UPDATE notifications SET isRead = 1")
-    suspend fun markAllNotificationsRead()
-
     @Query("DELETE FROM notifications WHERE id = :id")
     suspend fun deleteNotification(id: Long)
 
@@ -225,41 +191,6 @@ interface FinanceDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAuditLog(log: AuditLogEntity): Long
 
-    // --- Work ledger ---
-    @Query("SELECT * FROM work_sources ORDER BY createdAt DESC, id DESC")
-    fun getWorkSources(): Flow<List<WorkSourceEntity>>
-    @Query("SELECT * FROM work_sources WHERE id = :id LIMIT 1")
-    suspend fun getWorkSourceById(id: Long): WorkSourceEntity?
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertWorkSource(source: WorkSourceEntity): Long
-    @Query("SELECT * FROM work_records ORDER BY date DESC, id DESC")
-    fun getWorkRecords(): Flow<List<WorkRecordEntity>>
-    @Query("SELECT * FROM work_records ORDER BY date DESC, id DESC")
-    suspend fun getWorkRecordsSnapshot(): List<WorkRecordEntity>
-    @Query("SELECT * FROM work_records WHERE id = :id LIMIT 1")
-    suspend fun getWorkRecordById(id: Long): WorkRecordEntity?
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertWorkRecord(record: WorkRecordEntity): Long
-    @Delete
-    suspend fun deleteWorkRecord(record: WorkRecordEntity)
-
-
-    @Query("UPDATE accounts SET balance = 0.0, openingBalance = 0.0") suspend fun resetAllAccountBalances()
-    @Query("DELETE FROM debt_payments") suspend fun clearDebtPayments()
-    @Query("DELETE FROM debts") suspend fun clearDebts()
-    @Query("DELETE FROM work_records") suspend fun clearWorkRecords()
-    @Query("DELETE FROM work_sources") suspend fun clearWorkSources()
-    @Query("DELETE FROM household_expenses") suspend fun clearHouseholdExpenses()
-    @Query("DELETE FROM household_members") suspend fun clearHouseholdMembers()
-    @Query("DELETE FROM transactions") suspend fun clearTransactions()
-    @Query("DELETE FROM transfers") suspend fun clearTransfers()
-    @Query("DELETE FROM budgets") suspend fun clearBudgets()
-    @Query("DELETE FROM bills") suspend fun clearBills()
-    @Query("DELETE FROM savings_goals") suspend fun clearSavingsGoals()
-    @Query("DELETE FROM assets") suspend fun clearAssets()
-    @Query("DELETE FROM documents") suspend fun clearDocuments()
-    @Query("DELETE FROM accounts") suspend fun clearAccounts()
-    @Query("DELETE FROM audit_logs") suspend fun clearAuditLogs()
     // --- User / Auth ---
     @Query("SELECT * FROM users LIMIT 1")
     fun getCurrentUser(): Flow<UserEntity?>

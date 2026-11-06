@@ -1,16 +1,5 @@
 package com.example.ui.screens
 
-import com.example.finance.i18n.TextContent
-
-import com.example.ui.components.FinanceAlertDialog
-import com.example.ui.components.FinanceButton
-import com.example.ui.components.FinanceOutlinedButton
-import com.example.ui.components.FinanceTextField
-import com.example.ui.components.FinanceIconButton
-import com.example.ui.components.FinanceFloatingActionButton
-import com.example.ui.components.AppListBottomPadding
-
-import com.example.finance.i18n.WebI18n
 import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -65,39 +53,33 @@ import com.example.finance.engine.FinanceEngine
 import com.example.finance.i18n.Strings
 import com.example.finance.model.AssetEntity
 import com.example.finance.model.AssetType
-import com.example.finance.model.AppLanguage
 import com.example.finance.model.SavingsGoalEntity
 import com.example.finance.ui.FinanceViewModel
 
 @Composable
 fun SavingsAssetsScreen(
-    viewModel: FinanceViewModel,
-    initialTabIndex: Int = 0
+    viewModel: FinanceViewModel
 ) {
     val lang by viewModel.appLanguage.collectAsState()
     val savingsGoals by viewModel.savingsGoals.collectAsState()
     val assets by viewModel.assets.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val debts by viewModel.debts.collectAsState()
-    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
 
-    var selectedTabIndex by remember { mutableIntStateOf(initialTabIndex.coerceIn(0, 1)) }
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
     var showAddGoalDialog by remember { mutableStateOf(false) }
     var showAddAssetDialog by remember { mutableStateOf(false) }
-    var editingGoal by remember { mutableStateOf<SavingsGoalEntity?>(null) }
-    var editingAsset by remember { mutableStateOf<AssetEntity?>(null) }
     var goalToContribute by remember { mutableStateOf<SavingsGoalEntity?>(null) }
-    var contributionFailed by remember { mutableStateOf(false) }
 
-    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts, primaryCurrency, savingsGoals)
+    val netWorth = FinanceEngine.calculateNetWorth(accounts, assets, debts)
 
     Scaffold(
         floatingActionButton = {
-            FinanceFloatingActionButton(
+            FloatingActionButton(
                 onClick = {
                     if (selectedTabIndex == 0) showAddGoalDialog = true else showAddAssetDialog = true
                 },
-                containerColor = ByeProTheme.colors.goldFeatured,
+                containerColor = ByeProTheme.colors.goldPrimary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_savings_asset_fab")
             ) {
@@ -150,14 +132,14 @@ fun SavingsAssetsScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = TextContent.money(netWorth, primaryCurrency, lang),
+                                    text = FinanceEngine.formatMoney(netWorth, "SAR"),
                                     style = MaterialTheme.typography.headlineMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = ByeProTheme.colors.financialGreen
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = WebI18n.tr("إجمالي الأصول المقومة ناقصاً الالتزامات والديون", "Total valued assets minus liabilities and debts", lang),
+                                    text = "إجمالي الأصول المقومة ناقصاً الالتزامات والديون",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -174,7 +156,7 @@ fun SavingsAssetsScreen(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Text(
-                                    text = WebI18n.tr("لا توجد أهداف ادخارية حالياً. ابدأ بإنشاء هدفك الآن!", "No savings goals yet. Create your first goal now!", lang),
+                                    text = "لا توجد أهداف ادخارية حالياً. ابدأ بإنشاء هدفك الآن!",
                                     modifier = Modifier.padding(24.dp),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -194,7 +176,6 @@ fun SavingsAssetsScreen(
                                 progress = progress,
                                 lang = lang,
                                 onContribute = { goalToContribute = goal },
-                                onEdit = { editingGoal = goal },
                                 onDelete = { viewModel.deleteSavingsGoal(goal) }
                             )
                         }
@@ -207,7 +188,7 @@ fun SavingsAssetsScreen(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Text(
-                                    text = WebI18n.tr("سجل الأصول فارغ. أضف عقاراتك، الذهب، والمركبات لحساب صافي الثروة بدقة.", "Your asset register is empty. Add property, gold, and vehicles to calculate net worth.", lang),
+                                    text = "سجل الأصول فارغ. أضف عقاراتك، الذهب، والمركبات لحساب صافي الثروة بدقة.",
                                     modifier = Modifier.padding(24.dp),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -218,8 +199,6 @@ fun SavingsAssetsScreen(
                         items(assets, key = { it.id }) { asset ->
                             AssetCardItem(
                                 asset = asset,
-                                lang = lang,
-                                onEdit = { editingAsset = asset },
                                 onDelete = { viewModel.deleteAsset(asset) }
                             )
                         }
@@ -227,7 +206,7 @@ fun SavingsAssetsScreen(
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(AppListBottomPadding))
+                    Spacer(modifier = Modifier.height(72.dp))
                 }
             }
         }
@@ -238,39 +217,36 @@ fun SavingsAssetsScreen(
         val target = goalToContribute!!
         var contributeAmountStr by remember { mutableStateOf("") }
 
-        FinanceAlertDialog(
-            onDismissRequest = { goalToContribute = null; contributionFailed = false },
-            title = { Text(WebI18n.tr("إيداع في الهدف:", "Contribute to goal:", lang) + " ${target.name}") },
+        AlertDialog(
+            onDismissRequest = { goalToContribute = null },
+            title = { Text("إيداع في الهدف: ${target.name}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(WebI18n.tr("المبلغ الحالي:", "Current amount:", lang) + " ${TextContent.money(target.currentAmount, target.currency, lang)}")
-                    Text(WebI18n.tr("المتبقي للوصول للهدف:", "Remaining to target:", lang) + " ${TextContent.money((target.targetAmount - target.currentAmount).coerceAtLeast(0.0), target.currency, lang)}")
-                    if (contributionFailed) Text(WebI18n.tr("تعذّر الإيداع. تحقق من المبلغ والعملة والرصيد والحساب المحدد.", "Contribution failed. Check the amount, currency, available balance and selected account.", lang), color = MaterialTheme.colorScheme.error)
-                    FinanceTextField(
+                    Text("المبلغ الحالي: ${FinanceEngine.formatMoney(target.currentAmount, target.currency)}")
+                    OutlinedTextField(
                         value = contributeAmountStr,
                         onValueChange = { contributeAmountStr = it },
-                        label = { Text(WebI18n.tr("مبلغ الإيداع", "Deposit amount", lang)) },
+                        label = { Text("مبلغ الإيداع") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                FinanceButton(
+                Button(
                     onClick = {
                         val amt = contributeAmountStr.toDoubleOrNull() ?: 0.0
-                        val defaultAcc = accounts.firstOrNull { it.currency.equals(target.currency, true) && it.balance >= amt }?.id
-                        if (amt > 0.0 && defaultAcc != null) {
-                            viewModel.contributeToSavings(target.id, amt, defaultAcc) { success ->
-                                if (success) { goalToContribute = null; contributionFailed = false } else contributionFailed = true
-                            }
-                        } else contributionFailed = true
+                        if (amt > 0.0) {
+                            val defaultAcc = accounts.firstOrNull()?.id ?: 1L
+                            viewModel.contributeToSavings(target.id, amt, defaultAcc)
+                            goalToContribute = null
+                        }
                     }
                 ) {
                     Text(Strings.get("confirm", lang))
                 }
             },
             dismissButton = {
-                FinanceOutlinedButton(onClick = { goalToContribute = null; contributionFailed = false }) {
+                OutlinedButton(onClick = { goalToContribute = null }) {
                     Text(Strings.get("cancel", lang))
                 }
             }
@@ -278,29 +254,25 @@ fun SavingsAssetsScreen(
     }
 
     // Add Goal Dialog
-    if (showAddGoalDialog || editingGoal != null) {
+    if (showAddGoalDialog) {
         AddSavingsGoalDialog(
             lang = lang,
-            initialGoal = editingGoal,
-            onDismiss = { showAddGoalDialog = false; editingGoal = null },
+            onDismiss = { showAddGoalDialog = false },
             onConfirm = { newGoal ->
-                if (editingGoal == null) viewModel.addSavingsGoal(newGoal) else viewModel.updateSavingsGoal(newGoal)
+                viewModel.addSavingsGoal(newGoal)
                 showAddGoalDialog = false
-                editingGoal = null
             }
         )
     }
 
     // Add Asset Dialog
-    if (showAddAssetDialog || editingAsset != null) {
+    if (showAddAssetDialog) {
         AddAssetDialog(
             lang = lang,
-            initialAsset = editingAsset,
-            onDismiss = { showAddAssetDialog = false; editingAsset = null },
+            onDismiss = { showAddAssetDialog = false },
             onConfirm = { newAsset ->
-                if (editingAsset == null) viewModel.addAsset(newAsset) else viewModel.updateAsset(newAsset)
+                viewModel.addAsset(newAsset)
                 showAddAssetDialog = false
-                editingAsset = null
             }
         )
     }
@@ -312,7 +284,6 @@ fun SavingsGoalCard(
     progress: FinanceEngine.SavingsProgress,
     lang: com.example.finance.model.AppLanguage,
     onContribute: () -> Unit,
-    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
@@ -336,16 +307,16 @@ fun SavingsGoalCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = WebI18n.tr("النسبة المحققة:", "Progress:", lang) + " ${TextContent.number(progress.percentage.toInt(), lang, 0)}%",
+                        text = "النسبة المحققة: ${progress.percentage.toInt()}%",
                         style = MaterialTheme.typography.bodySmall,
                         color = ByeProTheme.colors.financialGreen,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                FinanceIconButton(onClick = onDelete) {
+                IconButton(onClick = onDelete) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = WebI18n.tr("حذف", "Delete", lang),
+                        contentDescription = "Delete",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp)
                     )
@@ -371,12 +342,12 @@ fun SavingsGoalCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = WebI18n.tr("المدخر:", "Saved:", lang) + " ${TextContent.money(progress.current, goal.currency, lang)}",
+                    text = "المدخر: ${FinanceEngine.formatMoney(progress.current, goal.currency)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = WebI18n.tr("الهدف:", "Target:", lang) + " ${TextContent.money(progress.target, goal.currency, lang)}",
+                    text = "الهدف: ${FinanceEngine.formatMoney(progress.target, goal.currency)}",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -391,20 +362,17 @@ fun SavingsGoalCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = WebI18n.tr("مطلوب شهرياً:", "Required monthly:", lang) + " ${TextContent.money(progress.requiredMonthlySaving, goal.currency, lang)}",
+                    text = "مطلوب شهرياً: ${FinanceEngine.formatMoney(progress.requiredMonthlySaving, goal.currency)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = ByeProTheme.colors.goldPrimary
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FinanceOutlinedButton(onClick = onEdit) { Text(WebI18n.tr("تعديل", "Edit", lang)) }
-                    FinanceButton(
+                Button(
                     onClick = onContribute,
-                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldFeatured, contentColor = MaterialTheme.colorScheme.onPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Icon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(16.dp))
                     Text(Strings.get("contribute", lang), modifier = Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelMedium)
-                    }
                 }
             }
         }
@@ -414,8 +382,6 @@ fun SavingsGoalCard(
 @Composable
 fun AssetCardItem(
     asset: AssetEntity,
-    lang: AppLanguage,
-    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
@@ -440,7 +406,7 @@ fun AssetCardItem(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "${asset.type.name} • ${asset.notes.ifBlank { WebI18n.tr("مؤكد", "Verified", lang) }}",
+                    text = "${asset.type.name} • ${asset.notes.ifBlank { "مؤكد" }}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -448,19 +414,16 @@ fun AssetCardItem(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = TextContent.money(asset.value, asset.currency, lang),
+                    text = FinanceEngine.formatMoney(asset.value, asset.currency),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = ByeProTheme.colors.goldPrimary
                 )
                 Spacer(modifier = Modifier.size(8.dp))
-                FinanceIconButton(onClick = onEdit) {
-                    Icon(imageVector = Icons.Default.Edit, contentDescription = WebI18n.tr("تعديل", "Edit", lang), modifier = Modifier.size(18.dp))
-                }
-                FinanceIconButton(onClick = onDelete) {
+                IconButton(onClick = onDelete) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = WebI18n.tr("حذف", "Delete", lang),
+                        contentDescription = "Delete",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp)
                     )
@@ -473,97 +436,124 @@ fun AssetCardItem(
 @Composable
 fun AddSavingsGoalDialog(
     lang: com.example.finance.model.AppLanguage,
-    initialGoal: SavingsGoalEntity? = null,
     onDismiss: () -> Unit,
     onConfirm: (SavingsGoalEntity) -> Unit
 ) {
-    var name by remember(initialGoal?.id) { mutableStateOf(initialGoal?.name ?: "") }
-    var targetStr by remember(initialGoal?.id) { mutableStateOf(initialGoal?.targetAmount?.toString() ?: "") }
-    var currentStr by remember(initialGoal?.id) { mutableStateOf(initialGoal?.currentAmount?.toString() ?: "0") }
-    var currency by remember(initialGoal?.id) { mutableStateOf(initialGoal?.currency ?: "LYD") }
-    var monthlyStr by remember(initialGoal?.id) { mutableStateOf(initialGoal?.targetMonthlyDeposit?.toString() ?: "0") }
-    var deadlineText by remember(initialGoal?.id) { mutableStateOf(java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date(initialGoal?.deadline ?: (System.currentTimeMillis() + 180L * 24 * 60 * 60 * 1000)))) }
-    var error by remember { mutableStateOf("") }
-    FinanceAlertDialog(
+    var name by remember { mutableStateOf("") }
+    var targetStr by remember { mutableStateOf("") }
+    var currentStr by remember { mutableStateOf("0") }
+
+    AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (initialGoal == null) Strings.get("add_goal", lang) else WebI18n.tr("تعديل هدف الادخار", "Edit savings goal", lang), fontWeight = FontWeight.Bold) },
+        title = { Text(text = Strings.get("add_goal", lang), fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الهدف الادخاري", "Savings goal name", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = targetStr, onValueChange = { targetStr = it }, label = { Text(Strings.get("target_amount", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = currentStr, onValueChange = { currentStr = it }, label = { Text(WebI18n.tr("الرصيد المدخر حالياً", "Current saved balance", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(java.util.Locale.ROOT) }, label = { Text(WebI18n.tr("العملة", "Currency", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = monthlyStr, onValueChange = { monthlyStr = it }, label = { Text(WebI18n.tr("الإيداع الشهري المستهدف", "Target monthly deposit", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = deadlineText, onValueChange = { deadlineText = it }, label = { Text(WebI18n.tr("الموعد النهائي YYYY-MM-DD", "Target date YYYY-MM-DD", lang)) }, modifier = Modifier.fillMaxWidth())
-                if (error.isNotBlank()) Text(error, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("اسم الهدف الادخاري") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = targetStr,
+                    onValueChange = { targetStr = it },
+                    label = { Text(Strings.get("target_amount", lang)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = currentStr,
+                    onValueChange = { currentStr = it },
+                    label = { Text("الرصيد المدخر حالياً") },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
-            FinanceButton(onClick = {
-                val target = targetStr.toDoubleOrNull() ?: Double.NaN
-                val current = currentStr.toDoubleOrNull() ?: Double.NaN
-                val monthly = monthlyStr.toDoubleOrNull() ?: Double.NaN
-                val deadline = try { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply { isLenient = false }.parse(deadlineText)?.time } catch (_: Exception) { null }
-                error = when {
-                    name.isBlank() -> WebI18n.tr("أدخل اسم الهدف.", "Enter a goal name.", lang)
-                    !target.isFinite() || target <= 0.0 -> WebI18n.tr("قيمة الهدف يجب أن تكون أكبر من صفر.", "Target must be greater than zero.", lang)
-                    !current.isFinite() || current < 0.0 || current > target -> WebI18n.tr("الرصيد الحالي يجب أن يكون بين صفر وقيمة الهدف.", "Current savings must be between zero and the target.", lang)
-                    !monthly.isFinite() || monthly < 0.0 -> WebI18n.tr("أدخل إيداعاً شهرياً صحيحاً.", "Enter a valid monthly deposit.", lang)
-                    !currency.matches(Regex("[A-Z]{3}")) -> WebI18n.tr("رمز العملة يجب أن يتكون من ثلاثة أحرف.", "Currency must be a three-letter code.", lang)
-                    deadline == null -> WebI18n.tr("أدخل تاريخاً صحيحاً.", "Enter a valid date.", lang)
-                    else -> ""
+            Button(
+                onClick = {
+                    val target = targetStr.toDoubleOrNull() ?: 0.0
+                    val current = currentStr.toDoubleOrNull() ?: 0.0
+                    if (name.isNotBlank() && target > 0.0) {
+                        onConfirm(
+                            SavingsGoalEntity(
+                                name = name,
+                                targetAmount = target,
+                                currentAmount = current,
+                                deadline = System.currentTimeMillis() + (180L * 24 * 60 * 60 * 1000)
+                            )
+                        )
+                    }
                 }
-                if (error.isBlank() && deadline != null) onConfirm(SavingsGoalEntity(id = initialGoal?.id ?: 0, name = name.trim(), targetAmount = target, currentAmount = current, currency = currency, deadline = deadline, targetMonthlyDeposit = monthly, colorHex = initialGoal?.colorHex ?: "#D6B56D"))
-            }) { Text(Strings.get("confirm", lang)) }
+            ) {
+                Text(Strings.get("confirm", lang))
+            }
         },
-        dismissButton = { FinanceOutlinedButton(onClick = onDismiss) { Text(Strings.get("cancel", lang)) } }
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text(Strings.get("cancel", lang))
+            }
+        }
     )
 }
 
 @Composable
 fun AddAssetDialog(
     lang: com.example.finance.model.AppLanguage,
-    initialAsset: AssetEntity? = null,
     onDismiss: () -> Unit,
     onConfirm: (AssetEntity) -> Unit
 ) {
-    var name by remember(initialAsset?.id) { mutableStateOf(initialAsset?.name ?: "") }
-    var valueStr by remember(initialAsset?.id) { mutableStateOf(initialAsset?.value?.toString() ?: "") }
-    var currency by remember(initialAsset?.id) { mutableStateOf(initialAsset?.currency ?: "LYD") }
-    var typeText by remember(initialAsset?.id) { mutableStateOf((initialAsset?.type ?: AssetType.PROPERTY).name) }
-    var purchaseDateText by remember(initialAsset?.id) { mutableStateOf(java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date(initialAsset?.purchaseDate ?: System.currentTimeMillis()))) }
-    var notes by remember(initialAsset?.id) { mutableStateOf(initialAsset?.notes ?: "") }
-    var error by remember { mutableStateOf("") }
-    FinanceAlertDialog(
+    var name by remember { mutableStateOf("") }
+    var valueStr by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+
+    AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (initialAsset == null) Strings.get("add_asset", lang) else WebI18n.tr("تعديل الأصل", "Edit asset", lang), fontWeight = FontWeight.Bold) },
+        title = { Text(text = Strings.get("add_asset", lang), fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                FinanceTextField(value = name, onValueChange = { name = it }, label = { Text(WebI18n.tr("اسم الأصل", "Asset name", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = valueStr, onValueChange = { valueStr = it }, label = { Text(Strings.get("asset_value", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = currency, onValueChange = { currency = it.uppercase(java.util.Locale.ROOT) }, label = { Text(WebI18n.tr("العملة", "Currency", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = typeText, onValueChange = { typeText = it.uppercase(java.util.Locale.ROOT) }, label = { Text(WebI18n.tr("النوع: PROPERTY / GOLD / VEHICLE / CASH / INVESTMENTS / OTHER", "Type: PROPERTY / GOLD / VEHICLE / CASH / INVESTMENTS / OTHER", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = purchaseDateText, onValueChange = { purchaseDateText = it }, label = { Text(WebI18n.tr("تاريخ الشراء YYYY-MM-DD", "Purchase date YYYY-MM-DD", lang)) }, modifier = Modifier.fillMaxWidth())
-                FinanceTextField(value = notes, onValueChange = { notes = it }, label = { Text(Strings.get("notes", lang)) }, modifier = Modifier.fillMaxWidth())
-                if (error.isNotBlank()) Text(error, color = ByeProTheme.colors.financialRed, style = MaterialTheme.typography.bodySmall)
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("اسم الأصل (عقار، ذهب، مركبة)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = valueStr,
+                    onValueChange = { valueStr = it },
+                    label = { Text(Strings.get("asset_value", lang)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("ملاحظات") },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
-            FinanceButton(onClick = {
-                val value = valueStr.toDoubleOrNull() ?: Double.NaN
-                val type = runCatching { AssetType.valueOf(typeText.trim().uppercase(java.util.Locale.ROOT)) }.getOrNull()
-                val purchaseDate = try { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply { isLenient = false }.parse(purchaseDateText)?.time } catch (_: Exception) { null }
-                error = when {
-                    name.isBlank() -> WebI18n.tr("أدخل اسم الأصل.", "Enter an asset name.", lang)
-                    !value.isFinite() || value < 0.0 -> WebI18n.tr("أدخل قيمة صحيحة غير سالبة.", "Enter a valid non-negative value.", lang)
-                    !currency.matches(Regex("[A-Z]{3}")) -> WebI18n.tr("رمز العملة يجب أن يتكون من ثلاثة أحرف.", "Currency must be a three-letter code.", lang)
-                    type == null -> WebI18n.tr("نوع الأصل غير صحيح.", "Asset type is invalid.", lang)
-                    purchaseDate == null -> WebI18n.tr("أدخل تاريخ شراء صحيحاً.", "Enter a valid purchase date.", lang)
-                    else -> ""
+            Button(
+                onClick = {
+                    val value = valueStr.toDoubleOrNull() ?: 0.0
+                    if (name.isNotBlank() && value > 0.0) {
+                        onConfirm(
+                            AssetEntity(
+                                name = name,
+                                type = AssetType.PROPERTY,
+                                value = value,
+                                notes = notes
+                            )
+                        )
+                    }
                 }
-                if (error.isBlank() && type != null && purchaseDate != null) onConfirm(AssetEntity(id = initialAsset?.id ?: 0, name = name.trim(), type = type, value = value, currency = currency, purchaseDate = purchaseDate, notes = notes.trim()))
-            }) { Text(Strings.get("confirm", lang)) }
+            ) {
+                Text(Strings.get("confirm", lang))
+            }
         },
-        dismissButton = { FinanceOutlinedButton(onClick = onDismiss) { Text(Strings.get("cancel", lang)) } }
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text(Strings.get("cancel", lang))
+            }
+        }
     )
 }

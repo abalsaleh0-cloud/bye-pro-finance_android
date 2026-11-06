@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.ByeProTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,11 +11,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,6 +25,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -33,319 +35,219 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.finance.engine.FinanceEngine
 import com.example.finance.i18n.Strings
-import com.example.finance.i18n.TextContent
-import com.example.finance.i18n.WebI18n
-import com.example.finance.model.AccountEntity
-import com.example.finance.model.TransferEntity
 import com.example.finance.ui.FinanceViewModel
-import com.example.ui.components.FinanceButton
-import com.example.ui.components.FinanceTextField
-import com.example.ui.theme.ByeProTheme
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TransfersScreen(viewModel: FinanceViewModel) {
+fun TransfersScreen(
+    viewModel: FinanceViewModel
+) {
     val lang by viewModel.appLanguage.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
-    val transfers by viewModel.transfers.collectAsState()
-    val accountsLoading by viewModel.accountsLoading.collectAsState()
 
     var fromAccountId by remember(accounts) { mutableStateOf(accounts.firstOrNull()?.id ?: 0L) }
-    var toAccountId by remember(accounts) { mutableStateOf(accounts.firstOrNull { it.id != fromAccountId }?.id ?: 0L) }
-    var amount by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var fromExpanded by remember { mutableStateOf(false) }
-    var toExpanded by remember { mutableStateOf(false) }
-    var saving by remember { mutableStateOf(false) }
-    var feedback by remember { mutableStateOf<String?>(null) }
-    var feedbackSuccess by remember { mutableStateOf(false) }
+    var toAccountId by remember(accounts) { mutableStateOf(accounts.getOrNull(1)?.id ?: accounts.firstOrNull()?.id ?: 0L) }
+    var amountStr by remember { mutableStateOf("") }
+    var feeStr by remember { mutableStateOf("0") }
+    var description by remember { mutableStateOf("تحويل رصيد داخلي") }
+    var reference by remember { mutableStateOf("REF-${System.currentTimeMillis() % 100000}") }
 
-    val fromAccount = accounts.firstOrNull { it.id == fromAccountId && !it.isArchived }
-    val toAccount = accounts.firstOrNull { it.id == toAccountId && !it.isArchived }
-    val currencyMatches = fromAccount != null && toAccount != null &&
-        fromAccount.currency.equals(toAccount.currency, ignoreCase = true)
+    var expandedFrom by remember { mutableStateOf(false) }
+    var expandedTo by remember { mutableStateOf(false) }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
 
-    fun showError(message: String) {
-        feedback = message
-        feedbackSuccess = false
-    }
+    val fromAccount = accounts.find { it.id == fromAccountId }
+    val toAccount = accounts.find { it.id == toAccountId }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Column {
-                Text(
-                    text = Strings.get("transfers_title", lang),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = WebI18n.tr(
-                        "نقل الأموال بين حساباتك مع حفظ سجل مستقل للتحويلات.",
-                        "Move money between your accounts and keep a separate transfer history.",
-                        lang
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = Strings.get("transfers_title", lang),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "تحويل فوري ذري يضمن تحديث كلا الحسابين أو التراجع الآمن في حال التعثر.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
         item {
             Card(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // From Account Dropdown
                     ExposedDropdownMenuBox(
-                        expanded = fromExpanded,
-                        onExpandedChange = { fromExpanded = !fromExpanded }
+                        expanded = expandedFrom,
+                        onExpandedChange = { expandedFrom = !expandedFrom }
                     ) {
-                        FinanceTextField(
-                            value = fromAccount?.let { "${it.name} · ${it.currency}" } ?: "",
+                        OutlinedTextField(
+                            value = fromAccount?.let { "${it.name} (${FinanceEngine.formatMoney(it.balance, it.currency)})" } ?: "",
                             onValueChange = {},
                             readOnly = true,
                             label = { Text(Strings.get("from_account", lang)) },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = fromExpanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor().testTag("transfer_from_dropdown")
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedFrom) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                                .testTag("transfer_from_dropdown")
                         )
-                        ExposedDropdownMenu(expanded = fromExpanded, onDismissRequest = { fromExpanded = false }) {
-                            accounts.filterNot { it.isArchived }.forEach { account ->
+                        ExposedDropdownMenu(
+                            expanded = expandedFrom,
+                            onDismissRequest = { expandedFrom = false }
+                        ) {
+                            accounts.forEach { acc ->
                                 DropdownMenuItem(
-                                    text = { Text("${TextContent.isolate(account.name)} · ${account.currency}") },
+                                    text = { Text("${acc.name} - ${FinanceEngine.formatMoney(acc.balance, acc.currency)}") },
                                     onClick = {
-                                        fromAccountId = account.id
-                                        if (account.id == toAccountId) {
-                                            toAccountId = accounts.firstOrNull { it.id != account.id && !it.isArchived }?.id ?: 0L
-                                        }
-                                        feedback = null
-                                        fromExpanded = false
+                                        fromAccountId = acc.id
+                                        expandedFrom = false
                                     }
                                 )
                             }
                         }
                     }
 
+                    // To Account Dropdown
                     ExposedDropdownMenuBox(
-                        expanded = toExpanded,
-                        onExpandedChange = { toExpanded = !toExpanded }
+                        expanded = expandedTo,
+                        onExpandedChange = { expandedTo = !expandedTo }
                     ) {
-                        FinanceTextField(
-                            value = toAccount?.let { "${it.name} · ${it.currency}" } ?: "",
+                        OutlinedTextField(
+                            value = toAccount?.let { "${it.name} (${FinanceEngine.formatMoney(it.balance, it.currency)})" } ?: "",
                             onValueChange = {},
                             readOnly = true,
                             label = { Text(Strings.get("to_account", lang)) },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = toExpanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor().testTag("transfer_to_dropdown")
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTo) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                                .testTag("transfer_to_dropdown")
                         )
-                        ExposedDropdownMenu(expanded = toExpanded, onDismissRequest = { toExpanded = false }) {
-                            accounts.filter { !it.isArchived && it.id != fromAccountId }.forEach { account ->
+                        ExposedDropdownMenu(
+                            expanded = expandedTo,
+                            onDismissRequest = { expandedTo = false }
+                        ) {
+                            accounts.forEach { acc ->
                                 DropdownMenuItem(
-                                    text = { Text("${TextContent.isolate(account.name)} · ${account.currency}") },
+                                    text = { Text("${acc.name} - ${FinanceEngine.formatMoney(acc.balance, acc.currency)}") },
                                     onClick = {
-                                        toAccountId = account.id
-                                        feedback = null
-                                        toExpanded = false
+                                        toAccountId = acc.id
+                                        expandedTo = false
                                     }
                                 )
                             }
                         }
                     }
 
-                    FinanceTextField(
-                        value = amount,
-                        onValueChange = { amount = it; feedback = null },
+                    // Amount input
+                    OutlinedTextField(
+                        value = amountStr,
+                        onValueChange = { amountStr = it },
                         label = { Text(Strings.get("transfer_amount", lang)) },
-                        modifier = Modifier.fillMaxWidth().testTag("transfer_amount_input"),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("transfer_amount_input"),
                         singleLine = true
                     )
-                    FinanceTextField(
-                        value = fromAccount?.currency ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(WebI18n.tr("العملة", "Currency", lang)) },
-                        modifier = Modifier.fillMaxWidth().testTag("transfer_currency_field"),
+
+                    // Fee input
+                    OutlinedTextField(
+                        value = feeStr,
+                        onValueChange = { feeStr = it },
+                        label = { Text(Strings.get("transfer_fee", lang)) },
+                        modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
-                    FinanceTextField(
+
+                    // Description & reference
+                    OutlinedTextField(
                         value = description,
-                        onValueChange = { description = it.take(2000) },
+                        onValueChange = { description = it },
                         label = { Text(Strings.get("description", lang)) },
-                        modifier = Modifier.fillMaxWidth().testTag("transfer_description_input"),
-                        singleLine = true
+                        modifier = Modifier.fillMaxWidth()
                     )
 
-                    if (fromAccount != null) {
-                        Text(
-                            text = WebI18n.tr(
-                                "الرصيد المتاح: ${TextContent.money(fromAccount.balance, fromAccount.currency, lang)}",
-                                "Available balance: ${TextContent.money(fromAccount.balance, fromAccount.currency, lang)}",
-                                lang
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                    FinanceButton(
+                    Button(
                         onClick = {
-                            val value = amount.trim().replace(',', '.').toDoubleOrNull()
-                            when {
-                                fromAccount == null || toAccount == null ->
-                                    showError(WebI18n.tr("اختر حسابين نشطين.", "Choose two active accounts.", lang))
-                                fromAccount.id == toAccount.id ->
-                                    showError(WebI18n.tr("يجب اختيار حسابين مختلفين.", "Choose two different accounts.", lang))
-                                !currencyMatches ->
-                                    showError(WebI18n.tr("يجب أن تتطابق عملة الحسابين.", "Both accounts must use the same currency.", lang))
-                                value == null || !value.isFinite() || value <= 0.0 ->
-                                    showError(WebI18n.tr("أدخل مبلغاً صحيحاً أكبر من الصفر.", "Enter a valid amount greater than zero.", lang))
-                                fromAccount.balance < value ->
-                                    showError(WebI18n.tr("رصيد الحساب المصدر غير كافٍ.", "The source account has insufficient funds.", lang))
-                                else -> {
-                                    saving = true
-                                    feedback = null
+                            val amt = amountStr.toDoubleOrNull() ?: 0.0
+                            val fee = feeStr.toDoubleOrNull() ?: 0.0
+                            if (amt > 0.0 && fromAccountId != toAccountId && fromAccount != null) {
+                                if (fromAccount.balance >= (amt + fee)) {
                                     viewModel.executeTransfer(
-                                        fromAccountId = fromAccount.id,
-                                        toAccountId = toAccount.id,
-                                        amount = value,
-                                        fee = 0.0,
+                                        fromAccountId = fromAccountId,
+                                        toAccountId = toAccountId,
+                                        amount = amt,
+                                        fee = fee,
                                         currency = fromAccount.currency,
-                                        description = description.trim(),
-                                        reference = ""
+                                        description = description,
+                                        reference = reference
                                     ) { success ->
-                                        saving = false
-                                        feedbackSuccess = success
-                                        feedback = if (success) {
-                                            amount = ""
-                                            description = ""
-                                            WebI18n.tr("تم تنفيذ التحويل بنجاح.", "Transfer completed successfully.", lang)
-                                        } else {
-                                            WebI18n.tr("تعذر تنفيذ التحويل. تحقق من الحسابين والرصيد.", "Transfer failed. Check both accounts and the available balance.", lang)
+                                        if (success) {
+                                            statusMessage = Strings.get("transfer_success", lang)
+                                            amountStr = ""
                                         }
                                     }
+                                } else {
+                                    statusMessage = "عفواً، رصيد الحساب المصدر غير كافٍ لإتمام التحويل والرسوم!"
                                 }
+                            } else if (fromAccountId == toAccountId) {
+                                statusMessage = "لا يمكن التحويل لنفس الحساب!"
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(50.dp).testTag("execute_transfer_btn"),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = ByeProTheme.colors.goldFeatured,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("execute_transfer_btn"),
+                        colors = ButtonDefaults.buttonColors(containerColor = ByeProTheme.colors.goldPrimary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.SwapHoriz, contentDescription = null)
+                        Icon(imageVector = Icons.Default.SwapHoriz, contentDescription = null)
                         Text(
-                            text = if (saving) WebI18n.tr("جارٍ التنفيذ…", "Processing…", lang)
-                            else Strings.get("execute_transfer", lang),
-                            modifier = Modifier.padding(start = 8.dp),
-                            fontWeight = FontWeight.Bold
+                            text = Strings.get("execute_transfer", lang),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 8.dp)
                         )
                     }
 
-                    if (feedback != null) {
+                    if (statusMessage != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (feedbackSuccess) Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ByeProTheme.colors.financialGreen)
                             Text(
-                                text = feedback.orEmpty(),
+                                text = statusMessage!!,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = if (feedbackSuccess) ByeProTheme.colors.financialGreen else MaterialTheme.colorScheme.error
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(start = 6.dp)
                             )
                         }
                     }
-                    if (accountsLoading) {
-                        Text(WebI18n.tr("جارٍ تحميل الحسابات…", "Loading accounts…", lang), style = MaterialTheme.typography.bodySmall)
-                    } else if (accounts.size < 2) {
-                        Text(
-                            WebI18n.tr("أضف حسابين نشطين على الأقل لإجراء تحويل.", "Add at least two active accounts to make a transfer.", lang),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
-            }
-        }
-
-        item {
-            Text(
-                text = WebI18n.tr("سجل التحويلات", "Transfer history", lang),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        if (transfers.isEmpty()) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Text(
-                        text = WebI18n.tr("لا توجد تحويلات بعد.", "No transfers yet.", lang),
-                        modifier = Modifier.padding(24.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
-            items(transfers, key = { it.id }) { transfer ->
-                TransferHistoryCard(transfer = transfer, accounts = accounts, lang = lang)
-            }
-        }
-        item { Spacer(Modifier.height(24.dp)) }
-    }
-}
-
-@Composable
-private fun TransferHistoryCard(
-    transfer: TransferEntity,
-    accounts: List<AccountEntity>,
-    lang: com.example.finance.model.AppLanguage
-) {
-    val fromName = accounts.firstOrNull { it.id == transfer.fromAccountId }?.name
-        ?: WebI18n.tr("حساب محذوف", "Deleted account", lang)
-    val toName = accounts.firstOrNull { it.id == transfer.toAccountId }?.name
-        ?: WebI18n.tr("حساب محذوف", "Deleted account", lang)
-    val date = remember(transfer.date) {
-        SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.ROOT).format(Date(transfer.date))
-    }
-    Card(
-        modifier = Modifier.fillMaxWidth().border(
-            1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(14.dp)
-        ),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(14.dp)
-    ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = "$fromName → $toName",
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = transfer.description.ifBlank { WebI18n.tr("تحويل مالي", "Money transfer", lang) },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(date, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    text = TextContent.money(transfer.amount, transfer.currency, lang),
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
             }
         }
     }

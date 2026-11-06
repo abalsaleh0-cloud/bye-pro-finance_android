@@ -27,7 +27,6 @@ enum class TransactionStatus {
 enum class BudgetPeriod {
     WEEKLY,
     MONTHLY,
-    QUARTERLY,
     YEARLY,
     CUSTOM
 }

@@ -6,7 +6,6 @@ import com.example.finance.model.BudgetEntity
 import com.example.finance.model.DebtEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
-import com.example.finance.model.TransactionStatus
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.NumberFormat
@@ -26,10 +25,20 @@ object FinanceEngine {
             ZERO
         }
 
-    /**
-     * The web application does not invent exchange rates. Until a trusted live
-     * FX source is configured, only same-currency transfers are safe.
-     */
+    // Pegged & average commercial exchange rates relative to 1.0 SAR
+    val exchangeRatesToSar: Map<String, BigDecimal> = mapOf(
+        "SAR" to BigDecimal("1.0000"),
+        "USD" to BigDecimal("3.7500"),
+        "EUR" to BigDecimal("4.0500"),
+        "GBP" to BigDecimal("4.8500"),
+        "AED" to BigDecimal("1.0210"),
+        "KWD" to BigDecimal("12.2500"),
+        "BHD" to BigDecimal("9.9500"),
+        "OMR" to BigDecimal("9.7400"),
+        "QAR" to BigDecimal("1.0300"),
+        "EGP" to BigDecimal("0.0760")
+    )
+
     fun convertCurrency(
         amount: BigDecimal,
         fromCurrency: String,
@@ -37,20 +46,28 @@ object FinanceEngine {
     ): BigDecimal {
         val from = fromCurrency.trim().uppercase()
         val to = toCurrency.trim().uppercase()
-        require(from.isNotBlank() && to.isNotBlank()) { "Currency code is required" }
-        require(from == to) {
-            "Cross-currency conversion requires a verified exchange-rate source ($from to $to)"
+        if (from == to) {
+            return amount.setScale(2, RoundingMode.HALF_EVEN)
         }
-        return amount.setScale(2, RoundingMode.HALF_EVEN)
+        val fromRate = exchangeRatesToSar[from] ?: BigDecimal("1.0000")
+        val toRate = exchangeRatesToSar[to] ?: BigDecimal("1.0000")
+
+        val amountInSar = amount.multiply(fromRate)
+        return amountInSar.divide(toRate, 2, RoundingMode.HALF_EVEN)
     }
 
-    fun convertCurrency(amount: Double, fromCurrency: String, toCurrency: String): Double =
-        convertCurrency(toBigDecimal(amount), fromCurrency, toCurrency).toDouble()
+    fun convertCurrency(
+        amount: Double,
+        fromCurrency: String,
+        toCurrency: String
+    ): Double {
+        return convertCurrency(toBigDecimal(amount), fromCurrency, toCurrency).toDouble()
+    }
 
     fun calculateTotalIncome(transactions: List<TransactionEntity>): BigDecimal {
         var total = BigDecimal.ZERO
         for (tx in transactions) {
-            if (tx.status == TransactionStatus.COMPLETED && (tx.type == TransactionType.INCOME || tx.type == TransactionType.REFUND)) {
+            if (tx.type == TransactionType.INCOME) {
                 total = total.add(BigDecimal.valueOf(tx.amount))
             }
         }
@@ -60,22 +77,7 @@ object FinanceEngine {
     fun calculateTotalExpenses(transactions: List<TransactionEntity>): BigDecimal {
         var total = BigDecimal.ZERO
         for (tx in transactions) {
-            if (tx.status == TransactionStatus.COMPLETED && tx.type == TransactionType.EXPENSE) {
-                total = total.add(BigDecimal.valueOf(tx.amount))
-            }
-        }
-        return total.setScale(2, RoundingMode.HALF_EVEN)
-    }
-
-    fun calculateTotalAdjustments(transactions: List<TransactionEntity>): BigDecimal {
-        var total = BigDecimal.ZERO
-        for (tx in transactions) {
-            if (tx.status == TransactionStatus.COMPLETED &&
-                tx.type == TransactionType.ADJUSTMENT &&
-                !tx.category.equals("Transfer", ignoreCase = true) &&
-                !tx.category.equals("WORK_TRANSFER", ignoreCase = true) &&
-                tx.amount.isFinite()
-            ) {
+            if (tx.type == TransactionType.EXPENSE) {
                 total = total.add(BigDecimal.valueOf(tx.amount))
             }
         }
@@ -86,19 +88,10 @@ object FinanceEngine {
         return income.subtract(expenses).setScale(2, RoundingMode.HALF_EVEN)
     }
 
-    fun calculateNetCashFlow(
-        income: BigDecimal,
-        expenses: BigDecimal,
-        adjustments: BigDecimal
-    ): BigDecimal {
-        return income.subtract(expenses).add(adjustments).setScale(2, RoundingMode.HALF_EVEN)
-    }
-
     fun calculateNetCashFlow(transactions: List<TransactionEntity>): BigDecimal {
         val income = calculateTotalIncome(transactions)
         val expenses = calculateTotalExpenses(transactions)
-        val adjustments = calculateTotalAdjustments(transactions)
-        return calculateNetCashFlow(income, expenses, adjustments)
+        return calculateNetCashFlow(income, expenses)
     }
 
     /**
@@ -112,7 +105,6 @@ object FinanceEngine {
     ): BigDecimal {
         var current = startingBalance
         for (tx in transactions) {
-            if (tx.status != TransactionStatus.COMPLETED) continue
             when (tx.type) {
                 TransactionType.INCOME -> {
                     if (tx.accountId == accountId) {
@@ -155,45 +147,29 @@ object FinanceEngine {
         accounts: List<AccountEntity>,
         assets: List<AssetEntity>,
         debts: List<DebtEntity>,
-        baseCurrency: String = "LYD",
-        savingsGoals: List<com.example.finance.model.SavingsGoalEntity> = emptyList()
+        baseCurrency: String = "SAR"
     ): BigDecimal {
         var liquidCash = BigDecimal.ZERO
         for (acc in accounts) {
             if (!acc.isArchived) {
-                if (acc.currency.equals(baseCurrency, ignoreCase = true)) {
-                    liquidCash = liquidCash.add(toBigDecimal(acc.balance))
-                }
+                val inBase = convertCurrency(toBigDecimal(acc.balance), acc.currency, baseCurrency)
+                liquidCash = liquidCash.add(inBase)
             }
         }
 
         var assetTotal = BigDecimal.ZERO
         for (asset in assets) {
-            if (asset.currency.equals(baseCurrency, ignoreCase = true)) {
-                assetTotal = assetTotal.add(toBigDecimal(asset.value))
-            }
+            val inBase = convertCurrency(toBigDecimal(asset.value), asset.currency, baseCurrency)
+            assetTotal = assetTotal.add(inBase)
         }
 
         var debtTotal = BigDecimal.ZERO
-        var receivableTotal = BigDecimal.ZERO
         for (debt in debts) {
-            if (debt.currency.equals(baseCurrency, ignoreCase = true)) {
-                if (debt.direction == "owed_to_me") {
-                    receivableTotal = receivableTotal.add(toBigDecimal(debt.remaining))
-                } else {
-                    debtTotal = debtTotal.add(toBigDecimal(debt.remaining))
-                }
-            }
+            val inBase = convertCurrency(toBigDecimal(debt.remaining), debt.currency, baseCurrency)
+            debtTotal = debtTotal.add(inBase)
         }
 
-        var savingsTotal = BigDecimal.ZERO
-        for (goal in savingsGoals) {
-            if (goal.currency.equals(baseCurrency, ignoreCase = true)) {
-                savingsTotal = savingsTotal.add(toBigDecimal(goal.currentAmount))
-            }
-        }
-
-        val totalAssets = liquidCash.add(assetTotal).add(receivableTotal).add(savingsTotal)
+        val totalAssets = liquidCash.add(assetTotal)
         return totalAssets.subtract(debtTotal).setScale(2, RoundingMode.HALF_EVEN)
     }
 
@@ -214,10 +190,7 @@ object FinanceEngine {
         var spent = BigDecimal.ZERO
 
         for (tx in transactions) {
-            if (tx.status == TransactionStatus.COMPLETED &&
-                tx.type == TransactionType.EXPENSE &&
-                tx.amount.isFinite() &&
-                tx.currency.equals(budget.currency, ignoreCase = true) &&
+            if (tx.type == TransactionType.EXPENSE &&
                 (tx.category.equals(budget.category, ignoreCase = true) || budget.category == "All") &&
                 tx.date >= budget.startDate && tx.date <= budget.endDate
             ) {
@@ -311,7 +284,7 @@ object FinanceEngine {
         return Math.ceil(months).toInt()
     }
 
-    fun formatMoney(amount: Double, currency: String = "LYD"): String {
+    fun formatMoney(amount: Double, currency: String = "SAR"): String {
         val format = NumberFormat.getNumberInstance(Locale.US).apply {
             minimumFractionDigits = 2
             maximumFractionDigits = 2
@@ -319,7 +292,7 @@ object FinanceEngine {
         return "${format.format(amount)} $currency"
     }
 
-    fun formatMoney(amount: BigDecimal, currency: String = "LYD"): String {
+    fun formatMoney(amount: BigDecimal, currency: String = "SAR"): String {
         return formatMoney(amount.toDouble(), currency)
     }
 
