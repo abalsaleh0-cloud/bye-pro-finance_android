@@ -120,7 +120,7 @@ internal object AiCommandRouter {
         val explicitDebtPayment = listOf("دفعة", "سجل دفعة", "سجّل دفعة", "سداد دين", "سدد دين", "paid debt", "repaid debt", "debt payment")
             .any(text::contains)
         val prefixedName = Regex("""(?:^|\s)(?:ل(?!ل)|إلى|الى)\s*([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})|(?:^|\s)to\s+([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})""", RegexOption.IGNORE_CASE)
-            .find(afterAmount)?.let { it.groupValues[1].ifBlank { it.groupValues[2] } }
+            .find(afterAmount)?.let { match -> match.groupValues[1].ifBlank { match.groupValues[2] } }
         val bareName = if (explicitDebtPayment) {
             Regex("""^([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,2})$""")
                 .matchEntire(afterAmount)?.groupValues?.get(1)
