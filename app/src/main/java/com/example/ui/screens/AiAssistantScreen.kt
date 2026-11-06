@@ -479,29 +479,11 @@ fun AiAssistantScreen(
         } else {
             AiModelsSettingsScreen(
                 lang = lang,
-                autoSpeakReplies = autoSpeakReplies,
-                cloudGeneralEnabled = cloudGeneralEnabled,
-                onCloudGeneralEnabledChange = { enabled ->
-                    cloudGeneralEnabled = enabled
-                    context.getSharedPreferences("bye_pro_finance_ai_models", 0)
-                        .edit()
-                        .putBoolean("cloud_general_enabled", enabled)
-                        .apply()
-                },
                 localModelReady = localModelReady,
                 localModelLoading = localModelLoading,
                 localModelProgress = localModelProgress,
                 localModelStatus = localModelStatus,
-                onLoadModelFile = viewModel::loadLocalModelFile,
-                onImportAndLoadModel = viewModel::importAndLoadLocalModel,
-                onDownloadRecommendedModel = viewModel::downloadRecommendedGemma3n,
-                onAutoSpeakRepliesChange = { enabled ->
-                    autoSpeakReplies = enabled
-                    context.getSharedPreferences("bye_pro_ai_settings", 0)
-                        .edit()
-                        .putBoolean("auto_speak_replies", enabled)
-                        .apply()
-                }
+                onImportAndLoadModel = viewModel::importAndLoadLocalModel
             )
         }
     }
