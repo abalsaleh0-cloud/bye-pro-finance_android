@@ -183,4 +183,49 @@ class AiCommandRouterTest {
         assertEquals("smart_scan", AiCommandRouter.parseSectionNavigation("افتح المسح الذكي"))
         assertEquals("import_export", AiCommandRouter.parseSectionNavigation("افتح الاستيراد والتصدير"))
     }
+
+    @Test
+    fun keepsEachFinancialCommandInItsOwnSection() {
+        val fuel = "سجل 50 دينار مصروف بنزين"
+        assertNull(AiCommandRouter.parseDebtCreate(fuel, "LYD"))
+        val expense = AiCommandRouter.parseTransaction(fuel, "LYD")
+        assertEquals("EXPENSE", expense?.type)
+        assertEquals("fuel", expense?.category)
+        assertEquals(50.0, expense?.amount ?: 0.0, 0.0)
+
+        val rentText = "سجل دفعه 500 دينار اجار البيت"
+        assertNull(AiCommandRouter.parseDebtCreate(rentText, "LYD"))
+        val rent = AiCommandRouter.parseRentCommand(rentText, "LYD", "2026-11")
+        assertEquals(true, rent?.isPayment)
+        assertEquals(true, rent?.isPartialPayment)
+        assertEquals(500.0, rent?.amount ?: 0.0, 0.0)
+
+        val workText = "سجل دفعه من العمل 500 دينار"
+        assertNull(AiCommandRouter.parseDebtCreate(workText, "LYD"))
+        val work = AiCommandRouter.parseWorkRecord(workText, "LYD")
+        assertEquals("SALARY_PAYMENT", work?.type)
+        assertEquals(500.0, work?.amount ?: 0.0, 0.0)
+    }
+
+    @Test
+    fun onlyExplicitDebtWordsCreateDebtAndCurrencyWordDoesNot() {
+        assertNull(AiCommandRouter.parseDebtCreate("سجل 50 دينار مصروف بنزين", "LYD"))
+        assertNull(AiCommandRouter.parseDebtCreate("سجل دفعه من العمل 500 دينار", "LYD"))
+
+        val beforeAmount = AiCommandRouter.parseDebtCreate("سجل دين علي له 50 دينار احمد", "LYD")
+        assertEquals("احمد", beforeAmount?.personName)
+        assertEquals(50.0, beforeAmount?.amount ?: 0.0, 0.0)
+
+        val afterAmount = AiCommandRouter.parseDebtCreate("سجل 20 دينار دين عليه له احمد", "LYD")
+        assertEquals("احمد", afterAmount?.personName)
+        assertEquals(20.0, afterAmount?.amount ?: 0.0, 0.0)
+    }
+
+    @Test
+    fun recognizesColloquialRentSpellingWithoutHamza() {
+        val command = AiCommandRouter.parseRentCommand("سجل دفعه 500 دينار اجار البيت", "LYD", "2026-11")
+        assertEquals(true, command?.isPayment)
+        assertEquals("rent", AiCommandRouter.parseTransaction("سجل 500 دينار مصروف اجار البيت", "LYD")?.category)
+    }
+
 }

@@ -52,8 +52,12 @@ internal object AiCommandRouter {
     fun parseDebtCreate(query: String, defaultCurrency: String): ParsedDebtCreateCommand? {
         val normalized = normalizeDigits(query).trim()
         val text = normalized.lowercase(Locale.ROOT)
-        val explicitDebtCreation = listOf("سجل دين", "سجّل دين", "اضف دين", "أضف دين", "ضيف دين", "add debt", "record debt").any(text::contains) ||
-            (listOf("سجل", "سجّل", "اضف", "أضف", "ضيف").any(text::contains) && text.contains("دين"))
+        // Match the debt noun as a complete Arabic word. In particular, "دينار"
+        // is a currency and must never trigger debt creation.
+        val hasDebtNoun = Regex("""(?<![\\p{L}])(?:دين|الدين)(?![\\p{L}])""").containsMatchIn(text) ||
+            Regex("""\\bdebt\\b""", RegexOption.IGNORE_CASE).containsMatchIn(text)
+        val hasCreateVerb = listOf("سجل", "سجّل", "اضف", "أضف", "ضيف", "add", "record").any(text::contains)
+        val explicitDebtCreation = hasCreateVerb && hasDebtNoun
         if (!explicitDebtCreation) return null
         val amountMatch = Regex("""([0-9]+(?:[.,][0-9]{1,2})?)""").find(text) ?: return null
         val amount = amountMatch.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
@@ -83,7 +87,7 @@ internal object AiCommandRouter {
     fun parseRentCommand(query: String, defaultCurrency: String, currentMonth: String): ParsedRentCommand? {
         val normalized = normalizeDigits(query).trim()
         val text = normalized.lowercase(Locale.ROOT)
-        if (!listOf("إيجار", "ايجار", "rent").any(text::contains)) return null
+        if (!listOf("إيجار", "ايجار", "اجار", "أجار", "rent").any(text::contains)) return null
         val amountMatch = Regex("""([0-9]+(?:[.,][0-9]{1,2})?)""").find(text) ?: return null
         val amount = amountMatch.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
         if (!amount.isFinite() || amount <= 0.0) return null
@@ -244,7 +248,7 @@ internal object AiCommandRouter {
             listOf("طعام", "أكل", "اكل", "مطعم", "food", "restaurant").any(text::contains) -> "food"
             listOf("خضار", "فواكه", "مواد غذائية", "غذائية", "بقالة", "سوبرماركت", "مقاضي", "groceries", "grocery", "vegetables", "produce").any(text::contains) -> "groceries"
             listOf("رصيد", "شحن هاتف", "تعبئة هاتف", "mobile credit", "top up", "phone credit").any(text::contains) -> "mobile_credit"
-            listOf("إيجار", "ايجار", "rent").any(text::contains) -> "rent"
+            listOf("إيجار", "ايجار", "اجار", "أجار", "rent").any(text::contains) -> "rent"
             listOf("مواصلات", "تاكسي", "نقل", "transport", "taxi").any(text::contains) -> "transport"
             listOf("كهرباء", "ماء", "إنترنت", "انترنت", "utilities", "internet").any(text::contains) -> "utilities"
             listOf("دواء", "طبيب", "مستشفى", "صحة", "medicine", "doctor", "health").any(text::contains) -> "health"
