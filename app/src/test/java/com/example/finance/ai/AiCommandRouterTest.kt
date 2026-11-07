@@ -160,6 +160,21 @@ class AiCommandRouterTest {
     }
 
     @Test
+    fun parsesRentMonthNumberBeforeAmountUsingCurrentYear() {
+        val command = AiCommandRouter.parseRentCommand("سجل إيجار المنزل شهر 10 580", "LYD", "2026-11")
+        assertEquals(580.0, command?.amount ?: 0.0, 0.0)
+        assertEquals("2026-10", command?.month)
+        assertEquals(false, command?.isPayment)
+    }
+
+    @Test
+    fun parsesRentMonthNumberWithArabicIndicDigitsBeforeAmount() {
+        val command = AiCommandRouter.parseRentCommand("سجل إيجار المنزل شهر ١٠ ٥٨٠", "LYD", "2026-11")
+        assertEquals(580.0, command?.amount ?: 0.0, 0.0)
+        assertEquals("2026-10", command?.month)
+    }
+
+    @Test
     fun recognizesPartialRentPaymentAsPartialNotFullBillSettlement() {
         val partial = AiCommandRouter.parseRentCommand("ال 200 هذه كسور ايجار بيت سجل 200 دينار دفعه", "LYD", "2026-11")
         assertEquals(true, partial?.isPayment)
