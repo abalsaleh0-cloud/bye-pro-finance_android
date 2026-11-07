@@ -35,6 +35,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     var transferDialog by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
     var deleteRecordId by remember { mutableStateOf<Long?>(null) }
+    var deleteSource by remember { mutableStateOf<WorkSourceEntity?>(null) }
     var reportPeriod by remember { mutableStateOf("month") }
     var searchQuery by remember { mutableStateOf("") }
     val scopedSources = sources.filter { it.type == selectedScope }
@@ -123,6 +124,7 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                             TextButton(onClick = { viewModel.updateWorkSource(source.copy(isActive = !source.isActive)) { if (!it) error = true } }) {
                                 Text(if (source.isActive) (if (ar) "أرشفة" else "Archive") else (if (ar) "استعادة" else "Restore"))
                             }
+                            TextButton(onClick = { deleteSource = source }) { Text(if (ar) "حذف" else "Delete", color = MaterialTheme.colorScheme.error) }
                         }
                     }
                 }
@@ -141,6 +143,28 @@ fun WorkScreen(viewModel: FinanceViewModel) {
             }
             item { Spacer(Modifier.height(AppListBottomPadding)) }
         }
+    }
+    if (deleteSource != null) {
+        val target = deleteSource!!
+        AlertDialog(
+            onDismissRequest = { deleteSource = null },
+            title = { Text(if (ar) "حذف جهة العمل؟" else "Delete work source?") },
+            text = {
+                Text(
+                    if (ar) "سيتم حذف «${target.name}» فقط إذا لم تكن مرتبطة بأي حركة سابقة. إذا وُجدت حركات مرتبطة، سيُرفض الحذف وتبقى كل الحركات وبياناتها كما هي؛ يمكنك أرشفة الجهة بدلاً من ذلك."
+                    else "“${target.name}” can be deleted only when it has no linked records. If historical records exist, deletion is blocked and all records remain unchanged; archive the source instead."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteWorkSourceIfUnused(target.id) { deleted ->
+                        if (!deleted) error = true
+                        deleteSource = null
+                    }
+                }) { Text(if (ar) "تأكيد الحذف" else "Delete") }
+            },
+            dismissButton = { TextButton(onClick = { deleteSource = null }) { Text(if (ar) "إلغاء" else "Cancel") } }
+        )
     }
     if (deleteRecordId != null) {
         AlertDialog(
@@ -216,6 +240,8 @@ fun WorkScreen(viewModel: FinanceViewModel) {
         }
         existing?.type?.takeIf { it == WorkRecordType.WORK_TRANSFER_IN || it == WorkRecordType.WORK_TRANSFER_OUT }?.let { add(it) }
     }
+    var showSourcePicker by remember(existing?.id, scope) { mutableStateOf(false) }
+    var showTypePicker by remember(existing?.id, scope) { mutableStateOf(false) }
     val cash = WorkLedgerCalculator.isCashMovement(type)
     val selectedCurrency = (source?.currency ?: currencyCode).trim().uppercase()
     val matching = accounts.filter { it.currency.equals(selectedCurrency, true) }
@@ -227,25 +253,12 @@ fun WorkScreen(viewModel: FinanceViewModel) {
     AlertDialog(onDismissRequest = dismiss, title = { Text(if (existing == null) (if (ar) "تسجيل حركة عمل" else "Add work record") else (if (ar) "تعديل حركة العمل" else "Edit work record")) }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(if (ar) "المصدر (اختياري)" else "Source (optional)")
-            TextButton(onClick = { sourceId = null; type = WorkRecordType.WORK_INCOME; related = null; accountId = null; currencyCode = currency }) {
-                Text((if (sourceId == null) "✓ " else "") + if (ar) "تسجيل عام بدون مصدر" else "General record without source")
-            }
-            sources.filter { it.isActive || it.id == existing?.sourceId }.forEach { item ->
-                TextButton(onClick = {
-                    sourceId = item.id
-                    currencyCode = item.currency
-                    type = if (item.type == WorkSourceType.EMPLOYMENT) WorkRecordType.SALARY_ADVANCE else WorkRecordType.FREELANCE_INCOME
-                    related = null
-                    accountId = null
-                }) {
-                    Text((if (sourceId == item.id) "✓ " else "") + item.name)
-                }
+            OutlinedButton(onClick = { showSourcePicker = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(source?.name ?: if (ar) "تسجيل عام بدون مصدر" else "General record without source")
             }
             Text(if (ar) "نوع الحركة" else "Record type")
-            options.forEach { option ->
-                TextButton(onClick = { type = option; related = null }) {
-                    Text((if (type == option) "✓ " else "") + workRecordLabel(option, ar))
-                }
+            OutlinedButton(onClick = { showTypePicker = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(workRecordLabel(type, ar))
             }
             if (source == null) {
                 OutlinedTextField(currencyCode, { currencyCode = it.uppercase().take(8) }, label = { Text(if (ar) "رمز العملة" else "Currency code") }, singleLine = true)
@@ -309,6 +322,88 @@ fun WorkScreen(viewModel: FinanceViewModel) {
                 period.trim().matches(Regex("\\d{4}-\\d{2}")) && (!needsSource || source != null) && (type != WorkRecordType.FREELANCE_PAYMENT || related != null)
         ) { Text(if (ar) "حفظ" else "Save") }
     }, dismissButton = { TextButton(onClick = dismiss) { Text(if (ar) "إلغاء" else "Cancel") } })
+    if (showSourcePicker) {
+        val choices = listOf("" to (if (ar) "تسجيل عام بدون مصدر" else "General record without source")) +
+            sources.filter { it.isActive || it.id == existing?.sourceId }.map { it.id.toString() to it.name }
+        SearchableWorkChoiceDialog(
+            title = if (ar) "اختر جهة العمل" else "Choose work source",
+            options = choices,
+            selected = sourceId?.toString().orEmpty(),
+            ar = ar,
+            onDismiss = { showSourcePicker = false }
+        ) { selected ->
+            sourceId = selected.toLongOrNull()
+            val picked = sources.firstOrNull { it.id == sourceId }
+            if (picked == null) {
+                type = WorkRecordType.WORK_INCOME
+                currencyCode = currency
+            } else {
+                currencyCode = picked.currency
+                type = if (picked.type == WorkSourceType.EMPLOYMENT) WorkRecordType.SALARY_ADVANCE else WorkRecordType.FREELANCE_INCOME
+            }
+            related = null
+            accountId = null
+            showSourcePicker = false
+        }
+    }
+    if (showTypePicker) {
+        SearchableWorkChoiceDialog(
+            title = if (ar) "اختر نوع الحركة" else "Choose record type",
+            options = options.map { it.name to workRecordLabel(it, ar) },
+            selected = type.name,
+            ar = ar,
+            onDismiss = { showTypePicker = false }
+        ) { selected ->
+            options.firstOrNull { it.name == selected }?.let { type = it; related = null }
+            showTypePicker = false
+        }
+    }
+}
+@Composable private fun SearchableWorkChoiceDialog(
+    title: String,
+    options: List<Pair<String, String>>,
+    selected: String,
+    ar: Boolean,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit
+) {
+    var query by remember(title) { mutableStateOf("") }
+    val filtered = options.filter { it.second.contains(query.trim(), ignoreCase = true) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text(if (ar) "بحث" else "Search") }
+                )
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    items(filtered, key = { it.first }) { option ->
+                        TextButton(
+                            onClick = { onSelect(option.first) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                (if (option.first == selected) "✓ " else "") + option.second,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                    if (filtered.isEmpty()) item {
+                        Text(if (ar) "لا توجد نتائج" else "No results", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(if (ar) "إغلاق" else "Close") } }
+    )
 }
 @Composable private fun WorkTransferDialog(ar: Boolean, currency: String, scope: WorkSourceType, accounts: List<AccountEntity>, dismiss: () -> Unit, save: (WorkRecordType, Double, String, Long?) -> Unit) {
     var type by remember { mutableStateOf(WorkRecordType.WORK_TRANSFER_IN) }

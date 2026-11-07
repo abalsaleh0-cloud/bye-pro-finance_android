@@ -213,6 +213,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun updateWorkSource(source: WorkSourceEntity, onComplete: (Boolean) -> Unit = {}) {
         viewModelScope.launch { onComplete(runCatching { repository.updateWorkSource(source) }.isSuccess) }
     }
+    fun deleteWorkSourceIfUnused(sourceId: Long, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch { onComplete(runCatching { repository.deleteWorkSourceIfUnused(sourceId) }.getOrDefault(false)) }
+    }
     fun addWorkRecord(record: WorkRecordEntity, accountId: Long? = null, onComplete: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             val result = runCatching {

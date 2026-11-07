@@ -232,6 +232,10 @@ interface FinanceDao {
     suspend fun getWorkSourceById(id: Long): WorkSourceEntity?
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWorkSource(source: WorkSourceEntity): Long
+    @Query("SELECT COUNT(*) FROM work_records WHERE sourceId = :sourceId")
+    suspend fun countWorkRecordsForSource(sourceId: Long): Int
+    @Delete
+    suspend fun deleteWorkSource(source: WorkSourceEntity)
     @Query("SELECT * FROM work_records ORDER BY date DESC, id DESC")
     fun getWorkRecords(): Flow<List<WorkRecordEntity>>
     @Query("SELECT * FROM work_records ORDER BY date DESC, id DESC")

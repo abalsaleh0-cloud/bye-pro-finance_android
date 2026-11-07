@@ -82,6 +82,21 @@ class FinanceRepository(
         logAudit("UPDATE", "WorkSource", "Updated source " + source.name)
     }
 
+    suspend fun deleteWorkSourceIfUnused(sourceId: Long): Boolean = withContext(Dispatchers.IO) {
+        val existing = dao.getWorkSourceById(sourceId) ?: return@withContext false
+        val deleted = if (db != null) {
+            db.withTransaction {
+                if (dao.countWorkRecordsForSource(sourceId) > 0) false
+                else { dao.deleteWorkSource(existing); true }
+            }
+        } else {
+            if (dao.countWorkRecordsForSource(sourceId) > 0) false
+            else { dao.deleteWorkSource(existing); true }
+        }
+        if (deleted) logAudit("DELETE", "WorkSource", "Deleted unused source " + existing.name)
+        deleted
+    }
+
     suspend fun addWorkRecord(record: WorkRecordEntity, transaction: TransactionEntity? = null): Long = withContext(Dispatchers.IO) {
         require(record.amount.isFinite() && record.amount > 0.0)
         require(record.currency.isNotBlank() && record.period.matches(Regex("\\d{4}-\\d{2}")))
