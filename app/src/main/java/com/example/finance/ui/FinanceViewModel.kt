@@ -1083,32 +1083,63 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             }
         }
 
+        val workReadIntent = listOf("ملخص العمل", "ملخص قسم العمل", "مستحقاتي من العمل", "مستحقات العمل", "رصيد العمل", "جهات العمل", "حركات العمل", "سجل العمل", "work summary", "work balance", "work ledger").any(query.lowercase()::contains)
+        if (workReadIntent) {
+            val sources = workSources.value
+            val records = workRecords.value
+            val activeSources = sources.filter { it.isActive }
+            val currency = primaryCurrency.value
+            val received = records.filter { it.currency.equals(currency, true) && it.type in setOf(WorkRecordType.WORK_INCOME, WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT) }.sumOf { it.amount }
+            val expenses = records.filter { it.currency.equals(currency, true) && it.type in setOf(WorkRecordType.WORK_EXPENSE, WorkRecordType.FREELANCE_EXPENSE) }.sumOf { it.amount }
+            val due = records.filter { it.currency.equals(currency, true) && it.type in setOf(WorkRecordType.SALARY_ALLOWANCE, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.FREELANCE_INCOME) }.sumOf { row ->
+                if (row.type == WorkRecordType.FREELANCE_INCOME) com.example.finance.engine.WorkLedgerCalculator.freelanceOutstanding(row, records).toDouble() else row.amount
+            }
+            val sourceLines = activeSources.take(12).joinToString("\n") { "• ${it.name} — ${if (it.type == WorkSourceType.EMPLOYMENT) "جهة عمل" else "عمل حر"}" }
+            val recentLines = records.sortedByDescending { it.date }.take(5).joinToString("\n") { row ->
+                val sourceName = sources.firstOrNull { it.id == row.sourceId }?.name ?: "عمل عام"
+                "• $sourceName — ${row.type.name}: ${TextContent.money(row.amount, row.currency, _appLanguage.value)}"
+            }
+            return "ملخص قسم العمل بعملة $currency:\nالجهات النشطة: ${activeSources.size}\nالمبالغ المستلمة: ${TextContent.money(received, currency, _appLanguage.value)}\nالمصروفات: ${TextContent.money(expenses, currency, _appLanguage.value)}\nالمستحقات المتبقية: ${TextContent.money(due, currency, _appLanguage.value)}\n\nالجهات:\n${sourceLines.ifBlank { "لا توجد جهات عمل نشطة." }}\n\nآخر الحركات:\n${recentLines.ifBlank { "لا توجد حركات مسجلة." }}"
+        }
+
         val workCommand = AiCommandRouter.parseWorkRecord(query, primaryCurrency.value)
         if (workCommand != null) {
-            val activeSources = workSources.value.filter { it.isActive && it.type == WorkSourceType.EMPLOYMENT }
+            val scope = runCatching { WorkSourceType.valueOf(workCommand.scope) }.getOrDefault(WorkSourceType.EMPLOYMENT)
+            val activeSources = workSources.value.filter { it.isActive && it.type == scope }
             val source = when {
                 workCommand.sourceName != null -> activeSources.firstOrNull { it.name.contains(workCommand.sourceName, true) || workCommand.sourceName.contains(it.name, true) }
                 activeSources.size == 1 -> activeSources.single()
                 else -> null
             }
-            if (source == null) {
+            val sourceRequired = workCommand.type in setOf("SALARY_ADVANCE", "SALARY_DEDUCTION", "SALARY_ALLOWANCE", "SALARY_BONUS", "SALARY_OVERTIME", "SALARY_PAYMENT", "FREELANCE_INCOME", "FREELANCE_PAYMENT")
+            if (sourceRequired && source == null) {
                 return if (activeSources.isEmpty()) {
-                    "حتى أسجل الراتب أو السلفة بدقة، أضف جهة العمل واسمها في قسم العمل أولاً، ثم أعد الطلب."
+                    if (scope == WorkSourceType.EMPLOYMENT) "حتى أسجل الحركة، أضف جهة العمل في قسم العمل أولاً." else "حتى أسجل مستحق أو دفعة عمل حر، أضف العميل أو نشاط العمل الحر في قسم العمل أولاً."
                 } else {
-                    "لديك أكثر من جهة عمل. اذكر اسم جهة العمل مع الراتب أو السلفة حتى أربط الحركة بالمصدر الصحيح."
+                    "لديك أكثر من مصدر عمل من هذا النوع. اذكر اسم جهة العمل أو العميل في الطلب حتى أربط الحركة بالمصدر الصحيح."
                 }
             }
-            if (!source.currency.equals(workCommand.currency, true)) {
-                return "عملة جهة العمل «${source.name}» هي ${source.currency}، بينما العملة المذكورة هي ${workCommand.currency}. لم أسجل العملية."
+            if (source != null && !source.currency.equals(workCommand.currency, true)) {
+                return "عملة المصدر «${source.name}» هي ${source.currency}، بينما العملة المذكورة هي ${workCommand.currency}. لم أسجل العملية."
             }
+            val relatedReceivable = if (workCommand.type == "FREELANCE_PAYMENT" && source != null) {
+                val rows = workRecords.value.filter { it.type == WorkRecordType.FREELANCE_INCOME && it.sourceId == source.id &&
+                    com.example.finance.engine.WorkLedgerCalculator.freelanceOutstanding(it, workRecords.value).toDouble() > 0.000001 }
+                when {
+                    rows.size == 1 -> rows.single()
+                    rows.isEmpty() -> return "لا يوجد مستحق مفتوح لهذا العميل لربط الدفعة به. سجّل المستحق أولاً."
+                    else -> return "لدى هذا العميل أكثر من مستحق مفتوح. افتح قسم العمل وحدد المستحق المقصود قبل تسجيل الدفعة."
+                }
+            } else null
             val staged = aiAppTools.proposeCreateWorkRecord(
-                sourceId = source.id,
+                sourceId = source?.id ?: 0L,
                 type = workCommand.type,
                 amount = workCommand.amount,
-                currency = source.currency,
+                currency = source?.currency ?: workCommand.currency,
                 period = java.time.YearMonth.now().toString(),
                 notes = workCommand.description,
-                scope = "EMPLOYMENT"
+                relatedRecordId = relatedReceivable?.id ?: 0L,
+                scope = scope.name
             )
             if (staged["success"] != true) {
                 return "لم أتمكن من تجهيز حركة العمل: ${staged["error"] ?: "بيانات غير صالحة"}. لم يتم حفظ أي شيء."
@@ -1119,11 +1150,16 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 "SALARY_ALLOWANCE" -> "بدل وظيفي"
                 "SALARY_BONUS" -> "مكافأة"
                 "SALARY_OVERTIME" -> "عمل إضافي"
-                else -> "خصم راتب"
+                "SALARY_DEDUCTION" -> "خصم راتب"
+                "FREELANCE_INCOME" -> "مستحق عمل حر"
+                "FREELANCE_PAYMENT" -> "دفعة عميل"
+                "FREELANCE_EXPENSE" -> "مصروف عمل حر"
+                "WORK_EXPENSE" -> "مصروف عمل"
+                else -> "دخل عمل"
             }
-            return "جهزت تسجيل $label بقيمة ${TextContent.money(workCommand.amount, source.currency, _appLanguage.value)} لدى «${source.name}»، دون ربطه برصيد حساب شخصي. راجع المعاينة وأكد التنفيذ."
+            val sourceLabel = source?.name?.let { " لدى «$it»" } ?: ""
+            return "جهزت معاينة $label بقيمة ${TextContent.money(workCommand.amount, source?.currency ?: workCommand.currency, _appLanguage.value)}$sourceLabel. لم يتم الحفظ بعد؛ راجع المعاينة وأكد التسجيل."
         }
-
 
         val debtCreate = AiCommandRouter.parseDebtCreate(query, primaryCurrency.value)
         if (debtCreate != null) {

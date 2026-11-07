@@ -21,7 +21,8 @@ internal data class ParsedWorkCommand(
     val amount: Double,
     val currency: String,
     val sourceName: String?,
-    val description: String
+    val description: String,
+    val scope: String = "EMPLOYMENT"
 )
 
 internal data class ParsedDebtPaymentCommand(
@@ -167,20 +168,33 @@ internal object AiCommandRouter {
         val amountMatch = Regex("""([0-9]+(?:[.,][0-9]{1,2})?)""").find(text) ?: return null
         val amount = amountMatch.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
         if (!amount.isFinite() || amount <= 0.0) return null
-        val workContext = listOf("العمل", "الشغل", "work").any(text::contains)
-        val workPaymentIntent = workContext && listOf("دفعة", "دفعه", "راتب", "استلمت", "قبضت", "salary", "paid").any(text::contains)
+
+        val freelanceContext = listOf("عمل حر", "العمل الحر", "فريلانسر", "عميل", "مشروع", "freelance", "client", "project").any(text::contains)
+        val workContext = freelanceContext || listOf("العمل", "الشغل", "وظيفة", "راتب", "work", "salary", "employer").any(text::contains)
+        if (!workContext) return null
+
         val type = when {
             listOf("سلفة", "سلفه", "سلفة راتب", "advance", "salary advance").any(text::contains) -> "SALARY_ADVANCE"
-            workPaymentIntent || listOf("دفعة راتب", "دفعة من الراتب", "دفعة من العمل", "دفعه من العمل", "دفعة العمل", "دفعه العمل", "العمل دفعة", "العمل دفعه", "دفعة من الشغل", "دخل من العمل", "دخل العمل", "استلمت من العمل", "استلمت الراتب", "استلمت راتبي", "قبضت الراتب", "اخذت الراتب", "أخذت الراتب", "salary payment", "received salary", "got paid").any(text::contains) -> "SALARY_PAYMENT"
+            listOf("خصم راتب", "خصم من الراتب", "استقطاع", "salary deduction").any(text::contains) -> "SALARY_DEDUCTION"
             listOf("بدل وظيفي", "بدل", "allowance").any(text::contains) -> "SALARY_ALLOWANCE"
             listOf("مكافأة", "مكافاه", "bonus").any(text::contains) -> "SALARY_BONUS"
             listOf("عمل إضافي", "عمل اضافي", "أوفر تايم", "overtime").any(text::contains) -> "SALARY_OVERTIME"
-            listOf("خصم راتب", "خصم من الراتب", "salary deduction").any(text::contains) -> "SALARY_DEDUCTION"
+            freelanceContext && listOf("مصروف", "تكلفة", "مشتريات", "expense", "cost").any(text::contains) -> "FREELANCE_EXPENSE"
+            freelanceContext && listOf("دفعة", "دفعه", "استلمت", "قبضت", "تحصيل", "payment", "received").any(text::contains) -> "FREELANCE_PAYMENT"
+            freelanceContext && listOf("مستحق", "فاتورة", "أنجزت", "انجزت", "نفذت", "نفذت", "دخل", "إيراد", "ايراد", "earned", "invoice").any(text::contains) -> "FREELANCE_INCOME"
+            !freelanceContext && listOf("مصروف", "تكلفة", "expense").any(text::contains) -> "WORK_EXPENSE"
+            freelanceContext && listOf("دخل", "إيراد", "ايراد", "earned").any(text::contains) -> "FREELANCE_INCOME"
+            listOf("دفعة راتب", "دفعة من الراتب", "دفعة من العمل", "دفعه من العمل", "دفعة العمل", "دفعه العمل", "العمل دفعة", "العمل دفعه", "دفعة من الشغل", "دخل من العمل", "دخل العمل", "استلمت من العمل", "استلمت الراتب", "استلمت راتبي", "قبضت الراتب", "اخذت الراتب", "أخذت الراتب", "salary payment", "received salary", "got paid").any(text::contains) -> "SALARY_PAYMENT"
+            listOf("دخل عمل", "إيراد عمل", "ايراد عمل", "work income").any(text::contains) -> "WORK_INCOME"
             else -> return null
         }
-        val sourceMatch = Regex("""(?:من|عند|لدى|في)\s+([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,3})""").find(normalized)
+
+        val scope = if (type.startsWith("FREELANCE_") || freelanceContext) "FREELANCE" else "EMPLOYMENT"
+        val sourceMatch = Regex("""(?:من|عند|لدى|في|لدى العميل|للعميل)\s+([\p{L}][\p{L}0-9_-]*(?:\s+[\p{L}][\p{L}0-9_-]*){0,3})""").find(normalized)
         val parsedSourceName = sourceMatch?.groupValues?.get(1)?.trim()
-        val sourceName = parsedSourceName?.takeUnless { it in setOf("العمل", "عمل", "الوظيفة", "وظيفة") }
+        val sourceName = parsedSourceName?.takeUnless {
+            it in setOf("العمل", "عمل", "الوظيفة", "وظيفة", "العمل الحر", "عمل حر", "عميل", "مشروع")
+        }
         val currency = when {
             text.contains("usd") || text.contains("دولار") || text.contains("$") -> "USD"
             text.contains("eur") || text.contains("يورو") || text.contains("€") -> "EUR"
@@ -188,7 +202,7 @@ internal object AiCommandRouter {
             text.contains("lyd") || text.contains("دينار") || text.contains("د.ل") -> "LYD"
             else -> defaultCurrency.trim().uppercase(Locale.ROOT).takeIf { it.matches(Regex("[A-Z]{3}")) } ?: return null
         }
-        return ParsedWorkCommand(type, amount, currency, sourceName, normalized)
+        return ParsedWorkCommand(type, amount, currency, sourceName, normalized, scope)
     }
 
     fun parseSectionNavigation(query: String): String? {

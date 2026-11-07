@@ -243,4 +243,27 @@ class AiCommandRouterTest {
         assertEquals("rent", AiCommandRouter.parseTransaction("سجل 500 دينار مصروف اجار البيت", "LYD")?.category)
     }
 
+    @Test
+    fun parsesFreelanceReceivablePaymentAndExpenseIntoWorkLedger() {
+        val receivable = AiCommandRouter.parseWorkRecord("سجل مستحق 1200 دينار عمل حر لدى أحمد", "LYD")
+        assertEquals("FREELANCE_INCOME", receivable?.type)
+        assertEquals("FREELANCE", receivable?.scope)
+        assertEquals("أحمد", receivable?.sourceName)
+
+        val payment = AiCommandRouter.parseWorkRecord("استلمت دفعة 500 دينار من العميل أحمد عمل حر", "LYD")
+        assertEquals("FREELANCE_PAYMENT", payment?.type)
+        assertEquals("FREELANCE", payment?.scope)
+
+        val expense = AiCommandRouter.parseWorkRecord("سجل مصروف 80 دينار مشروع عمل حر", "LYD")
+        assertEquals("FREELANCE_EXPENSE", expense?.type)
+        assertEquals("FREELANCE", expense?.scope)
+    }
+
+    @Test
+    fun parsesEmploymentWorkExpensesWithoutRoutingThemToPersonalExpenses() {
+        val command = AiCommandRouter.parseWorkRecord("سجل مصروف 75 دينار للعمل", "LYD")
+        assertEquals("WORK_EXPENSE", command?.type)
+        assertEquals("EMPLOYMENT", command?.scope)
+    }
+
 }
