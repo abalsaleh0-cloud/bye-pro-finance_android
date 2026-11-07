@@ -54,8 +54,8 @@ internal object AiCommandRouter {
         val text = normalized.lowercase(Locale.ROOT)
         // Match the debt noun as a complete Arabic word. In particular, "دينار"
         // is a currency and must never trigger debt creation.
-        val hasDebtNoun = Regex("""(?<![\\p{L}])(?:دين|الدين)(?![\\p{L}])""").containsMatchIn(text) ||
-            Regex("""\\bdebt\\b""", RegexOption.IGNORE_CASE).containsMatchIn(text)
+        val hasDebtNoun = Regex("""(?<![\p{L}])(?:دين|الدين)(?![\p{L}])""").containsMatchIn(text) ||
+            Regex("""\bdebt\b""", RegexOption.IGNORE_CASE).containsMatchIn(text)
         val hasCreateVerb = listOf("سجل", "سجّل", "اضف", "أضف", "ضيف", "add", "record").any(text::contains)
         val explicitDebtCreation = hasCreateVerb && hasDebtNoun
         if (!explicitDebtCreation) return null
