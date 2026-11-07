@@ -170,7 +170,7 @@ internal object AiCommandRouter {
         if (!amount.isFinite() || amount <= 0.0) return null
 
         val freelanceContext = listOf("عمل حر", "العمل الحر", "فريلانسر", "عميل", "مشروع", "freelance", "client", "project").any(text::contains)
-        val workContext = freelanceContext || listOf("العمل", "الشغل", "وظيفة", "راتب", "work", "salary", "employer").any(text::contains)
+        val workContext = freelanceContext || listOf("العمل", "للعمل", "الشغل", "وظيفة", "راتب", "سلفة", "سلفه", "الشركة", "عمل", "work", "salary", "employer").any(text::contains)
         if (!workContext) return null
 
         val type = when {
@@ -184,7 +184,7 @@ internal object AiCommandRouter {
             freelanceContext && listOf("مستحق", "فاتورة", "أنجزت", "انجزت", "نفذت", "نفذت", "دخل", "إيراد", "ايراد", "earned", "invoice").any(text::contains) -> "FREELANCE_INCOME"
             !freelanceContext && listOf("مصروف", "تكلفة", "expense").any(text::contains) -> "WORK_EXPENSE"
             freelanceContext && listOf("دخل", "إيراد", "ايراد", "earned").any(text::contains) -> "FREELANCE_INCOME"
-            listOf("دفعة راتب", "دفعة من الراتب", "دفعة من العمل", "دفعه من العمل", "دفعة العمل", "دفعه العمل", "العمل دفعة", "العمل دفعه", "دفعة من الشغل", "دخل من العمل", "دخل العمل", "استلمت من العمل", "استلمت الراتب", "استلمت راتبي", "قبضت الراتب", "اخذت الراتب", "أخذت الراتب", "salary payment", "received salary", "got paid").any(text::contains) -> "SALARY_PAYMENT"
+            (listOf("دفعة راتب", "دفعة من الراتب", "دفعة من العمل", "دفعه من العمل", "دفعة العمل", "دفعه العمل", "العمل دفعة", "العمل دفعه", "دفعة من الشغل", "دخل من العمل", "دخل العمل", "استلمت من العمل", "استلمت الراتب", "استلمت راتبي", "قبضت الراتب", "اخذت الراتب", "أخذت الراتب", "salary payment", "received salary", "got paid").any(text::contains) || (workContext && listOf("دفعة", "دفعه", "استلمت", "قبضت").any(text::contains))) -> "SALARY_PAYMENT"
             listOf("دخل عمل", "إيراد عمل", "ايراد عمل", "work income").any(text::contains) -> "WORK_INCOME"
             else -> return null
         }
