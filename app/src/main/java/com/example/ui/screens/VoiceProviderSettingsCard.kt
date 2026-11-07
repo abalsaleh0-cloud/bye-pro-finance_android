@@ -62,15 +62,34 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
         false
     }
 
-    fun resultMessage(result: ElevenLabsConnectionResult): String = when (result) {
+    fun resultMessage(check: com.example.finance.ai.ElevenLabsConnectionCheck): String {
+        val diagnostic = buildString {
+            check.errorCode?.let { append(" [").append(it).append("]") }
+            check.requestId?.let { append(" (Request ID: ").append(it).append(")") }
+        }
+        return when (check.result) {
         ElevenLabsConnectionResult.CONNECTED ->
             WebI18n.tr("متصل بنجاح — مفتاح ElevenLabs صالح.", "Connected — ElevenLabs API key is valid.", lang)
         ElevenLabsConnectionResult.MISSING_KEY ->
             WebI18n.tr("أدخل مفتاح API واحفظه أولاً.", "Enter and save an API key first.", lang)
         ElevenLabsConnectionResult.INVALID_KEY ->
-            WebI18n.tr("فشل التحقق: مفتاح API غير صالح (401).", "Verification failed: invalid API key (401).", lang)
+            WebI18n.tr("رفضت ElevenLabs المصادقة (401). رمز الخطأ:", "ElevenLabs rejected authentication (401). Error code:", lang) + diagnostic
         ElevenLabsConnectionResult.FORBIDDEN ->
-            WebI18n.tr("المفتاح معروف، لكن الوصول مرفوض (403). تحقق من صلاحياته.", "Key recognized, but access is forbidden (403). Check its permissions.", lang)
+            WebI18n.tr("المفتاح وصل إلى ElevenLabs لكن صلاحية هذا الطلب مرفوضة (403). راجع صلاحيات User: Read أو قيود IP للمفتاح.", "ElevenLabs rejected this endpoint (403). Check User: Read scope and the key's IP allowlist.", lang)
+        ElevenLabsConnectionResult.BAD_REQUEST ->
+            WebI18n.tr("رفضت ElevenLabs صيغة الطلب (400). راجع إعدادات المفتاح ثم أعد المحاولة.", "ElevenLabs rejected the request (400). Review the API key settings and retry.", lang)
+        ElevenLabsConnectionResult.NOT_FOUND ->
+            WebI18n.tr("لم يتم العثور على مسار اختبار الاتصال (404). تحقق من الشبكة أو حدّث التطبيق.", "The connection-test endpoint was not found (404). Check the network or update the app.", lang)
+        ElevenLabsConnectionResult.INVALID_REQUEST ->
+            WebI18n.tr("رفضت ElevenLabs الطلب (422). تحقق من إعدادات المفتاح ثم أعد المحاولة.", "ElevenLabs could not process the request (422). Review the key settings and retry.", lang)
+        ElevenLabsConnectionResult.OTHER_HTTP_RESPONSE ->
+            WebI18n.tr("أعادت ElevenLabs استجابة HTTP غير متوقعة. تحقق من صلاحيات المفتاح وحاول لاحقاً.", "ElevenLabs returned an unexpected HTTP response. Check key permissions and retry.", lang)
+        ElevenLabsConnectionResult.TIMEOUT ->
+            WebI18n.tr("انتهت مهلة الاتصال بـ ElevenLabs. جرّب شبكة إنترنت أخرى.", "The connection to ElevenLabs timed out. Try another network.", lang)
+        ElevenLabsConnectionResult.TLS_ERROR ->
+            WebI18n.tr("تعذّر إنشاء اتصال TLS آمن مع ElevenLabs. تحقق من تاريخ ووقت الهاتف وجرّب شبكة أخرى.", "A secure TLS connection to ElevenLabs failed. Check the phone date/time and try another network.", lang)
+        ElevenLabsConnectionResult.DNS_ERROR ->
+            WebI18n.tr("تعذّر العثور على خادم ElevenLabs عبر DNS. تحقق من الشبكة أو إعداد DNS الخاص.", "DNS could not resolve ElevenLabs. Check the network or private DNS settings.", lang)
         ElevenLabsConnectionResult.RATE_LIMITED ->
             WebI18n.tr("تم تقييد الطلبات مؤقتاً (429). حاول لاحقاً.", "Requests are temporarily rate-limited (429). Try again later.", lang)
         ElevenLabsConnectionResult.SERVER_ERROR ->
@@ -78,7 +97,8 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
         ElevenLabsConnectionResult.NETWORK_ERROR ->
             WebI18n.tr("تعذر الاتصال بالإنترنت أو الوصول إلى ElevenLabs.", "Could not reach ElevenLabs. Check your internet connection.", lang)
         ElevenLabsConnectionResult.REQUEST_FAILED ->
-            WebI18n.tr("تعذر إكمال اختبار الاتصال. حاول مرة أخرى.", "The connection test could not be completed. Try again.", lang)
+            WebI18n.tr("حدث خطأ غير متوقع أثناء اختبار الاتصال. لم يتم عرض المفتاح أو تسجيله. أعد المحاولة، وإذا تكرر الخطأ أرسل نص هذه الرسالة فقط.", "An unexpected error occurred during the connection test. The key was not displayed or logged. Retry; if it persists, share only this message.", lang)
+        }
     }
 
     Card(colors = CardDefaults.cardColors(containerColor = ByeProTheme.colors.cardMain)) {
@@ -130,9 +150,9 @@ fun VoiceProviderSettingsCard(lang: AppLanguage) {
                             status = WebI18n.tr("جارٍ التحقق من مفتاح ElevenLabs…", "Verifying ElevenLabs API key…", lang)
                             scope.launch {
                                 try {
-                                    val result = runCatching { provider.testConnection() }
-                                        .getOrElse { ElevenLabsConnectionResult.REQUEST_FAILED }
-                                    status = resultMessage(result)
+                                    val check = runCatching { provider.testConnection() }
+                                        .getOrElse { com.example.finance.ai.ElevenLabsConnectionCheck(ElevenLabsConnectionResult.REQUEST_FAILED) }
+                                    status = resultMessage(check)
                                 } finally {
                                     isTesting = false
                                 }

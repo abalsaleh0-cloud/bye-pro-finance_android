@@ -26,6 +26,7 @@ import com.example.finance.data.AppDatabase
 import com.example.finance.data.FinanceExportService
 import com.example.finance.data.FinanceRepository
 import com.example.finance.i18n.WebI18n
+import com.example.finance.i18n.TextContent
 import com.example.finance.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -103,6 +104,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val dateFormat: StateFlow<String> = _dateFormat.asStateFlow()
     private val _numberFormat = MutableStateFlow(preferences.getString("number_format", "1,234.56") ?: "1,234.56")
     val numberFormat: StateFlow<String> = _numberFormat.asStateFlow()
+    private val _westernDigits = MutableStateFlow(preferences.getBoolean("western_digits", false))
+    val westernDigits: StateFlow<Boolean> = _westernDigits.asStateFlow()
     private val _emailNotifications = MutableStateFlow(preferences.getBoolean("email_notifications", true))
     val emailNotifications: StateFlow<Boolean> = _emailNotifications.asStateFlow()
     private val _transactionAlerts = MutableStateFlow(preferences.getBoolean("transaction_alerts", true))
@@ -115,6 +118,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun setTimeZone(value: String) { if (value !in setOf("Africa/Tripoli", "Asia/Damascus", "Asia/Amman", "Europe/Istanbul", "Europe/London", "UTC")) return; _timeZone.value = value; preferences.edit().putString("time_zone", value).apply(); scheduleUserSettingsSync() }
     fun setDateFormat(value: String) { if (value !in setOf("YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY")) return; _dateFormat.value = value; preferences.edit().putString("date_format", value).apply(); scheduleUserSettingsSync() }
     fun setNumberFormat(value: String) { if (value !in setOf("1,234.56", "1.234,56", "1 234,56")) return; _numberFormat.value = value; preferences.edit().putString("number_format", value).apply(); scheduleUserSettingsSync() }
+    fun setWesternDigits(value: Boolean) {
+        _westernDigits.value = value
+        TextContent.useWesternDigits = value
+        preferences.edit().putBoolean("western_digits", value).apply()
+    }
     fun setEmailNotifications(value: Boolean) { _emailNotifications.value = value; preferences.edit().putBoolean("email_notifications", value).apply(); scheduleUserSettingsSync() }
     fun setTransactionAlerts(value: Boolean) { _transactionAlerts.value = value; preferences.edit().putBoolean("transaction_alerts", value).apply(); scheduleUserSettingsSync() }
     fun setBillReminders(value: Boolean) { _billReminders.value = value; preferences.edit().putBoolean("bill_reminders", value).apply(); scheduleUserSettingsSync() }
@@ -138,7 +146,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     val localModelProgress: StateFlow<Float> = _localModelProgress.asStateFlow()
     private val _localModelStatus = MutableStateFlow("لم يتم تحميل نموذج محلي بعد.")
     val localModelStatus: StateFlow<String> = _localModelStatus.asStateFlow()
-    init { resetWelcomeMessage(); viewModelScope.launch { restoreUserSettingsFromCloud(); resetWelcomeMessage(); runCatching { repository.accounts.first(); repository.archivedAccounts.first() }; _accountsLoading.value = false } }
+    init { TextContent.useWesternDigits = _westernDigits.value; resetWelcomeMessage(); viewModelScope.launch { restoreUserSettingsFromCloud(); resetWelcomeMessage(); runCatching { repository.accounts.first(); repository.archivedAccounts.first() }; _accountsLoading.value = false } }
     private fun currentUserSettingsPayload(): JSONObject = JSONObject()
         .put("theme", if (_isDarkMode.value) "dark" else "light")
         .put("locale", if (_appLanguage.value == AppLanguage.EN) "en" else "ar")
@@ -204,6 +212,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateWorkSource(source: WorkSourceEntity, onComplete: (Boolean) -> Unit = {}) {
         viewModelScope.launch { onComplete(runCatching { repository.updateWorkSource(source) }.isSuccess) }
+    }
+    fun deleteWorkSourceIfUnused(sourceId: Long, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch { onComplete(runCatching { repository.deleteWorkSourceIfUnused(sourceId) }.getOrDefault(false)) }
     }
     fun addWorkRecord(record: WorkRecordEntity, accountId: Long? = null, onComplete: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
@@ -271,7 +282,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun addAccount(account: AccountEntity) { viewModelScope.launch { _accountActionFeedback.value = AccountActionFeedback("add", runCatching { repository.addAccount(account) }.isSuccess) } }
     fun clearAccountActionFeedback() { _accountActionFeedback.value = null }
     fun updateAccount(account: AccountEntity) { viewModelScope.launch { repository.updateAccount(account) } }
-    fun deleteAccount(account: AccountEntity) { viewModelScope.launch { repository.deleteAccount(account) } }
+    fun deleteAccount(account: AccountEntity) { viewModelScope.launch { _accountActionFeedback.value = AccountActionFeedback("delete", runCatching { repository.deleteAccount(account) }.isSuccess) } }
     fun archiveAccount(accountId: Long, isArchived: Boolean) { viewModelScope.launch { _accountActionFeedback.value = AccountActionFeedback(if (isArchived) "deactivate" else "activate", runCatching { repository.archiveAccount(accountId, isArchived) }.isSuccess) } }
     fun addTransaction(tx: TransactionEntity) { viewModelScope.launch { repository.addTransaction(tx) } }
     fun updateTransaction(tx: TransactionEntity, onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { onComplete(runCatching { repository.updateTransaction(tx) }.onFailure { Log.w("BYE_PRO_FINANCE", "Transaction update rejected", it) }.isSuccess) } }
@@ -284,7 +295,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun addDebt(debt: DebtEntity) { viewModelScope.launch { repository.addDebt(debt) } }
     fun updateDebt(debt: DebtEntity) { viewModelScope.launch { repository.updateDebt(debt) } }
     fun debtPayments(debtId: Long): Flow<List<DebtPaymentEntity>> = repository.debtPayments(debtId)
-    fun payDebt(debtId: Long, accountId: Long, amount: Double, notes: String, paymentDate: Long = System.currentTimeMillis(), onComplete: (Boolean) -> Unit = {}) {
+    fun payDebt(debtId: Long, accountId: Long?, amount: Double, notes: String, paymentDate: Long = System.currentTimeMillis(), onComplete: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             val success = runCatching { repository.recordDebtPayment(debtId, accountId, amount, notes, paymentDate) }.getOrDefault(false)
             onComplete(success)
@@ -293,7 +304,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun deleteDebt(debt: DebtEntity) { viewModelScope.launch { repository.deleteDebt(debt) } }
     fun addBill(bill: BillEntity) { viewModelScope.launch { repository.addBill(bill) } }
     fun updateBill(bill: BillEntity) { viewModelScope.launch { repository.updateBill(bill) } }
-    fun markBillPaid(billId: Long, accountId: Long, onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { onComplete(runCatching { repository.markBillPaid(billId, accountId) }.getOrDefault(false)) } }
+    fun markBillPaid(billId: Long, accountId: Long?, onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { onComplete(runCatching { repository.markBillPaid(billId, accountId) }.getOrDefault(false)) } }
     fun deleteBill(bill: BillEntity) { viewModelScope.launch { repository.deleteBill(bill) } }
     fun addSavingsGoal(goal: SavingsGoalEntity) { viewModelScope.launch { repository.addSavingsGoal(goal) } }
     fun updateSavingsGoal(goal: SavingsGoalEntity) { viewModelScope.launch { repository.updateSavingsGoal(goal) } }
@@ -313,7 +324,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun markNotificationRead(id: Long) { viewModelScope.launch { runCatching { repository.markNotificationRead(id) }.onFailure { Log.e("BYE_PRO_FINANCE", "Mark notification read failed", it) } } }
     fun markAllNotificationsRead() { viewModelScope.launch { runCatching { repository.markAllNotificationsRead() }.onFailure { Log.e("BYE_PRO_FINANCE", "Mark all notifications read failed", it) } } }
     fun deleteNotification(id: Long) { viewModelScope.launch { runCatching { repository.deleteNotification(id) }.onFailure { Log.e("BYE_PRO_FINANCE", "Delete notification failed", it) } } }
+
     fun clearNotifications() { viewModelScope.launch { runCatching { repository.clearNotifications() }.onFailure { Log.e("BYE_PRO_FINANCE", "Clear notifications failed", it) } } }
+    fun resetAllAccountBalances(onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { val r = runCatching { repository.resetAllAccountBalances() }; r.exceptionOrNull()?.let { Log.e("BYE_PRO_FINANCE", "Reset account balances failed", it) }; onComplete(r.isSuccess) } }
+    fun clearAllFinancialData(onComplete: (Boolean) -> Unit = {}) { viewModelScope.launch { val r = runCatching { repository.clearAllFinancialData() }; r.exceptionOrNull()?.let { Log.e("BYE_PRO_FINANCE", "Clear financial data failed", it) }; onComplete(r.isSuccess) } }
     fun clearAiChat() { if (_isAiLoading.value) return; resetWelcomeMessage() }
     fun loadLocalModelFile(file: File) {
         if (_localModelLoading.value) return
@@ -347,6 +361,110 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 _localModelStatus.value = "تعذر تجهيز أو تشغيل النموذج: " + (error.message ?: "خطأ غير معروف")
                 Log.e("BYE_PRO_LOCAL_AI", "Local model import/load failed", error)
             } finally {
+                _localModelLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Runs a real on-device inference smoke test. This deliberately bypasses cloud
+     * fallback so a passing result proves that the selected local model generated output.
+     */
+    fun testLocalModel(forVision: Boolean) {
+        if (_localModelLoading.value) return
+        viewModelScope.launch {
+            _localModelLoading.value = true
+            _localModelProgress.value = 0f
+            val startedAt = System.currentTimeMillis()
+            var sampleImage: File? = null
+            try {
+                val preferenceKey = if (forVision) "vision_model_path" else "active_model_path"
+                val savedPath = aiModelPreferences.getString(preferenceKey, null)
+                    ?: error(if (forVision) "لم يتم اختيار نموذج صور بعد." else "لم يتم اختيار نموذج محادثة بعد.")
+                val modelFile = File(savedPath)
+                require(modelFile.isFile && modelFile.canRead() && modelFile.length() > 0L) {
+                    "ملف النموذج المحدد غير موجود أو غير قابل للقراءة. أعد اختياره من الهاتف."
+                }
+
+                if (forVision) {
+                    require(isGemma3nVisionModel(modelFile)) {
+                        "ملف نموذج الصور المحدد ليس حزمة Gemma 3n LiteRT-LM."
+                    }
+                    _localModelStatus.value = "جارٍ اختبار نموذج الصور بتشغيل تحليل صورة تجريبية محلياً..."
+                    localLlm.unload()
+                    ggufLlm.unload()
+                    visionLlm.unload()
+                    visionLlm.load(modelFile)
+
+                    val bitmap = android.graphics.Bitmap.createBitmap(
+                        160, 160, android.graphics.Bitmap.Config.ARGB_8888
+                    )
+                    try {
+                        val canvas = android.graphics.Canvas(bitmap)
+                        canvas.drawColor(android.graphics.Color.BLUE)
+                        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                            color = android.graphics.Color.RED
+                        }
+                        canvas.drawCircle(80f, 80f, 42f, paint)
+                        sampleImage = File(getApplication<Application>().cacheDir, "bye-pro-vision-smoke-test.jpg")
+                        java.io.FileOutputStream(sampleImage!!).use { output ->
+                            check(bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, output)) {
+                                "تعذر إنشاء صورة الاختبار."
+                            }
+                        }
+                    } finally {
+                        bitmap.recycle()
+                    }
+
+                    val result = visionLlm.sendMessageWithImages(
+                        "صف الصورة التجريبية باختصار، واذكر الألوان والأشكال التي تراها.",
+                        listOf(sampleImage!!)
+                    )
+                    require(result.isNotBlank() && !result.contains("لم ينتج النموذج إجابة نصية.")) {
+                        "تم تحميل نموذج الصور لكنه لم ينتج وصفاً للصورة."
+                    }
+                    val elapsed = System.currentTimeMillis() - startedAt
+                    val sampleOutput = result.trim().replace(Regex("\\s+"), " ").take(220)
+                    _localModelStatus.value =
+                        "اجتاز نموذج الصور الاختبار الفعلي محلياً: ${modelFile.name} • ${elapsed} ms\nعينة من إجابة النموذج: ${sampleOutput}"
+                    _localModelReady.value = false
+                } else {
+                    require(
+                        modelFile.extension.equals("gguf", true) ||
+                            modelFile.extension.equals("litertlm", true)
+                    ) { "صيغة نموذج المحادثة غير مدعومة." }
+                    _localModelStatus.value = "جارٍ اختبار نموذج المحادثة بتوليد إجابة فعلية محلياً..."
+                    loadLocalModelIntoRuntime(modelFile)
+                    val format = aiModelPreferences.getString(
+                        "active_model_format",
+                        if (modelFile.extension.equals("gguf", true)) "GGUF" else "LITERTLM"
+                    )
+                    val result = if (format == "GGUF") {
+                        ggufLlm.sendMessage("اكتب كلمة اختبار فقط.", "")
+                    } else {
+                        localLlm.sendMessage("اكتب كلمة اختبار فقط.", "")
+                    }
+                    require(result.isNotBlank() && !result.contains("لم ينتج النموذج إجابة نصية.")) {
+                        "تم تحميل النموذج لكنه لم ينتج إجابة نصية."
+                    }
+                    val elapsed = System.currentTimeMillis() - startedAt
+                    _localModelReady.value = true
+                    val sampleOutput = result.trim().replace(Regex("\\s+"), " ").take(220)
+                    _localModelStatus.value =
+                        "اجتاز نموذج المحادثة اختبار التوليد الفعلي محلياً: ${modelFile.name} • ${elapsed} ms\nعينة من إجابة النموذج: ${sampleOutput}"
+                }
+            } catch (error: Throwable) {
+                if (!forVision) _localModelReady.value = false
+                _localModelStatus.value =
+                    "فشل اختبار ${if (forVision) "نموذج الصور" else "نموذج المحادثة"}: " +
+                        (error.message ?: "خطأ غير معروف")
+                Log.e("BYE_PRO_LOCAL_AI", "Local model inference test failed (vision=$forVision)", error)
+            } finally {
+                sampleImage?.delete()
+                if (forVision) {
+                    runCatching { visionLlm.unload() }
+                        .onFailure { Log.w("BYE_PRO_LOCAL_VISION", "Vision test cleanup failed.", it) }
+                }
                 _localModelLoading.value = false
             }
         }
@@ -725,7 +843,14 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 _isAiLoading.value = false
                 return@launch
             }
-            val commandResponse = if (attachments.isEmpty()) prepareDeterministicAiCommand(trimmedQuery) else null
+            val commandResponse = if (attachments.isEmpty()) {
+                runCatching { prepareDeterministicAiCommand(trimmedQuery) }
+                    .onFailure { Log.e("BYE_PRO_FINANCE_AI", "Preparing a financial action failed safely.", it) }
+                    .getOrElse {
+                        _isAiLoading.value = false
+                        WebI18n.tr("تعذر تجهيز العملية بأمان. لم يتم حفظ أي بيانات؛ حاول مرة أخرى أو افتح القسم المطلوب مباشرة.", "The operation could not be prepared safely. No data was saved; retry or open the relevant section directly.", _appLanguage.value)
+                    }
+            } else null
             if (commandResponse != null) {
                 _chatMessages.value = _chatMessages.value + ChatMessage("AI", commandResponse)
                 _isAiLoading.value = false
@@ -789,62 +914,40 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 } else ""
                 val activeSavedModel = aiModelPreferences.getString("active_model_path", null)
                     ?.let(::File)?.takeIf { it.isFile && it.canRead() }
-                val visionSavedModel = aiModelPreferences.getString("vision_model_path", null)
-                    ?.let(::File)?.takeIf { it.isFile && it.canRead() && isGemma3nVisionModel(it) }
-                // A registered Gemma 3n vision model is also a capable local text/tool model.
-                // Use it automatically when no usable chat model (GGUF or text LiteRT-LM) exists.
-                // It is loaded only for this request and released immediately to limit RAM pressure.
-                val useVisionAsTextFallback = activeSavedModel == null && visionSavedModel != null
-                val savedModel = activeSavedModel ?: visionSavedModel
+                // The multi-GB Gemma 3n vision model is reserved for image requests.
+                // Never load it as a text-chat fallback: doing so can exhaust device RAM
+                // while the assistant is still showing its thinking indicator.
+                val savedModel = activeSavedModel
                 if (savedModel != null) {
                     try {
-                        if (useVisionAsTextFallback) {
+                        val format = aiModelPreferences.getString(
+                            "active_model_format",
+                            if (savedModel.extension.equals("gguf", ignoreCase = true)) "GGUF" else "LITERTLM"
+                        )
+                        if (!_localModelReady.value) {
                             _localModelLoading.value = true
-                            _localModelStatus.value = "جارٍ تجهيز Gemma 3n تلقائياً للمحادثة وأدوات التطبيق..."
+                            _localModelStatus.value = "جارٍ استعادة النموذج المحلي..."
                             try {
-                                localLlm.unload()
-                                ggufLlm.unload()
-                                _localModelReady.value = false
-                                visionLlm.load(savedModel)
+                                // Keep exactly one inference runtime resident at a time.
+                                visionLlm.unload()
+                                if (format == "GGUF") {
+                                    localLlm.unload()
+                                    ggufLlm.load(savedModel)
+                                } else {
+                                    ggufLlm.unload()
+                                    localLlm.load(savedModel)
+                                }
+                                _localModelReady.value = true
+                                _localModelStatus.value = "النموذج المحلي جاهز."
                             } finally {
                                 _localModelLoading.value = false
                             }
-                            try {
-                                visionLlm.sendMessage(trimmedQuery, financialContext) { chunk ->
-                                    _streamingAiText.value += chunk
-                                }
-                            } finally {
-                                runCatching { visionLlm.unload() }
-                                    .onFailure { Log.w("BYE_PRO_LOCAL_AI", "Gemma 3n fallback cleanup failed.", it) }
-                                _localModelReady.value = false
-                                _localModelStatus.value = "تم إيقاف Gemma 3n بعد الطلب لتحرير الذاكرة."
-                            }
+                        }
+                        if (format == "GGUF") {
+                            ggufLlm.sendMessage(trimmedQuery, financialContext)
                         } else {
-                            val format = aiModelPreferences.getString(
-                                "active_model_format",
-                                if (savedModel.extension.equals("gguf", ignoreCase = true)) "GGUF" else "LITERTLM"
-                            )
-                            if (!_localModelReady.value) {
-                                _localModelLoading.value = true
-                                _localModelStatus.value = "جارٍ استعادة النموذج المحلي..."
-                                try {
-                                    if (format == "GGUF") {
-                                        ggufLlm.load(savedModel)
-                                    } else {
-                                        localLlm.load(savedModel)
-                                    }
-                                    _localModelReady.value = true
-                                    _localModelStatus.value = "النموذج المحلي جاهز."
-                                } finally {
-                                    _localModelLoading.value = false
-                                }
-                            }
-                            if (format == "GGUF") {
-                                ggufLlm.sendMessage(trimmedQuery, financialContext)
-                            } else {
-                                localLlm.sendMessage(trimmedQuery, financialContext) { chunk ->
-                                    _streamingAiText.value += chunk
-                                }
+                            localLlm.sendMessage(trimmedQuery, financialContext) { chunk ->
+                                _streamingAiText.value += chunk
                             }
                         }
                     } catch (localError: Throwable) {
@@ -916,34 +1019,204 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             }
         }
 
-        val command = AiCommandRouter.parseTransaction(query, primaryCurrency.value) ?: return null
         if (pendingAiAction.value != null) {
             return "لديك عملية تنتظر التأكيد أو الإلغاء. أكملها أولاً قبل تجهيز عملية جديدة."
         }
 
-        val matchingAccounts = withContext(Dispatchers.IO) { aiAppTools.listAccounts() }
-            .filter { (it["currency"] as? String).equals(command.currency, ignoreCase = true) }
-        if (matchingAccounts.isEmpty()) {
-            return "لا يوجد لديك حساب نشط بعملة ${command.currency}. هل تريد أن أجهّز لك معاينة إنشاء حساب نقدي بهذه العملة؟ لن يتم إنشاء الحساب أو تسجيل المصروف إلا بعد موافقتك."
+        val currentMonth = java.time.YearMonth.now()
+        val rentCommand = AiCommandRouter.parseRentCommand(
+            query = query,
+            defaultCurrency = primaryCurrency.value,
+            currentMonth = currentMonth.toString()
+        )
+        if (rentCommand != null) {
+            if (rentCommand.isPayment) {
+                val rentBills = bills.value.filter { bill ->
+                    (bill.category.equals("Rent", true) || bill.name.contains("إيجار") || bill.name.contains("rent", true)) &&
+                        bill.currency.equals(rentCommand.currency, true) &&
+                        !bill.isPaid &&
+                        java.time.Instant.ofEpochMilli(bill.dueDate).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString().startsWith(rentCommand.month)
+                }
+                if (rentBills.size > 1) return "وجدت أكثر من قسط إيجار غير مدفوع لهذا الشهر. حدّد القسط المقصود."
+                val rent = rentBills.singleOrNull()
+                val exactFullPayment = rent != null && kotlin.math.abs(rent.amount - rentCommand.amount) < 0.000001
+                if (!rentCommand.isPartialPayment && exactFullPayment) {
+                    val staged = aiAppTools.proposeMarkBillPaid(billId = rent!!.id)
+                    if (staged["success"] != true) return "تعذر تجهيز دفع الإيجار: ${staged["error"] ?: "خطأ غير معروف"}."
+                    return "جهزت تسجيل دفع قسط إيجار المنزل لشهر ${rentCommand.month} بالكامل بمبلغ ${TextContent.money(rentCommand.amount, rentCommand.currency, _appLanguage.value)} دون ربطه برصيد أي حساب. راجع المعاينة وأكد التنفيذ."
+                }
+                if (rent != null && !rentCommand.isPartialPayment && rentCommand.amount > rent.amount) {
+                    return "المبلغ المذكور أكبر من قسط الإيجار المسجل (${TextContent.money(rent.amount, rent.currency, _appLanguage.value)}). حدّد هل تريد دفع القسط وإضافة فرق كمصروف مستقل."
+                }
+                val staged = aiAppTools.proposeCreateTransaction(
+                    accountId = 0L,
+                    type = "EXPENSE",
+                    amount = rentCommand.amount,
+                    category = "rent",
+                    description = rentCommand.description,
+                    currency = rentCommand.currency,
+                    status = "COMPLETED"
+                )
+                if (staged["success"] != true) return "تعذر تجهيز دفعة الإيجار كمصروف: ${staged["error"] ?: "بيانات غير صالحة"}."
+                return "جهزت تسجيل دفعة إيجار جزئية بمبلغ ${TextContent.money(rentCommand.amount, rentCommand.currency, _appLanguage.value)} كمصروف مستقل دون ربطها بحساب. لم أغيّر حالة قسط الإيجار؛ سيبقى مفتوحاً حتى تسجيل تسويته بالكامل. راجع المعاينة وأكد التنفيذ."
+            } else {
+                val dueDate = runCatching {
+                    java.time.YearMonth.parse(rentCommand.month).atDay(1)
+                        .atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                }.getOrNull() ?: return "صيغة شهر الإيجار غير صحيحة."
+                val alreadyExists = bills.value.any { bill ->
+                    (bill.category.equals("Rent", true) || bill.name.contains("إيجار") || bill.name.contains("rent", true)) &&
+                        bill.currency.equals(rentCommand.currency, true) &&
+                        java.time.Instant.ofEpochMilli(bill.dueDate).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString().startsWith(rentCommand.month)
+                }
+                if (alreadyExists) return "قسط إيجار شهر ${rentCommand.month} موجود بالفعل. يمكنك فتح قسم المنزل لمراجعته أو تسجيل دفعه."
+                val staged = aiAppTools.proposeCreateBill(
+                    name = "إيجار المنزل - ${rentCommand.month}",
+                    category = "Rent",
+                    amount = rentCommand.amount,
+                    dueDate = dueDate,
+                    currency = rentCommand.currency,
+                    recurring = false
+                )
+                if (staged["success"] != true) return "تعذر تجهيز قسط الإيجار: ${staged["error"] ?: "بيانات غير صالحة"}."
+                return "جهزت قسط إيجار المنزل لشهر ${rentCommand.month} بقيمة ${TextContent.money(rentCommand.amount, rentCommand.currency, _appLanguage.value)} بحالة غير مدفوع. راجع المعاينة وأكد التسجيل."
+            }
         }
 
+        val workReadIntent = listOf("ملخص العمل", "ملخص قسم العمل", "مستحقاتي من العمل", "مستحقات العمل", "رصيد العمل", "جهات العمل", "حركات العمل", "سجل العمل", "work summary", "work balance", "work ledger").any(query.lowercase()::contains)
+        if (workReadIntent) {
+            val sources = workSources.value
+            val records = workRecords.value
+            val activeSources = sources.filter { it.isActive }
+            val currency = primaryCurrency.value
+            val received = records.filter { it.currency.equals(currency, true) && it.type in setOf(WorkRecordType.WORK_INCOME, WorkRecordType.SALARY_ADVANCE, WorkRecordType.SALARY_PAYMENT, WorkRecordType.FREELANCE_PAYMENT) }.sumOf { it.amount }
+            val expenses = records.filter { it.currency.equals(currency, true) && it.type in setOf(WorkRecordType.WORK_EXPENSE, WorkRecordType.FREELANCE_EXPENSE) }.sumOf { it.amount }
+            val due = records.filter { it.currency.equals(currency, true) && it.type in setOf(WorkRecordType.SALARY_ALLOWANCE, WorkRecordType.SALARY_BONUS, WorkRecordType.SALARY_OVERTIME, WorkRecordType.FREELANCE_INCOME) }.sumOf { row ->
+                if (row.type == WorkRecordType.FREELANCE_INCOME) com.example.finance.engine.WorkLedgerCalculator.freelanceOutstanding(row, records).toDouble() else row.amount
+            }
+            val sourceLines = activeSources.take(12).joinToString("\n") { "• ${it.name} — ${if (it.type == WorkSourceType.EMPLOYMENT) "جهة عمل" else "عمل حر"}" }
+            val recentLines = records.sortedByDescending { it.date }.take(5).joinToString("\n") { row ->
+                val sourceName = sources.firstOrNull { it.id == row.sourceId }?.name ?: "عمل عام"
+                "• $sourceName — ${row.type.name}: ${TextContent.money(row.amount, row.currency, _appLanguage.value)}"
+            }
+            return "ملخص قسم العمل بعملة $currency:\nالجهات النشطة: ${activeSources.size}\nالمبالغ المستلمة: ${TextContent.money(received, currency, _appLanguage.value)}\nالمصروفات: ${TextContent.money(expenses, currency, _appLanguage.value)}\nالمستحقات المتبقية: ${TextContent.money(due, currency, _appLanguage.value)}\n\nالجهات:\n${sourceLines.ifBlank { "لا توجد جهات عمل نشطة." }}\n\nآخر الحركات:\n${recentLines.ifBlank { "لا توجد حركات مسجلة." }}"
+        }
+
+        val workCommand = AiCommandRouter.parseWorkRecord(query, primaryCurrency.value)
+        if (workCommand != null) {
+            val scope = runCatching { WorkSourceType.valueOf(workCommand.scope) }.getOrDefault(WorkSourceType.EMPLOYMENT)
+            val activeSources = workSources.value.filter { it.isActive && it.type == scope }
+            val source = when {
+                workCommand.sourceName != null -> activeSources.firstOrNull { it.name.contains(workCommand.sourceName, true) || workCommand.sourceName.contains(it.name, true) }
+                activeSources.size == 1 -> activeSources.single()
+                else -> null
+            }
+            val sourceRequired = workCommand.type in setOf("SALARY_ADVANCE", "SALARY_DEDUCTION", "SALARY_ALLOWANCE", "SALARY_BONUS", "SALARY_OVERTIME", "SALARY_PAYMENT", "FREELANCE_INCOME", "FREELANCE_PAYMENT")
+            if (sourceRequired && source == null) {
+                return if (activeSources.isEmpty()) {
+                    if (scope == WorkSourceType.EMPLOYMENT) "حتى أسجل الحركة، أضف جهة العمل في قسم العمل أولاً." else "حتى أسجل مستحق أو دفعة عمل حر، أضف العميل أو نشاط العمل الحر في قسم العمل أولاً."
+                } else {
+                    "لديك أكثر من مصدر عمل من هذا النوع. اذكر اسم جهة العمل أو العميل في الطلب حتى أربط الحركة بالمصدر الصحيح."
+                }
+            }
+            if (source != null && !source.currency.equals(workCommand.currency, true)) {
+                return "عملة المصدر «${source.name}» هي ${source.currency}، بينما العملة المذكورة هي ${workCommand.currency}. لم أسجل العملية."
+            }
+            val relatedReceivable = if (workCommand.type == "FREELANCE_PAYMENT" && source != null) {
+                val rows = workRecords.value.filter { it.type == WorkRecordType.FREELANCE_INCOME && it.sourceId == source.id &&
+                    com.example.finance.engine.WorkLedgerCalculator.freelanceOutstanding(it, workRecords.value).toDouble() > 0.000001 }
+                when {
+                    rows.size == 1 -> rows.single()
+                    rows.isEmpty() -> return "لا يوجد مستحق مفتوح لهذا العميل لربط الدفعة به. سجّل المستحق أولاً."
+                    else -> return "لدى هذا العميل أكثر من مستحق مفتوح. افتح قسم العمل وحدد المستحق المقصود قبل تسجيل الدفعة."
+                }
+            } else null
+            val staged = aiAppTools.proposeCreateWorkRecord(
+                sourceId = source?.id ?: 0L,
+                type = workCommand.type,
+                amount = workCommand.amount,
+                currency = source?.currency ?: workCommand.currency,
+                period = java.time.YearMonth.now().toString(),
+                notes = workCommand.description,
+                relatedRecordId = relatedReceivable?.id ?: 0L,
+                scope = scope.name
+            )
+            if (staged["success"] != true) {
+                return "لم أتمكن من تجهيز حركة العمل: ${staged["error"] ?: "بيانات غير صالحة"}. لم يتم حفظ أي شيء."
+            }
+            val label = when (workCommand.type) {
+                "SALARY_ADVANCE" -> "سلفة راتب"
+                "SALARY_PAYMENT" -> "دفعة راتب"
+                "SALARY_ALLOWANCE" -> "بدل وظيفي"
+                "SALARY_BONUS" -> "مكافأة"
+                "SALARY_OVERTIME" -> "عمل إضافي"
+                "SALARY_DEDUCTION" -> "خصم راتب"
+                "FREELANCE_INCOME" -> "مستحق عمل حر"
+                "FREELANCE_PAYMENT" -> "دفعة عميل"
+                "FREELANCE_EXPENSE" -> "مصروف عمل حر"
+                "WORK_EXPENSE" -> "مصروف عمل"
+                else -> "دخل عمل"
+            }
+            val sourceLabel = source?.name?.let { " لدى «$it»" } ?: ""
+            return "جهزت معاينة $label بقيمة ${TextContent.money(workCommand.amount, source?.currency ?: workCommand.currency, _appLanguage.value)}$sourceLabel. لم يتم الحفظ بعد؛ راجع المعاينة وأكد التسجيل."
+        }
+
+        val debtCreate = AiCommandRouter.parseDebtCreate(query, primaryCurrency.value)
+        if (debtCreate != null) {
+            val staged = aiAppTools.proposeCreateDebt(
+                name = debtCreate.personName,
+                principal = debtCreate.amount,
+                remaining = debtCreate.amount,
+                direction = debtCreate.direction,
+                currency = debtCreate.currency
+            )
+            if (staged["success"] != true) {
+                return "لم أتمكن من تجهيز الدين: ${staged["error"] ?: "بيانات غير صالحة"}. لم يتم حفظ أي شيء."
+            }
+            val directionLabel = if (debtCreate.direction == "i_owe") "دين عليك لصالح" else "دين لك على"
+            return "جهزت تسجيل $directionLabel «${debtCreate.personName}» بمبلغ ${TextContent.money(debtCreate.amount, debtCreate.currency, _appLanguage.value)}. لم أربطه بأي حساب أو رصيد. راجع المعاينة وأكد التسجيل."
+        }
+
+        val debtPayment = AiCommandRouter.parseDebtPayment(query)
+        if (debtPayment != null) {
+            val candidates = debts.value.filter { debt ->
+                debt.status != DebtStatus.PAID &&
+                    (debt.name.contains(debtPayment.personName, true) ||
+                        debt.creditor.contains(debtPayment.personName, true))
+            }.filter { debt -> debtPayment.currency == null || debt.currency.equals(debtPayment.currency, true) }
+            if (candidates.size > 1) {
+                return "وجدت أكثر من دين مرتبط بالاسم «${debtPayment.personName}». حدّد الدين المقصود حتى لا أسجل الدفعة على شخص آخر."
+            }
+            val debt = candidates.singleOrNull()
+                ?: return "لم أجد ديناً مفتوحاً باسم «${debtPayment.personName}». افتح قسم الديون وسجّل اسم الشخص أولاً."
+            if (debtPayment.amount > debt.remaining) {
+                return "المبلغ أكبر من المتبقي على الدين (${TextContent.money(debt.remaining, debt.currency, _appLanguage.value)}). لم يتم تسجيل أي عملية."
+            }
+            val staged = aiAppTools.proposeRecordDebtPayment(
+                debtId = debt.id,
+                amount = debtPayment.amount,
+                notes = debtPayment.description,
+                paymentDate = System.currentTimeMillis()
+            )
+            if (staged["success"] != true) {
+                return "لم أتمكن من تجهيز دفعة الدين: ${staged["error"] ?: "بيانات غير صالحة"}. لم يتم حفظ أي شيء."
+            }
+            return "جهزت دفعة بقيمة ${TextContent.money(debtPayment.amount, debt.currency, _appLanguage.value)} للدين المرتبط بـ«${debt.name}»، دون ربطها برصيد أي حساب. راجع المعاينة وأكد التنفيذ."
+        }
+
+        val command = AiCommandRouter.parseTransaction(query, primaryCurrency.value) ?: return null
+        val matchingAccounts = withContext(Dispatchers.IO) { aiAppTools.listAccounts() }
+            .filter { (it["currency"] as? String).equals(command.currency, ignoreCase = true) }
         val mentionedAccounts = matchingAccounts.filter { account ->
             val name = account["name"] as? String ?: return@filter false
             query.contains(name, ignoreCase = true)
         }
-        val selectedAccount = when {
-            mentionedAccounts.size == 1 -> mentionedAccounts.single()
-            mentionedAccounts.size > 1 -> null
-            matchingAccounts.size == 1 -> matchingAccounts.single()
-            else -> null
+        if (mentionedAccounts.size > 1) {
+            val names = mentionedAccounts.mapNotNull { it["name"] as? String }.joinToString("، ")
+            return "ذكرت أكثر من حساب: $names. حدّد الحساب الذي تريد ربط العملية به، أو اتركها دون ربط بحساب."
         }
-        if (selectedAccount == null) {
-            val names = matchingAccounts.mapNotNull { it["name"] as? String }.joinToString("، ")
-            return "وجدت أكثر من حساب بعملة ${command.currency}: $names. اذكر اسم الحساب الذي تريد استخدامه."
-        }
-
-        val accountId = (selectedAccount["id"] as? Number)?.toLong()
-            ?: return "تعذر تحديد معرّف الحساب؛ لم أسجل أي عملية."
+        val selectedAccount = mentionedAccounts.singleOrNull()
+        val accountId = (selectedAccount?.get("id") as? Number)?.toLong() ?: 0L
         val result = aiAppTools.proposeCreateTransaction(
             accountId = accountId,
             type = command.type,
@@ -958,8 +1231,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             return "لم أتمكن من تجهيز العملية: $errorText. لم يتم حفظ أي شيء."
         }
         val operationLabel = if (command.type == "EXPENSE") "المصروف" else "الإيراد"
-        val accountName = selectedAccount["name"]?.toString().orEmpty()
-        return "جهزت معاينة $operationLabel بمبلغ ${command.amount} ${command.currency} في حساب $accountName. راجع نافذة التأكيد واضغط «تأكيد التنفيذ» لحفظها."
+        val accountName = selectedAccount?.get("name")?.toString()
+        return "جهزت معاينة $operationLabel بمبلغ ${command.amount} ${command.currency}" +
+            (if (accountName == null) " دون ربط بحساب شخصي أو تغيير رصيد أي حساب." else " وربطتها بالحساب $accountName بناءً على طلبك.") +
+            " راجع نافذة التأكيد واضغط «تأكيد التنفيذ» لحفظها."
     }
 
     fun confirmPendingAiAction(actionId: String) {

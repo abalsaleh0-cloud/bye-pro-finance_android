@@ -15,6 +15,19 @@ import java.util.Locale
  * mixed-direction values while the app's visual layout remains RTL.
  */
 object TextContent {
+    @Volatile
+    var useWesternDigits: Boolean = false
+
+    private fun applyDigitStyle(value: String): String = if (!useWesternDigits) value else buildString(value.length) {
+        value.forEach { char ->
+            append(when (char) {
+                in '٠'..'٩' -> ('0'.code + char.code - '٠'.code).toChar()
+                in '۰'..'۹' -> ('0'.code + char.code - '۰'.code).toChar()
+                else -> char
+            })
+        }
+    }
+
     private val placeholder = Regex("""\{([A-Za-z][A-Za-z0-9_]*)\}""")
 
     fun text(
@@ -54,20 +67,26 @@ object TextContent {
     fun number(value: Number, language: AppLanguage, maximumFractionDigits: Int = 2): String =
         NumberFormat.getNumberInstance(locale(language)).apply {
             this.maximumFractionDigits = maximumFractionDigits.coerceAtLeast(0)
-        }.format(value)
+        }.format(value).let(::applyDigitStyle)
 
     fun money(value: Number, currencyCode: String, language: AppLanguage): String =
         runCatching {
-            NumberFormat.getCurrencyInstance(locale(language)).apply {
-                currency = java.util.Currency.getInstance(currencyCode)
-                maximumFractionDigits = (currency.defaultFractionDigits ?: 2).coerceAtLeast(0)
+            val currency = java.util.Currency.getInstance(currencyCode.uppercase(Locale.ROOT))
+            val digits = currency.defaultFractionDigits.coerceAtLeast(0)
+            val amount = NumberFormat.getNumberInstance(Locale.ENGLISH).apply {
+                minimumFractionDigits = digits
+                maximumFractionDigits = digits
             }.format(value)
-        }.getOrElse { "${number(value, language)} ${currencyCode.uppercase(Locale.ROOT)}" }
+            val label = if (currency.currencyCode == "LYD" && language == AppLanguage.AR) "د.ل" else currency.currencyCode
+            "${isolate(amount)} ${isolate(label)}"
+        }.getOrElse {
+            "${isolate(NumberFormat.getNumberInstance(Locale.ENGLISH).format(value))} ${isolate(currencyCode.uppercase(Locale.ROOT))}"
+        }
 
     fun percent(value: Number, language: AppLanguage, fractionDigits: Int = 1): String =
         NumberFormat.getPercentInstance(locale(language)).apply {
             maximumFractionDigits = fractionDigits.coerceAtLeast(0)
-        }.format(value)
+        }.format(value).let(::applyDigitStyle)
 
     fun date(value: Date, language: AppLanguage): String =
         SimpleDateFormat("d MMM yyyy", locale(language)).format(value)

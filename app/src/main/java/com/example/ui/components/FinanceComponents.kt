@@ -1,7 +1,23 @@
 package com.example.ui.components
 import androidx.compose.material3.TextButton
-
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
+
+
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
@@ -213,3 +229,41 @@ fun FinanceFloatingActionButton(
         content = content
     )
 }
+
+
+@Composable
+fun AppFilterChip(selected: Boolean, onClick: () -> Unit, label: @Composable () -> Unit, modifier: Modifier = Modifier) {
+    FilterChip(
+        selected = selected, onClick = onClick, label = label,
+        modifier = modifier.heightIn(min = 48.dp),
+        border = BorderStroke(1.dp, if (selected) Color.Transparent else MaterialTheme.colorScheme.outline),
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = ByeProTheme.colors.goldFeatured,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+            containerColor = Color.Transparent,
+            labelColor = MaterialTheme.colorScheme.onSurface
+        )
+    )
+}
+
+@Composable
+fun AppSearchField(value: String, onValueChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
+    FinanceTextField(
+        value = value, onValueChange = onValueChange, modifier = modifier,
+        placeholder = { androidx.compose.material3.Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }, singleLine = true
+    )
+}
+
+@Composable
+fun AppEmptyState(icon: ImageVector, title: String, description: String, modifier: Modifier = Modifier) {
+    Card(modifier = modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(icon, contentDescription = null, tint = ByeProTheme.colors.goldPrimary, modifier = Modifier.size(36.dp))
+            androidx.compose.material3.Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+            androidx.compose.material3.Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+val AppListBottomPadding = 88.dp

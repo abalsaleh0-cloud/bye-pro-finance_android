@@ -23,6 +23,7 @@ import com.example.finance.model.DocumentEntity
 import com.example.finance.model.DocumentType
 import com.example.finance.model.NotificationType
 import com.example.finance.model.NotificationEntity
+import com.example.finance.model.UserEntity
 import com.example.finance.model.TransactionEntity
 import com.example.finance.model.TransactionType
 import com.example.finance.model.TransactionStatus
@@ -99,6 +100,36 @@ class FinanceRepositoryIntegrationTest {
 
         val afterExpenseAcc = db.financeDao().getAccountById(accId)
         assertEquals(1300.00, afterExpenseAcc?.balance ?: 0.0, 0.01)
+    }
+
+    @Test
+    fun personalExpenseCanBeRecordedAndManagedWithoutAnyAccountBalanceLink() = runBlocking {
+        val accountId = repository.addAccount(AccountEntity(name = "Work account", type = AccountType.CASH, balance = 100.0, currency = "LYD"))
+        val expense = TransactionEntity(
+            accountId = 0L,
+            type = TransactionType.EXPENSE,
+            amount = 50.0,
+            currency = "LYD",
+            category = "groceries",
+            description = "Household shopping"
+        )
+        val id = repository.addTransaction(expense)
+        assertTrue(id > 0L)
+        assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        val saved = repository.transactions.first().single()
+        assertEquals(0L, saved.accountId)
+        assertEquals(50.0, saved.amount, 0.001)
+
+        repository.updateTransaction(saved.copy(amount = 75.0, description = "Updated household shopping"))
+        val updated = repository.transactions.first().single()
+        assertEquals(75.0, updated.amount, 0.001)
+        repository.updateTransactionStatus(updated, TransactionStatus.PENDING)
+        assertEquals(TransactionStatus.PENDING, repository.transactions.first().single().status)
+        repository.updateTransactionStatus(updated, TransactionStatus.COMPLETED)
+        assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        repository.deleteTransaction(updated)
+        assertTrue(repository.transactions.first().isEmpty())
+        assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
     }
 
     @Test
@@ -212,6 +243,17 @@ class FinanceRepositoryIntegrationTest {
         assertFalse(db.financeDao().getAllBills().first().single().isPaid)
         assertEquals(100.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
         assertTrue(repository.transactions.first().isEmpty())
+    }
+
+    @Test
+    fun billAndRentPaymentCanBeRecordedWithoutAccountLinkage() = runBlocking {
+        val accountId = repository.addAccount(AccountEntity(name = "Personal cash", type = AccountType.CASH, balance = 5.0, currency = "LYD"))
+        repository.addBill(BillEntity(name = "Rent November 2026", category = "Rent", amount = 500.0, currency = "LYD", dueDate = System.currentTimeMillis()))
+        val bill = repository.bills.first().single()
+        assertTrue(repository.markBillPaid(bill.id, null))
+        assertTrue(repository.bills.first().single().isPaid)
+        assertEquals(5.0, db.financeDao().getAccountById(accountId)?.balance ?: 0.0, 0.001)
+        assertTrue("Unlinked rent payments must not create account transactions", repository.transactions.first().isEmpty())
     }
 
     @Test
@@ -665,20 +707,22 @@ class FinanceRepositoryIntegrationTest {
     }
 
     @Test
-    fun debtPaymentRejectsInsufficientFundsAndCurrencyMismatchWithoutPartialWrites() = runBlocking {
+    fun debtPaymentCanBeRecordedWithoutAccountOrSufficientAccountBalance() = runBlocking {
         val lowBalanceId = repository.addAccount(AccountEntity(name = "Low balance", type = AccountType.CASH, balance = 10.0, currency = "LYD"))
         repository.addDebt(DebtEntity(name = "Personal loan", creditor = "Bank", principal = 100.0, remaining = 100.0, currency = "LYD", direction = "i_owe"))
         val debtId = repository.debts.first().single().id
-        assertFalse(repository.recordDebtPayment(debtId, lowBalanceId, 20.0, "Insufficient"))
+
+        assertTrue(repository.recordDebtPayment(debtId, null, 20.0, "Unlinked payment"))
         assertEquals(10.0, db.financeDao().getAccountById(lowBalanceId)?.balance ?: 0.0, 0.001)
-        assertEquals(100.0, repository.debts.first().single().remaining, 0.001)
-        assertTrue(repository.transactions.first().isEmpty())
-        assertTrue(repository.debtPayments(debtId).first().isEmpty())
+        assertEquals(80.0, repository.debts.first().single().remaining, 0.001)
+        assertTrue("Unlinked debt payments must not create account transactions", repository.transactions.first().isEmpty())
+        assertEquals(1, repository.debtPayments(debtId).first().size)
 
         val usdAccountId = repository.addAccount(AccountEntity(name = "USD account", type = AccountType.CASH, balance = 500.0, currency = "USD"))
         assertFalse(repository.recordDebtPayment(debtId, usdAccountId, 20.0, "Wrong currency"))
         assertEquals(500.0, db.financeDao().getAccountById(usdAccountId)?.balance ?: 0.0, 0.001)
-        assertEquals(100.0, repository.debts.first().single().remaining, 0.001)
+        assertEquals(80.0, repository.debts.first().single().remaining, 0.001)
+        assertEquals(1, repository.debtPayments(debtId).first().size)
     }
  
     @Test

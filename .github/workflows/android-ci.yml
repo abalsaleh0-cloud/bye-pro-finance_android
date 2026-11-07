@@ -2,7 +2,7 @@ name: Android CI and APK
 
 on:
   push:
-    branches: [main, feature/phase-2-transactions-final]
+    branches: [main, feature/phase-2-transactions-final, fix/personal-finance-sections-10.0.236]
   pull_request:
     branches: [main]
   workflow_dispatch:

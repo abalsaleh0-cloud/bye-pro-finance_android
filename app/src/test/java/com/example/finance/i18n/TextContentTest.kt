@@ -40,4 +40,15 @@ class TextContentTest {
         assertTrue(TextContent.money(12.5, "USD", AppLanguage.EN).isNotBlank())
         assertTrue(TextContent.percent(0.125, AppLanguage.EN).isNotBlank())
     }
+    @Test fun libyanDinarUsesThreeLatinFractionDigitsAndLocalizedCode() {
+        val arabic = TextContent.money(1234.5, "LYD", AppLanguage.AR)
+        val english = TextContent.money(1234.5, "LYD", AppLanguage.EN)
+        assertTrue(arabic.contains("1,234.500"))
+        assertTrue(arabic.contains("د.ل"))
+        assertTrue(english.contains("1,234.500"))
+        assertTrue(english.contains("LYD"))
+        assertTrue(arabic.none { it in '٠'..'٩' || it in '۰'..'۹' })
+        assertTrue(arabic.contains("\u2068") && arabic.contains("\u2069"))
+    }
+
 }

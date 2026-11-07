@@ -121,7 +121,7 @@ class AiAppToolSet(
     }
 
     @Tool(description = "Prepare a work ledger record. type must exactly match WorkRecordType. sourceId=0 means a general record without a work source; accountId=0 means save in the work ledger without linking a personal account. scope selects EMPLOYMENT or FREELANCE; omit it only when the record type makes the scope clear. Salary and freelance-specific record types require a matching source. FREELANCE_PAYMENT requires relatedRecordId. Saved only after confirmation.")
-    fun proposeCreateWorkRecord(sourceId: Long, type: String, amount: Double, currency: String, period: String, notes: String, accountId: Long, relatedRecordId: Long, scope: String = ""): Map<String, Any> = runBlocking(Dispatchers.IO) {
+    fun proposeCreateWorkRecord(sourceId: Long, type: String, amount: Double, currency: String, period: String, notes: String, accountId: Long = 0L, relatedRecordId: Long = 0L, scope: String = ""): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val parsedType = runCatching { WorkRecordType.valueOf(type.trim().uppercase()) }.getOrNull()
             ?: return@runBlocking mapOf("success" to false, "error" to "Unknown work record type.")
         val cleanCurrency = currency.trim().uppercase()
@@ -189,6 +189,63 @@ class AiAppToolSet(
             "المصدر: " + (sourceName ?: if (isTransfer) "تحويل رصيد العمل" else "عمل عام") + "\nالنوع: " + parsedType + "\nالمبلغ: " + amount + " " + cleanCurrency + "\nالفترة: " + cleanPeriod + "\n" + notes.trim(),
             PendingPayload.WorkRecord(record, tx)
         )
+    }
+
+    @Tool(description = "Prepare an edit to a work source name and monthly salary. Source type and currency are preserved. Changes only after confirmation.")
+    fun proposeUpdateWorkSource(id: Long, name: String, monthlySalary: Double): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val current = repository.workSources.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Work source not found.")
+        val cleanName = name.trim()
+        if (cleanName.length !in 2..100 || !monthlySalary.isFinite() || monthlySalary < 0.0 ||
+            (current.type == WorkSourceType.FREELANCE && monthlySalary != 0.0)
+        ) return@runBlocking mapOf("success" to false, "error" to "Work source values are invalid.")
+        stageUpdate("مراجعة تعديل مصدر العمل", "المصدر #$id: ${current.name} ← $cleanName\nالراتب الشهري: $monthlySalary ${current.currency}", suspend {
+            repository.updateWorkSource(current.copy(name = cleanName, monthlySalary = monthlySalary))
+            "تم تعديل مصدر العمل بعد تأكيدك."
+        })
+    }
+
+    @Tool(description = "Prepare deletion of an unused work source. A source with any historical work records cannot be deleted; its records are never removed or rewritten.")
+    fun proposeDeleteWorkSource(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val current = repository.workSources.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Work source not found.")
+        val used = repository.workRecords.first().any { it.sourceId == id }
+        if (used) return@runBlocking mapOf("success" to false, "error" to "This source has historical work records. Archive it instead; records will remain unchanged.")
+        stageUpdate("مراجعة حذف مصدر العمل", "حذف المصدر غير المستخدم #$id: ${current.name}", suspend {
+            check(repository.deleteWorkSourceIfUnused(id)) { "The work source is now in use and cannot be deleted." }
+            "تم حذف مصدر العمل غير المستخدم بعد تأكيدك."
+        })
+    }
+
+    @Tool(description = "Prepare editing a work record's amount, period, date and notes. Type, source, currency, related receivable and linked-account relationship are preserved. Any linked personal transaction is updated through repository accounting logic.")
+    fun proposeUpdateWorkRecord(id: Long, amount: Double, period: String, date: Long, notes: String): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val current = repository.workRecords.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Work record not found.")
+        val cleanPeriod = period.trim()
+        if (!amount.isFinite() || amount <= 0.0 || !cleanPeriod.matches(Regex("\\d{4}-\\d{2}")) || date <= 0L)
+            return@runBlocking mapOf("success" to false, "error" to "Work record values are invalid.")
+        val linkedTransaction = current.linkedTransactionId?.let { transactionId ->
+            repository.transactions.first().firstOrNull { it.id == transactionId }
+                ?: return@runBlocking mapOf("success" to false, "error" to "The linked personal transaction could not be found; no changes were staged.")
+        }
+        val updatedTransaction = linkedTransaction?.copy(amount = amount, description = notes.trim())
+        stageUpdate("مراجعة تعديل حركة العمل", "الحركة #$id: ${current.type}\nالمبلغ: ${current.amount} ← $amount ${current.currency}\nالفترة: ${current.period} ← $cleanPeriod\nالملاحظات: $notes", suspend {
+            repository.updateWorkRecord(current.copy(amount = amount, period = cleanPeriod, date = date, notes = notes.trim()), updatedTransaction)
+            "تم تعديل حركة العمل بعد تأكيدك مع الحفاظ على ارتباطها المحاسبي."
+        })
+    }
+
+    @Tool(description = "Prepare deletion of a work record. Repository accounting logic reverses any linked personal-account transaction safely. A freelance receivable with linked payments cannot be deleted.")
+    fun proposeDeleteWorkRecord(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val current = repository.workRecords.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Work record not found.")
+        val records = repository.workRecords.first()
+        if (current.type == WorkRecordType.FREELANCE_INCOME && records.any { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == id })
+            return@runBlocking mapOf("success" to false, "error" to "This receivable has linked payments. Resolve those payments first; nothing was changed.")
+        stageUpdate("مراجعة حذف حركة العمل", "حذف الحركة #$id: ${current.type} — ${current.amount} ${current.currency}", suspend {
+            repository.deleteWorkRecord(id)
+            "تم حذف حركة العمل بعد تأكيدك وتطبيق تسوية أي ارتباط محاسبي."
+        })
     }
 
     @Tool(description = "Read a compact overview of the user's local accounts, budgets, debts and savings goals. Use only to answer a question about the user's own finance data.")
@@ -512,12 +569,23 @@ class AiAppToolSet(
         return stageAction("مراجعة إنشاء حساب", "الحساب: " + n + "\nالنوع: " + parsed.name + "\nالرصيد: " + openingBalance + " " + cur, PendingPayload.Account(AccountEntity(name=n,type=parsed,currency=cur,balance=openingBalance,openingBalance=openingBalance)))
     }
 
-    @Tool(description = "Prepare a transaction. Account existence and matching currency are checked again when confirmed.")
-    fun proposeCreateTransaction(accountId: Long, type: String, amount: Double, category: String, description: String, currency: String = "LYD", status: String = "COMPLETED"): Map<String, Any> {
-        val t=runCatching { TransactionType.valueOf(type.trim().uppercase()) }.getOrNull(); val s=runCatching { TransactionStatus.valueOf(status.trim().uppercase()) }.getOrNull(); val cur=currency.trim().uppercase()
-        if (accountId<=0 || t==null || s==null || !amount.isFinite() || amount<=0.0 || category.isBlank() || description.isBlank() || !cur.matches(Regex("[A-Z]{3}"))) return mapOf("success" to false, "error" to "Transaction details are invalid.")
-        val value=TransactionEntity(accountId=accountId,type=t,amount=amount,currency=cur,category=category.trim(),description=description.trim(),status=s)
-        return stageAction("مراجعة تسجيل معاملة", "النوع: " + t.name + "\nالمبلغ: " + amount + " " + cur + "\nالحساب: " + accountId, PendingPayload.Transaction(value))
+    @Tool(description = "Prepare a personal expense or income entry. accountId=0 records it in the personal ledger without linking a personal account or changing any account balance. Use a positive accountId only when the user explicitly requests that account.")
+    fun proposeCreateTransaction(accountId: Long = 0L, type: String, amount: Double, category: String, description: String, currency: String = "LYD", status: String = "COMPLETED"): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val t = runCatching { TransactionType.valueOf(type.trim().uppercase()) }.getOrNull()
+        val s = runCatching { TransactionStatus.valueOf(status.trim().uppercase()) }.getOrNull()
+        val cur = currency.trim().uppercase()
+        if (accountId < 0L || t == null || s == null || !amount.isFinite() || amount <= 0.0 || category.isBlank() || description.isBlank() || !cur.matches(Regex("[A-Z]{3}"))) {
+            return@runBlocking mapOf("success" to false, "error" to "Transaction details are invalid.")
+        }
+        val account = if (accountId > 0L) repository.accounts.first().firstOrNull { it.id == accountId }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Account not found.") else null
+        if (account != null && !account.currency.equals(cur, true)) return@runBlocking mapOf("success" to false, "error" to "Transaction currency does not match the selected account.")
+        val value = TransactionEntity(accountId = account?.id ?: 0L, type = t, amount = amount, currency = cur, category = category.trim(), description = description.trim(), status = s)
+        stageAction(
+            "مراجعة تسجيل معاملة",
+            "النوع: " + t.name + "\nالمبلغ: " + amount + " " + cur + "\n" + (if (account == null) "دون ربط بحساب شخصي" else "الحساب: " + account.name),
+            PendingPayload.Transaction(value)
+        )
     }
 
     @Tool(description = "Prepare a debt record. direction must be i_owe or owed_to_me. Requires user confirmation.")
@@ -581,52 +649,52 @@ class AiAppToolSet(
     }
 
 
-    @Tool(description = "Prepare a real debt payment or debt collection. Reads the debt and account first, validates currency, remaining amount and available funds, then executes atomically only after confirmation.")
-    fun proposeRecordDebtPayment(debtId: Long, accountId: Long, amount: Double, notes: String, paymentDate: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+    @Tool(description = "Record a payment or collection against an existing debt. Understand natural and colloquial Arabic requests. accountId=0 means do not link any personal account and never check account balance; a positive accountId is an explicitly requested optional posting. The debt remaining amount is always updated atomically after user confirmation.")
+    fun proposeRecordDebtPayment(debtId: Long, accountId: Long = 0L, amount: Double, notes: String = "", paymentDate: Long = System.currentTimeMillis()): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val debt = repository.debts.first().firstOrNull { it.id == debtId }
             ?: return@runBlocking mapOf("success" to false, "error" to "Debt not found.")
-        val account = repository.accounts.first().firstOrNull { it.id == accountId }
-            ?: return@runBlocking mapOf("success" to false, "error" to "Active account not found.")
+        val account = if (accountId > 0L) repository.accounts.first().firstOrNull { it.id == accountId }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Active account not found.") else null
         if (debt.status.name == "PAID" || !amount.isFinite() || amount <= 0.0 ||
             amount > debt.remaining || paymentDate <= 0L ||
-            !debt.currency.equals(account.currency, true) ||
-            (debt.direction == "i_owe" && account.balance < amount)
-        ) return@runBlocking mapOf("success" to false, "error" to "Debt payment details, currency, remaining amount or account balance are invalid.")
+            (account != null && !debt.currency.equals(account.currency, true))
+        ) return@runBlocking mapOf("success" to false, "error" to "Debt payment details or currency are invalid.")
         val action = if (debt.direction == "i_owe") "سداد دين" else "تحصيل دين"
         stageUpdate(
             "مراجعة " + action,
             "الدين: " + debt.name + "\nالمبلغ: " + amount + " " + debt.currency +
-                "\nالحساب: " + account.name + "\nالمتبقي بعد العملية: " + (debt.remaining - amount) + " " + debt.currency,
+                (if (account == null) "\nدون ربط بحساب شخصي" else "\nالحساب: " + account.name) +
+                "\nالمتبقي بعد العملية: " + (debt.remaining - amount) + " " + debt.currency,
             suspend {
-                val ok = repository.recordDebtPayment(debtId, accountId, amount, notes.trim(), paymentDate)
-                check(ok) { "تعذر تسجيل دفعة الدين؛ ربما تغير الرصيد أو حالة الدين." }
-                "تم تسجيل " + (if (debt.direction == "i_owe") "سداد الدين" else "تحصيل الدين") + " وتحديث الحساب والدين بعد تأكيدك."
+                val ok = repository.recordDebtPayment(debtId, account?.id, amount, notes.trim(), paymentDate)
+                check(ok) { "تعذر تسجيل دفعة الدين؛ ربما تغيرت حالة الدين أو قيمته." }
+                "تم تسجيل " + (if (debt.direction == "i_owe") "سداد الدين" else "تحصيل الدين") +
+                    (if (account == null) " دون ربط بحساب شخصي" else " وتحديث الحساب") + " بعد تأكيدك."
             }
         )
     }
 
-    @Tool(description = "Prepare paying an unpaid bill from an existing personal account. Checks account currency and available balance. Payment, transaction, account balance and bill status are updated atomically only after confirmation.")
-    fun proposeMarkBillPaid(billId: Long, accountId: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+    @Tool(description = "Prepare marking an unpaid bill or rent installment as paid. accountId=0 means record payment without linking a personal account. Never reject the record because an account balance is low; an explicitly selected account is optional.")
+    fun proposeMarkBillPaid(billId: Long, accountId: Long = 0L): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val bill = repository.bills.first().firstOrNull { it.id == billId }
             ?: return@runBlocking mapOf("success" to false, "error" to "Bill not found.")
         if (bill.isPaid) return@runBlocking mapOf("success" to true, "message" to "الفاتورة مدفوعة مسبقاً؛ لم يتم إنشاء دفعة مكررة.")
-        val account = repository.accounts.first().firstOrNull { it.id == accountId }
-            ?: return@runBlocking mapOf("success" to false, "error" to "Active account not found.")
+        val account = if (accountId > 0L) repository.accounts.first().firstOrNull { it.id == accountId }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Active account not found.") else null
         if (!bill.amount.isFinite() || bill.amount <= 0.0 ||
-            !bill.currency.equals(account.currency, true) || account.balance < bill.amount
-        ) return@runBlocking mapOf("success" to false, "error" to "Bill amount, account currency or available balance is invalid.")
+            (account != null && !bill.currency.equals(account.currency, true))
+        ) return@runBlocking mapOf("success" to false, "error" to "Bill amount or account currency is invalid.")
         stageUpdate(
             "مراجعة دفع فاتورة",
             "الفاتورة: " + bill.name + "\nالمبلغ: " + bill.amount + " " + bill.currency +
-                "\nالحساب: " + account.name,
+                (if (account == null) "\nدون ربط بحساب شخصي" else "\nالحساب: " + account.name),
             suspend {
-                val ok = repository.markBillPaid(billId, accountId)
-                check(ok) { "تعذر دفع الفاتورة؛ تحقق من الرصيد والحساب وحالة الفاتورة." }
-                "تم دفع الفاتورة وتسجيل المصروف وتحديث رصيد الحساب بعد تأكيدك."
+                val ok = repository.markBillPaid(billId, account?.id)
+                check(ok) { "تعذر تسجيل دفع الفاتورة؛ ربما تغيرت حالتها." }
+                "تم تسجيل دفع الفاتورة" + (if (account == null) " دون ربط بحساب شخصي" else " وتحديث الحساب") + " بعد تأكيدك."
             }
         )
     }
-
 
     @Tool(description = "Prepare deletion of an existing transaction. Shows its amount, date, account and description. The repository reverses the posted balance impact and writes an audit event atomically. Never delete a transfer ledger row independently; the repository rejects it. Requires explicit confirmation.")
     fun proposeDeleteTransaction(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
@@ -992,7 +1060,11 @@ class AiAppToolSet(
             "navigateToAppSection" to listOf("section"),
             "getWorkLedgerOverview" to listOf(),
             "proposeCreateWorkSource" to listOf("name", "type", "monthlySalary", "currency"),
-            "proposeCreateWorkRecord" to listOf("sourceId", "type", "amount", "currency", "period", "notes", "accountId", "relatedRecordId"),
+            "proposeCreateWorkRecord" to listOf("sourceId", "type", "amount", "currency", "period", "notes", "accountId", "relatedRecordId", "scope"),
+            "proposeUpdateWorkSource" to listOf("id", "name", "monthlySalary"),
+            "proposeDeleteWorkSource" to listOf("id"),
+            "proposeUpdateWorkRecord" to listOf("id", "amount", "period", "date", "notes"),
+            "proposeDeleteWorkRecord" to listOf("id"),
             "getFinancialOverview" to listOf(),
             "listProjectPlans" to listOf(),
             "proposeCreateProjectPlan" to listOf("title", "objective", "technologyStack", "milestones", "tasks"),

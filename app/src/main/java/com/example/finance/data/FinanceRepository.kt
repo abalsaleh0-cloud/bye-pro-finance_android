@@ -82,6 +82,21 @@ class FinanceRepository(
         logAudit("UPDATE", "WorkSource", "Updated source " + source.name)
     }
 
+    suspend fun deleteWorkSourceIfUnused(sourceId: Long): Boolean = withContext(Dispatchers.IO) {
+        val existing = dao.getWorkSourceById(sourceId) ?: return@withContext false
+        val deleted = if (db != null) {
+            db.withTransaction {
+                if (dao.countWorkRecordsForSource(sourceId) > 0) false
+                else { dao.deleteWorkSource(existing); true }
+            }
+        } else {
+            if (dao.countWorkRecordsForSource(sourceId) > 0) false
+            else { dao.deleteWorkSource(existing); true }
+        }
+        if (deleted) logAudit("DELETE", "WorkSource", "Deleted unused source " + existing.name)
+        deleted
+    }
+
     suspend fun addWorkRecord(record: WorkRecordEntity, transaction: TransactionEntity? = null): Long = withContext(Dispatchers.IO) {
         require(record.amount.isFinite() && record.amount > 0.0)
         require(record.currency.isNotBlank() && record.period.matches(Regex("\\d{4}-\\d{2}")))
@@ -307,20 +322,30 @@ class FinanceRepository(
     }
 
     suspend fun deleteAccount(account: AccountEntity) = withContext(Dispatchers.IO) {
+        val transactions = dao.getTransactionsByAccount(account.id).firstOrNull().orEmpty()
+        val transfers = dao.getAllTransfers().firstOrNull().orEmpty()
+        val workRecords = dao.getWorkRecords().firstOrNull().orEmpty()
+        require(transactions.isEmpty()) { "Account has transaction history; archive it to preserve the ledger" }
+        require(transfers.none { it.fromAccountId == account.id || it.toAccountId == account.id }) {
+            "Account is referenced by a transfer; archive it to preserve the ledger"
+        }
+        require(workRecords.none { it.linkedAccountId == account.id }) {
+            "Account is linked to work records; archive it to preserve the ledger"
+        }
         dao.deleteAccount(account)
         logAudit("DELETE", "Account", "Deleted account ${account.name}")
     }
 
     suspend fun addTransaction(tx: TransactionEntity): Long = withContext(Dispatchers.IO) {
         val operation: suspend () -> Long = {
-            val account = dao.getAccountById(tx.accountId)
-                ?: throw IllegalArgumentException("Account not found: ${tx.accountId}")
+            val account = if (tx.accountId > 0L) dao.getAccountById(tx.accountId)
+                ?: throw IllegalArgumentException("Account not found: ${tx.accountId}") else null
             require(tx.amount.isFinite() && tx.amount > 0.0) { "Transaction amount must be a finite positive number" }
-            require(tx.currency.equals(account.currency, ignoreCase = true)) {
+            if (account != null) require(tx.currency.equals(account.currency, ignoreCase = true)) {
                 "Transaction currency must match the selected account currency"
             }
-            val txId = dao.insertTransaction(tx)
-            if (tx.status == TransactionStatus.COMPLETED) {
+            val txId = dao.insertTransaction(tx.copy(currency = account?.currency ?: tx.currency.trim().uppercase()))
+            if (tx.status == TransactionStatus.COMPLETED && account != null) {
                 val currentBal = FinanceEngine.toBigDecimal(account.balance)
                 val txAmount = FinanceEngine.toBigDecimal(tx.amount)
                 val newBal = when (tx.type) {
@@ -354,9 +379,9 @@ class FinanceRepository(
             require(!existing.isTransferLedgerEntry()) {
                 "Transfer and work ledger entries are managed by their source records"
             }
-            val destination = dao.getAccountById(tx.accountId)
-                ?: throw IllegalArgumentException("Account not found: ${tx.accountId}")
-            require(tx.currency.equals(destination.currency, ignoreCase = true)) {
+            val destination = if (tx.accountId > 0L) dao.getAccountById(tx.accountId)
+                ?: throw IllegalArgumentException("Account not found: ${tx.accountId}") else null
+            if (destination != null) require(tx.currency.equals(destination.currency, ignoreCase = true)) {
                 "Transaction currency must match the selected account currency"
             }
             // Reverse the old posting first, then post the edited row. Each balance
@@ -368,14 +393,14 @@ class FinanceRepository(
                     TransactionType.EXPENSE, TransactionType.TRANSFER -> amount.negate()
                 }
             }
-            if (existing.status == TransactionStatus.COMPLETED) {
+            if (existing.status == TransactionStatus.COMPLETED && existing.accountId > 0L) {
                 val oldAccount = dao.getAccountById(existing.accountId)
                     ?: throw IllegalStateException("Original transaction account is missing")
                 val reversed = FinanceEngine.toBigDecimal(oldAccount.balance).subtract(delta(existing))
                 dao.updateAccountBalance(oldAccount.id, reversed.toDouble())
             }
-            val updated = tx.copy(id = existing.id, status = existing.status, currency = destination.currency)
-            if (updated.status == TransactionStatus.COMPLETED) {
+            val updated = tx.copy(id = existing.id, status = existing.status, currency = destination?.currency ?: tx.currency.trim().uppercase())
+            if (updated.status == TransactionStatus.COMPLETED && destination != null) {
                 val refreshed = dao.getAccountById(destination.id)
                     ?: throw IllegalStateException("Selected account is missing")
                 val posted = FinanceEngine.toBigDecimal(refreshed.balance).add(delta(updated))
@@ -397,20 +422,18 @@ class FinanceRepository(
             if (existing.status != newStatus) {
                 val crossesPostedBoundary = (existing.status == TransactionStatus.COMPLETED) != (newStatus == TransactionStatus.COMPLETED)
                 if (crossesPostedBoundary) {
-                    val account = dao.getAccountById(existing.accountId)
-                        ?: throw IllegalStateException("Transaction account is missing")
-                    val current = FinanceEngine.toBigDecimal(account.balance)
-                    val amount = FinanceEngine.toBigDecimal(existing.amount)
-                    val signedDelta = when (existing.type) {
-                        TransactionType.INCOME, TransactionType.REFUND, TransactionType.ADJUSTMENT -> amount
-                        TransactionType.EXPENSE, TransactionType.TRANSFER -> amount.negate()
+                    if (existing.accountId > 0L) {
+                        val account = dao.getAccountById(existing.accountId)
+                            ?: throw IllegalStateException("Transaction account is missing")
+                        val current = FinanceEngine.toBigDecimal(account.balance)
+                        val amount = FinanceEngine.toBigDecimal(existing.amount)
+                        val signedDelta = when (existing.type) {
+                            TransactionType.INCOME, TransactionType.REFUND, TransactionType.ADJUSTMENT -> amount
+                            TransactionType.EXPENSE, TransactionType.TRANSFER -> amount.negate()
+                        }
+                        val updatedBalance = if (newStatus == TransactionStatus.COMPLETED) current.add(signedDelta) else current.subtract(signedDelta)
+                        dao.updateAccountBalance(account.id, updatedBalance.toDouble())
                     }
-                    val updatedBalance = if (newStatus == TransactionStatus.COMPLETED) {
-                        current.add(signedDelta)
-                    } else {
-                        current.subtract(signedDelta)
-                    }
-                    dao.updateAccountBalance(account.id, updatedBalance.toDouble())
                 }
                 dao.updateTransaction(existing.copy(status = newStatus))
                 logAudit("STATUS", "Transaction", "Transaction #${existing.id} status: ${existing.status} -> $newStatus")
@@ -430,13 +453,13 @@ class FinanceRepository(
                 // Stable entity equality prevents importing the same export twice and double-posting balances.
                 if (!existing.add(tx)) return@forEach
                 require(tx.amount.isFinite() && tx.amount > 0.0) { "Imported transaction amount must be finite and positive" }
-                val account = dao.getAccountById(tx.accountId)
-                    ?: throw IllegalArgumentException("Imported transaction references a missing account: ${tx.accountId}")
-                require(tx.currency.equals(account.currency, ignoreCase = true)) {
+                val account = if (tx.accountId > 0L) dao.getAccountById(tx.accountId)
+                    ?: throw IllegalArgumentException("Imported transaction references a missing account: ${tx.accountId}") else null
+                if (account != null) require(tx.currency.equals(account.currency, ignoreCase = true)) {
                     "Imported transaction currency does not match account ${account.id}"
                 }
-                dao.insertTransaction(tx)
-                if (tx.status == TransactionStatus.COMPLETED) {
+                dao.insertTransaction(tx.copy(currency = account?.currency ?: tx.currency.trim().uppercase()))
+                if (tx.status == TransactionStatus.COMPLETED && account != null) {
                     val current = FinanceEngine.toBigDecimal(account.balance)
                     val amount = FinanceEngine.toBigDecimal(tx.amount)
                     val updated = when (tx.type) {
@@ -462,7 +485,7 @@ class FinanceRepository(
             require(!existing.isTransferLedgerEntry()) {
                 "Transfer ledger entries are managed by their source records and cannot be deleted independently"
             }
-            if (existing.status == TransactionStatus.COMPLETED) {
+            if (existing.status == TransactionStatus.COMPLETED && existing.accountId > 0L) {
                 val account = dao.getAccountById(existing.accountId)
                     ?: throw IllegalStateException("Transaction account is missing; refusing to delete an unbalanced ledger row")
                 val current = FinanceEngine.toBigDecimal(account.balance)
@@ -663,43 +686,45 @@ class FinanceRepository(
 
     suspend fun recordDebtPayment(
         debtId: Long,
-        accountId: Long,
+        accountId: Long?,
         amount: Double,
         notes: String,
         paymentDate: Long = System.currentTimeMillis()
     ): Boolean = withContext(Dispatchers.IO) {
         val operation: suspend () -> Boolean = operation@{
             val debt = dao.getDebtById(debtId) ?: return@operation false
-            val account = dao.getAccountById(accountId) ?: return@operation false
             if (debt.status == DebtStatus.PAID || !amount.isFinite() || amount <= 0.0 ||
-                !debt.remaining.isFinite() || amount > debt.remaining || paymentDate <= 0L ||
-                !debt.currency.equals(account.currency, ignoreCase = true) || !account.balance.isFinite()
+                !debt.remaining.isFinite() || amount > debt.remaining || paymentDate <= 0L
             ) return@operation false
-            // Payments for debts we owe are expenses; collections are income.
+            // A debt payment is a valid ledger event even when no personal account is linked.
+            // Only an explicitly selected account receives a balance/transaction posting.
+            val account = accountId?.let { dao.getAccountById(it) ?: return@operation false }
+            if (account != null && (!account.currency.equals(debt.currency, ignoreCase = true) || !account.balance.isFinite())) return@operation false
             val outgoing = debt.direction == "i_owe"
-            if (outgoing && account.balance < amount) return@operation false
             val amountDecimal = FinanceEngine.toBigDecimal(amount)
-            val balance = FinanceEngine.toBigDecimal(account.balance).let {
-                if (outgoing) it.subtract(amountDecimal) else it.add(amountDecimal)
-            }
             val remaining = FinanceEngine.toBigDecimal(debt.remaining).subtract(amountDecimal)
             val newStatus = if (remaining <= BigDecimal.ZERO) DebtStatus.PAID else DebtStatus.ACTIVE
-            dao.insertTransaction(
-                TransactionEntity(
-                    accountId = accountId,
-                    type = if (outgoing) TransactionType.EXPENSE else TransactionType.INCOME,
-                    amount = amount,
-                    currency = debt.currency,
-                    category = if (outgoing) "Debt payment" else "Debt collection",
-                    date = paymentDate,
-                    description = (if (outgoing) "Debt payment: " else "Debt collection: ") + debt.name,
-                    notes = notes.trim()
+            if (account != null) {
+                val balance = FinanceEngine.toBigDecimal(account.balance).let {
+                    if (outgoing) it.subtract(amountDecimal) else it.add(amountDecimal)
+                }
+                dao.insertTransaction(
+                    TransactionEntity(
+                        accountId = account.id,
+                        type = if (outgoing) TransactionType.EXPENSE else TransactionType.INCOME,
+                        amount = amount,
+                        currency = debt.currency,
+                        category = if (outgoing) "Debt payment" else "Debt collection",
+                        date = paymentDate,
+                        description = (if (outgoing) "Debt payment: " else "Debt collection: ") + debt.name,
+                        notes = notes.trim()
+                    )
                 )
-            )
-            dao.updateAccountBalance(accountId, balance.toDouble())
+                dao.updateAccountBalance(account.id, balance.toDouble())
+            }
             dao.updateDebt(debt.copy(remaining = remaining.toDouble(), status = newStatus))
             dao.insertDebtPayment(DebtPaymentEntity(debtId = debtId, amount = amount, date = paymentDate, notes = notes.trim(), currency = debt.currency))
-            logAudit("PAYMENT", "Debt", (if (outgoing) "Paid " else "Collected ") + amount + " for " + debt.name + "; remaining " + remaining)
+            logAudit("PAYMENT", "Debt", (if (outgoing) "Paid " else "Collected ") + amount + " for " + debt.name + (if (account == null) " (unlinked)" else " in account " + account.name) + "; remaining " + remaining)
             true
         }
         if (db != null) db.withTransaction { operation() } else operation()
@@ -732,34 +757,36 @@ class FinanceRepository(
         logAudit("UPDATE", "Bill", "Updated bill ${bill.name}")
     }
 
-    suspend fun markBillPaid(billId: Long, accountId: Long): Boolean = withContext(Dispatchers.IO) {
+    suspend fun markBillPaid(billId: Long, accountId: Long?): Boolean = withContext(Dispatchers.IO) {
         val operation: suspend () -> Boolean = operation@{
-            val bill = dao.getBillById(billId)
-                ?: return@operation false
+            val bill = dao.getBillById(billId) ?: return@operation false
             if (bill.isPaid) return@operation true
-            val account = dao.getAccountById(accountId) ?: return@operation false
-            if (account.isArchived || !bill.amount.isFinite() || bill.amount <= 0.0 ||
+            if (!bill.amount.isFinite() || bill.amount <= 0.0) return@operation false
+            val account = accountId?.let { dao.getAccountById(it) ?: return@operation false }
+            if (account != null && (account.isArchived ||
                 !bill.currency.equals(account.currency, ignoreCase = true) ||
-                !account.balance.isFinite() || account.balance < bill.amount
+                !account.balance.isFinite())
             ) return@operation false
 
-            dao.insertTransaction(
-                TransactionEntity(
-                    accountId = accountId,
-                    type = TransactionType.EXPENSE,
-                    amount = bill.amount,
-                    currency = bill.currency,
-                    category = bill.category,
-                    description = "Bill payment: ${bill.name}"
+            if (account != null) {
+                dao.insertTransaction(
+                    TransactionEntity(
+                        accountId = account.id,
+                        type = TransactionType.EXPENSE,
+                        amount = bill.amount,
+                        currency = bill.currency,
+                        category = bill.category,
+                        description = "Bill payment: ${bill.name}"
+                    )
                 )
-            )
-            dao.updateAccountBalance(
-                accountId,
-                FinanceEngine.toBigDecimal(account.balance)
-                    .subtract(FinanceEngine.toBigDecimal(bill.amount)).toDouble()
-            )
+                dao.updateAccountBalance(
+                    account.id,
+                    FinanceEngine.toBigDecimal(account.balance)
+                        .subtract(FinanceEngine.toBigDecimal(bill.amount)).toDouble()
+                )
+            }
             dao.updateBill(bill.copy(isPaid = true))
-            logAudit("PAYMENT", "Bill", "Marked bill ${bill.name} as paid")
+            logAudit("PAYMENT", "Bill", "Marked bill ${bill.name} as paid" + if (account == null) " without account linkage" else " from ${account.name}")
             true
         }
         if (db != null) db.withTransaction { operation() } else operation()
@@ -931,6 +958,24 @@ class FinanceRepository(
         dao.deleteNotification(id)
     }
 
+
+    suspend fun resetAllAccountBalances() = withContext(Dispatchers.IO) {
+        if (db != null) db.withTransaction { dao.resetAllAccountBalances() } else dao.resetAllAccountBalances()
+        logAudit("RESET", "Accounts", "Reset all account balances to zero")
+    }
+    suspend fun clearAllFinancialData() = withContext(Dispatchers.IO) {
+        val clear: suspend () -> Unit = {
+            dao.clearDebtPayments(); dao.clearDebts()
+            dao.clearWorkRecords(); dao.clearWorkSources()
+            dao.clearHouseholdExpenses(); dao.clearHouseholdMembers()
+            dao.clearTransactions(); dao.clearTransfers()
+            dao.clearBudgets(); dao.clearBills()
+            dao.clearSavingsGoals(); dao.clearAssets()
+            dao.clearDocuments(); dao.clearAccounts()
+            dao.clearAllNotifications(); dao.clearAuditLogs()
+        }
+        if (db != null) db.withTransaction { clear() } else clear()
+    }
     suspend fun clearNotifications() = withContext(Dispatchers.IO) {
         dao.clearAllNotifications()
     }

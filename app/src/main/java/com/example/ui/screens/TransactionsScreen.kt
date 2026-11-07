@@ -11,6 +11,10 @@ import com.example.finance.ui.FinanceViewModel
 import com.example.ui.components.FinanceAlertDialog
 import com.example.ui.components.FinanceButton
 import com.example.ui.components.FinanceFloatingActionButton
+import com.example.ui.components.AppFilterChip
+import com.example.ui.components.AppSearchField
+import com.example.ui.components.AppEmptyState
+import com.example.ui.components.AppListBottomPadding
 import com.example.ui.components.FinanceIconButton
 import com.example.ui.components.FinanceOutlinedButton
 import com.example.ui.components.FinanceTextField
@@ -40,14 +44,11 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -91,11 +92,33 @@ private fun statusLabel(status: TransactionStatus, lang: AppLanguage) = when (st
     TransactionStatus.CANCELLED -> WebI18n.tr("ملغاة", "Cancelled", lang)
 }
 
+/** Preserve canonical category values in storage; localize their presentation only. */
+private fun txCategoryLabel(category: String, lang: AppLanguage): String = when (category.trim().lowercase()) {
+    "groceries" -> WebI18n.tr("البقالة والمواد الغذائية", "Groceries", lang)
+    "dining" -> WebI18n.tr("المطاعم والمقاهي", "Dining", lang)
+    "utilities" -> WebI18n.tr("الفواتير والخدمات", "Utilities", lang)
+    "shopping" -> WebI18n.tr("التسوق", "Shopping", lang)
+    "health" -> WebI18n.tr("الصحة والعلاج", "Health", lang)
+    "transport" -> WebI18n.tr("المواصلات", "Transport", lang)
+    "salary" -> WebI18n.tr("الراتب", "Salary", lang)
+    "investments" -> WebI18n.tr("الاستثمارات", "Investments", lang)
+    "adjustment" -> WebI18n.tr("تسوية", "Adjustment", lang)
+    "other" -> WebI18n.tr("أخرى", "Other", lang)
+    "transfer" -> WebI18n.tr("تحويل", "Transfer", lang)
+    "transfer fee" -> WebI18n.tr("رسوم تحويل", "Transfer fee", lang)
+    "work_income" -> WebI18n.tr("دخل العمل", "Work income", lang)
+    "work_expense" -> WebI18n.tr("مصروفات العمل", "Work expenses", lang)
+    "work_transfer" -> WebI18n.tr("تحويل العمل", "Work transfer", lang)
+    "" -> WebI18n.tr("بدون تصنيف", "Uncategorized", lang)
+    else -> category
+}
+
 @Composable
 fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = false) {
     val lang by viewModel.appLanguage.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
+    val primaryCurrency by viewModel.primaryCurrency.collectAsState()
     var search by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf<TransactionType?>(null) }
     var statusFilter by remember { mutableStateOf<TransactionStatus?>(null) }
@@ -110,7 +133,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
         val q = search.trim()
         (filter == null || tx.type == filter) &&
             (statusFilter == null || tx.status == statusFilter) &&
-            (q.isBlank() || tx.description.contains(q, true) || accountName.contains(q, true) || tx.category.contains(q, true) || tx.currency.contains(q, true))
+            (q.isBlank() || tx.description.contains(q, true) || accountName.contains(q, true) || tx.category.contains(q, true) || txCategoryLabel(tx.category, lang).contains(q, true) || tx.currency.contains(q, true))
     }
     // Match dashboard and reports: pending/cancelled rows are not posted
     // financial activity. Refunds are included in income like FinanceEngine.
@@ -145,26 +168,18 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
                 Spacer(Modifier.height(4.dp))
                 Text(WebI18n.tr("تسجيل ومراجعة الدخل والمصروفات والتسويات دون خلط العملات.", "Record and review income, expenses, and adjustments without mixing currencies.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(10.dp))
-                FinanceTextField(
-                    value = search,
-                    onValueChange = { search = it },
-                    placeholder = { Text(WebI18n.tr("ابحث في الوصف أو الحساب أو التصنيف أو العملة…", "Search description, account, category or currency…", lang)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth().testTag("transaction_search_input"),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
+                AppSearchField(search, { search = it }, WebI18n.tr("ابحث في المعاملات…", "Search transactions…", lang), Modifier.fillMaxWidth().testTag("transaction_search_input"))
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = filter == null, onClick = { filter = null }, label = { Text(WebI18n.tr("كل الأنواع", "All types", lang)) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = ByeProTheme.colors.goldPrimary))
+                    AppFilterChip(selected = filter == null, onClick = { filter = null }, label = { Text(WebI18n.tr("كل الأنواع", "All types", lang)) })
                     webTransactionTypes.forEach { type ->
-                        FilterChip(selected = filter == type, onClick = { filter = type }, label = { Text(txTypeLabel(type, lang)) })
+                        AppFilterChip(selected = filter == type, onClick = { filter = type }, label = { Text(txTypeLabel(type, lang)) })
                     }
                 }
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = statusFilter == null, onClick = { statusFilter = null }, label = { Text(WebI18n.tr("كل الحالات", "All statuses", lang)) }, modifier = Modifier.testTag("transaction_status_all"))
+                    AppFilterChip(selected = statusFilter == null, onClick = { statusFilter = null }, label = { Text(WebI18n.tr("كل الحالات", "All statuses", lang)) }, modifier = Modifier.testTag("transaction_status_all"))
                     listOf(TransactionStatus.PENDING, TransactionStatus.COMPLETED, TransactionStatus.CANCELLED).forEach { status ->
-                        FilterChip(selected = statusFilter == status, onClick = { statusFilter = status }, label = { Text(statusLabel(status, lang)) }, modifier = Modifier.testTag("transaction_status_${status.name.lowercase()}"))
+                        AppFilterChip(selected = statusFilter == status, onClick = { statusFilter = status }, label = { Text(statusLabel(status, lang)) }, modifier = Modifier.testTag("transaction_status_${status.name.lowercase()}"))
                     }
                 }
             }
@@ -191,6 +206,7 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
                     AddTransactionForm(
                         accounts = activeAccounts,
                         lang = lang,
+                        defaultCurrency = primaryCurrency,
                         initialTransaction = editTarget,
                         onCancel = { showForm = false; editTarget = null },
                         onSave = { transaction ->
@@ -205,19 +221,18 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
 
             if (visible.isEmpty()) {
                 item {
-                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                        Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(WebI18n.tr("لا توجد معاملات مطابقة", "No matching transactions", lang), fontWeight = FontWeight.Bold)
-                            Text(WebI18n.tr("سجّل أول معاملة أو غيّر الفلتر.", "Record your first transaction or change the filter.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
+                    AppEmptyState(
+                        icon = Icons.Default.ArrowDownward,
+                        title = WebI18n.tr(if (search.isBlank() && filter == null && statusFilter == null) "لا توجد معاملات بعد" else "لا توجد نتائج للفلتر", if (search.isBlank() && filter == null && statusFilter == null) "No transactions yet" else "No filter results", lang),
+                        description = WebI18n.tr("استخدم زر الإضافة لتسجيل معاملة.", "Use the add button to record a transaction.", lang)
+                    )
                 }
             } else {
                 items(visible, key = { it.id }) { tx ->
                     TransactionItemCard(transaction = tx, account = accounts.firstOrNull { it.id == tx.accountId }, lang = lang, onEdit = { editTarget = tx; showForm = true }, onDelete = { deleteTarget = tx }, onCancel = { cancelTarget = tx }, onToggleStatus = { viewModel.updateTransactionStatus(tx, if (tx.status == TransactionStatus.COMPLETED) TransactionStatus.PENDING else TransactionStatus.COMPLETED) })
                 }
             }
-            item { Spacer(Modifier.height(72.dp)) }
+            item { Spacer(Modifier.height(AppListBottomPadding)) }
         }
     }
 
@@ -243,15 +258,17 @@ fun TransactionsScreen(viewModel: FinanceViewModel, initialAddOpen: Boolean = fa
 }
 
 @Composable
-fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCancel: () -> Unit, onSave: (TransactionEntity) -> Unit, initialTransaction: TransactionEntity? = null) {
+fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCancel: () -> Unit, onSave: (TransactionEntity) -> Unit, initialTransaction: TransactionEntity? = null, defaultCurrency: String = "LYD") {
     var type by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.type ?: TransactionType.EXPENSE) }
-    var accountId by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.accountId ?: accounts.firstOrNull()?.id ?: 0L) }
+    var accountId by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.accountId ?: 0L) }
+    var currency by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.currency ?: defaultCurrency) }
     var category by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.category.orEmpty()) }
     var amount by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.amount?.toString().orEmpty()) }
     var date by remember(initialTransaction?.id) { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(initialTransaction?.date ?: System.currentTimeMillis()))) }
     var description by remember(initialTransaction?.id) { mutableStateOf(initialTransaction?.description.orEmpty()) }
     var accountMenu by remember { mutableStateOf(false) }
     var categoryMenu by remember { mutableStateOf(false) }
+    var currencyMenu by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     val account = accounts.firstOrNull { it.id == accountId }
     val categories = webCategories[type].orEmpty()
@@ -259,7 +276,7 @@ fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCance
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(if (initialTransaction == null) WebI18n.tr("إضافة معاملة", "Add transaction", lang) else WebI18n.tr("تعديل المعاملة", "Edit transaction", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            if (accounts.isEmpty()) Text(WebI18n.tr("أضف حساباً نشطاً أولاً من قسم الحسابات.", "Add an active account in Accounts first.", lang), color = MaterialTheme.colorScheme.error)
+            Text(WebI18n.tr("يمكن تسجيل العملية دون ربطها بحساب شخصي؛ ربط الحساب اختياري.", "You can record this entry without linking a personal account; account linkage is optional.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             Text(WebI18n.tr("نوع المعاملة", "Transaction type", lang), style = MaterialTheme.typography.labelMedium)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -272,16 +289,39 @@ fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCance
                 }
             }
 
-            Text(WebI18n.tr("الحساب", "Account", lang), style = MaterialTheme.typography.labelMedium)
+            Text(WebI18n.tr("ربط بحساب شخصي (اختياري)", "Link a personal account (optional)", lang), style = MaterialTheme.typography.labelMedium)
             Box(Modifier.fillMaxWidth()) {
-                FinanceOutlinedButton(onClick = { accountMenu = true }, enabled = accounts.isNotEmpty(), modifier = Modifier.fillMaxWidth().testTag("transaction_account_input")) { Text(account?.let { "${it.name} · ${it.currency}" } ?: WebI18n.tr("اختر حساباً", "Select an account", lang)) }
-                DropdownMenu(expanded = accountMenu, onDismissRequest = { accountMenu = false }) { accounts.forEach { item -> DropdownMenuItem(text = { Text("${item.name} · ${item.currency}") }, onClick = { accountId = item.id; accountMenu = false }) } }
+                FinanceOutlinedButton(onClick = { accountMenu = true }, modifier = Modifier.fillMaxWidth().testTag("transaction_account_input")) { Text(account?.let { "${it.name} · ${it.currency}" } ?: WebI18n.tr("تسجيل دون ربط بحساب", "Record without linking an account", lang)) }
+                DropdownMenu(expanded = accountMenu, onDismissRequest = { accountMenu = false }) {
+                    DropdownMenuItem(text = { Text(WebI18n.tr("دون ربط بحساب", "No account link", lang)) }, onClick = { accountId = 0L; accountMenu = false })
+                    accounts.forEach { item -> DropdownMenuItem(text = { Text("${item.name} · ${item.currency}") }, onClick = { accountId = item.id; currency = item.currency; accountMenu = false }) }
+                }
+            }
+            if (account == null) {
+                Text(WebI18n.tr("العملة", "Currency", lang), style = MaterialTheme.typography.labelMedium)
+                Box(Modifier.fillMaxWidth()) {
+                    FinanceOutlinedButton(onClick = { currencyMenu = true }, modifier = Modifier.fillMaxWidth().testTag("transaction_currency_input")) { Text(currency) }
+                    DropdownMenu(expanded = currencyMenu, onDismissRequest = { currencyMenu = false }) {
+                        listOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD").forEach { code ->
+                            DropdownMenuItem(text = { Text(code) }, onClick = { currency = code; currencyMenu = false })
+                        }
+                    }
+                }
             }
 
             Text(WebI18n.tr("التصنيف", "Category", lang), style = MaterialTheme.typography.labelMedium)
             Box(Modifier.fillMaxWidth()) {
-                FinanceOutlinedButton(onClick = { categoryMenu = true }, modifier = Modifier.fillMaxWidth().testTag("transaction_category_input")) { Text(category.ifBlank { WebI18n.tr("بدون تصنيف", "No category", lang) }) }
-                DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) { categories.forEach { item -> DropdownMenuItem(text = { Text(item) }, onClick = { category = item; categoryMenu = false }) } }
+                FinanceOutlinedButton(onClick = { categoryMenu = true }, modifier = Modifier.fillMaxWidth().testTag("transaction_category_input")) {
+                    Text(if (category.isBlank()) WebI18n.tr("اختر التصنيف", "Choose a category", lang) else txCategoryLabel(category, lang))
+                }
+                DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
+                    categories.forEach { item ->
+                        DropdownMenuItem(
+                            text = { Text(txCategoryLabel(item, lang)) },
+                            onClick = { category = item; categoryMenu = false }
+                        )
+                    }
+                }
             }
 
             FinanceTextField(value = amount, onValueChange = { amount = it.filter { c -> c.isDigit() || c == '.' }.take(18) }, label = { Text(WebI18n.tr("المبلغ", "Amount", lang)) }, modifier = Modifier.fillMaxWidth().testTag("transaction_amount_input"), singleLine = true)
@@ -296,13 +336,14 @@ fun AddTransactionForm(accounts: List<AccountEntity>, lang: AppLanguage, onCance
                     val numeric = amount.toDoubleOrNull()
                     val parsedDate = runCatching { SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(date)?.time }.getOrNull()
                     error = when {
-                        account == null -> WebI18n.tr("أضف حساباً نشطاً أولاً من قسم الحسابات.", "Add an active account in Accounts first.", lang)
                         numeric == null || !numeric.isFinite() || numeric <= 0.0 -> WebI18n.tr("أدخل مبلغاً أكبر من الصفر.", "Enter an amount greater than zero.", lang)
                         parsedDate == null -> WebI18n.tr("أدخل تاريخاً صحيحاً بصيغة YYYY-MM-DD.", "Enter a valid date in YYYY-MM-DD format.", lang)
+                        account == null && currency !in setOf("LYD", "USD", "EUR", "GBP", "SYP", "JOD") -> WebI18n.tr("اختر عملة صحيحة.", "Select a valid currency.", lang)
                         else -> ""
                     }
-                    if (error.isBlank() && account != null && numeric != null && parsedDate != null) {
-                        onSave(initialTransaction?.copy(accountId = account.id, type = type, amount = numeric, currency = account.currency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }) ?: TransactionEntity(accountId = account.id, type = type, amount = numeric, currency = account.currency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }, status = TransactionStatus.COMPLETED))
+                    if (error.isBlank() && numeric != null && parsedDate != null) {
+                        val selectedCurrency = account?.currency ?: currency
+                        onSave(initialTransaction?.copy(accountId = account?.id ?: 0L, type = type, amount = numeric, currency = selectedCurrency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }) ?: TransactionEntity(accountId = account?.id ?: 0L, type = type, amount = numeric, currency = selectedCurrency, category = category.ifBlank { "Other" }, date = parsedDate, description = description.trim().ifBlank { txTypeLabel(type, lang) }, status = TransactionStatus.COMPLETED))
                     }
                 }, modifier = Modifier.weight(1f).testTag("submit_transaction_btn")) { Text(if (initialTransaction == null) WebI18n.tr("حفظ المعاملة", "Save transaction", lang) else WebI18n.tr("حفظ التعديلات", "Save changes", lang)) }
             }
@@ -325,7 +366,7 @@ fun TransactionItemCard(transaction: TransactionEntity, account: AccountEntity?,
             Spacer(Modifier.size(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(transaction.description, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text("${account?.name ?: WebI18n.tr("حساب", "Account", lang)} · $dateText", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${txCategoryLabel(transaction.category, lang)} · ${account?.name ?: WebI18n.tr("دون ربط بحساب", "Unlinked", lang)} · $dateText", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("$sign${TextContent.money(transaction.amount, transaction.currency, lang)}", fontWeight = FontWeight.Bold, color = color)

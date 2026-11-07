@@ -12,6 +12,9 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import javax.net.ssl.SSLException
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -101,8 +104,29 @@ class SecureVoiceSettings(context: Context) {
  * fallback. Audio is fetched only for the text the user asked to hear.
  */
 enum class ElevenLabsConnectionResult {
-    CONNECTED, MISSING_KEY, INVALID_KEY, FORBIDDEN, RATE_LIMITED, SERVER_ERROR, NETWORK_ERROR, REQUEST_FAILED
+    CONNECTED,
+    MISSING_KEY,
+    INVALID_KEY,
+    FORBIDDEN,
+    RATE_LIMITED,
+    SERVER_ERROR,
+    BAD_REQUEST,
+    NOT_FOUND,
+    INVALID_REQUEST,
+    OTHER_HTTP_RESPONSE,
+    TIMEOUT,
+    TLS_ERROR,
+    DNS_ERROR,
+    NETWORK_ERROR,
+    REQUEST_FAILED
 }
+
+/** Safe diagnostic metadata only; never contains the API key or raw response body. */
+data class ElevenLabsConnectionCheck(
+    val result: ElevenLabsConnectionResult,
+    val errorCode: String? = null,
+    val requestId: String? = null
+)
 
 class ElevenLabsSpeechProvider(context: Context) {
     private val settings = SecureVoiceSettings(context)
@@ -116,9 +140,9 @@ class ElevenLabsSpeechProvider(context: Context) {
      * Checks the stored credential against ElevenLabs' authenticated user endpoint.
      * Provider response bodies are intentionally not exposed to the UI or logs.
      */
-    suspend fun testConnection(): ElevenLabsConnectionResult = withContext(Dispatchers.IO) {
+    suspend fun testConnection(): ElevenLabsConnectionCheck = withContext(Dispatchers.IO) {
         val apiKey = settings.readApiKey()
-            ?: return@withContext ElevenLabsConnectionResult.MISSING_KEY
+            ?: return@withContext ElevenLabsConnectionCheck(ElevenLabsConnectionResult.MISSING_KEY)
         val request = Request.Builder()
             .url("https://api.elevenlabs.io/v1/user")
             .header("xi-api-key", apiKey)
@@ -127,19 +151,39 @@ class ElevenLabsSpeechProvider(context: Context) {
             .build()
         try {
             client.newCall(request).execute().use { response ->
-                when {
+                // Read only safe diagnostic fields. Never expose or log the raw body.
+                val responseBody = response.body?.string().orEmpty().take(8_192)
+                val detail = runCatching {
+                    JSONObject(responseBody).optJSONObject("detail")
+                }.getOrNull()
+                val errorCode = (detail?.optString("code")?.takeIf { it.isNotBlank() && it != "null" }
+                    ?: detail?.optString("status")?.takeIf { it.isNotBlank() && it != "null" })
+                    ?.takeIf { it.matches(Regex("[A-Za-z0-9_]{1,64}")) }
+                val requestId = detail?.optString("request_id")
+                    ?.takeIf { it.matches(Regex("[A-Fa-f0-9-]{8,64}")) }
+                val result = when {
                     response.isSuccessful -> ElevenLabsConnectionResult.CONNECTED
+                    response.code == 400 -> ElevenLabsConnectionResult.BAD_REQUEST
                     response.code == 401 -> ElevenLabsConnectionResult.INVALID_KEY
                     response.code == 403 -> ElevenLabsConnectionResult.FORBIDDEN
+                    response.code == 404 -> ElevenLabsConnectionResult.NOT_FOUND
+                    response.code == 422 -> ElevenLabsConnectionResult.INVALID_REQUEST
                     response.code == 429 -> ElevenLabsConnectionResult.RATE_LIMITED
                     response.code in 500..599 -> ElevenLabsConnectionResult.SERVER_ERROR
-                    else -> ElevenLabsConnectionResult.REQUEST_FAILED
+                    else -> ElevenLabsConnectionResult.OTHER_HTTP_RESPONSE
                 }
+                ElevenLabsConnectionCheck(result, errorCode, requestId)
             }
+        } catch (_: SocketTimeoutException) {
+            ElevenLabsConnectionCheck(ElevenLabsConnectionResult.TIMEOUT)
+        } catch (_: SSLException) {
+            ElevenLabsConnectionCheck(ElevenLabsConnectionResult.TLS_ERROR)
+        } catch (_: UnknownHostException) {
+            ElevenLabsConnectionCheck(ElevenLabsConnectionResult.DNS_ERROR)
         } catch (_: IOException) {
-            ElevenLabsConnectionResult.NETWORK_ERROR
+            ElevenLabsConnectionCheck(ElevenLabsConnectionResult.NETWORK_ERROR)
         } catch (_: Exception) {
-            ElevenLabsConnectionResult.REQUEST_FAILED
+            ElevenLabsConnectionCheck(ElevenLabsConnectionResult.REQUEST_FAILED)
         }
     }
 

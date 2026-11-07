@@ -69,6 +69,7 @@ fun SettingsScreen(
     val timeZone by viewModel.timeZone.collectAsState()
     val dateFormat by viewModel.dateFormat.collectAsState()
     val numberFormat by viewModel.numberFormat.collectAsState()
+    val westernDigits by viewModel.westernDigits.collectAsState()
     val emailNotifications by viewModel.emailNotifications.collectAsState()
     val transactionAlerts by viewModel.transactionAlerts.collectAsState()
     val billReminders by viewModel.billReminders.collectAsState()
@@ -77,6 +78,10 @@ fun SettingsScreen(
     var showAboutDialog by remember { mutableStateOf(false) }
     var passwordResetMessage by remember { mutableStateOf<String?>(null) }
     var passwordResetBusy by remember { mutableStateOf(false) }
+    var showResetAccountsDialog by remember { mutableStateOf(false) }
+    var showClearFinancialDataDialog by remember { mutableStateOf(false) }
+    var financialDataActionMessage by remember { mutableStateOf<String?>(null) }
+    var financialDataActionBusy by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val authRepository = remember(context) { SupabaseAuthRepository(context) }
     val scope = rememberCoroutineScope()
@@ -306,6 +311,7 @@ fun SettingsScreen(
                     SettingsChoiceRow(WebI18n.tr("المنطقة الزمنية", "Time zone", lang), timeZone, listOf("Africa/Tripoli", "Asia/Damascus", "Asia/Amman", "Europe/Istanbul", "Europe/London", "UTC"), viewModel::setTimeZone)
                     SettingsChoiceRow(WebI18n.tr("تنسيق التاريخ", "Date format", lang), dateFormat, listOf("YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY"), viewModel::setDateFormat)
                     SettingsChoiceRow(WebI18n.tr("تنسيق الأرقام", "Number format", lang), numberFormat, listOf("1,234.56", "1.234,56", "1 234,56"), viewModel::setNumberFormat)
+                    SettingsSwitchRow(WebI18n.tr("استخدام الأرقام 0 1 2 بدلاً من ٠ ١ ٢", "Use 0 1 2 instead of ٠ ١ ٢", lang), westernDigits, viewModel::setWesternDigits)
                 }
             }
         }
@@ -375,6 +381,31 @@ fun SettingsScreen(
             }
         }
 
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.45f), RoundedCornerShape(16.dp)), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(WebI18n.tr("إدارة البيانات المالية", "Financial data management", lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                    Text(WebI18n.tr("تصفير الأرصدة يحتفظ بالحسابات والسجلات. المسح النهائي يحذف البيانات المالية المحلية ولا يحذف تسجيل الدخول أو الملف الشخصي أو تفضيلات التطبيق.", "Reset keeps accounts and history. Erase permanently deletes local financial data but preserves sign-in, profile, and app preferences.", lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    FinanceOutlinedButton(onClick = { showResetAccountsDialog = true; financialDataActionMessage = null }, enabled = !financialDataActionBusy, modifier = Modifier.fillMaxWidth().testTag("reset_all_account_balances_button")) { Text(WebI18n.tr("تصفير جميع الحسابات", "Reset all accounts", lang)) }
+                    FinanceButton(onClick = { showClearFinancialDataDialog = true; financialDataActionMessage = null }, enabled = !financialDataActionBusy, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)) { Text(WebI18n.tr("مسح جميع البيانات المالية", "Erase all financial data", lang)) }
+                    financialDataActionMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface) }
+                }
+            }
+        }
+        // Voice provider settings live in general settings, not in the model picker screen.
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    WebI18n.tr("صوت المساعد", "Assistant voice", lang),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                VoiceProviderSettingsCard(lang = lang)
+            }
+        }
+
         // Application information is intentionally opened on demand, matching the web "About" area.
         item {
             Card(
@@ -406,6 +437,21 @@ fun SettingsScreen(
         }
     }
 
+
+    if (showResetAccountsDialog) {
+        AlertDialog(onDismissRequest = { if (!financialDataActionBusy) showResetAccountsDialog = false },
+            title = { Text(WebI18n.tr("تأكيد تصفير الحسابات", "Confirm account reset", lang), fontWeight = FontWeight.Bold) },
+            text = { Text(WebI18n.tr("سيصبح الرصيد الحالي والافتتاحي لكل الحسابات صفراً، مع الاحتفاظ بالحسابات وسجل المعاملات والديون. هل تريد المتابعة؟", "All current and opening balances become zero; accounts and transaction/debt history remain. Continue?", lang)) },
+            confirmButton = { TextButton(enabled = !financialDataActionBusy, onClick = { viewModel.resetAllAccountBalances { ok -> showResetAccountsDialog = false; financialDataActionMessage = if (ok) WebI18n.tr("تم تصفير جميع أرصدة الحسابات.", "All account balances were reset.", lang) else WebI18n.tr("تعذر تصفير الحسابات.", "Could not reset accounts.", lang) } }) { Text(WebI18n.tr("تصفير", "Reset", lang), color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { showResetAccountsDialog = false }, enabled = !financialDataActionBusy) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) } })
+    }
+    if (showClearFinancialDataDialog) {
+        AlertDialog(onDismissRequest = { if (!financialDataActionBusy) showClearFinancialDataDialog = false },
+            title = { Text(WebI18n.tr("تحذير: مسح البيانات المالية", "Warning: erase financial data", lang), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error) },
+            text = { Text(WebI18n.tr("سيُحذف نهائياً من الجهاز: الحسابات والمعاملات والتحويلات والديون ودفعاتها والميزانيات والفواتير والمدخرات والأصول وسجلات العمل والمنزل والمستندات وسجل التدقيق. لن تُحذف هوية تسجيل الدخول أو الملف الشخصي أو إعدادات التطبيق. لا يمكن التراجع. هل أنت متأكد؟", "This permanently erases local accounts, transactions, transfers, debts and payments, budgets, bills, savings, assets, work and household records, documents, and audit logs. Sign-in identity, profile, and app settings remain. This cannot be undone. Continue?", lang)) },
+            confirmButton = { TextButton(enabled = !financialDataActionBusy, onClick = { viewModel.clearAllFinancialData { ok -> showClearFinancialDataDialog = false; financialDataActionMessage = if (ok) WebI18n.tr("تم مسح البيانات المالية المحلية.", "Local financial data erased.", lang) else WebI18n.tr("تعذر مسح جميع البيانات المالية.", "Could not erase all financial data.", lang) } }) { Text(WebI18n.tr("مسح نهائي", "Erase permanently", lang), color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { showClearFinancialDataDialog = false }, enabled = !financialDataActionBusy) { Text(WebI18n.tr("إلغاء", "Cancel", lang)) } })
+    }
     if (showAboutDialog) {
         AlertDialog(
             onDismissRequest = { showAboutDialog = false },
