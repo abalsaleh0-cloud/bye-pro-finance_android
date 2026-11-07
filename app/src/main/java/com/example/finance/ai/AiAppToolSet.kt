@@ -191,6 +191,63 @@ class AiAppToolSet(
         )
     }
 
+    @Tool(description = "Prepare an edit to a work source name and monthly salary. Source type and currency are preserved. Changes only after confirmation.")
+    fun proposeUpdateWorkSource(id: Long, name: String, monthlySalary: Double): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val current = repository.workSources.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Work source not found.")
+        val cleanName = name.trim()
+        if (cleanName.length !in 2..100 || !monthlySalary.isFinite() || monthlySalary < 0.0 ||
+            (current.type == WorkSourceType.FREELANCE && monthlySalary != 0.0)
+        ) return@runBlocking mapOf("success" to false, "error" to "Work source values are invalid.")
+        stageUpdate("مراجعة تعديل مصدر العمل", "المصدر #$id: ${current.name} ← $cleanName\nالراتب الشهري: $monthlySalary ${current.currency}", suspend {
+            repository.updateWorkSource(current.copy(name = cleanName, monthlySalary = monthlySalary))
+            "تم تعديل مصدر العمل بعد تأكيدك."
+        })
+    }
+
+    @Tool(description = "Prepare deletion of an unused work source. A source with any historical work records cannot be deleted; its records are never removed or rewritten.")
+    fun proposeDeleteWorkSource(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val current = repository.workSources.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Work source not found.")
+        val used = repository.workRecords.first().any { it.sourceId == id }
+        if (used) return@runBlocking mapOf("success" to false, "error" to "This source has historical work records. Archive it instead; records will remain unchanged.")
+        stageUpdate("مراجعة حذف مصدر العمل", "حذف المصدر غير المستخدم #$id: ${current.name}", suspend {
+            check(repository.deleteWorkSourceIfUnused(id)) { "The work source is now in use and cannot be deleted." }
+            "تم حذف مصدر العمل غير المستخدم بعد تأكيدك."
+        })
+    }
+
+    @Tool(description = "Prepare editing a work record's amount, period, date and notes. Type, source, currency, related receivable and linked-account relationship are preserved. Any linked personal transaction is updated through repository accounting logic.")
+    fun proposeUpdateWorkRecord(id: Long, amount: Double, period: String, date: Long, notes: String): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val current = repository.workRecords.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Work record not found.")
+        val cleanPeriod = period.trim()
+        if (!amount.isFinite() || amount <= 0.0 || !cleanPeriod.matches(Regex("\\d{4}-\\d{2}")) || date <= 0L)
+            return@runBlocking mapOf("success" to false, "error" to "Work record values are invalid.")
+        val linkedTransaction = current.linkedTransactionId?.let { transactionId ->
+            repository.transactions.first().firstOrNull { it.id == transactionId }
+                ?: return@runBlocking mapOf("success" to false, "error" to "The linked personal transaction could not be found; no changes were staged.")
+        }
+        val updatedTransaction = linkedTransaction?.copy(amount = amount, description = notes.trim())
+        stageUpdate("مراجعة تعديل حركة العمل", "الحركة #$id: ${current.type}\nالمبلغ: ${current.amount} ← $amount ${current.currency}\nالفترة: ${current.period} ← $cleanPeriod\nالملاحظات: $notes", suspend {
+            repository.updateWorkRecord(current.copy(amount = amount, period = cleanPeriod, date = date, notes = notes.trim()), updatedTransaction)
+            "تم تعديل حركة العمل بعد تأكيدك مع الحفاظ على ارتباطها المحاسبي."
+        })
+    }
+
+    @Tool(description = "Prepare deletion of a work record. Repository accounting logic reverses any linked personal-account transaction safely. A freelance receivable with linked payments cannot be deleted.")
+    fun proposeDeleteWorkRecord(id: Long): Map<String, Any> = runBlocking(Dispatchers.IO) {
+        val current = repository.workRecords.first().firstOrNull { it.id == id }
+            ?: return@runBlocking mapOf("success" to false, "error" to "Work record not found.")
+        val records = repository.workRecords.first()
+        if (current.type == WorkRecordType.FREELANCE_INCOME && records.any { it.type == WorkRecordType.FREELANCE_PAYMENT && it.relatedRecordId == id })
+            return@runBlocking mapOf("success" to false, "error" to "This receivable has linked payments. Resolve those payments first; nothing was changed.")
+        stageUpdate("مراجعة حذف حركة العمل", "حذف الحركة #$id: ${current.type} — ${current.amount} ${current.currency}", suspend {
+            repository.deleteWorkRecord(id)
+            "تم حذف حركة العمل بعد تأكيدك وتطبيق تسوية أي ارتباط محاسبي."
+        })
+    }
+
     @Tool(description = "Read a compact overview of the user's local accounts, budgets, debts and savings goals. Use only to answer a question about the user's own finance data.")
     fun getFinancialOverview(): Map<String, Any> = runBlocking(Dispatchers.IO) {
         val accountRows = repository.accounts.first()
@@ -1004,6 +1061,10 @@ class AiAppToolSet(
             "getWorkLedgerOverview" to listOf(),
             "proposeCreateWorkSource" to listOf("name", "type", "monthlySalary", "currency"),
             "proposeCreateWorkRecord" to listOf("sourceId", "type", "amount", "currency", "period", "notes", "accountId", "relatedRecordId", "scope"),
+            "proposeUpdateWorkSource" to listOf("id", "name", "monthlySalary"),
+            "proposeDeleteWorkSource" to listOf("id"),
+            "proposeUpdateWorkRecord" to listOf("id", "amount", "period", "date", "notes"),
+            "proposeDeleteWorkRecord" to listOf("id"),
             "getFinancialOverview" to listOf(),
             "listProjectPlans" to listOf(),
             "proposeCreateProjectPlan" to listOf("title", "objective", "technologyStack", "milestones", "tasks"),
