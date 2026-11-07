@@ -94,13 +94,13 @@ internal object AiCommandRouter {
             val month = it.groupValues[2].toIntOrNull() ?: return@let null
             if (month in 1..12) "${it.groupValues[1]}-${month.toString().padStart(2, '0')}" else null
         }
-        val monthOnly = Regex("""(?:ل)?شهر\\s*([0-9]{1,2})""").find(text)?.let {
+        val monthOnly = Regex("""(?:ل)?شهر\s*([0-9]{1,2})""").find(text)?.let {
             val month = it.groupValues[1].toIntOrNull() ?: return@let null
             val year = currentMonth.substringBefore('-').toIntOrNull() ?: return@let null
             if (month in 1..12) "${year}-${month.toString().padStart(2, '0')}" else null
         }
         val explicitMonth = fullMonth ?: monthOnly
-        val amountText = Regex("""(?:20[0-9]{2}[-/][0-9]{1,2}|(?:ل)?شهر\\s*[0-9]{1,2})""").replace(text, " ")
+        val amountText = Regex("""(?:20[0-9]{2}[-/][0-9]{1,2}|(?:ل)?شهر\s*[0-9]{1,2})""").replace(text, " ")
         val amountMatch = Regex("""([0-9]+(?:[.,][0-9]{1,2})?)""").find(amountText) ?: return null
         val amount = amountMatch.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
         if (!amount.isFinite() || amount <= 0.0) return null
